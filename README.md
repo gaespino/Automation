@@ -1,5 +1,6 @@
 # Automation
- Tools for PPV / RVP / PTC Log manipulation
+ 
+# Tools for PPV / RVP / PTC Log manipulation
 
  Use PPVTools.py as the main menu for all the tools.
 
@@ -14,3 +15,7 @@ MCA Parser uses DPMB report format as base, decodes the MCA data into a more rea
 PTC Loop Parser, outputs a file in the format of DPMB report, so it can be consumed by the MCA Parser.
 DPMB connects to the Bucketer API to generate the PPV units reports based on VIDs lists and WW selected.
 File Handler, is a miscellaneous script used to Merge previous Excel reports into one, for data consolidation purposes
+
+# Shmoo Parser
+
+Use GNRShmoo.py to open the UI, this tool can generate a graphical Shmoo based on Tester logs, ituff data or VPO numbers.
