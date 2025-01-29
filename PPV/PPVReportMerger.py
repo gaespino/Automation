@@ -99,8 +99,8 @@ def append_excel_tables(source_file, target_file, sheet_names):
 
 def test():
     # Example usage
-    input_folder = rf'C:\ParsingFiles\MCAParser_Tests\MergeFilesDPMB'
-    output_file = rf'C:\ParsingFiles\MCAParser_Tests\merged_output.xlsx'
+    input_folder = rf'C:\ParsingFiles\MCAParser_Tests\MergeFiles'
+    output_file = rf'C:\ParsingFiles\MCAParser_Tests\211_Merged_Test_018.xlsx'
 
     sheet_names = ['CHA', 'CORE', 'PPV', 'CHA_MCAS', 'LLC_MCAS', 'CORE_MCAS']
 

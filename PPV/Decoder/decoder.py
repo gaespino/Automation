@@ -48,15 +48,9 @@ class decoder():
 			pat = pattern
 		
 		regex_pat = '|'.join(pat)
-		#filtered = df[(df[dfcol].str.contains(pattern))]
-		#if not filtered.empty:
-		#	return filtered
-		## it can be a single pattern or mutiple
-		#for p in pat:
+
 		filtered= df[(df[dfcol].str.contains(regex_pat, case=False, na=False))]
-		#if not filter.empty:
-		#		filtered.merge(filter)
-		
+
 		if not filtered.empty:
 			return filtered   			
 		return None
@@ -65,21 +59,24 @@ class decoder():
 	def lookup_pattern(self, compute, location, operation, suffix, thread = '', ptype = 'cha'):
 		
 		if ptype == 'cha':
-			pattern = f"DPMB_SOCKET0__COMPUTE{compute}__UNCORE__CHA__CHA{location}__UTIL__MC_{suffix}"#_{operation}"
+			pattern = f"SOCKET0__COMPUTE{compute}__UNCORE__CHA__CHA{location}__UTIL__MC_{suffix}"#_{operation}"
 		elif ptype == 'llc':
-			pattern = f"DPMB_SOCKET0__COMPUTE{compute}__UNCORE__SCF__SCF_LLC__SCF_LLC{location}__MCI_{suffix}"#_{operation}"
+			pattern = f"SOCKET0__COMPUTE{compute}__UNCORE__SCF__SCF_LLC__SCF_LLC{location}__MCI_{suffix}"#_{operation}"
 		#DPMB_SOCKET0__COMPUTE0__CPU__CORE0__ML2_CR_MC3_ADDR_8749
 		elif ptype == 'core_ml2':
-				pattern = f"DPMB_SOCKET0__COMPUTE{compute}__CPU__CORE{location}__ML2_CR_MC3_{suffix}"#_{operation}"		
+				pattern = f"SOCKET0__COMPUTE{compute}__CPU__CORE{location}__ML2_CR_MC3_{suffix}"#_{operation}"		
 		#DPMB_SOCKET0__COMPUTE1__CPU__CORE68__THREAD0__DCU_CR_MC1_STATUS_8749
 		elif ptype == 'core_dcu':
-				pattern = f"DPMB_SOCKET0__COMPUTE{compute}__CPU__CORE{location}__THREAD{thread}__DCU_CR_MC1_{suffix}"#_{operation}"	
+				pattern = f"SOCKET0__COMPUTE{compute}__CPU__CORE{location}__THREAD{thread}__DCU_CR_MC1_{suffix}"#_{operation}"	
 		#DPMB_SOCKET0__COMPUTE0__CPU__CORE0__DTLB_CR_MC2_STATUS_*
 		elif ptype == 'core_dtlb':
-				pattern = f"DPMB_SOCKET0__COMPUTE{compute}__CPU__CORE{location}__DTLB_CR_MC2_{suffix}"#_{operation}"	
+				pattern = f"SOCKET0__COMPUTE{compute}__CPU__CORE{location}__DTLB_CR_MC2_{suffix}"#_{operation}"	
 		#DPMB_SOCKET0__COMPUTE0__CPU__CORE0__THREAD*__IFU_CR_MC0_STATUS_*
 		elif ptype == 'core_ifu':
-				pattern = f"DPMB_SOCKET0__COMPUTE{compute}__CPU__CORE{location}__THREAD{thread}__IFU_CR_MC0_{suffix}"#_{operation}"	
+				pattern = f"SOCKET0__COMPUTE{compute}__CPU__CORE{location}__THREAD{thread}__IFU_CR_MC0_{suffix}"#_{operation}"	
+		elif ptype == 'ubox':
+				pattern = f"SOCKET0__{compute}__UNCORE__{location}__NCEVENTS__{suffix}"#_{operation}"	
+
 		return pattern
 
 	# XLOOKUP equivalent in pandas
@@ -576,7 +573,150 @@ class decoder():
 		### Orig Req	Opcode	cachestate	TorID	TorFSM	SrcID	ISMQ	Attribute	Result	Local Port
 		
 		return mc_value, ms_value
+
+	def portids(self):
 		
+		mcdata = self.data
+		# Initialize the new dataframe
+		columns = ['VisualID', 'Run', 'Operation', 'NCEVENT', 'VALUE', 'FirstError - DIEID', 'FirstError - PortID', 'FirstError - Location', 'FirstError - FromCore', 'SecondError - DIEID', 'SecondError - PortID', 'SecondError - Location', 'SecondError - FromCore']
+
+		# UBOX List
+		portid_data = ['FirstError - DIEID', 'FirstError - PortID', 'FirstError - Location', 'FirstError - FromCore', 'SecondError - DIEID', 'SecondError - PortID', 'SecondError - Location', 'SecondError - FromCore']
+		#decodelistmisc = ['RSF','LSF','LLC_misc']
+		#decodelistmisc3 = ['SrcID','ISMQ','Attribute','Result','Local Port']
+
+		data_dict = {k:[] for k in columns}
+		
+		for visual_id in mcdata['VisualId'].unique():
+
+			# Split Data into required elements
+			subset = mcdata[(mcdata['VisualId'] == visual_id) & (mcdata['TestName'].str.contains('UBOX'))]
+
+			# Further split into required lookup registers for each VID
+			mcerrorlog = self.extract_value(subset,'TestName', '__MCERRLOGGINGREG')# subset[(subset['TestName'].str.contains('UTIL__MC_STATUS'))] #self.extract_value(subset, 'UTIL__MC_STATUS')
+			ierrorlog = self.extract_value(subset,'TestName', '__IERRLOGGINGREG')# subset[subset['TestName'].str.contains('UTIL__MC_ADDR')]#self.extract_value(subset, 'UTIL__MC_ADDR')
+			#misc_filtered = self.extract_value(subset,'TestName', '__MCI_MISC')# subset[subset['TestName'].str.contains('UTIL__MC_MISC_')]#self.extract_value(subset, 'UTIL__MC_MISC_')
+			#misc3_filtered = self.extract_value(subset,'TestName', 'UTIL__MC_MISC3_')# subset[subset['TestName'].str.contains('UTIL__MC_MISC3_')]#self.extract_value(subset, 'UTIL__MC_MISC3')
+			
+			# If no MCA is found move to the next VID
+			try:
+				portidData = pd.concat([mcerrorlog, ierrorlog])
+				if portidData.empty:
+					print(f' -- No NCEVENT data found for LLCs in VID: {visual_id}')
+					continue
+			except:
+				print(f' -- No NCEVENT data found for LLCs in VID: {visual_id}')
+				continue
+			
+			# This will iterate over all the MCAS to look for Address, Misc and MISC3 data for corresponding fail IP
+			for i, data in portidData.iterrows():
+				
+				# Build new
+				data_dict['VisualID'] += [visual_id]
+				LotsSeqKey = data['LotsSeqKey']
+				UnitTestingSeqKey = data['UnitTestingSeqKey']
+				#compute =  re.search(r'IO(\d+)', data['TestName']).group(1) #data['TestName'].extract(r'COMPUTE(\d+)')
+				#llc = re.search(r'LLC(\d+)', data['TestName']).group(1)  #data['TestName'].extract(r'CHA(\d+)')
+				operation = data['Operation']
+
+				## Address lookup pattern
+				#mcelog = self.lookup_pattern(compute='IO0', location='UBOX', operation=operation, suffix="MCERRLOGGINGREG", ptype='ubox')
+				#ierrlog = self.lookup_pattern(compute='IO0', location='UBOX', operation=operation, suffix="IERRLOGGINGREG", ptype='ubox')
+				#misc3_lut = self.lookup_pattern(compute, cha, operation, suffix="MISC3")
+
+				## MCA Lookup values
+				value = data['TestValue']
+				name = data['TestName']
+				#mcelog_value = self.xlookup(lookup_array=mcerrorlog, testname = mcelog, LotsSeqKey = LotsSeqKey, UnitTestingSeqKey = UnitTestingSeqKey)
+				#ierrlog_value = self.xlookup(lookup_array=ierrorlog, testname = ierrlog, LotsSeqKey = LotsSeqKey, UnitTestingSeqKey = UnitTestingSeqKey)
+				#misc_value3 = self.xlookup(lookup_array=misc3_filtered, testname = misc3_lut, LotsSeqKey = LotsSeqKey, UnitTestingSeqKey = UnitTestingSeqKey)
+				
+				## Get Run Info
+				run = str(LotsSeqKey) + "-" + str(UnitTestingSeqKey)	
+				data_dict['Run'] += [run]
+				data_dict['Operation'] += [str(operation)]
+				data_dict['NCEVENT'] += [name]
+				#data_dict['ORIGIN'] += 'UBOX'
+				#data_dict['LLC'] += [f'LLC{llc}']
+				data_dict['VALUE'] += [value]
+				#data_dict['MC_ADDR'] += [addr_value]
+				#data_dict['MC_MISC'] += [misc_value]
+				#data_dict['MC_MISC3'] += [misc_value3]
+			
+				### MCdecode Data
+				### Cha decode Orig Req	Opcode	cachestate	TorID	TorFSM	SrcID	ISMQ	Attribute	Result	Local Port
+
+				
+				if 'MCERRLOGGINGREG' in name: portids_values = self.portids_decoder(value=value, portid_data=portid_data, event='mcerr')
+				if 'IERRLOGGINGREG' in name: portids_values = self.portids_decoder(value=value, portid_data=portid_data, event='ierr')
+				
+				for k,v in portids_values.items():
+					data_dict[k] += [v]
+				#for dval in decodelistmisc:
+				#	data_dict[dval] += [self.llc_decoder(value=misc_value, type=dval)]
+				
+				#for dval in decodelistmisc3:
+				#	data_dict[dval] += [self.cha_decoder(value=misc_value3, type=dval)]
+		new_df = pd.DataFrame(data_dict)
+		return new_df
+
+	def portids_decoder(self, value, portid_data, event):
+		#portid_data = ['DIE_TYPE', 'DIE SEGMENT', 'TYPE', 'DEVICE','PORT ID (11 bits LSB)','DIE ID(5 bits MSB)']	
+		
+
+		data = { 	'firstierrsrcid': {'table': None, 'min': 0,'max':15}, 
+		  			'firstmcerrsrcid': {'table': None, 'min': 0,'max':15}, 
+					'firstierrsrcvalid': {'table': None, 'min': 16,'max':16}, 
+					'firstmcerrsrcvalid': {'table': None, 'min': 16,'max':16}, 
+					'firstierrsrcfromcore': {'table': None, 'min': 17,'max':17}, 
+					'firstmcerrsrcfromcore': {'table': None, 'min': 17,'max':17}, 
+					'secondierrsrcid': {'table': None, 'min': 32,'max':47}, 
+		  			'secondmcerrsrcid': {'table': None, 'min': 32,'max':47}, 
+					'secondierrsrcvalid': {'table': None, 'min': 48,'max':48}, 
+					'secondmcerrsrcvalid': {'table': None, 'min': 48,'max':48}, 
+					'secondierrsrcfromcore': {'table': None, 'min': 49,'max':49}, 
+					'secondmcerrsrcfromcore': {'table': None, 'min': 49,'max':49}, 
+
+			}
+		first = data[f'first{event}srcid']
+		first_valid = data[f'first{event}srcvalid']
+		first_core = data[f'first{event}srcfromcore']
+
+		second = data[f'second{event}srcid']
+		second_valid = data[f'second{event}srcvalid']
+		second_core = data[f'second{event}srcfromcore']
+
+		portids_value = {k:'' for k in portid_data}
+
+		# If nothing is found return empty string
+		if value == '':
+			return value
+		
+		firstvalue = hex(extract_bits(hex_value=value, min_bit=first['min'], max_bit=first['max'])).replace("0x","").upper()
+		firstvalid = extract_bits(hex_value=value, min_bit=first_valid['min'], max_bit=first_valid['max'])
+		firstcore = extract_bits(hex_value=value, min_bit=first_core['min'], max_bit=first_core['max'])
+
+		secondvalue =  hex(extract_bits(hex_value=value, min_bit=second['min'], max_bit=second['max'])).replace("0x","").upper()
+		secondvalid = extract_bits(hex_value=value, min_bit=second_valid['min'], max_bit=second_valid['max'])
+		secondcore = extract_bits(hex_value=value, min_bit=second_core['min'], max_bit=second_core['max'])
+
+		portids = portids_json
+
+		
+		for v in portids_value.keys():
+			if firstvalid == 1:
+				if v == 'FirstError - DIEID': portids_value[v] = portids[firstvalue][0]['DIE ID(5 bits MSB)']
+				if v == 'FirstError - PortID': portids_value[v] = portids[firstvalue][0]['PORT ID (11 bits LSB)']
+				if v == 'FirstError - Location': portids_value[v] = portids[firstvalue][0]['DEVICE']    		
+				if v == 'FirstError - FromCore': portids_value[v] = firstcore   
+			if secondvalid == 1:
+				if v == 'SecondError - DIEID': portids_value[v] = portids[secondvalue][0]['DIE ID(5 bits MSB)']
+				if v == 'SecondError - PortID': portids_value[v] = portids[secondvalue][0]['PORT ID (11 bits LSB)']
+				if v == 'SecondError - Location': portids_value[v] = portids[secondvalue][0]['DEVICE']    
+				if v == 'SecondError - FromCore': portids_value[v] = secondcore
+
+		return portids_value
+
   	
 ## Extract bits from hex values decoding purposes and data extraction
 def extract_bits(hex_value, min_bit, max_bit):
@@ -640,3 +780,4 @@ def find_matching_key(hex_value, dictionary):
 # Cha decoder file
 cha_json = dev_dict('cha_params.json')
 core_json = dev_dict('core_params.json')
+portids_json = dev_dict('GNRPortIDs.json')

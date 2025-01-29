@@ -10,7 +10,7 @@ class FileHandlerGUI:
         self.root.title("Report Tools - Merge / Append Report Data")
         self.root.geometry("650x190")  # Set fixed size for the window
         self.root.resizable(False, False)  # Disable resizing
-        self.sources = ['Merge', 'Append', 'RawMerge']
+        self.sources = ['Merge', 'Append']#, 'RawMerge']
         # Bucket
         #self.name_label = tk.Label(root, text="Bucket:")
         #self.name_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
@@ -28,19 +28,19 @@ class FileHandlerGUI:
 
         # Destination File
         self.target_file_label = tk.Label(root, text="Output File:")
-        self.target_file_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        self.target_file_label.grid(row=2, column=0, padx=10, pady=5, sticky="w")
         self.target_file_entry = tk.Entry(root, width=75, state=tk.DISABLED)
-        self.target_file_entry.grid(row=1, column=1, padx=10, pady=5, sticky="ew", columnspan=2)
-        self.target_file_button = tk.Button(root, text=" Browse ", command=self.browse_destination_file, state=tk.DISABLED)
-        self.target_file_button.grid(row=1, column=3, padx=10, pady=5)
+        self.target_file_entry.grid(row=2, column=1, padx=10, pady=5, sticky="ew", columnspan=2)
+        self.target_file_button = tk.Button(root, text=" Browse ", command=self.browse_output, state=tk.DISABLED)
+        self.target_file_button.grid(row=2, column=3, padx=10, pady=5)
 
         # Source Folder
         self.folder_label = tk.Label(root, text="Source Folder:")
-        self.folder_label.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        self.folder_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
         self.folder_entry = tk.Entry(root, width=75, state=tk.DISABLED)
-        self.folder_entry.grid(row=2, column=1, padx=10, pady=5, sticky="ew", columnspan=2)
-        self.folder_button = tk.Button(root, text=" Browse ", command=self.browse_output, state=tk.DISABLED)
-        self.folder_button.grid(row=2, column=3, padx=10, pady=5)
+        self.folder_entry.grid(row=1, column=1, padx=10, pady=5, sticky="ew", columnspan=2)
+        self.folder_button = tk.Button(root, text=" Browse ", command=self.browse_destination_file, state=tk.DISABLED)
+        self.folder_button.grid(row=1, column=3, padx=10, pady=5)
 
         # Submit Button
         self.submit_button = tk.Button(root, text="Submit", command=self.submit)
@@ -68,14 +68,14 @@ class FileHandlerGUI:
     def browse_output(self):
         if self.source.get() == 'Append': file_path = filedialog.askopenfilename()
         else: file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
-        self.folder_entry.delete(0, tk.END)
-        self.folder_entry.insert(0, file_path)
+        self.target_file_entry.delete(0, tk.END)
+        self.target_file_entry.insert(0, file_path)
 
     def browse_destination_file(self):
         if self.source.get() == 'Append': file_path = filedialog.askopenfilename()
-        else: file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
-        self.target_file_entry.delete(0, tk.END)
-        self.target_file_entry.insert(0, file_path)
+        else: file_path = filedialog.askdirectory()
+        self.folder_entry.delete(0, tk.END)
+        self.folder_entry.insert(0, file_path)
 
 
     def update_source(self, event):
@@ -106,9 +106,9 @@ class FileHandlerGUI:
         # ['Merge', 'Append', 'RawMerge']
         if data['Mode'] == 'Append':
             prm.append_excel_tables(source_file=data['Source'], target_file=data['Target'], sheet_names=prm.sheet_names)
+        #elif data['Mode'] == 'Merge':
+        #    prm.merge_specific_tables(input_folder=data['Source'], output_file=data['Target'], sheet_names=prm.sheet_names )
         elif data['Mode'] == 'Merge':
-            prm.merge_specific_tables(input_folder=data['Source'], output_file=data['Target'], sheet_names=prm.sheet_names )
-        elif data['Mode'] == 'RawMerge':
             prm.merge_excel_files(input_folder=data['Source'], output_file=data['Target'])
 
         # You can add your logic here to handle the submitted data

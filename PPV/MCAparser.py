@@ -79,7 +79,8 @@ class ppv_report():
 							'__MCI_ADDR':None,
 							'UTIL__MC_MISC':'0X80',
 #							'__MC_MISC3':None,
-							'BIOS':None,
+#							'BIOS':None,
+							'UBOX':None,
 							'FW_ERR_CAUSE': None,
 							'S3M_ERR_STS' : None,
 							'PTPCFSMS__MC_STATUS':None}
@@ -377,16 +378,19 @@ class ppv_report():
 		
 		cha_df = mc.cha()
 		llc_df = mc.llc()
-		
+		ubox_df = mc.portids()
+
 		# Save the new dataframe to a new worksheet named "CHA_MCAS"
 		with pd.ExcelWriter(source_file, engine='openpyxl', mode='a') as writer:
 			cha_df.to_excel(writer, sheet_name='CHA_MCAS', index=False)
 			llc_df.to_excel(writer, sheet_name='LLC_MCAS', index=False)
+			ubox_df.to_excel(writer, sheet_name='UBOX', index=False)
 		#with pd.ExcelWriter(source_file, engine='openpyxl', mode='a') as writer:
 			
 		
 		addtable(df=cha_df, excel_file=source_file, sheet='CHA_MCAS', table_name='chadecode')
 		addtable(df=llc_df, excel_file=source_file, sheet='LLC_MCAS', table_name='llcdecode')
+		addtable(df=ubox_df, excel_file=source_file, sheet='UBOX', table_name='uboxdecode')
 
 	def parse_CORE_mcas(self, source_file, source_sheet):
     		
@@ -514,8 +518,8 @@ def load_dataframe_to_excel(df, excel_file, sheet_name, table_name):
 #if __name__ == "__main__":
 def test(): ## Comment and run with above line, not setting args for this one, use the UI
 	# Example usage
-	source_file = r'C:\ParsingFiles\MCAParser_Tests'
-	filename = r'\100_1234_DataCollection_MCA_Report.xlsx'
+	source_file = r'C:\ParsingFiles\Wxsnp_Logs'
+	filename = r'\74GD669200211_Experiments_data.xlsx'
 	source_file = source_file + filename
 	path = r'C:\ParsingFiles\MCAParser_Tests'
 	#source_sheet = 'raw_data'
@@ -529,8 +533,8 @@ def test(): ## Comment and run with above line, not setting args for this one, u
 
 	# User inputs
 	name = 'GNR3'
-	week = 'WW51'
-	label = 'LLC_test001'
+	week = 'WW4'
+	label = 'UBOX_TEST'
 	
 	reduced_data_cha = {'UTIL__MC_STATUS': '0X20000000000000', 'LLC':'0X20000000000000', 'BIOS':None}
 	reduced_data_core = {'ML2_CR_MC3_STATUS': '0X20000000000000', 'PMSB':None}

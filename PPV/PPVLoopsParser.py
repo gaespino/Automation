@@ -32,11 +32,11 @@ def argparser(debug):
 	else:
 		class Args:
 			#savefile = 'I:\\intel\\engineering\\dev\\team_ftw\\gaespino\\EMRMCC\\PEGA_SHMOOS_VF_NOVF\\ShmooParsed_Data.txt'
-			folder = r'Q:\DPM_Debug\GNR\Logs\LINUX\74698UA600262 (MB1_PTC 4952)'
-			output = r'C:\ParsingFiles\PPV_Loops_Parser\PTC_Test.xlsx'
+			folder = r'Q:\DPM_Debug\GNR\Logs\TORTO\Wxsnp\74698UA600272 (MB2)'
+			output = r'C:\ParsingFiles\PPV_Loops_Parser\PTC_Test_272.xlsx'
 			key = 100
-			bucket = 'LINUX_TORTO'
-			WW = '202446'
+			bucket = 'WXSNP_TORTO'
+			WW = 'WW5'
 			zfile = False
 
 		args = Args()
@@ -240,10 +240,12 @@ class LogsPTC():
                         #data['TestName'] += dpmb_data[0].upper()
                         #data['TestValue'] += dpmb_data[1].upper()
                         #data['ValueType'] += dpmb_data[2]
-                parsed_log = self.parse_logging(line)
-                if ptcstring in line and parsed_log is not None and not notlogging:
-                    #if 'Logging register:' in line:
-                    dpmb_data +=[parsed_log]
+                
+                if ptcstring in line and not notlogging:
+                    parsed_log = self.parse_logging(line)
+                    if  parsed_log:
+                        #  if 'Logging register:' in line:
+                        dpmb_data +=[parsed_log]
         
         if self.infolder: # This variable comes from previous directory check
             self.dpmb_location = dpmb_location if dpmb_location != '' else self.dpmb_location #''
@@ -257,9 +259,9 @@ class LogsPTC():
 
         # Build the Raw Data info for the sequence 
         for d in dpmb_data:
-            data['TestName'] = [f'{d[0].upper()}_{self.dpmb_location}']
-            data['TestValue'] = [d[1].upper()]
-            data['ValueType'] = [d[2]]
+            data['TestName'] += [f'{d[0].upper()}_{self.dpmb_location}']
+            data['TestValue'] += [d[1].upper()]
+            data['ValueType'] += [d[2]]
         
         data['TestNameWithoutNumeric'] = data['TestName']
 
