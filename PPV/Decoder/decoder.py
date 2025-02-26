@@ -454,7 +454,8 @@ class decoder():
 
 		tablems = data['MSCOD']['table']
 		mcminms = data['MSCOD']['min']
-		mcmaxms = data['MSCOD']['max']
+		if bank == 'DCU': mcmaxms = data['MSCOD']['max']
+		else: mcmaxms = 23 ## Only use first 8 bits
 
 		#tablepcc = data['MSCOD']['table']
 		pcccmin = data['PCC']['min']
@@ -504,7 +505,7 @@ class decoder():
 	def core_ml2(self, value):
 
 
-		data = { 	'MC DECODE': {'table': 'MCACOD', 'min': 0,'max':15}, ## Status
+		data = { 	'MC DECODE': {'table': 'MCACOD', 'min': 0,'max':11}, ## Status IS UP TO 12, but for decoding purposes we only check the first 12 bits
 					'MSCOD': {'table': 'MSCOD', 'min': 16,'max':31}, ## Misc
 
 			}
@@ -602,10 +603,10 @@ class decoder():
 			try:
 				portidData = pd.concat([mcerrorlog, ierrorlog])
 				if portidData.empty:
-					print(f' -- No NCEVENT data found for LLCs in VID: {visual_id}')
+					print(f' -- No NCEVENT data found in VID: {visual_id}')
 					continue
 			except:
-				print(f' -- No NCEVENT data found for LLCs in VID: {visual_id}')
+				print(f' -- No NCEVENT data found in VID: {visual_id}')
 				continue
 			
 			# This will iterate over all the MCAS to look for Address, Misc and MISC3 data for corresponding fail IP
@@ -692,27 +693,33 @@ class decoder():
 		if value == '':
 			return value
 		
-		firstvalue = hex(extract_bits(hex_value=value, min_bit=first['min'], max_bit=first['max'])).replace("0x","").upper()
+		#firstvalue = hex(extract_bits(hex_value=value, min_bit=first['min'], max_bit=first['max'])).replace("0x","").upper()
+		firstvalue = str(extract_bits(hex_value=value, min_bit=first['min'], max_bit=first['max']))
 		firstvalid = extract_bits(hex_value=value, min_bit=first_valid['min'], max_bit=first_valid['max'])
 		firstcore = extract_bits(hex_value=value, min_bit=first_core['min'], max_bit=first_core['max'])
+		firstportid =  extract_bits(hex_value=value, min_bit=0, max_bit=10)
+		firstdieid =  extract_bits(hex_value=value, min_bit=11, max_bit=15)
 
-		secondvalue =  hex(extract_bits(hex_value=value, min_bit=second['min'], max_bit=second['max'])).replace("0x","").upper()
+		#secondvalue =  hex(extract_bits(hex_value=value, min_bit=second['min'], max_bit=second['max'])).replace("0x","").upper()
+		secondvalue =  str(extract_bits(hex_value=value, min_bit=second['min'], max_bit=second['max']))
 		secondvalid = extract_bits(hex_value=value, min_bit=second_valid['min'], max_bit=second_valid['max'])
 		secondcore = extract_bits(hex_value=value, min_bit=second_core['min'], max_bit=second_core['max'])
+		secondportid =  extract_bits(hex_value=value, min_bit=32, max_bit=42)
+		seconddieid =  extract_bits(hex_value=value, min_bit=43, max_bit=47)
 
 		portids = portids_json
 
 		
 		for v in portids_value.keys():
 			if firstvalid == 1:
-				if v == 'FirstError - DIEID': portids_value[v] = portids[firstvalue][0]['DIE ID(5 bits MSB)']
-				if v == 'FirstError - PortID': portids_value[v] = portids[firstvalue][0]['PORT ID (11 bits LSB)']
-				if v == 'FirstError - Location': portids_value[v] = portids[firstvalue][0]['DEVICE']    		
+				if v == 'FirstError - DIEID': portids_value[v] = firstdieid#portids[firstvalue][0]['DIE ID(5 bits MSB)']
+				if v == 'FirstError - PortID': portids_value[v] = firstportid#portids[firstvalue][0]['PORT ID (11 bits LSB)']
+				if v == 'FirstError - Location': portids_value[v] = portids[firstvalue]  		
 				if v == 'FirstError - FromCore': portids_value[v] = firstcore   
 			if secondvalid == 1:
-				if v == 'SecondError - DIEID': portids_value[v] = portids[secondvalue][0]['DIE ID(5 bits MSB)']
-				if v == 'SecondError - PortID': portids_value[v] = portids[secondvalue][0]['PORT ID (11 bits LSB)']
-				if v == 'SecondError - Location': portids_value[v] = portids[secondvalue][0]['DEVICE']    
+				if v == 'SecondError - DIEID': portids_value[v] = seconddieid#portids[secondvalue][0]['DIE ID(5 bits MSB)']
+				if v == 'SecondError - PortID': portids_value[v] = secondportid#portids[secondvalue][0]['PORT ID (11 bits LSB)']
+				if v == 'SecondError - Location': portids_value[v] = portids[secondvalue]
 				if v == 'SecondError - FromCore': portids_value[v] = secondcore
 
 		return portids_value
@@ -780,4 +787,5 @@ def find_matching_key(hex_value, dictionary):
 # Cha decoder file
 cha_json = dev_dict('cha_params.json')
 core_json = dev_dict('core_params.json')
-portids_json = dev_dict('GNRPortIDs.json')
+#portids_json = dev_dict('GNRPortIDs.json')
+portids_json = dev_dict('log_portid.json')

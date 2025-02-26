@@ -32,12 +32,12 @@ def argparser(debug):
 	else:
 		class Args:
 			#savefile = 'I:\\intel\\engineering\\dev\\team_ftw\\gaespino\\EMRMCC\\PEGA_SHMOOS_VF_NOVF\\ShmooParsed_Data.txt'
-			folder = r'Q:\DPM_Debug\GNR\Logs\TORTO\Wxsnp\74698UA600272 (MB2)'
-			output = r'C:\ParsingFiles\PPV_Loops_Parser\PTC_Test_272.xlsx'
+			folder = r'C:\ParsingFiles\PPV_Loops_Parser'
+			output = r'C:\ParsingFiles\PPV_Loops_Parser\UnitData.xlsx'
 			key = 100
 			bucket = 'WXSNP_TORTO'
-			WW = 'WW5'
-			zfile = False
+			WW = 'WW8'
+			zfile = True
 
 		args = Args()
 	
@@ -286,8 +286,8 @@ class LogsPTC():
         results['DevRevStep'] = [self.dpmb_step]
         results['TestName'] = [data['TestName'][0] if data['TestName'] else " "] # need to update with first FAIL
         results['TestValue'] = [data['TestValue'][0] if data['TestValue'] else " "] # Need to update with first FAIL
-        results['DB'] = [debuglog[dpmb_sequence][0]] 
-        results['BinDesc'] = [debuglog[dpmb_sequence][1]]
+        results['DB'] = [debuglog[dpmb_sequence][0] if len(debuglog) > 0 else  " "]  
+        results['BinDesc'] = [debuglog[dpmb_sequence][1] if len(debuglog) > 0 else " "]
 
         # Fill Final Bin Dictionary missing keys
         final_bin['VisualId'] = dpmb_vid
@@ -393,12 +393,15 @@ class LogsPTC():
         
         for item in os.listdir(folder_path):
             item_path = os.path.join(folder_path, item)
-            temp_path = os.path.join(folder_path, 'temp_dir')
+                     
             if zipfile.is_zipfile(item_path) and '.zip' in item:
-                print(f'Working on file {item_path}, saving temp data in {temp_path}')
+                temp_name = os.path.basename(item).replace('.zip', '')
+                temp_path = os.path.join(folder_path, temp_name)
+                print(f'MSG-- Working on file {item_path}, saving temp data in {temp_path}')
                 data = self.search_in_zip(item_path, temp_path, search_string)
                 if not data:
                     print(f'No data found for file {item_path}')
+                print(f'MSG-- Removing temporal folder for file {item_path}, --> {temp_path}')
                 shutil.rmtree(temp_path)    
         #return data
 

@@ -33,7 +33,7 @@ class Tools(tk.Frame):
 		self.root.geometry("475x300")  # Set fixed size for the window
 		self.root.resizable(False, False)  # Disable resizing
 		
-		self.ppv_loop_parser_label = tk.Label(root, justify='left', text=" - Parse logs from PTC experiment data. \nOutput is a DPMB report format file.")
+		self.ppv_loop_parser_label = tk.Label(root, justify='left', text=" - Parse logs from PTC experiment data. \n > Output is a DPMB report format file.")
 		self.ppv_loop_parser_label.grid(row=0, column=1, padx=10, pady=5, sticky="w")		
 		ppv_loop_parser_button = tk.Button(root, text=" PTC Loop Parser ", command=self.open_ppv_loop_parser)
 		#ppv_loop_parser_button.pack(padx=10, pady=10)
@@ -41,7 +41,7 @@ class Tools(tk.Frame):
 		
 		self.add_separator(root, 1)
 
-		self.ppv_mca_report_label = tk.Label(root, justify='left', text=" - Generate a MCA report from a Bucketer report format file\n - Generate a DPMB report file from S2T Logger data.")
+		self.ppv_mca_report_label = tk.Label(root, justify='left', text=" - Generate a MCA report from a Bucketer report format file\n - Generate a MCA report file from S2T Logger data.")
 		self.ppv_mca_report_label.grid(row=2, column=1, padx=10, pady=5, sticky="w")	
 		ppv_mca_report_button = tk.Button(root, text=" PPV MCA Report ", command=self.open_ppv_mca_report)
 		#ppv_mca_report_button.pack(padx=10, pady=10)
@@ -49,7 +49,7 @@ class Tools(tk.Frame):
 		
 		self.add_separator(root, 3)
 
-		self.dpmb_label = tk.Label(root, justify='left', text=" - Bucketer requests for PPV runs data. \nConnects to API to requesta the Data.")
+		self.dpmb_label = tk.Label(root, justify='left', text=" - Bucketer requests for PPV runs data. \n > Connects to DPMB API to request Data.")
 		self.dpmb_label.grid(row=4, column=1, padx=10, pady=5, sticky="w")		
 		dpmb_button = tk.Button(root, text=" DPMB Requests ", command=self.open_dpmb)
 		#dpmb_button.pack(padx=10, pady=10)
