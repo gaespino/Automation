@@ -5,13 +5,22 @@ import MCAparser as mca
 tables = {'CHA':'cha_mc', 'CORE':'core_mc', 'PPV':'ppv', 'CHA_MCAS':'chadecode', 'LLC_MCAS':'llcdecode', 'CORE_MCAS':'coredecode'}
 sheet_names = ['CHA', 'CORE', 'PPV', 'CHA_MCAS', 'LLC_MCAS', 'CORE_MCAS']
 
-def merge_excel_files(input_folder, output_file):
+def merge_excel_files(input_folder, output_file, prefix = ''):
     # List to hold dataframes
     all_data = {}
 
     # Iterate over all Excel files in the input folder
     for file in os.listdir(input_folder):
-        if file.endswith('.xlsx') or file.endswith('.xls'):
+        
+        if prefix != None:
+            keyword = prefix
+            excelfile = (file.endswith(f'{keyword}.xlsx') or file.endswith(f'{keyword}.xls')) or (prefix in file and '.xls' in file)
+        else:
+            keyword = ''
+            excelfile = (file.endswith(f'{keyword}.xlsx') or file.endswith(f'{keyword}.xls'))
+       
+        print('ExcelFile',excelfile)
+        if excelfile:
             file_path = os.path.join(input_folder, file)
             excel_data = pd.read_excel(file_path, sheet_name=None)
             

@@ -42,13 +42,21 @@ class FileHandlerGUI:
         self.folder_button = tk.Button(root, text=" Browse ", command=self.browse_destination_file, state=tk.DISABLED)
         self.folder_button.grid(row=1, column=3, padx=10, pady=5)
 
+         # Source Folder
+        self.file_keyword = tk.Label(root, text="Keyword:")
+        self.file_keyword.grid(row=3, column=0, padx=10, pady=5, sticky="w")
+        self.file_keyword_entry = tk.Entry(root, width=75, state=tk.DISABLED)
+        self.file_keyword_entry.grid(row=3, column=1, padx=10, pady=5, sticky="ew", columnspan=2)
+
+
+
         # Submit Button
         self.submit_button = tk.Button(root, text="Submit", command=self.submit)
-        self.submit_button.grid(row=3, column=2, padx=1, pady=10, sticky="e")
+        self.submit_button.grid(row=4, column=2, padx=1, pady=10, sticky="e")
 
         # Close Button
         self.close_button = tk.Button(root, text="Close", command=root.destroy)
-        self.close_button.grid(row=3, column=3, padx=10, pady=10, sticky="e")
+        self.close_button.grid(row=4, column=3, padx=10, pady=10, sticky="e")
 
         # Configure column weights for proper resizing
         root.grid_columnconfigure(1, weight=1)
@@ -90,26 +98,28 @@ class FileHandlerGUI:
         if select == 'Append':
             self.target_file_label.config(text='Target File:')
             self.folder_label.config(text='Source File:')
+            self.file_keyword_entry.config(state=tk.DISABLED)
         else:
             self.target_file_label.config(text='Output File:')
             self.folder_label.config(text='Source Directory:')
+            self.file_keyword_entry.config(state=tk.NORMAL)
 
     def submit(self):
         data = {
         'Source' : self.folder_entry.get(),
         'Target' : self.target_file_entry.get(),
         'Mode' : self.source.get(),
-
+        'Prefix': rf'{self.file_keyword_entry.get()}' if self.file_keyword_entry.get() != '' else None
         #overview = self.overview_var.get()
         }
-        
+        self.header(data)
         # ['Merge', 'Append', 'RawMerge']
         if data['Mode'] == 'Append':
             prm.append_excel_tables(source_file=data['Source'], target_file=data['Target'], sheet_names=prm.sheet_names)
         #elif data['Mode'] == 'Merge':
         #    prm.merge_specific_tables(input_folder=data['Source'], output_file=data['Target'], sheet_names=prm.sheet_names )
         elif data['Mode'] == 'Merge':
-            prm.merge_excel_files(input_folder=data['Source'], output_file=data['Target'])
+            prm.merge_excel_files(input_folder=data['Source'], output_file=data['Target'], prefix = data['Prefix'])
 
         # You can add your logic here to handle the submitted data
         #messagebox.showinfo("Submitted Data", f"Bucket: {data['bucket']}\nWeek: {data['week']}\nSequence Key: {keyEntry}\nSave File: {data['output_file']}\nLoops Folder: {data['report']}\nPythonSV Format: {data['dpmb']}\nZipFile: {data['zfile']}\n --")
@@ -121,17 +131,14 @@ class FileHandlerGUI:
         #root.quit()
     def header(self, data):
         print(f' {"#"*120}\n')
-        print(f'\t{"-"*10} PPV Loops Parser {"-"*10}')
-        print(f'\tParsed file will be saved at: {data["output_file"]}\n')
+        print(f'\t{"-"*10} PPV File Handler {"-"*10}')
+        print(f'\tNew file will be saved at: {data["Target"]}\n')
         print(f'\tUsing Configuration:')
-        #print(f'\tvpos:   \t{vpo}')		
-        print(f'\tBucket:   \t{data["bucket"]}')	
-        print(f'\tWeek: \t\t{data["week"]}')	
-        print(f'\tKeyentry:   \t{data["keyEntry"]}')	
-        print(f'\tReport: \t{data["report"]}')	
-        print(f'\tParse File: \t{data["output_file"]}')
-        print(f'\tZip File:   \t\t{data["zfile"]}')
-        print(f'\tDPMB Format:   \t\t{data["dpmb"]}')
+        #print(f'\tvpos:   \t{vpo}')
+        print(f'\tMode:   \t\t{data["Mode"]}')		
+        print(f'\tSource:   \t{data["Source"]}')	
+        print(f'\tTarget: \t\t{data["Target"]}')	
+        print(f'\tKeyword:   \t{data["Prefix"]}')	
         print(f'\n{"#"*120}')
         print(f'{"#"*120}\n')
         print(f'\t{"-"*10} Processing data... Please wait.. {"-"*10} \n')

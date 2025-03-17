@@ -5,7 +5,7 @@ import pandas as pd
 import shutil
 import argparse
 
-debug = False
+debug = True
 
 def argparser(debug):
 	if not debug:
@@ -32,12 +32,12 @@ def argparser(debug):
 	else:
 		class Args:
 			#savefile = 'I:\\intel\\engineering\\dev\\team_ftw\\gaespino\\EMRMCC\\PEGA_SHMOOS_VF_NOVF\\ShmooParsed_Data.txt'
-			folder = r'C:\ParsingFiles\PPV_Loops_Parser'
-			output = r'C:\ParsingFiles\PPV_Loops_Parser\UnitData.xlsx'
+			folder = r'Q:/DPM_Debug/GNR/Logs/IDI/02_March_74B95D0700360/PTC/'
+			output = r'C:\ParsingFiles\PPV_Loops_Parser\core_idi_UnitData.xlsx'
 			key = 100
-			bucket = 'WXSNP_TORTO'
-			WW = 'WW8'
-			zfile = True
+			bucket = 'CORE_IDI'
+			WW = 'WW11'
+			zfile = False
 
 		args = Args()
 	
@@ -314,7 +314,7 @@ class LogsPTC():
         data = {'VisualId':[],'DpmBucket':[],'DecimaSite':[],'DecimaWW':[],'DecimaBucket':[],'DpmBucketAccuracy':[],'ProductConfigurationName':[],'BinDesc':[]}
         BinDesc = []
         
-        with open(file_path, 'r') as file:
+        with open(file_path, 'r', encoding= 'utf-8') as file:
             content = file.read()
 
             parts = content.split(self.unitstart)
