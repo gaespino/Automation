@@ -13,7 +13,7 @@ import os
 import Decoder.decoder as mcparse
 
 class ppv_report():
-	def __init__(self, name, week, label, source_file, report, data_core = None, data_cha = None, reduced = False, mcdetail = True, overview = False, decode = False):
+	def __init__(self, name, week, label, source_file, report, data_core = None, data_cha = None, reduced = False, mcdetail = True, overview = False, decode = False, mode='Bucketer'):
 
 		self.source_file = rf'{source_file}'
 		self.source_sheet = 'raw_data'
@@ -53,7 +53,7 @@ class ppv_report():
 		self.data_file = os.path.join(self.output, self.data_file)
 		self.mca_file = os.path.join(self.output, self.mca_file)
 
-		filecopy(self.template_file, self.data_file)
+		if mode == 'Bucketer': filecopy(self.template_file, self.data_file)
 		if self.mcfile: filecopy(self.template_file_MCchk, self.mca_file)
 
 		## OVerview file option selected -- Only works with Reduced selected
@@ -140,24 +140,31 @@ class ppv_report():
 		if 'CORE' in options and decode:
 			self.parse_CORE_mcas(self.data_file, self.sheet_CORE)
 		
-		# Open the Data file and MCA file to start moving the new table to the report
-		source_wb = file_open(file=self.data_file)
-		if mcfile_on: target_wb = file_open(file=self.mca_file)
+		self.gen_auxfiles(data_file = self.data_file, mca_file=self.mca_file, ovw_file=self.ovw_file, mcfile_on=mcfile_on, ovw_on= ovw_on, options = options)
+		
+		print(f' !!! New file report created succesfully !!!')
 
-		if ovw_on: ovw_wb = file_open(file=self.ovw_file)
+	def gen_auxfiles(self,data_file, mca_file, ovw_file, mcfile_on=False, ovw_on= True, options = ['MESH', 'CORE']):
+    
+		# Open the Data file and MCA file to start moving the new table to the report
+		if mcfile_on or ovw_on: 
+			source_wb = file_open(file=data_file)
+		if mcfile_on: 
+			target_wb = file_open(file=mca_file)
+
+		if ovw_on: 
+			ovw_wb = file_open(file=ovw_file)
 		# Update MCA Report
 			
-
 		for option in options:
 			if mcfile_on: self.copy_table_data(source_wb, target_wb, option = option)
 			if ovw_on: self.copy_table_data(source_wb, ovw_wb, option = option)
 		
 		# Close the files
-		file_close(source_wb, save=False)
+		if mcfile_on or ovw_on: file_close(source_wb, save=False)
 		if mcfile_on: file_close(target_wb)
 		if ovw_on: file_close(ovw_wb)
 		
-		print(f' !!! New file report created succesfully !!!')
 
 	def parse_data(self, option = 'MESH'):
 

@@ -10,11 +10,15 @@ from pathlib import Path
 import os
 
 # Load the CSV file into a DataFrame
-df = pd.read_csv('gnrtileconfig.csv')
+parent_dir =Path(__file__).parent #split(file_NAME)[0]
+csvfile = 'gnrtileconfig.csv'
+csvpath= os.path.join(parent_dir, csvfile)
+
+df = pd.read_csv(csvpath)
 
 ROWs = [1,2,3,4,5,6,7]
 COLs = [0,1,2,3,4,5,7,8,9]
-IPrange = [r for r in range(0,180)]
+PortIDrange = [r for r in range(0,256)]
 GNRtile = {}
 
 for index, row in df.iterrows():
@@ -28,4 +32,4 @@ for index, row in df.iterrows():
     
     GNRtile[die][core] = {'row': row_val, 'col': col_val}
 
-print(GNRtile)
+#print(GNRtile)
