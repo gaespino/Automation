@@ -145,7 +145,7 @@ class PPVReportGUI:
         if data['mode'] == 'Bucketer': 
             PPVMCAs.run(options=['MESH', 'CORE'])
         elif data['mode'] == 'Data': 
-            PPVMCAs.gen_auxfiles(data_file=data['source_file'], mca_file=PPVMCAs.mca_file, ovw_file=PPVMCAs.ovw_file, mcfile_on=data['mcfile'], ovw_on= data['overview'], options = ['MESH', 'CORE'])
+            PPVMCAs.gen_auxfiles(data_file=data['source_file'], mca_file=PPVMCAs.mca_file, ovw_file=PPVMCAs.ovw_file, mcfile_on=data['mcfile'], ovw_on= data['overview'], options = ['MESH', 'CORE', 'PPV'])
         else: print(' -- Not a valid mode')
         #self.__init__(self.root)
 

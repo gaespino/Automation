@@ -144,7 +144,7 @@ class ppv_report():
 		
 		print(f' !!! New file report created succesfully !!!')
 
-	def gen_auxfiles(self,data_file, mca_file, ovw_file, mcfile_on=False, ovw_on= True, options = ['MESH', 'CORE']):
+	def gen_auxfiles(self, data_file, mca_file, ovw_file, mcfile_on=False, ovw_on= True, options = ['MESH', 'CORE']):
     
 		# Open the Data file and MCA file to start moving the new table to the report
 		if mcfile_on or ovw_on: 
