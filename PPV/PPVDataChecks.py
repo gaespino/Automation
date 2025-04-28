@@ -26,7 +26,7 @@ class PPVReportGUI:
         #self.name_entry.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
         self.name_entry = tk.StringVar(root)
         self.name_entry.set("GNR")  # default value
-        self.product_menu = tk.OptionMenu(root, self.name_entry, "GNR")
+        self.product_menu = tk.OptionMenu(root, self.name_entry, "GNR","CWF")
         self.product_menu.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
 
         current_week = datetime.datetime.now().isocalendar()[1]

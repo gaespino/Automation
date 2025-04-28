@@ -8,36 +8,75 @@ import re
 import pandas as pd
 from pathlib import Path
 import os
+import sys
 
-# LLC MSCOD -- Taken from llc_mca_decoder in graniterapids repo
-LLC = {'MSCOD_BY_VAL': {
-  "0": "MSCOD_NONE",
-  "2": "MSCOD_UNCORRECTABLE_TAG_ERROR",
-  "36": "MSCOD_SF_STCV_UNCORR_ERR",
-  "33": "MSCOD_UNCORRECTABLE_SF_TAG_ERROR",
-  "19": "MSCOD_LLC_STCV_UNCORR_ERR",
-  "58": "MSCOD_RSF_TAG_UNCORR_ERR",
-  "59": "MSCOD_RSF_ST_UNCORR_ERR",
-  "41": "MSCOD_LLC_TWOLM_UNCORR_ERR",
-  "50": "MSCOD_SF_TWOLM_UNCORR_ERR",
-  "10": "MSCOD_PARITY_DATA_ERROR",
-  "1": "MSCOD_UNCORRECTABLE_DATA_ERROR",
-  "8": "MSCOD_MEM_POISON_DATA_ERROR",
-  "7": "MSCOD_CORRECTABLE_DATA_ERROR",
-  "34": "MSCOD_SF_TAG_CORR_ERR",
-  "35": "MSCOD_SF_STCV_CORR_ERR",
-  "17": "MSCOD_LLC_TAG_CORR_ERR",
-  "18": "MSCOD_LLC_STCV_CORR_ERR",
-  "60": "MSCOD_RSF_TAG_CORR_ERR",
-  "57": "MSCOD_RSF_ST_CORR_ERR",
-  "40": "MSCOD_LLC_TWOLM_CORR_ERR",
-  "49": "MSCOD_SF_TWOLM_CORR_ERR"
-}}
+
+validproducts = {'GNR':'bigcore', 'CWF':'atom'}
+
+class mcadata():
+	def __init__(self, product):
+		self.product = product
+		parent_dir =Path(__file__).parent
+		self.jsfile_dir = os.path.join(parent_dir, product.upper())
+
+		self.llc_data = self.llc()
+		self.cha_data = self.cha()
+		self.core_data = self.core()
+		self.portid_data = self.portid()
+
+
+	def llc(self):
+    		
+		llc_json = {'MSCOD_BY_VAL': {
+		"0": "MSCOD_NONE",
+		"2": "MSCOD_UNCORRECTABLE_TAG_ERROR",
+		"36": "MSCOD_SF_STCV_UNCORR_ERR",
+		"33": "MSCOD_UNCORRECTABLE_SF_TAG_ERROR",
+		"19": "MSCOD_LLC_STCV_UNCORR_ERR",
+		"58": "MSCOD_RSF_TAG_UNCORR_ERR",
+		"59": "MSCOD_RSF_ST_UNCORR_ERR",
+		"41": "MSCOD_LLC_TWOLM_UNCORR_ERR",
+		"50": "MSCOD_SF_TWOLM_UNCORR_ERR",
+		"10": "MSCOD_PARITY_DATA_ERROR",
+		"1": "MSCOD_UNCORRECTABLE_DATA_ERROR",
+		"8": "MSCOD_MEM_POISON_DATA_ERROR",
+		"7": "MSCOD_CORRECTABLE_DATA_ERROR",
+		"34": "MSCOD_SF_TAG_CORR_ERR",
+		"35": "MSCOD_SF_STCV_CORR_ERR",
+		"17": "MSCOD_LLC_TAG_CORR_ERR",
+		"18": "MSCOD_LLC_STCV_CORR_ERR",
+		"60": "MSCOD_RSF_TAG_CORR_ERR",
+		"57": "MSCOD_RSF_ST_CORR_ERR",
+		"40": "MSCOD_LLC_TWOLM_CORR_ERR",
+		"49": "MSCOD_SF_TWOLM_CORR_ERR"
+		}}
+
+		return llc_json
+
+	def cha(self):
+		cha_json = dev_dict('cha_params.json', filedir = self.jsfile_dir)
+		return cha_json
+
+	def core(self):
+		core_json = dev_dict('core_params.json', filedir = self.jsfile_dir)
+		return core_json
+
+	def portid(self):
+		portids_json = dev_dict('log_portid.json', filedir = self.jsfile_dir)
+		return portids_json
+
 
 class decoder():
 	
-	def __init__(self, data):
+	def __init__(self, data, product = 'GNR'):
 		self.data = data
+
+		if product in validproducts.keys():
+			self.mcadata = mcadata(product)
+			self.coretype = validproducts[product]
+		else:
+			print(f' Not valid product selected use: {validproducts}')
+			sys.exit()
 
 	# Helper function to extract values based on a pattern
 	def extract_value(self, df, dfcol, pattern):
@@ -63,6 +102,10 @@ class decoder():
 		elif ptype == 'llc':
 			pattern = f"SOCKET0__COMPUTE{compute}__UNCORE__SCF__SCF_LLC__SCF_LLC{location}__MCI_{suffix}"#_{operation}"
 		#DPMB_SOCKET0__COMPUTE0__CPU__CORE0__ML2_CR_MC3_ADDR_8749
+		elif ptype == 'ubox':
+			pattern = f"SOCKET0__{compute}__UNCORE__{location}__NCEVENTS__{suffix}"#_{operation}"	
+
+		## Patterns for bigcore
 		elif ptype == 'core_ml2':
 				pattern = f"SOCKET0__COMPUTE{compute}__CPU__CORE{location}__ML2_CR_MC3_{suffix}"#_{operation}"		
 		#DPMB_SOCKET0__COMPUTE1__CPU__CORE68__THREAD0__DCU_CR_MC1_STATUS_8749
@@ -74,8 +117,28 @@ class decoder():
 		#DPMB_SOCKET0__COMPUTE0__CPU__CORE0__THREAD*__IFU_CR_MC0_STATUS_*
 		elif ptype == 'core_ifu':
 				pattern = f"SOCKET0__COMPUTE{compute}__CPU__CORE{location}__THREAD{thread}__IFU_CR_MC0_{suffix}"#_{operation}"	
-		elif ptype == 'ubox':
-				pattern = f"SOCKET0__{compute}__UNCORE__{location}__NCEVENTS__{suffix}"#_{operation}"	
+
+
+		## Patterns for atomcore
+		elif ptype == 'core_l2':
+			pattern = f"SOCKET0__COMPUTE{compute}__CPU__MODULE{location}__L2_CR_MCI_{suffix}"#_{operation}"		
+		
+		elif ptype == 'core_bbl':
+			pattern = f"SOCKET0__COMPUTE{compute}__CPU__MODULE{location}__BBL_CR_MCI_{suffix}"#_{operation}"		
+
+		elif ptype == 'core_bus':
+			pattern = f"SOCKET0__COMPUTE{compute}__CPU__MODULE{location}__BUS_CR_MCI_{suffix}"#_{operation}"	
+
+		#DPMB_SOCKET0__COMPUTE1__CPU__CORE68__THREAD0__DCU_CR_MC1_STATUS_8749
+		elif ptype == 'core_mec':
+			pattern = f"SOCKET0__COMPUTE{compute}__CPU__MODULE{location}__CORE{thread}__MEC_CR_MCI_{suffix}"#_{operation}"	
+		#DPMB_SOCKET0__COMPUTE0__CPU__CORE0__DTLB_CR_MC2_STATUS_*
+		elif ptype == 'core_agu':
+			pattern = f"SOCKET0__COMPUTE{compute}__CPU__MODULE{location}__CORE{thread}__AGU_CR_MCI_{suffix}"#_{operation}"	
+		#DPMB_SOCKET0__COMPUTE0__CPU__CORE0__THREAD*__IFU_CR_MC0_STATUS_*
+		elif ptype == 'core_ic':
+			pattern = f"SOCKET0__COMPUTE{compute}__CPU__MODULE{location}__CORE{thread}__IC_CR_MCI_{suffix}"#_{operation}"	
+
 
 		return pattern
 
@@ -176,7 +239,8 @@ class decoder():
 
 	## CHA MCA Decode data -- Not all the values are included, add if needed for debug purposes
 	def cha_decoder(self, value, type):
- 		
+		cha_json = self.mcadata.cha_data
+		 
 		data = { 	'MC DECODE': {'table': 'MSCOD_BY_VAL', 'min': 16,'max':31}, ## Status
 					'Orig Req': {'table': 'TOR_OPCODES_BY_VAL', 'min': 39,'max':49}, ## Misc
 					'Opcode': {'table': 'TOR_OPCODES_BY_VAL', 'min': 23,'max':33}, ## Misc
@@ -299,7 +363,7 @@ class decoder():
 		return new_df
 
 	def llc_decoder(self, value, type):
-	 		
+		LLC =self.mcadata.llc_data
 		data = { 	'MC DECODE': {'table': 'MSCOD_BY_VAL', 'min': 16,'max':31}, ## Status
 					#'Orig Req': {'table': 'TOR_OPCODES_BY_VAL', 'min': 39,'max':49}, ## Misc
 					#'Opcode': {'table': 'TOR_OPCODES_BY_VAL', 'min': 23,'max':33}, ## Misc
@@ -340,16 +404,45 @@ class decoder():
 		return mc_value
 
 	def core(self):
-			
+		
+		coretype = self.coretype
 		mcdata = self.data
+		
+		# Core MC Data / Addr / misc strings
+
+		coredata = {'bigcore':{
+								'mc':['ML2_CR_MC3_STATUS','IFU_CR_MC0_STATUS','DTLB_CR_MC2_STATUS','DCU_CR_MC1_STATUS'],
+						 		'addr':['ML2_CR_MC3_ADDR','IFU_CR_MC0_ADDR','DTLB_CR_MC2_ADDR','DCU_CR_MC1_ADDR'],
+								'misc':['ML2_CR_MC3_MISC','IFU_CR_MC0_MISC','DTLB_CR_MC2_MISC','DCU_CR_MC1_MISC'],	
+								'errtype':['ML2', 'DCU', 'DTLB', 'IFU'],	
+								'strcontain':'CPU__CORE',
+								'strthreads':'THREAD',
+								'keyword':'CORE',
+								'columns':['VisualID', 'Run', 'Operation', 'CORE_MC', 'Compute', 'CORE', 'ErrorType', 'MC_STATUS', 'MCACOD (ErrDecode)', 'MSCOD','MC_ADDR','MC_MISC']
+
+								},
+					'atom':{
+								'mc':['CR_MCI_STATUS'],
+						 		'addr':['CR_MCI_ADDR'],
+								'misc':['CR_MCI_MISC'],	
+								'errtype':['BBL', 'BUS', 'MEC', 'IC', 'L2', 'AGU'],	
+								'strcontain':'MODULE',
+								'strthreads':'CORE',
+								'keyword':'MODULE',
+								'columns':['VisualID', 'Run', 'Operation', 'MODULE_MC', 'Compute', 'MODULE', 'ErrorType', 'MC_STATUS', 'MCACOD (ErrDecode)', 'MSCOD','MC_ADDR','MC_MISC']
+								},
+								}
+
+		selected_core = coredata[coretype]
 		# Initialize the new dataframe
-		columns = ['VisualID', 'Run', 'Operation', 'CORE_MC', 'Compute', 'CORE', 'ErrorType', 'MC_STATUS', 'MCACOD (ErrDecode)', 'MSCOD','MC_ADDR','MC_MISC']
+		columns = selected_core['columns']#['VisualID', 'Run', 'Operation', 'CORE_MC', 'Compute', 'CORE', 'ErrorType', 'MC_STATUS', 'MCACOD (ErrDecode)', 'MSCOD','MC_ADDR','MC_MISC']
+		keyword = selected_core['keyword']
 		#new_df = pd.DataFrame(columns=columns)
 		#decodelist = ['MC DECODE', 'Orig Req','Opcode','cachestate','TorID','TorFSM','SrcID','ISMQ','Attribute','Result','Local Port']
 		
 		# CHA List
-		decodelistmc = ['MC DECODE']
-		decodelistmisc = ['MiscV','RSF','LSF','LLC_misc']
+		#decodelistmc = ['MC DECODE']
+		#decodelistmisc = ['MiscV','RSF','LSF','LLC_misc']
 		#decodelistmisc3 = ['SrcID','ISMQ','Attribute','Result','Local Port']
 		
 		data_dict = {k:[] for k in columns}
@@ -357,21 +450,21 @@ class decoder():
 		for visual_id in mcdata['VisualId'].unique():
 
 			# Split Data into required elements
-			subset = mcdata[(mcdata['VisualId'] == visual_id) & (mcdata['TestName'].str.contains('CPU__CORE'))]
+			subset = mcdata[(mcdata['VisualId'] == visual_id) & (mcdata['TestName'].str.contains(selected_core['strcontain']))]
 
 			# Further split into required lookup registers for each VID
-			mc_filtered = self.extract_value(subset,'TestName', ['ML2_CR_MC3_STATUS','IFU_CR_MC0_STATUS','DTLB_CR_MC2_STATUS','DCU_CR_MC1_STATUS'])# subset[(subset['TestName'].str.contains('UTIL__MC_STATUS'))] #self.extract_value(subset, 'UTIL__MC_STATUS')
-			addr_filtered = self.extract_value(subset,'TestName', ['ML2_CR_MC3_ADDR','IFU_CR_MC0_ADDR','DTLB_CR_MC2_ADDR','DCU_CR_MC1_ADDR'])# subset[subset['TestName'].str.contains('UTIL__MC_ADDR')]#self.extract_value(subset, 'UTIL__MC_ADDR')
-			misc_filtered = self.extract_value(subset,'TestName', ['ML2_CR_MC3_MISC','IFU_CR_MC0_MISC','DTLB_CR_MC2_MISC','DCU_CR_MC1_MISC'])# subset[subset['TestName'].str.contains('UTIL__MC_MISC_')]#self.extract_value(subset, 'UTIL__MC_MISC_')
+			mc_filtered = self.extract_value(subset,'TestName', selected_core['mc'])# subset[(subset['TestName'].str.contains('UTIL__MC_STATUS'))] #self.extract_value(subset, 'UTIL__MC_STATUS')
+			addr_filtered = self.extract_value(subset,'TestName', selected_core['addr'])# subset[subset['TestName'].str.contains('UTIL__MC_ADDR')]#self.extract_value(subset, 'UTIL__MC_ADDR')
+			misc_filtered = self.extract_value(subset,'TestName', selected_core['misc'])# subset[subset['TestName'].str.contains('UTIL__MC_MISC_')]#self.extract_value(subset, 'UTIL__MC_MISC_')
 			#misc3_filtered = self.extract_value(subset,'TestName', 'UTIL__MC_MISC3_')# subset[subset['TestName'].str.contains('UTIL__MC_MISC3_')]#self.extract_value(subset, 'UTIL__MC_MISC3')
 			
 			# If no MCA is found move to the next VID
 			try:
 				if mc_filtered.empty:
-					print(f' -- No MCA data found for COREs ML2 in VID: {visual_id}')
+					print(f' -- No MCA data found for {keyword}s ML2 in VID: {visual_id}')
 					continue
 			except:
-				print(f' -- No MCA data found for COREs ML2 in VID: {visual_id}')
+				print(f' -- No MCA data found for {keyword}s ML2 in VID: {visual_id}')
 				continue
 			
 			# This will iterate over all the MCAS to look for Address, Misc and MISC3 data for corresponding fail IP
@@ -382,12 +475,12 @@ class decoder():
 				LotsSeqKey = data['LotsSeqKey']
 				UnitTestingSeqKey = data['UnitTestingSeqKey']
 				compute =  re.search(r'COMPUTE(\d+)', data['TestName']).group(1) #data['TestName'].extract(r'COMPUTE(\d+)')
-				core = re.search(r'CPU__CORE(\d+)', data['TestName']).group(1)  #data['TestName'].extract(r'CHA(\d+)')
+				core = re.search(rf'{selected_core["strcontain"]}(\d+)', data['TestName']).group(1)  #data['TestName'].extract(r'CHA(\d+)')
 				operation = data['Operation']
-				thread =re.search(r'THREAD(\d+)', data['TestName']).group(1) if 'THREAD' in data['TestName'] else ''
+				thread =re.search(rf'{selected_core["strthreads"]}(\d+)', data['TestName']).group(1) if f'{selected_core["strthreads"]}' in data['TestName'] else ''
 				## Address lookup pattern
 				
-				ErroTypes = ['ML2', 'DCU', 'DTLB', 'IFU']
+				ErroTypes = selected_core["errtype"]
 				for err in ErroTypes:
 					if err in data['TestName']:
 						data_dict['ErrorType'] += [err]
@@ -408,9 +501,9 @@ class decoder():
 				run = str(LotsSeqKey) + "-" + str(UnitTestingSeqKey)	
 				data_dict['Run'] += [run]
 				data_dict['Operation'] += [str(operation)]
-				data_dict['CORE_MC'] += [data['TestName'] ]
+				data_dict[f'{keyword}_MC'] += [data['TestName'] ]
 				data_dict['Compute'] += [compute]
-				data_dict['CORE'] += [f'CORE{core}']
+				data_dict[f'{keyword}'] += [f'{keyword}{core}']
 				data_dict['MC_STATUS'] += [mc_value]
 				data_dict['MC_ADDR'] += [addr_value]
 				data_dict['MC_MISC'] += [misc_value]
@@ -440,7 +533,7 @@ class decoder():
 
 	def core_mln(self, value, bank = 'DCU'):
     
-
+		core_json =self.mcadata.core_data
 		data = { 	'MC DECODE': {'table': 'MCACOD', 'min': 0,'max':15}, ## Status
 					'MSCOD': {'table': 'MSCOD', 'min': 16,'max':31},
 					'PCC': {'table': 'PCC', 'min': 57,'max':57}, ## Misc
@@ -503,7 +596,8 @@ class decoder():
 		return mc_value, ms_value
 	
 	def core_ml2(self, value):
-
+		
+		core_json =self.mcadata.core_data
 
 		data = { 	'MC DECODE': {'table': 'MCACOD', 'min': 0,'max':11}, ## Status IS UP TO 12, but for decoding purposes we only check the first 12 bits
 					'MSCOD': {'table': 'MSCOD', 'min': 16,'max':31}, ## Misc
@@ -663,7 +757,7 @@ class decoder():
 
 	def portids_decoder(self, value, portid_data, event):
 		#portid_data = ['DIE_TYPE', 'DIE SEGMENT', 'TYPE', 'DEVICE','PORT ID (11 bits LSB)','DIE ID(5 bits MSB)']	
-		
+		portids_json =self.mcadata.portid_data
 
 		data = { 	'firstierrsrcid': {'table': None, 'min': 0,'max':15}, 
 		  			'firstmcerrsrcid': {'table': None, 'min': 0,'max':15}, 
@@ -752,16 +846,14 @@ def extract_bits(hex_value, min_bit, max_bit):
 	return extracted_bits
 
 # Loads decoder dict
-def dev_dict(filename, useroot = True):
-		## Load Configuration json files
-	configfilename = filename
-	if useroot:
-		#file_NAME = (__file__).split("\\")[-1].rstrip()
-		parent_dir =Path(__file__).parent #split(file_NAME)[0]
-		jsfile = os.path.join(parent_dir, configfilename)#"{}\\{}".format(parent_dir, configfilename)
+def dev_dict(filename, filedir = None):
+	## Load Configuration json files
+	
+	if filedir:
+		jsfile = os.path.join(filedir, filename)#"{}\\{}".format(parent_dir, configfilename)
 	else:
-		jsfile = configfilename
-
+		parent_dir =Path(__file__).parent
+		jsfile = os.path.join(parent_dir, filename)#"{}\\{}".format(parent_dir, configfilename)
 	# Change dbgfile to original
 	with open (jsfile) as configfile:
 		configdata = json.load(configfile)
@@ -784,8 +876,11 @@ def find_matching_key(hex_value, dictionary):
     
     return None
 
-# Cha decoder file
-cha_json = dev_dict('cha_params.json')
-core_json = dev_dict('core_params.json')
-#portids_json = dev_dict('GNRPortIDs.json')
-portids_json = dev_dict('log_portid.json')
+def load_jsons(product):
+	parent_dir =Path(__file__).parent
+	jsfile_dir = os.path.join(parent_dir, product.upper())
+	# Cha decoder file
+	cha_json = dev_dict('cha_params.json', filedir = jsfile_dir)
+	core_json = dev_dict('core_params.json', filedir = jsfile_dir)
+	#portids_json = dev_dict('GNRPortIDs.json')
+	portids_json = dev_dict('log_portid.json', filedir = jsfile_dir)    	

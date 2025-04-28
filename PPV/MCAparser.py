@@ -12,6 +12,87 @@ import os
 #import re
 import Decoder.decoder as mcparse
 
+
+def init_select_data(product):
+		
+	atomlist = ['SRF','CWF']
+	coretype = 'atom' if product in atomlist else 'bigcore'
+	reduced_data_cha = {}
+	reduced_data_core = {}
+	reduced_data_others = {}
+
+	if coretype == 'bigcore':## Declaring reduced data Information
+		reduced_data_cha = {
+								'UTIL__MC_STATUS': '0X20000000000000',
+								'UTIL__MC_ADDR':None, 
+								'__MCI_STATUS':'0X20000000000000',
+								'__MCI_MISC':'0X80',
+								'__MCI_ADDR':None,
+								'UTIL__MC_MISC':'0X80',
+	#							'__MC_MISC3':None,
+	#							'BIOS':None,
+								'UBOX':None,
+								'FW_ERR_CAUSE': None,
+								'S3M_ERR_STS' : None,
+								'PTPCFSMS__MC_STATUS':None}
+		reduced_data_core = {
+								'ML2_CR_MC3': '0X7F', # ML2 MCAs 
+								'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
+								'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
+								'DCU_CR_MC1':'0X1F', # DCU MCAs 
+								'DTLB_CR_MC2':'0X3F', # DTLB MCAs 
+								'ROB1_CR_MC':None, # ROB1 MCAs -- to be included in excel dashboard
+								'C6SRAM_MCA_STATUS':None, # C6SRAM MCAs -- to be included in excel dashboard
+								'PMSB':None}
+			## Will use this for some misc fails, moving PM and MEM errors here
+		reduced_data_others = {
+								'MEMSS__B2CMI': '0X7F', # ML2 MCAs 
+								'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
+								'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
+								'DCU_CR_MC1':'0X1F', # DCU MCAs 
+								'DTLB_CR_MC2':'0X3F', # DTLB MCAs 
+								'ROB1_CR_MC':None, # DTLB MCAs
+								'C6SRAM_MCA_STATUS':None, # DTLB MCAs
+								'PMSB':None}
+		
+	if coretype == 'atom':## Declaring reduced data Information
+		reduced_data_cha = {
+								'UTIL__MC_STATUS': '0X20000000000000',
+								'UTIL__MC_ADDR':None, 
+								'__MCI_STATUS':'0X20000000000000',
+								'__MCI_MISC':'0X80',
+								'__MCI_ADDR':None,
+								'UTIL__MC_MISC':'0X80',
+	#							'__MC_MISC3':None,
+	#							'BIOS':None,
+								'UBOX':None,
+								'FW_ERR_CAUSE': None,
+								'S3M_ERR_STS' : None,
+								'PTPCFSMS__MC_STATUS':None}
+		reduced_data_core = {
+								'_CR_MCI_CTRL': '0X500000000', # CORE Control register
+								'_CR_MCI_STATUS':None, # CORE MCAS
+								#'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
+								#'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
+								#'DCU_CR_MC1':'0X1F', # DCU MCAs 
+								#'DTLB_CR_MC2':'0X3F', # DTLB MCAs 
+								#'ROB1_CR_MC':None, # ROB1 MCAs -- to be included in excel dashboard
+								#'C6SRAM_MCA_STATUS':None, # C6SRAM MCAs -- to be included in excel dashboard
+								#'PMSB':None
+								}
+			## Will use this for some misc fails, moving PM and MEM errors here
+		reduced_data_others = {
+								'MEMSS__B2CMI': '0X7F', # ML2 MCAs 
+								'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
+								'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
+								'DCU_CR_MC1':'0X1F', # DCU MCAs 
+								'DTLB_CR_MC2':'0X3F', # DTLB MCAs 
+								'ROB1_CR_MC':None, # DTLB MCAs
+								'C6SRAM_MCA_STATUS':None, # DTLB MCAs
+								'PMSB':None}
+
+	return reduced_data_cha, reduced_data_core, reduced_data_others
+
 class ppv_report():
 	def __init__(self, name, week, label, source_file, report, data_core = None, data_cha = None, reduced = False, mcdetail = True, overview = False, decode = False, mode='Bucketer'):
 
@@ -35,6 +116,7 @@ class ppv_report():
 		## File Initialization
 
 		self.name = name
+		self.product = name.upper() ## Setting it the same as the name, can be changed later
 		self.week = week
 		self.label = label
 		self.output = report
@@ -42,10 +124,11 @@ class ppv_report():
 		## Templates management
 		self.base_dir = os.path.dirname(os.path.abspath(__file__))
 		self.templates_dir = os.path.join(self.base_dir, 'MCChecker')
+		self.templates_dir = os.path.join(self.templates_dir, self.product)
 		self.data_template = '##Name##_##w##_##LABEL##_PPV_Data.xlsx'
 		self.mca_template = '##Name##_##w##_##LABEL##_PPV_MC_Checker.xlsm'
 		self.ovw_template = '##Name##_##w##_##LABEL##_PPV_Unit_Overview.xlsx'
-		self.template_file_MCchk = os.path.join(self.templates_dir, self.mca_template)
+		self.template_file_MCchk = os.path.join(self.templates_dir, self.mca_template) ## Not used in CWF and newer products
 		self.template_file = os.path.join(self.templates_dir, self.data_template)
 
 		## New Data and MCA file from templates
@@ -70,39 +153,41 @@ class ppv_report():
 		data_CHA = ['CHA', 'LLC', 'BIOS']
 		data_CORE = ['CPU', 'PMSB']
 
+		## Collects strings for reduced data
+		reduced_data_cha, reduced_data_core, reduced_data_others = init_select_data(self.product)
 		## Declaring reduced data Information
-		reduced_data_cha = {
-							'UTIL__MC_STATUS': '0X20000000000000',
-							'UTIL__MC_ADDR':None, 
-							'__MCI_STATUS':'0X20000000000000',
-							'__MCI_MISC':'0X80',
-							'__MCI_ADDR':None,
-							'UTIL__MC_MISC':'0X80',
+		#reduced_data_cha = {
+		#					'UTIL__MC_STATUS': '0X20000000000000',
+		#					'UTIL__MC_ADDR':None, 
+		#					'__MCI_STATUS':'0X20000000000000',
+		#					'__MCI_MISC':'0X80',
+		#					'__MCI_ADDR':None,
+		#					'UTIL__MC_MISC':'0X80',
 #							'__MC_MISC3':None,
 #							'BIOS':None,
-							'UBOX':None,
-							'FW_ERR_CAUSE': None,
-							'S3M_ERR_STS' : None,
-							'PTPCFSMS__MC_STATUS':None}
-		reduced_data_core = {
-							'ML2_CR_MC3': '0X7F', # ML2 MCAs 
-							'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
-							'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
-							'DCU_CR_MC1':'0X1F', # DCU MCAs 
-							'DTLB_CR_MC2':'0X3F', # DTLB MCAs 
-							'ROB1_CR_MC':None, # ROB1 MCAs -- to be included in excel dashboard
-							'C6SRAM_MCA_STATUS':None, # C6SRAM MCAs -- to be included in excel dashboard
-							'PMSB':None}
+		#					'UBOX':None,
+		#					'FW_ERR_CAUSE': None,
+		#					'S3M_ERR_STS' : None,
+		#					'PTPCFSMS__MC_STATUS':None}
+		#reduced_data_core = {
+		#					'ML2_CR_MC3': '0X7F', # ML2 MCAs 
+		#					'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
+		#					'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
+		#					'DCU_CR_MC1':'0X1F', # DCU MCAs 
+		#					'DTLB_CR_MC2':'0X3F', # DTLB MCAs 
+		#					'ROB1_CR_MC':None, # ROB1 MCAs -- to be included in excel dashboard
+		#					'C6SRAM_MCA_STATUS':None, # C6SRAM MCAs -- to be included in excel dashboard
+		#					'PMSB':None}
 		## Will use this for some misc fails, moving PM and MEM errors here
-		reduced_data_others = {
-							'MEMSS__B2CMI': '0X7F', # ML2 MCAs 
-							'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
-							'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
-							'DCU_CR_MC1':'0X1F', # DCU MCAs 
-							'DTLB_CR_MC2':'0X3F', # DTLB MCAs 
-							'ROB1_CR_MC':None, # DTLB MCAs
-							'C6SRAM_MCA_STATUS':None, # DTLB MCAs
-							'PMSB':None}
+		#reduced_data_others = {
+		#					'MEMSS__B2CMI': '0X7F', # ML2 MCAs 
+		#					'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
+		#					'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
+		#					'DCU_CR_MC1':'0X1F', # DCU MCAs 
+		#					'DTLB_CR_MC2':'0X3F', # DTLB MCAs 
+		#					'ROB1_CR_MC':None, # DTLB MCAs
+		#					'C6SRAM_MCA_STATUS':None, # DTLB MCAs
+		#					'PMSB':None}
 
 		if data_cha == None:
 			if self.reduced:
@@ -117,7 +202,8 @@ class ppv_report():
 				self.data_core = data_CORE
 
 		#self.target_sheet = target_sheet
-	
+
+
 	def run(self, options = ['MESH', 'CORE']):
 
 		# Update Data table
@@ -381,7 +467,7 @@ class ppv_report():
 
 		
 		# Call decoder
-		mc = mcparse.decoder(data= mcas)
+		mc = mcparse.decoder(data= mcas, product=self.product)
 		
 		cha_df = mc.cha()
 		llc_df = mc.llc()
@@ -404,7 +490,7 @@ class ppv_report():
 		mcas = pd.read_excel(source_file, sheet_name=source_sheet)
 	
 		# Call decoder
-		mc = mcparse.decoder(data= mcas)
+		mc = mcparse.decoder(data= mcas, product=self.product)
 		core_df = mc.core()
 
 		with pd.ExcelWriter(source_file, engine='openpyxl', mode='a') as writer:
