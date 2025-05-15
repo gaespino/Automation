@@ -72,13 +72,18 @@ def init_select_data(product):
 		reduced_data_core = {
 								'_CR_MCI_CTRL': '0X500000000', # CORE Control register
 								'_CR_MCI_STATUS':None, # CORE MCAS
-								#'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
-								#'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
-								#'DCU_CR_MC1':'0X1F', # DCU MCAs 
-								#'DTLB_CR_MC2':'0X3F', # DTLB MCAs 
-								#'ROB1_CR_MC':None, # ROB1 MCAs -- to be included in excel dashboard
-								#'C6SRAM_MCA_STATUS':None, # C6SRAM MCAs -- to be included in excel dashboard
-								#'PMSB':None
+								'_RESULT__':'PASS',
+								'_TEST__':None, # IFU MCAs 
+								'__ID___CORE__':None, # DCU MCAs 
+								'__ID___LOGICAL__':None, # DTLB MCAs 
+								'__ID___PACKAGE__':None, # ROB1 MCAs -- to be included in excel dashboard
+								'__ID___THREAD__':None, # C6SRAM MCAs -- to be included in excel dashboard
+								'__MESSAGES___0___TEXT__':None,
+								'__MESSAGES___0___LEVEL__':None,
+								'__AVG_FREQ_MHZ__':None,
+								'__FAIL___TIME_TO_FAIL__':None,
+								'__FAIL___SEED__':None,
+								'__FAIL___CPU_MASK__':None,
 								}
 			## Will use this for some misc fails, moving PM and MEM errors here
 		reduced_data_others = {
@@ -611,10 +616,10 @@ def load_dataframe_to_excel(df, excel_file, sheet_name, table_name):
 #if __name__ == "__main__":
 def test(): ## Comment and run with above line, not setting args for this one, use the UI
 	# Example usage
-	source_file = r'C:\ParsingFiles\Wxsnp_Logs'
-	filename = r'\74GD669200211_Experiments_data.xlsx'
+	source_file = r'C:\ParsingFiles\CWF'
+	filename = r'\CWF_output_result_combined_data3.xlsx'
 	source_file = source_file + filename
-	path = r'C:\ParsingFiles\MCAParser_Tests'
+	path = r'C:\ParsingFiles\CWF'
 	#source_sheet = 'raw_data'
 	#template_file_MCchk = r'C:\Git\Automation\##Name##_##w##_##LABEL##_PPV_MC_Checker.xlsm'
 	#template_file = r'C:\Git\Automation\##Name##_##w##_##LABEL##_PPV_Data.xlsx'
@@ -625,9 +630,9 @@ def test(): ## Comment and run with above line, not setting args for this one, u
 	#table_name = 'cha_mc'
 
 	# User inputs
-	name = 'GNR3'
-	week = 'WW4'
-	label = 'UBOX_TEST'
+	name = 'CWF'
+	week = 'WW20'
+	label = 'CORE_SDE3'
 	
 	reduced_data_cha = {'UTIL__MC_STATUS': '0X20000000000000', 'LLC':'0X20000000000000', 'BIOS':None}
 	reduced_data_core = {'ML2_CR_MC3_STATUS': '0X20000000000000', 'PMSB':None}
@@ -644,7 +649,7 @@ def test(): ## Comment and run with above line, not setting args for this one, u
 	#shutil.copy(template_file_MCchk, target_file_MC)
 
 	# Copy the template file to the new target file
-	PPVMCAs = ppv_report(name=name, week=week, label=label, source_file=source_file, report = path, reduced = True, overview = True, decode = True)
+	PPVMCAs = ppv_report(name=name, week=week, label=label, source_file=source_file, report = path, reduced = True, mcdetail=False, overview = True, decode = True)
 	PPVMCAs.run()
 
 

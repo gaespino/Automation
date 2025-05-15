@@ -59,7 +59,7 @@ class dpmbGUI:
 
 		tk.Label(root, text="Product:").grid(row=4, column=0, padx=10, pady=5)
 		self.product_var = tk.StringVar(value="GNR3")
-		self.product_combobox = ttk.Combobox(root, textvariable=self.product_var, values=["GNR", "GNR3"])
+		self.product_combobox = ttk.Combobox(root, textvariable=self.product_var, values=["GNR", "GNR3", "CWF"])
 		self.product_combobox.grid(row=4, column=1, padx=10, pady=5, sticky='w')
 
 		tk.Label(root, text="Operations:").grid(row=5, column=0, padx=10, pady=5)
