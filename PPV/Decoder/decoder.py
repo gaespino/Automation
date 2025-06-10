@@ -90,9 +90,9 @@ class decoder():
 
 		filtered= df[(df[dfcol].str.contains(regex_pat, case=False, na=False))]
 
-		if not filtered.empty:
-			return filtered   			
-		return None
+		#if not filtered.empty:
+		return filtered   			
+		#return None
 	
 	# Define the lookup pattern for each column
 	def lookup_pattern(self, compute, location, operation, suffix, thread = '', ptype = 'cha'):
@@ -144,7 +144,7 @@ class decoder():
 
 	# XLOOKUP equivalent in pandas
 	def xlookup(self, lookup_array, testname, LotsSeqKey, UnitTestingSeqKey, if_not_found=""):
-		if lookup_array == None:
+		if lookup_array.empty:# == None:
 			return if_not_found
 		try:
 			result = lookup_array[(lookup_array['TestName'].str.contains(testname)) & (lookup_array['LotsSeqKey'] == LotsSeqKey) & (lookup_array['UnitTestingSeqKey'] == UnitTestingSeqKey)]

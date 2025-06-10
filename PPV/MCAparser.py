@@ -616,10 +616,10 @@ def load_dataframe_to_excel(df, excel_file, sheet_name, table_name):
 #if __name__ == "__main__":
 def test(): ## Comment and run with above line, not setting args for this one, use the UI
 	# Example usage
-	source_file = r'C:\ParsingFiles\CWF'
-	filename = r'\CWF_output_result_combined_data3.xlsx'
+	source_file = r'C:\ParsingFiles\GNR'
+	filename = r'\GNR3_output_result_combined.xlsx'
 	source_file = source_file + filename
-	path = r'C:\ParsingFiles\CWF'
+	path = r'C:\ParsingFiles\GNR'
 	#source_sheet = 'raw_data'
 	#template_file_MCchk = r'C:\Git\Automation\##Name##_##w##_##LABEL##_PPV_MC_Checker.xlsm'
 	#template_file = r'C:\Git\Automation\##Name##_##w##_##LABEL##_PPV_Data.xlsx'
@@ -630,9 +630,9 @@ def test(): ## Comment and run with above line, not setting args for this one, u
 	#table_name = 'cha_mc'
 
 	# User inputs
-	name = 'CWF'
-	week = 'WW20'
-	label = 'CORE_SDE3'
+	name = 'GNR'
+	week = 'WW24'
+	label = 'LLC_DATA_PAR'
 	
 	reduced_data_cha = {'UTIL__MC_STATUS': '0X20000000000000', 'LLC':'0X20000000000000', 'BIOS':None}
 	reduced_data_core = {'ML2_CR_MC3_STATUS': '0X20000000000000', 'PMSB':None}

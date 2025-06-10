@@ -6,8 +6,8 @@ from tkinter import filedialog, messagebox
 import getpass
 from datetime import datetime
 
-dpmb_host = "https://dpmb-api.app.intel.com/api/"
-
+dpmb_host = "https://dpmb-api.intel.com/api" #"https://dpmb-api.app.intel.com/api/"#"https://dpmb-api.intel.com/api"
+dpmb_api = "dpmb-api.intel.com"
 #vidlist = 'D491916S00148'
 
 #if __name__ == "__main__":
@@ -115,7 +115,7 @@ class dpmb:
 		self.product = product
 		self.operations = operations
 		self.delta = delta
-		self.conn = http.client.HTTPSConnection("dpmb-api.app.intel.com")
+		self.conn = http.client.HTTPSConnection(dpmb_api)
 		
 		self.payload = json.dumps({
 			"createdBy": self.user,
