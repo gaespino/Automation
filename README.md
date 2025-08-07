@@ -1,5 +1,16 @@
 # Automation
+
+ Libraries required:
  
+    - Xlwings - Used to edit Excel files with array formulas
+        ○ pip install pandas xlwings --proxy http://proxy-dmz.intel.com:911/
+    - Pandas - Data handling
+        ○ pip install pandas --proxy http://proxy-dmz.intel.com:911/
+    - Openpyxl - General Excel data manipulation
+        ○ pip install openpyxl --proxy http://proxy-dmz.intel.com:911/
+ 
+ 
+
 # Tools for PPV / RVP / PTC Log manipulation
 
  Use PPVTools.py as the main menu for all the tools.
