@@ -8,7 +8,8 @@
         ○ pip install pandas --proxy http://proxy-dmz.intel.com:911/
     - Openpyxl - General Excel data manipulation
         ○ pip install openpyxl --proxy http://proxy-dmz.intel.com:911/
- 
+    - Colorama - Console warnings
+        ○ pip install colorama --proxy http://proxy-dmz.intel.com:911/
  
 
 # Tools for PPV / RVP / PTC Log manipulation

@@ -231,7 +231,8 @@ class LogSummaryParser:
 		for experiment_name, info in excel_path_dict.items():
 			excel_file_path = info['path']
 			# Load the Excel file
-			excel_data = pd.read_excel(excel_file_path, sheet_name=None)
+			print(excel_file_path)
+			excel_data = pd.read_excel(excel_file_path, sheet_name=None, engine='openpyxl')
 
 			# Iterate over each tab
 			for tab in tabs_to_parse:
@@ -569,7 +570,7 @@ def create_file_dict(df, file_type, test_types=None, content_types=None, comment
 	file_dict = {}
 	for _, row in df.iterrows():
 		file_path = row[f'{file_type}']
-		if pd.notna(file_path):
+		if pd.notna(file_path) and not os.path.basename(file_path).startswith('~$'):
 			folder_name = os.path.basename(os.path.dirname(file_path))
 			file_dict[folder_name] = {
 				'path': file_path,
