@@ -5,6 +5,7 @@ from PPVLoopChecks import PTCReportGUI
 from PPVDataChecks import PPVReportGUI
 from dpmb import dpmbGUI
 from PPVFileHandler import FileHandlerGUI
+from PPVFrameworkReport import FrameworkReportBuilder
 #import pyfiglet
 
 def display_banner():
@@ -30,7 +31,7 @@ class Tools(tk.Frame):
 		super().__init__(root)
 		self.root = root
 		self.root.title("PPV Tools Main")
-		self.root.geometry("475x300")  # Set fixed size for the window
+		self.root.geometry("550x300")  # Set fixed size for the window
 		self.root.resizable(False, False)  # Disable resizing
 		
 		self.ppv_loop_parser_label = tk.Label(root, justify='left', text=" - Parse logs from PTC experiment data. \n > Output is a DPMB report format file.")
@@ -65,9 +66,17 @@ class Tools(tk.Frame):
 		
 		self.add_separator(root, 7)
 
+		self.dpmb_label = tk.Label(root, justify='left', text=" - Creates a Report with all Debug Framework Experiment Data files \n > Create a Unit Report from Debug Data \n > Merges Summary Files into a single file")
+		self.dpmb_label.grid(row=6, column=1, padx=10, pady=5, sticky="w")				
+		fh_button = tk.Button(root, text=" Debug Framework Report ", command=self.open_frameworkreport)
+		#fh_button.pack(padx=10, pady=10)
+		fh_button.grid(row=6, column=0, padx=10, pady=5, sticky='ew')
+		
+		self.add_separator(root, 9)
+
 		exit_button = tk.Button(root, text=" Close ", command=self.root.quit)
 		#exit_button.pack(padx=10, pady=10)
-		exit_button.grid(row=8, column=0, columnspan=2, padx=10, pady=5, sticky='ew')
+		exit_button.grid(row=10, column=0, columnspan=2, padx=10, pady=5, sticky='ew')
 
 	def add_separator(self, parent, row):
 		separator = ttk.Separator(parent, orient='horizontal')
@@ -98,6 +107,12 @@ class Tools(tk.Frame):
 		app4 = FileHandlerGUI(root4)
 		#app3.pack(fill="both", expand=True)
 
+
+	def open_frameworkreport(self):
+		root5 = tk.Toplevel()
+		root5.title('Framework Reports')
+		app5 = FrameworkReportBuilder(root5)
+		#app3.pack(fill="both", expand=True)
 
 if __name__ == "__main__":
 	display_banner()

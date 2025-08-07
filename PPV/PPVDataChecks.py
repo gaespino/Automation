@@ -16,7 +16,7 @@ class PPVReportGUI:
         self.mode_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
         self.mode_entry = tk.StringVar(root)
         self.mode_entry.set("Bucketer")  # default value
-        self.mode_menu = tk.OptionMenu(root, self.mode_entry, "Bucketer", "Data", command=self.mode_selection)
+        self.mode_menu = tk.OptionMenu(root, self.mode_entry, "Framework", "Bucketer", "Data", command=self.mode_selection)
         self.mode_menu.grid(row=0, column=1, columnspan=2, padx=10, pady=5, sticky="w")
 
         # Name
@@ -142,7 +142,7 @@ class PPVReportGUI:
         PPVMCAs = mcap(name=data['name'], week=data['week'], label=data['label'], source_file=data['source_file'], report = data['report'], reduced = data['reduced'], mcdetail=data['mcfile'], overview = data['overview'], decode = data['decode'])
         self.header(data)
         
-        if data['mode'] == 'Bucketer': 
+        if data['mode'] == 'Bucketer' or data['mode'] == 'Framework': 
             PPVMCAs.run(options=['MESH', 'CORE'])
         elif data['mode'] == 'Data': 
             PPVMCAs.gen_auxfiles(data_file=data['source_file'], mca_file=PPVMCAs.mca_file, ovw_file=PPVMCAs.ovw_file, mcfile_on=data['mcfile'], ovw_on= data['overview'], options = ['MESH', 'CORE', 'PPV'])
