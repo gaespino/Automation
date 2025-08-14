@@ -71,7 +71,7 @@ def init_select_data(product):
 								'PTPCFSMS__MC_STATUS':None}
 		reduced_data_core = {
 								'_CR_MCI_CTRL': '0X500000000', # CORE Control register
-								'_CR_MCI_STATUS':None, # CORE MCAS
+								'_CR_MCI_STATUS':'0X20000000000000', # CORE MCAS
 								'_RESULT__':'PASS',
 								'_TEST__':None, # IFU MCAs 
 								'__ID___CORE__':None, # DCU MCAs 
