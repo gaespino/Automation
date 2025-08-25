@@ -25,7 +25,6 @@ def display_banner():
     print(banner_text)
 
 # Create the main window
-
 class Tools(tk.Frame):
 	def __init__(self, root):
 		super().__init__(root)
@@ -82,7 +81,6 @@ class Tools(tk.Frame):
 		separator = ttk.Separator(parent, orient='horizontal')
 		separator.grid(row=row, columnspan=2, sticky="ew", pady=5)
 
-
 	def open_ppv_loop_parser(self):
 		root1 = tk.Toplevel(self.root)
 		root1.title('PPV Loop Parser')
@@ -106,7 +104,6 @@ class Tools(tk.Frame):
 		root4.title('File Handler')
 		app4 = FileHandlerGUI(root4)
 		#app3.pack(fill="both", expand=True)
-
 
 	def open_frameworkreport(self):
 		root5 = tk.Toplevel()

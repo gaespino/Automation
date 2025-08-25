@@ -246,7 +246,8 @@ def GNR_params(data, VID):
 		'visualID':VID,     # Pattern 13
 	}
 
-
+	# Exclusions can be used in case we need to remove some string conditions, not used for now
+	exclusions = ['Fireworx']
 	matches= []
 	lines = data.split('\n')
 	for idx, line in enumerate(lines):
@@ -256,7 +257,7 @@ def GNR_params(data, VID):
 			continue
 
 		line = re.sub(r".*11]", "", line)
-		if re.search(r'.*?X_.*?_Y_.*?', line):
+		if re.search(r'0_strgval.*?X_.*?_Y_.*?', line):
 			#log_filtered = f"{line.split('^')[1]} {line.split('^')[2]}"
 			instance_data = lines.index(line)
 			log_filtered = re.sub(r"0_tname_", "", lines[instance_data+2])

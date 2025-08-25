@@ -285,7 +285,7 @@ class FrameworkReportBuilder:
 		generate_mergefiles = self.merge_summary_var.get()
 		generate_report = self.generate_report_var.get()
 		validate_loggingdata = self.check_mca_data_var.get()
-		
+		selected_product = self.product_var.get()
 		tag_merge = f'_{self.merge_file_entry.get()}' if self.merge_file_entry.get() != '' else self.merge_file_entry.get()
 		tag_report = f'_{self.report_file_entry.get()}' if self.report_file_entry.get() != '' else self.report_file_entry.get()
 		skip_array = self.logging_entry.get().split(",") if self.logging_entry.get() != '' else []
@@ -305,6 +305,7 @@ class FrameworkReportBuilder:
 		config_data = {}
 		content_values = {}
 		comments_values = {}
+		
 		for experiment in self.initial_df['Experiment'].unique():
 			type_value = self.type_entries[experiment].get()
 			custom_value = self.custom_entries[experiment].get() if type_value == "Others" else ''
@@ -343,12 +344,12 @@ class FrameworkReportBuilder:
 		mca_df = None
 		if validate_loggingdata:
 			zip_path_dict = fpa.create_file_dict(filtered_df, 'ZIP', type_values, content_values)
-			fail_info_df = fpa.check_zip_data(zip_path_dict, skip_array)
+			fail_info_df = fpa.check_zip_data(zip_path_dict, skip_array, test_df)
 			test_df = fpa.update_content_results(test_df, fail_info_df)
 			unique_fails_df = fpa.generate_unique_fails(fail_info_df)
 
 			# Parse MCA data using LogSummaryParser
-			log_summary_parser = fpa.LogSummaryParser(excel_path_dict, test_df)
+			log_summary_parser = fpa.LogSummaryParser(excel_path_dict, test_df, selected_product)
 			unique_mcas_df, mca_df = log_summary_parser.parse_mca_tabs_from_files()
 
 			# Update test_df with MCA data

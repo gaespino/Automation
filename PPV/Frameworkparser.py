@@ -214,9 +214,11 @@ class LogFileParser:
 
 class LogSummaryParser:
 	
-	def __init__(self, excel_path_dict, test_df):
+	def __init__(self, excel_path_dict, test_df, product = 'GNR'):
 		self.excel_path_dict = excel_path_dict
 		self.test_df = test_df
+		self.product = product
+		self.search_word = 'CORE' if product == 'GNR' else 'MODULE'
 
 	def parse_mca_tabs_from_files(self):
 		# Initialize a dictionary to store results
@@ -248,7 +250,7 @@ class LogSummaryParser:
 						elif tab == 'LLC_MCAS':
 							report_data.append({'Failed MCA': f'CDIE{row['Compute']}::{row['LLC']}::{row['MC DECODE']}', 'Content': 'LLC_MCAs', 'Experiment': experiment_name, 'Run Value': run_value})
 						elif tab == 'CORE_MCAS':
-							report_data.append({'Failed MCA': f'CDIE{row['Compute']}::{row['CORE']}::{row['ErrorType']}::{row['MCACOD (ErrDecode)']}', 'Content': 'CORE_MCAs', 'Experiment': experiment_name, 'Run Value': run_value})
+							report_data.append({'Failed MCA': f'CDIE{row['Compute']}::{row[self.search_word]}::{row['ErrorType']}::{row['MCACOD (ErrDecode)']}', 'Content': 'CORE_MCAs', 'Experiment': experiment_name, 'Run Value': run_value})
 						elif tab == 'UBOX':
 							location = row['FirstError - Location']
 							if pd.notna(location) and location != '0x0':
@@ -257,11 +259,18 @@ class LogSummaryParser:
 		# Convert the MCA data to a DataFrame
 		mca_df = pd.DataFrame(report_data)
 
-		# Generate unique MCA values and their counts
-		unique_mcas_df = mca_df.groupby('Failed MCA').agg(
-			Content=('Content', lambda x: ', '.join(set(x))),
-			Fail_Count=('Failed MCA', 'size')
-		).reset_index()
+		# Check if mca_df is empty and initialize with default columns if necessary
+		if mca_df.empty:
+			mca_df = pd.DataFrame(columns=['Failed MCA', 'Content', 'Experiment', 'Run Value'])
+			unique_mcas_df = pd.DataFrame(columns=['Failed MCA', 'Content', 'Fail_Count'])
+		
+		else:
+			# Generate unique MCA values and their counts
+			
+			unique_mcas_df = mca_df.groupby('Failed MCA').agg(
+				Content=('Content', lambda x: ', '.join(set(x))),
+				Fail_Count=('Failed MCA', 'size')
+			).reset_index()
 
 		return unique_mcas_df, mca_df
 
@@ -407,17 +416,36 @@ def parse_log_files(log_dict):
 
 	return test_df
 
-def check_zip_data(zip_path_dict, skip_array):
+def check_zip_data(zip_path_dict, skip_array, test_df):
 	zip_results = []
+	pass_array = []
+	fail_array = []
+
+	# Group by 'Folder' to aggregate pass and fail strings
+	grouped_df = test_df.groupby('Folder').agg({
+		'Pass String': lambda x: ','.join(x.dropna()),
+		'Fail String': lambda x: ','.join(x.dropna())
+	}).reset_index()
+
 	for experiment, zip_files in zip_path_dict.items():
 		zip_path = zip_files['path']
 		test_type = zip_files['test_type']
 		content_info = zip_files['content']
 		comments = zip_files['comments']
-
+		exp_df = test_df[(test_df['Folder'] == experiment)]
+		
+		if not exp_df.empty:
+			pass_string = exp_df.iloc[0]['Pass String']
+			fail_string = exp_df.iloc[0]['Fail String']
+			
+			# Split the concatenated strings and convert to sets to ensure uniqueness, then back to lists
+			pass_array = list(set(pass_string.split(",")))
+			fail_array = list(set(fail_string.split(",")))
+			
+		#fail_info_df[(fail_info_df['Log File'] == test_file) & (fail_info_df['Experiment'] == folder)]
 		#for zip_file in zip_files:
 				
-		results = parse_zip_files(zip_file_path=zip_path, content=content_info, pass_array = [], fail_array = [], skip_array = skip_array, exclusion_string='pysv', casesens=False)
+		results = parse_zip_files(zip_file_path=zip_path, content=content_info, pass_array = pass_array, fail_array = fail_array, skip_array = skip_array, exclusion_string='pysv', casesens=False)
 			
 		for filename, data in results.items():
 			zip_results.append({'Experiment': experiment, 'Content': content_info, 'Log File': filename, 'Log Fails': ', '.join(data)})
@@ -442,7 +470,7 @@ def parse_zip_files(zip_file_path, content, pass_array = [], fail_array = [], sk
 		  		'fail': ['Test Failed'], 'hang': [], 'check': []}
 
 	dragon_rules = {	'pass': ['Test Complete'], 
-		  		'fail': ['Test Failed'], 'hang': ["running MerlinX.efi"], 'check':[r"CHANGING BACK TO DIR: FS1:\EFI"]}
+		  		'fail': ['Test Failed'], 'hang': ["running MerlinX.efi", "MerlinX.efi"], 'check':[r"CHANGING BACK TO DIR: FS1:\EFI"]}
 
 	python_rules = {	'pass': ['Test Complete'], 
 		  		'fail': ['Test Failed'], 'hang': [], 'check': []}
@@ -493,8 +521,8 @@ def parse_zip_files(zip_file_path, content, pass_array = [], fail_array = [], sk
 	zip_parser = LogFileParser(zip_file_path, content_type=content_type, exclusion_string=exclusion_string, casesens=casesens)
 
 	# Set Strings into parser
-	zip_parser.set_pass_strings(content_strings[content_selection]['pass'] + pass_array)
-	zip_parser.set_fail_strings(content_strings[content_selection]['fail'] + fail_array)
+	zip_parser.set_pass_strings(array_merge(content_strings[content_selection]['pass'], pass_array))
+	zip_parser.set_fail_strings(array_merge(content_strings[content_selection]['fail'], fail_array))
 	zip_parser.set_hang_strings(content_strings[content_selection]['hang'])
 	zip_parser.set_check_strings(content_strings[content_selection]['check'])
 	zip_parser.set_skip_strings(skip_array)
@@ -942,6 +970,10 @@ def check_mca_presence(fail_info_df, mca_df):
 		mca_presence[log_file] = 'YES' if mca_exists else 'NO'
 
 	return mca_presence
+
+def array_merge(array1, array2, unique = True):
+	new_array = list(set(array1 + array2)) if unique else array1 + array2
+	return new_array
 
 def test():
 	
