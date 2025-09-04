@@ -371,9 +371,12 @@ class ppv_report():
 		# Add the BinData to the source_data dataframe
 
 		ppvBin = content_data.groupby('VisualId')['BinDesc'].apply(lambda x: ', '.join(x.dropna().astype(str))).reset_index()
+		TestProgram = content_data.groupby('VisualId')['Program'].apply(lambda x: ', '.join(x.dropna().astype(str))).reset_index()
+		Lot = content_data.groupby('VisualId')['Lot'].apply(lambda x: ', '.join(x.dropna().astype(str))).reset_index()
 
 		source_data = source_data.merge(ppvBin, on='VisualId', how='left')
-
+		source_data = source_data.merge(Lot, on='VisualId', how='left')
+		source_data = source_data.merge(TestProgram, on='VisualId', how='left')
 		# Load the target Excel file
 		target_workbook = load_workbook(target_file)
 		

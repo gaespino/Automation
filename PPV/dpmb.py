@@ -65,7 +65,11 @@ class dpmbGUI:
 		tk.Label(root, text="Operations:").grid(row=5, column=0, padx=10, pady=5)
 		self.operations_listbox = tk.Listbox(root, selectmode=tk.MULTIPLE)
 		self.operations_listbox.insert(1, "8749")
-		self.operations_listbox.insert(2, "7775")
+		self.operations_listbox.insert(2, "8748")
+		self.operations_listbox.insert(3, "8657")
+		self.operations_listbox.insert(4, "7682")
+		self.operations_listbox.insert(4, "7681")
+		self.operations_listbox.insert(5, "7775")
 		self.operations_listbox.grid(row=5, column=1, padx=10, pady=5, sticky='w')
 
 		# Submit Button
