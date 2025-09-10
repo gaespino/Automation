@@ -246,15 +246,15 @@ class LogSummaryParser:
 
 						# Extract MCA data based on the tab
 						if tab == 'CHA_MCAS':
-							report_data.append({'Failed MCA': f'CDIE{row['Compute']}::{row['CHA']}::{row['MC DECODE']}', 'Content': 'CHA_MCAs', 'Experiment': experiment_name, 'Run Value': run_value})
+							report_data.append({'Failed MCA': f"CDIE{row['Compute']}::{row['CHA']}::{row['MC DECODE']}", 'Content': 'CHA_MCAs', 'Experiment': experiment_name, 'Run Value': run_value})
 						elif tab == 'LLC_MCAS':
-							report_data.append({'Failed MCA': f'CDIE{row['Compute']}::{row['LLC']}::{row['MC DECODE']}', 'Content': 'LLC_MCAs', 'Experiment': experiment_name, 'Run Value': run_value})
+							report_data.append({'Failed MCA': f"CDIE{row['Compute']}::{row['LLC']}::{row['MC DECODE']}", 'Content': 'LLC_MCAs', 'Experiment': experiment_name, 'Run Value': run_value})
 						elif tab == 'CORE_MCAS':
-							report_data.append({'Failed MCA': f'CDIE{row['Compute']}::{row[self.search_word]}::{row['ErrorType']}::{row['MCACOD (ErrDecode)']}', 'Content': 'CORE_MCAs', 'Experiment': experiment_name, 'Run Value': run_value})
+							report_data.append({'Failed MCA': f"CDIE{row['Compute']}::{row[self.search_word]}::{row['ErrorType']}::{row['MCACOD (ErrDecode)']}", 'Content': 'CORE_MCAs', 'Experiment': experiment_name, 'Run Value': run_value})
 						elif tab == 'UBOX':
 							location = row['FirstError - Location']
 							if pd.notna(location) and location != '0x0':
-								report_data.append({'Failed MCA': f'{row['NCEVENT'].split("__")[-1]}::{location}', 'Content': 'UBOX', 'Experiment': experiment_name, 'Run Value': run_value})
+								report_data.append({'Failed MCA': f"{row['NCEVENT'].split('__')[-1]}::{location}", 'Content': 'UBOX', 'Experiment': experiment_name, 'Run Value': run_value})
 
 		# Convert the MCA data to a DataFrame
 		mca_df = pd.DataFrame(report_data)
