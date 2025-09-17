@@ -60,6 +60,8 @@ class LogFileParser:
 							result = self.parse_linux_log(log_content)
 						elif self.content_type == 'python':
 							result = self.parse_python_log(log_content)
+						elif self.content_type == 'other':
+							result = self.parse_efi_log(log_content)
 						else:
 							result = []
 						print(f"Result for {log_file}: {result}")
@@ -439,9 +441,15 @@ def check_zip_data(zip_path_dict, skip_array, test_df):
 			fail_string = exp_df.iloc[0]['Fail String']
 			
 			# Split the concatenated strings and convert to sets to ensure uniqueness, then back to lists
-			pass_array = list(set(pass_string.split(",")))
-			fail_array = list(set(fail_string.split(",")))
+			try:
+				pass_array = list(set(pass_string.split(",")))
+			except:
+				pass_array = []
 			
+			try:
+				fail_array = list(set(fail_string.split(",")))
+			except:
+				fail_array = []
 		#fail_info_df[(fail_info_df['Log File'] == test_file) & (fail_info_df['Experiment'] == folder)]
 		#for zip_file in zip_files:
 				
@@ -475,18 +483,22 @@ def parse_zip_files(zip_file_path, content, pass_array = [], fail_array = [], sk
 	python_rules = {	'pass': ['Test Complete'], 
 		  		'fail': ['Test Failed'], 'hang': [], 'check': []}
 
+	other_rules = {	'pass': ['Test Complete'], 
+		  		'fail': ['Test Failed'], 'hang': [], 'check': []}
+	
 	## Content division for Failing Checks
-	efi_content = ["EFI" ]
+	efi_content = ["EFI"]
 	dragon_content = ["DBM", "Pseudo Slice", "Pseudo Mesh"]
 	linux_content = [ "Linux"]
 	tsl_content = [ "TSL"]
 	sandstone_content = ["Sandstone"]
 	imunch_content = ["Imunch"]
 	python_content = ["Python"]
+	other_content = ["Other"]
 
 	if content in efi_content:
 		content_selection = "EFI"
-
+		content_type = "efi"
 	elif content in dragon_content:
 		content_selection = "Dragon"
 		content_type = "efi"
@@ -505,9 +517,12 @@ def parse_zip_files(zip_file_path, content, pass_array = [], fail_array = [], sk
 	elif content in python_content:
 		content_selection = "Python"
 		content_type = "python"
+	elif content in other_content:
+		content_selection = "Other"
+		content_type = "efi"
 	else:
 		print(' -- No valid content selected..')
-		return
+		return {}
 
 	content_strings = {		"EFI": efi_rules,
 							"Dragon": dragon_rules,
@@ -515,8 +530,8 @@ def parse_zip_files(zip_file_path, content, pass_array = [], fail_array = [], sk
 							"Sandstone": sandstone_rules,
 							"Imunch": imunch_rules,
 							"TSL": tsl_rules,
-							"Python": python_rules}
-
+							"Python": python_rules,
+							"Other": other_rules} # will use same as EFI rules for now Placeholder
 
 	zip_parser = LogFileParser(zip_file_path, content_type=content_type, exclusion_string=exclusion_string, casesens=casesens)
 
