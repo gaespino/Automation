@@ -162,7 +162,7 @@ if __name__ == '__main__':
     #search_dir = r'I:\intel\hdmxprogs\SPARK\production\Execution\12259572\3c3e3360edca\GNRSVXXXXHX4A00S521\Modules\FUN_UNCORE_COMP'
     #output_dir = r'C:\Temp'
     #process_directory_for_mptl_files(search_dir, output_dir)
-    generate_default()
+    #generate_default()
     generate_templates()
 
 

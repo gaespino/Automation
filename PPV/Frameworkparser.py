@@ -463,7 +463,7 @@ def check_zip_data(zip_path_dict, skip_array, test_df):
 def parse_zip_files(zip_file_path, content, pass_array = [], fail_array = [], skip_array = [], exclusion_string='pysv', casesens=False):
 
 	linux_rules = {	'pass': ['exit: pass', "test_result: passed" , "Passed", "Result=SUCCESS"], 
-		  		'Fail': ['exit: fail', "test_result: failed", "failed", "Result=FAILED"], 'hang': [], 'check': []}
+		  		'fail': ['exit: fail', "test_result: failed", "failed", "Result=FAILED"], 'hang': [], 'check': []}
 	
 	tsl_rules = {	'pass': ['exit: pass'], 
 		  		'fail': ['exit: fail', "not ok"], 'hang': [], 'check': []}

@@ -1,0 +1,109 @@
+=== EXPERIMENT TRACKER DEBUG SESSION STARTED ===
+Session ID: 20251005_023135
+Start Time: 2025-10-05T02:31:35.497293
+============================================================
+
+[2025-10-05T02:31:35.557489] [TRACKER] ExperimentTracker initialized
+
+[2025-10-05T02:31:42.691336] [EXPERIMENT] EXPERIMENT START - Node: Base (ID: NODE_002)
+
+[2025-10-05T02:31:42.780736] [CONFIG] Experiment config saved to: debug_logs\experiment_config_NODE_002_20251005_023135.json
+
+[2025-10-05T02:31:42.848189] [CONFIG] Key Config Parameters: {'Test Type': 'Loops', 'Content': 'Dragon'}
+    Data: {
+  "Test Type": "Loops",
+  "Content": "Dragon"
+}
+
+[2025-10-05T02:31:42.892715] [EXPERIMENT] Flow experiment started: Base
+
+[2025-10-05T02:31:50.809968] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-05T02:32:08.739154] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-05T02:32:26.628628] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-05T02:32:44.950698] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-05T02:32:46.545818] [SUCCESS] EXPERIMENT COMPLETE - Result: SOLID_REPRO, Port: 2
+
+[2025-10-05T02:32:46.673128] [INFO] Test Folder: C:\SystemDebug\Logs\20251005_023143_T11_Baseline
+
+[2025-10-05T02:32:47.062358] [WARNING] Created new section for node: Base
+
+[2025-10-05T02:32:47.333911] [INFO] Experiment data persisted to node section: Base
+
+[2025-10-05T02:32:47.475556] [INFO] Execution status: COMPLETED_REPRO_FOUND
+
+[2025-10-05T02:32:47.561287] [TRACKER] TRACKER STATE SNAPSHOT
+
+[2025-10-05T02:32:47.703406] [TRACKER] Tracker State: {'experiments_count': 1, 'current_experiment': {'node_name': 'Base', 'node_type': 'FlowInstance', 'iterations_count': 4}, 'flow_summary': {'total_nodes': 1, 'recovery_conditions': 0, 'failure_conditions': 0}}
+    Data: {
+  "experiments_count": 1,
+  "current_experiment": {
+    "node_name": "Base",
+    "node_type": "FlowInstance",
+    "iterations_count": 4
+  },
+  "flow_summary": {
+    "total_nodes": 1,
+    "recovery_conditions": 0,
+    "failure_conditions": 0
+  }
+}
+
+[2025-10-05T02:32:47.823706] [EXPERIMENT] EXPERIMENT START - Node: PPVC (ID: NODE_003)
+
+[2025-10-05T02:32:47.905952] [CONFIG] Experiment config saved to: debug_logs\experiment_config_NODE_003_20251005_023135.json
+
+[2025-10-05T02:32:47.947678] [CONFIG] Key Config Parameters: {'Test Type': 'Loops', 'Content': 'Dragon'}
+    Data: {
+  "Test Type": "Loops",
+  "Content": "Dragon"
+}
+
+[2025-10-05T02:32:47.986764] [EXPERIMENT] Flow experiment started: PPVC
+
+[2025-10-05T02:32:56.430075] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-05T02:33:14.885759] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-05T02:33:25.371069] [SUCCESS] EXPERIMENT COMPLETE - Result: SOLID_REPRO, Port: 2
+
+[2025-10-05T02:33:25.424252] [INFO] Test Folder: C:\SystemDebug\Logs\20251005_023248_T12_PPVC
+
+[2025-10-05T02:33:25.601329] [INFO] Experiment data persisted to node section: PPVC
+
+[2025-10-05T02:33:25.646038] [INFO] Execution status: COMPLETED_REPRO_FOUND
+
+[2025-10-05T02:33:25.692344] [TRACKER] TRACKER STATE SNAPSHOT
+
+[2025-10-05T02:33:25.737753] [TRACKER] Tracker State: {'experiments_count': 2, 'current_experiment': {'node_name': 'PPVC', 'node_type': 'FlowInstance', 'iterations_count': 2}, 'flow_summary': {'total_nodes': 2, 'recovery_conditions': 0, 'failure_conditions': 0}}
+    Data: {
+  "experiments_count": 2,
+  "current_experiment": {
+    "node_name": "PPVC",
+    "node_type": "FlowInstance",
+    "iterations_count": 2
+  },
+  "flow_summary": {
+    "total_nodes": 2,
+    "recovery_conditions": 0,
+    "failure_conditions": 0
+  }
+}
+
+[2025-10-05T02:33:25.998155] [EXPERIMENT] EXPERIMENT START - Node: ExtendedDragon (ID: NODE_010)
+
+[2025-10-05T02:33:26.088685] [CONFIG] Experiment config saved to: debug_logs\experiment_config_NODE_010_20251005_023135.json
+
+[2025-10-05T02:33:26.134263] [CONFIG] Key Config Parameters: {'Test Type': 'Loops', 'Content': 'Dragon'}
+    Data: {
+  "Test Type": "Loops",
+  "Content": "Dragon"
+}
+
+[2025-10-05T02:33:26.176793] [EXPERIMENT] Flow experiment started: ExtendedDragon
+
+[2025-10-05T02:33:34.483464] [TRACKER] ITERATION 0 - Status: FAIL
+

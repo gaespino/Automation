@@ -1,0 +1,152 @@
+{
+ "COREFIX": {
+  "VoltageSettings": {
+   "Type": "fixed",
+   "core": null,
+   "cfc": null
+  },
+  "FrequencySettings": {
+   "core": null,
+   "cfc": 18
+  },
+  "Xaxis": {
+   "Type": "frequency",
+   "Domain": "ia",
+   "Start": 18,
+   "End": 18,
+   "Step": 4
+  },
+  "Yaxis": {
+   "Type": "voltage",
+   "Domain": "ia",
+   "Start": 0.56,
+   "End": 0.6,
+   "Step": 0.01
+  }
+ },
+ "MESHFIX": {
+  "VoltageSettings": {
+   "Type": "fixed",
+   "core": null,
+   "cfc": null
+  },
+  "FrequencySettings": {
+   "core": 16,
+   "cfc": null
+  },
+  "Xaxis": {
+   "Type": "frequency",
+   "Domain": "cfc",
+   "Start": 20,
+   "End": 22,
+   "Step": 2
+  },
+  "Yaxis": {
+   "Type": "voltage",
+   "Domain": "cfc",
+   "Start": 0.72,
+   "End": 0.8,
+   "Step": 0.01
+  }
+ },
+ "COREBUMP": {
+  "VoltageSettings": {
+   "Type": "bumps",
+   "core": null,
+   "cfc": null
+  },
+  "FrequencySettings": {
+   "core": null,
+   "cfc": 22
+  },
+  "Xaxis": {
+   "Type": "frequency",
+   "Domain": "ia",
+   "Start": 10,
+   "End": 16,
+   "Step": 2
+  },
+  "Yaxis": {
+   "Type": "voltage",
+   "Domain": "ia",
+   "Start": -0.02,
+   "End": 0.02,
+   "Step": 0.01
+  }
+ },
+ "MESHBUMP": {
+  "VoltageSettings": {
+   "Type": "bumps",
+   "core": null,
+   "cfc": null
+  },
+  "FrequencySettings": {
+   "core": 16,
+   "cfc": null
+  },
+  "Xaxis": {
+   "Type": "frequency",
+   "Domain": "cfc",
+   "Start": 8,
+   "End": 22,
+   "Step": 2
+  },
+  "Yaxis": {
+   "Type": "voltage",
+   "Domain": "cfc",
+   "Start": -0.02,
+   "End": 0.02,
+   "Step": 0.01
+  }
+ },
+ "VOLTAGE": {
+  "VoltageSettings": {
+   "Type": "fixed",
+   "core": null,
+   "cfc": null
+  },
+  "FrequencySettings": {
+   "core": 16,
+   "cfc": 22
+  },
+  "Xaxis": {
+   "Type": "frequency",
+   "Domain": "ia",
+   "Start": 8,
+   "End": 20,
+   "Step": 4
+  },
+  "Yaxis": {
+   "Type": "frequency",
+   "Domain": "cfc",
+   "Start": 8,
+   "End": 22,
+   "Step": 2
+  }
+ },
+ "FREQUENCY": {
+  "VoltageSettings": {
+   "Type": "fixed",
+   "core": 0.9,
+   "cfc": 0.85
+  },
+  "FrequencySettings": {
+   "core": null,
+   "cfc": null
+  },
+  "Xaxis": {
+   "Type": "frequency",
+   "Domain": "ia",
+   "Start": 8,
+   "End": 20,
+   "Step": 4
+  },
+  "Yaxis": {
+   "Type": "frequency",
+   "Domain": "cfc",
+   "Start": 8,
+   "End": 22,
+   "Step": 2
+  }
+ }
+}

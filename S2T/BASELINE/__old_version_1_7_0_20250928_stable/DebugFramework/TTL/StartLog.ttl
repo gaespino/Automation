@@ -1,0 +1,13 @@
+; Set up the serial port connection
+; COM8 with a baud rate of 115200
+
+; Open the serial port
+connect '/C=8 /BAUD=115200'
+
+; Wait for the connection to establish
+wait 'Connected'
+
+; start_capture.ttl
+; Start Capture and save to a location
+logopen 'C:\Temp\capture.log'
+sendln 'echo Starting Test Capture...'

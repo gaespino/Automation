@@ -1,0 +1,36 @@
+; Commands.ttl
+; Send the following commands
+;call 'C:\PythonSV\graniterapids\users\gaespino\DebugFramework\TTL\StartLog.ttl'
+
+; Set up the serial port connection
+; COM8 with a baud rate of 115200
+
+; Open the serial port
+connect '/C=8 /BAUD=115200'
+timeout = 10
+logopen 'C:\Temp\capture.log'
+
+; Wait for the connection to establish
+sendln '#CONNECT'
+wait 'CONNECT'
+if result=0 goto error
+if result=1 goto ok
+if result=2 goto error
+
+:error
+end
+
+:ok
+
+;Call your Custom Macros here
+
+; Macro for Dragon BareMetal or Pseudo Mesh
+include 'MeshContent.ttl'
+
+; Macro for Dragon Slice
+;include 'SliceContent.ttl'
+
+; Macro for Linux OS Contents
+include 'LinuxContent.ttl'
+
+end

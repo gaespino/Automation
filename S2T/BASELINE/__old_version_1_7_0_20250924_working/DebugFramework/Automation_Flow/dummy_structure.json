@@ -1,0 +1,35 @@
+{
+   "BASELINE":{
+        "name":"BASELINE",
+        "flow":"Baseline_Mesh",
+        "outputNodeMap":{
+            "0":"BASELINE_dummy_1",
+            "1":"BASELINE_dummy_2"
+        },
+        "instanceType":"SingleFailFlowInstance"
+
+    },
+    "BASELINE_dummy_1":{
+
+        "name":"BASELINE_dummy_1",
+        "flow":"PPVC_Mesh",
+        "outputNodeMap":{
+            "0":"BASELINE_dummy_3"
+        },
+        "instanceType":"SingleFailFlowInstance"
+    },
+    "BASELINE_dummy_2":{
+
+        "name":"BASELINE_dummy_2",
+        "flow":"PPVC_Mesh",
+        "outputNodeMap":{},
+        "instanceType":"SingleFailFlowInstance"
+    },
+    "BASELINE_dummy_3":{
+
+        "name":"BASELINE_dummy_3",
+        "flow":"PPVC_Mesh",
+        "outputNodeMap":{},
+        "instanceType":"SingleFailFlowInstance"
+    }
+}

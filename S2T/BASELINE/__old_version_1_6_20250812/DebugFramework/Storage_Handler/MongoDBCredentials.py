@@ -1,0 +1,1 @@
+DANTA_DB_CREDENTIAL = "mongodb://CR_PQE_DPM_MONGO_DB_rw:{}@p1or1mon031.amr.corp.intel.com:7758,p2or1mon031.amr.corp.intel.com:7758,p3or1mon031.amr.corp.intel.com:7758/CR_PQE_DPM_MONGO_DB?ssl=true&replicaSet=mongo7758"

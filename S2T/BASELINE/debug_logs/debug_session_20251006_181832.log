@@ -1,0 +1,85 @@
+=== EXPERIMENT TRACKER DEBUG SESSION STARTED ===
+Session ID: 20251006_181832
+Start Time: 2025-10-06T18:18:32.280681
+============================================================
+
+[2025-10-06T18:18:32.299006] [TRACKER] ExperimentTracker initialized
+
+[2025-10-06T18:18:33.941721] [EXPERIMENT] EXPERIMENT START - Node: BaseRepro (ID: NODE_002)
+
+[2025-10-06T18:18:34.052550] [CONFIG] Experiment config saved to: debug_logs\experiment_config_NODE_002_20251006_181832.json
+
+[2025-10-06T18:18:34.105992] [CONFIG] Key Config Parameters: {'Test Type': 'Loops', 'Content': 'Dragon'}
+    Data: {
+  "Test Type": "Loops",
+  "Content": "Dragon"
+}
+
+[2025-10-06T18:18:34.169680] [EXPERIMENT] Flow experiment started: BaseRepro
+
+[2025-10-06T18:18:42.295478] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-06T18:18:55.843008] [SUCCESS] EXPERIMENT COMPLETE - Result: SOLID_REPRO, Port: 2
+
+[2025-10-06T18:18:55.903949] [INFO] Test Folder: C:\SystemDebug\Logs\20251006_181834_T1_DragonBaseline
+
+[2025-10-06T18:18:56.085515] [INFO] Experiment data persisted to test section: DragonBaseline
+
+[2025-10-06T18:18:56.144280] [INFO] Node name: BaseRepro
+
+[2025-10-06T18:18:56.204408] [TRACKER] TRACKER STATE SNAPSHOT
+
+[2025-10-06T18:18:56.251238] [TRACKER] Tracker State: {'experiments_count': 1, 'current_experiment': {'node_name': 'BaseRepro', 'node_type': 'AllFailFlowInstance', 'iterations_count': 1}, 'flow_summary': {'total_nodes': 1, 'recovery_conditions': 0, 'failure_conditions': 0}}
+    Data: {
+  "experiments_count": 1,
+  "current_experiment": {
+    "node_name": "BaseRepro",
+    "node_type": "AllFailFlowInstance",
+    "iterations_count": 1
+  },
+  "flow_summary": {
+    "total_nodes": 1,
+    "recovery_conditions": 0,
+    "failure_conditions": 0
+  }
+}
+
+[2025-10-06T18:18:56.405566] [EXPERIMENT] EXPERIMENT START - Node: PPVC (ID: NODE_003)
+
+[2025-10-06T18:18:56.503645] [CONFIG] Experiment config saved to: debug_logs\experiment_config_NODE_003_20251006_181832.json
+
+[2025-10-06T18:18:56.554088] [CONFIG] Key Config Parameters: {'Test Type': 'Loops', 'Content': 'Dragon'}
+    Data: {
+  "Test Type": "Loops",
+  "Content": "Dragon"
+}
+
+[2025-10-06T18:18:56.606099] [EXPERIMENT] Flow experiment started: PPVC
+
+[2025-10-06T18:19:04.110126] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-06T18:19:18.494284] [SUCCESS] EXPERIMENT COMPLETE - Result: SOLID_REPRO, Port: 2
+
+[2025-10-06T18:19:18.562099] [INFO] Test Folder: C:\SystemDebug\Logs\20251006_181856_T2_DragonPPVC
+
+[2025-10-06T18:19:18.734592] [INFO] Experiment data persisted to test section: DragonPPVC
+
+[2025-10-06T18:19:18.783308] [INFO] Node name: PPVC
+
+[2025-10-06T18:19:18.828552] [TRACKER] TRACKER STATE SNAPSHOT
+
+[2025-10-06T18:19:18.892545] [TRACKER] Tracker State: {'experiments_count': 2, 'current_experiment': {'node_name': 'PPVC', 'node_type': 'AllFailFlowInstance', 'iterations_count': 1}, 'flow_summary': {'total_nodes': 2, 'recovery_conditions': 0, 'failure_conditions': 0}}
+    Data: {
+  "experiments_count": 2,
+  "current_experiment": {
+    "node_name": "PPVC",
+    "node_type": "AllFailFlowInstance",
+    "iterations_count": 1
+  },
+  "flow_summary": {
+    "total_nodes": 2,
+    "recovery_conditions": 0,
+    "failure_conditions": 0
+  }
+}
+

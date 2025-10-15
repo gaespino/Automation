@@ -1,0 +1,100 @@
+=== EXPERIMENT TRACKER DEBUG SESSION STARTED ===
+Session ID: 20251005_035131
+Start Time: 2025-10-05T03:51:31.333520
+============================================================
+
+[2025-10-05T03:51:31.352730] [TRACKER] ExperimentTracker initialized
+
+[2025-10-05T03:51:34.472972] [EXPERIMENT] EXPERIMENT START - Node: Base (ID: NODE_002)
+
+[2025-10-05T03:51:34.574332] [CONFIG] Experiment config saved to: debug_logs\experiment_config_NODE_002_20251005_035131.json
+
+[2025-10-05T03:51:34.616665] [CONFIG] Key Config Parameters: {'Test Type': 'Loops', 'Content': 'Dragon'}
+    Data: {
+  "Test Type": "Loops",
+  "Content": "Dragon"
+}
+
+[2025-10-05T03:51:34.660021] [EXPERIMENT] Flow experiment started: Base
+
+[2025-10-05T03:51:42.752522] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-05T03:52:00.387136] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-05T03:52:18.553728] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-05T03:52:20.080264] [SUCCESS] EXPERIMENT COMPLETE - Result: SOLID_REPRO, Port: 1
+
+[2025-10-05T03:52:20.116342] [INFO] Test Folder: C:\SystemDebug\Logs\20251005_035135_T11_Baseline
+
+[2025-10-05T03:52:20.248994] [INFO] Experiment data persisted to node section: Base
+
+[2025-10-05T03:52:20.299155] [INFO] Execution status: COMPLETED_REPRO_FOUND
+
+[2025-10-05T03:52:20.343255] [TRACKER] TRACKER STATE SNAPSHOT
+
+[2025-10-05T03:52:20.392864] [TRACKER] Tracker State: {'experiments_count': 1, 'current_experiment': {'node_name': 'Base', 'node_type': 'AllFailFlowInstance', 'iterations_count': 3}, 'flow_summary': {'total_nodes': 1, 'recovery_conditions': 0, 'failure_conditions': 1}}
+    Data: {
+  "experiments_count": 1,
+  "current_experiment": {
+    "node_name": "Base",
+    "node_type": "AllFailFlowInstance",
+    "iterations_count": 3
+  },
+  "flow_summary": {
+    "total_nodes": 1,
+    "recovery_conditions": 0,
+    "failure_conditions": 1
+  }
+}
+
+[2025-10-05T03:52:20.683356] [ANALYSIS] Getting adaptive analysis data for: AllFailFlowInstance
+
+[2025-10-05T03:52:20.731311] [ANALYSIS] ADAPTIVE ANALYSIS
+
+[2025-10-05T03:52:20.774946] [ANALYSIS] Source: Base (Port: 1)
+
+[2025-10-05T03:52:20.820372] [ANALYSIS] Recovery Potential: low
+
+[2025-10-05T03:52:20.870723] [ANALYSIS] Recommended Config: {'Content': <ContentType.DRAGON: 'Dragon'>, 'Configuration (Mask)': 'FirstPass', 'Voltage Type': 'vbump'}
+    Data: {
+  "Content": "ContentType.DRAGON",
+  "Configuration (Mask)": "FirstPass",
+  "Voltage Type": "vbump"
+}
+
+[2025-10-05T03:52:21.100006] [SUCCESS] EXPERIMENT COMPLETE - Result: CONFIG_PASSED, Port: 0
+
+[2025-10-05T03:52:21.236912] [INFO] Experiment data persisted to node section: Base
+
+[2025-10-05T03:52:21.293701] [INFO] Execution status: COMPLETED_UNKNOWN
+
+[2025-10-05T03:52:21.336058] [TRACKER] TRACKER STATE SNAPSHOT
+
+[2025-10-05T03:52:21.377819] [TRACKER] Tracker State: {'experiments_count': 2, 'current_experiment': {'node_name': 'Base', 'node_type': 'AllFailFlowInstance', 'iterations_count': 3}, 'flow_summary': {'total_nodes': 2, 'recovery_conditions': 0, 'failure_conditions': 1}}
+    Data: {
+  "experiments_count": 2,
+  "current_experiment": {
+    "node_name": "Base",
+    "node_type": "AllFailFlowInstance",
+    "iterations_count": 3
+  },
+  "flow_summary": {
+    "total_nodes": 2,
+    "recovery_conditions": 0,
+    "failure_conditions": 1
+  }
+}
+
+[2025-10-05T03:52:22.081040] [EXPERIMENT] EXPERIMENT START - Node: VoltageCFC (ID: NODE_006)
+
+[2025-10-05T03:52:22.159225] [CONFIG] Experiment config saved to: debug_logs\experiment_config_NODE_006_20251005_035131.json
+
+[2025-10-05T03:52:22.202277] [CONFIG] Key Config Parameters: {'Test Type': 'Sweep', 'Content': <ContentType.DRAGON: 'Dragon'>}
+    Data: {
+  "Test Type": "Sweep",
+  "Content": "ContentType.DRAGON"
+}
+
+[2025-10-05T03:52:22.252824] [EXPERIMENT] Flow experiment started: VoltageCFC
+

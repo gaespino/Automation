@@ -1,0 +1,1514 @@
+import time
+import os, sys
+import ipccli
+import namednodes
+import pandas as pd
+import time
+import shutil
+from tabulate import tabulate
+from datetime import datetime
+import pytz
+from ipccli.stdiolog import log
+from ipccli.stdiolog import nolog
+
+import users.gaespino.dev.S2T.CoreManipulation as gcm
+import users.gaespino.dev.S2T.dpmChecks as dpm
+import users.gaespino.dev.S2T.SetTesterRegs as s2t
+
+import users.gaespino.dev.DebugFramework.SerialConnection as ser
+import users.gaespino.dev.DebugFramework.MaskEditor as gme
+import users.gaespino.dev.DebugFramework.FileHandler as fh
+import users.gaespino.dev.DebugFramework.UI.ControlPanel as fcp
+
+import importlib
+
+importlib.reload(ser)
+importlib.reload(gme)
+importlib.reload(fh)
+importlib.reload(fcp)
+
+## Folders
+script_dir = os.path.dirname(os.path.abspath(__file__))
+base_folder = 'C:\\SystemDebug'
+ttl_source = os.path.join(script_dir, 'TTL')
+shmoos_source = os.path.join(script_dir, 'Shmoos')
+ttl_dest = os.path.join(base_folder, 'TTL')
+shmoos_dest = os.path.join(base_folder, 'Shmoos')
+logs_dest = os.path.join(base_folder, 'Logs')
+
+# Run Tera Term macros
+def macros_path(ttl_path):
+	macrospath = rf'{ttl_path}'
+	macro_cmds = {
+		'Disconnect': rf'{macrospath}\disconnect.ttl',
+		'Connect': rf'{macrospath}\connect.ttl',
+		'StartCapture':  rf'{macrospath}\start_capture.ttl',
+		'StartTest': rf'{macrospath}\Commands.ttl',
+		'StopCapture':  rf'{macrospath}\stop_capture.ttl'
+	}
+	return macro_cmds
+# Default Macros Path
+macro_cmds = macros_path(ttl_dest)
+
+# Separator Lines
+
+def print_separator_box(direction='down'):
+	arrow = 'v' if direction == 'down' else '+'  # Box drawing arrows
+	separator_line = f'{"-"*50}{arrow}{"-"*50}'
+	return separator_line
+	#print(separator_line)
+
+def print_custom_separator(text):
+	total_length = 101
+	text_length = len(text)
+	side_length = (total_length - text_length) // 2
+	separator_line = f'{"*" * side_length} {text} {"*" * side_length}'
+	
+	# Adjust if the total length is not exactly 101 due to integer division
+	if len(separator_line) < total_length:
+		separator_line += '*'
+	
+	return separator_line
+
+def initscript():
+	# Create base folder if it does not exist
+	fh.create_folder_if_not_exists(base_folder)
+
+	# Create TTL and Shmoos folders if they do not exist
+	ttlf = fh.create_folder_if_not_exists(ttl_dest)
+	shmf = fh.create_folder_if_not_exists(shmoos_dest)
+	logsf = fh.create_folder_if_not_exists(logs_dest)
+
+	if not ttlf: replace_files(ttl=True, shmoo=False, replace = True)
+	if not shmf: replace_files(ttl=False, shmoo=True, replace = True)
+
+	print('Operation completed.')
+
+def replace_files(ttl, shmoo, replace = False):
+	if replace: user_input = "Y"
+	else: ""
+	# Copy files to TTL and Shmoos folders
+	if ttl:fh.copy_files(ttl_source, ttl_dest, uinput=user_input)
+	if shmoo:fh.copy_files(shmoos_source, shmoos_dest, uinput=user_input)
+
+## Defeature tools Objects
+
+class Experiment():
+	def __init__(self,
+			  	 name: str = 'Experiment',
+				 tnumber: int = 1,
+				 content: str = 'Dragon',
+				 visual: str = '-9999999',
+				 qdf: str = '',
+				 bucket: str = 'UNCORE',
+				 macro_cmds: dict = None,
+				 coreslice: int = None,
+				 fastboot: bool = True,
+				 target: str = 'mesh',
+				 mask: str = None,
+				 volt_type= 'vbump', 
+				 volt_IA: float = None, 
+				 volt_CFC: float = None,
+				 freq_ia: int = None, 
+				 freq_cfc: int = None, 
+				 pseudo: bool = True,
+				 dis2CPM: int = None, 
+				 corelic: int = None, 
+				 ttime: int =30,  
+				 reset: bool = True, 
+				 resetonpass: bool = False, 
+				 extMask: dict = None, 
+				 u600w: bool = False, 
+				 summary: bool = True,
+				 host: str = "10.250.0.2",
+				 com_port: str = '8',
+				 script_file: str = None,
+				 passstring: str = 'Test Complete',
+				 failstring: str = 'Test Failed',):
+
+		self.name = name
+		self.tnumber = tnumber
+		self.content = content
+		self.visual = visual
+		self.qdf = qdf
+		self.bucket = bucket
+		self.coreslice = coreslice
+		self.fastboot = fastboot
+		self.target = target
+		self.mask = mask
+		self.pseudo = pseudo
+		self.dis2CPM = dis2CPM
+		self.corelic = corelic
+		self.ttime = ttime
+		self.reset = reset
+		self.resetonpass = resetonpass
+		self.extMask = extMask
+		self.u600w = u600w
+		self.summary = summary
+		self.host = host
+		self.script_file = script_file
+		self.com_port = com_port
+		self.passstring = passstring
+		self.failstring = failstring
+		# TTL Macros paths
+		self.macro_files = macro_cmds
+		self.log_file_path = ser.log_file_path
+		
+		# Test Folder -- Will be updated once called by the function
+		self.tfolder = None
+
+		#  Log File -- Will be updated once called by the function
+		self.log_file = None
+				
+		# Experiment Type -- Will be updated once called by the function
+		self.etype = None
+		
+		# Loop Variables -- Will be updated once called by the function
+		self.loops = 5
+
+		# Sweep Variables -- Will be updated once called by the function
+		self.ttype = 'frequency'
+		self.domain = 'ia'
+		self.domains = ['ia' ,'cfc']
+
+		# Voltage Variables -- Will be updated once called by the function
+		self.volt_IA = volt_IA
+		self.volt_CFC = volt_CFC
+		self.volt_type = volt_type
+		
+
+		#Freq Variables -- Will be updated once called by the function
+		self.freq_ia = freq_ia
+		self.freq_cfc = freq_cfc
+
+		# Content initialization and checks
+		self.content_selection()
+		self.target_validation()
+		#self.datadict()
+		#self.experimentdict()
+		#self.fusesdict()
+
+	def datadict(self):
+		
+		self.data = {
+					'Visual':self.visual,
+					'QDF': self.qdf,
+					'Bucket':self.bucket,
+					'MacroFile':self.macro_files,
+					'TestFolder':self.tfolder,
+					'LogFile':self.log_file_path,
+					'Mesh':self.Mesh,
+					'Slice':self.Slice,
+					'FastBoot':self.fastboot,
+					'CoreLicense': self.corelic,
+					'ExternalMask': self.extMask,
+					'u600w': self.u600w,
+					}
+
+	def experimentdict(self):
+
+		self.experiment = {
+					'Type': self.etype,
+					'Name': self.name,
+					'Number':self.tnumber,
+					'Time':self.ttime,
+					'Mask':self.mask,
+					'Pseudo':self.pseudo,
+					'2CPM':self.dis2CPM,
+					'Dragon':self.runDragon,
+					'Linux':self.runLinux,
+					'PYSVConsole':self.runPYSVConsole,
+					'Core': self.coreslice,
+					'Pass String': self.passstring,
+					'Fail String': self.failstring,
+					}
+
+	def fusesdict(self):
+
+		self.voltage = {
+					'Type': self.volt_type,
+					'IA': self.volt_IA,
+					'CFC': self.volt_CFC,
+					}
+
+		self.frequency = {
+					'IA': self.freq_ia,
+					'CFC':self.freq_cfc,
+					}
+
+	def content_selection(self):
+
+		self.runLinux = False
+		self.runDragon = False
+		self.runPYSVConsole = False
+
+		if self.content == 'Dragon': 
+			self.runDragon = True
+		elif self.content == 'Linux': 
+			self.runLinux = True
+		elif self.content == 'PYSVConsole': 
+			self.runPYSVConsole = True
+		else:
+			raise ValueError(f' --- Invalid selectd content -> {self.content} -- Content options are: Dragon | Linux | PYSVConsole')
+
+	def target_validation(self):
+		self.Slice = False
+		self.Mesh = False
+		# Checks for current Target
+		if self.target == 'mesh':
+			self.Mesh = True
+			self.chkcore = self.coreslice
+		elif self.target == 'slice':
+			self.Slice = True
+			self.chkcore = self.mask
+		else:
+			raise ValueError(f' --- Invalid selectd target -> {self.target} -- target should slice or mesh.')
+			
+	def configLoops(self, loops = 5):
+		# Checks for current content
+
+		self.description = f'T{self.tnumber}_{self.name}_Loops'#_n{loops}_{self.content}_{self.target}'
+		self.update_dicts()
+
+	def configSweep(self, ttype = 'frequency', domain = 'ia'):
+
+		if domain not in self.domains: 
+			raise ValueError(f' -- Invalid domain selection use: {self.domains}')
+		
+		# Required files -- TTL Macros, and paths
+		self.description = f'T{self.tnumber}_{self.name}_Sweep'#_{self.content}_{self.target}_{ttype}_{domain}'
+		self.update_dicts()
+
+	def configShmoo(self, label='COREFIX'):
+	
+		# Required files -- TTL Macros, and paths
+		self.description = f'T{self.tnumber}_{self.name}_Shmoo'#_{self.content}_{self.target}_{label}'
+		self.update_dicts()
+
+	def update_dicts(self):
+		self.tfolder = fh.create_log_folder(logs_dest, self.description)#ser.tfolder
+		self.log_file = os.path.join(self.tfolder, 'DebugFrameworkLogger.log')
+
+		self.datadict()
+		self.experimentdict()
+		self.fusesdict()
+
+class defeature():
+
+	def __init__(self, Experiment):
+				# data: dict,
+				# experiment: dict = None,
+				# voltage: dict  = None,
+				# frequency: dict = None,
+				# log_file: str = None,
+				# host: str = "10.250.0.2",
+				# com_port: str = '8',
+				# script_file: str = None):
+		#super().__init__(data, experiment, voltage, frequency, log_file, host, com_port, script_file)
+		self.data = Experiment.data
+		self.experiment = Experiment.experiment
+		self.voltage = Experiment.voltage
+		self.frequency = Experiment.frequency
+		self.Reset = Experiment.reset # Resets Unit on each iteration by default True
+		self.resetonpass = Experiment.resetonpass
+		self.s2t_config_path = r"C:\Temp\System2TesterRun.json"
+		self.log_file = Experiment.log_file
+		self.script_file = Experiment.script_file
+		self.scratchpad = ''
+		self.host = Experiment.host
+		self.com_port = Experiment.com_port
+		self.running_iteration = 1
+		self.running_test = None
+
+		#print(data)
+		#print(experiment)
+		#print(voltage)
+		#print(frequency)
+		# Initialize logging
+		#self.gdflog = fh.printlog(self.log_file)
+		self.updatevars()
+		self.initlog()
+
+	def initlog(self):
+		self.gdflog = fh.FrameworkLogger(self.log_file, True, True)
+		# Initialize log file
+		#if self.log_file:
+		#	with open(self.log_file, 'w', encoding='utf-8') as f:
+		#		f.write('')  # Create or override the log file
+
+	def Debuglog(self, message, event_type=1): #console_show= True, event_type=0):
+		#self.gdflog.log(message, console_show, event_type)
+		self.gdflog.log(message, event_type)
+		#if console_show: print(message)
+		#if self.log_file:
+		#	with open(self.log_file, 'a', encoding='utf-8') as f:
+		#		if isinstance(message, pd.DataFrame):
+		#			message = message.to_string()
+		#		elif isinstance(message, list):
+		#			message = '\n'.join(map(str, message))  # Convert list to string
+		#	
+		#		f.write(message + '\n')
+			
+	def updatevars(self):
+
+		## Collect Data from data dictionary
+		self.visual = self.data.get('Visual')
+		self.qdf = self.data.get('QDF')
+		self.bucket = self.data.get('Bucket')
+		self.macro_files =  self.data.get('MacroFile')
+		self.tfolder =  self.data.get('TestFolder')
+		self.log_file_path =  self.data.get('LogFile')
+		self.ismesh =  self.data.get('Mesh')
+		self.isslice =  self.data.get('Slice')
+		self.fastboot = self.data.get('FastBoot')
+		self.corelic = self.data.get('CoreLicense')
+		self.extMask = self.data.get('ExternalMask')
+		self.u600w = self.data.get('u600w')
+		## Collect Experiment Information --
+		self.etype = self.experiment.get('Type')
+		self.tname = self.experiment.get('Name')
+		self.tnum = self.experiment.get('Number')
+		self.ttime = self.experiment.get('Time')
+		self.mask = self.experiment.get('Mask')
+
+		self.htdis = self.experiment.get('Pseudo')
+		self.dis2CPM = self.experiment.get('2CPM')
+		self.Dragon = self.experiment.get('Dragon')
+		self.Linux = self.experiment.get('Linux')
+		self.PYSVConsole = self.experiment.get('PYSVConsole')
+		self.coreslice = self.experiment.get('Core')
+		self.passstring = self.experiment.get('Pass String')
+		self.failstring = self.experiment.get('Fail String')
+
+		if self.Dragon: self.content = 'Dragon'
+		elif  self.Linux: self.content = 'Linux'
+		elif  self.PYSVConsole: self.content = 'PYSVConsole'
+		else: self.content = None
+
+		## Voltage variables
+		self.bumps = self.voltage.get('Type')
+		self.voltIA = self.voltage.get('IA')
+		self.voltCFC = self.voltage.get('CFC')
+
+		## Frequency variables
+		self.freqIA = self.frequency.get('IA')
+		self.freqCFC = self.frequency.get('CFC')
+
+		self.shmoodata = pd.DataFrame()
+		self.legends = pd.DataFrame()
+
+	def Test(self):
+		## Print Test Banner
+		#self.Debuglog(f'\n{print_separator_box(direction="down")}\n')
+		
+		self.TestBanner()
+		ser.kill_process(process_name = 'ttermpro.exe', logger = self.Debuglog)
+
+		## Build variables for log and string data
+		vbumps = True if self.voltIA != None or self.voltCFC != None else False
+		
+		vtstring = self.tnamestr('_vcfg_',self.bumps) if vbumps else ""
+		iaF = self.tnamestr('_ia_f',self.freqIA)
+		cfcF = self.tnamestr('_cfc_f',self.freqCFC)
+		iavolt = self.tnamestr('_ia_v',self.voltIA).replace(".","_")
+		cfcvolt = self.tnamestr('_cfc_v',self.voltCFC).replace(".","_")
+		mask = self.tnamestr('',self.mask,"System")
+		tname = self.tname.strip(' ')
+		test = f'{tname}_{mask}{iaF}{cfcF}{vtstring}{iavolt}{cfcvolt}'
+		coreslice = self.coreslice
+		bootReady = False # This is to indicate a succesfull boot not used for now...
+		## Calls script for either mesh or slice
+		if self.ismesh:
+
+			try: 
+				s2t.MeshQuickTest(core_freq = self.freqIA, mesh_freq = self.freqCFC, vbump_core = self.voltIA, vbump_mesh = self.voltCFC, Reset = self.Reset, Mask = self.mask, pseudo = self.htdis, dis_2CPM = self.dis2CPM, GUI = False, fastboot = self.fastboot, corelic = self.corelic, volttype=self.bumps, debug= False, extMask = self.extMask)
+				bootReady = True
+			except KeyboardInterrupt:
+				self.Debuglog("Script interrupted by user. Exiting...",2)
+				
+				return None			
+			except Exception as e: 				
+				self.Debuglog(f' Boot Failed with Exception {e} --- Might be an issue with bootscript -- Retrying..... ',4)
+				self.powercycle(u600w = self.u600w)
+				s2t.MeshQuickTest(core_freq = self.freqIA, mesh_freq = self.freqCFC, vbump_core = self.voltIA, vbump_mesh = self.voltCFC, Reset = self.Reset, Mask = self.mask, pseudo = self.htdis, dis_2CPM = self.dis2CPM, GUI = False, fastboot = self.fastboot, corelic = self.corelic, volttype=self.bumps, debug= False, extMask = self.extMask)
+				bootReady = True
+			finally:
+				if bootReady: 
+					self.Debuglog(' Framework boot process completed.....',1)
+				else: 
+					self.Debuglog(' Framework was not able to properly configure the system after a retry.....',3)
+
+		elif self.isslice:
+
+			try:
+				s2t.SliceQuickTest(Target_core = coreslice, core_freq = self.freqIA, mesh_freq = self.freqCFC, vbump_core = self.voltIA, vbump_mesh = self.voltCFC, Reset = self.Reset, pseudo = False, dis_2CPM = self.dis2CPM, GUI = False, fastboot = self.fastboot, corelic = self.corelic, volttype = self.bumps, debug= False)
+				bootReady = True
+			except KeyboardInterrupt:
+				self.Debuglog("Script interrupted by user. Exiting...",2)
+				return None		
+			except Exception as e: 
+				self.Debuglog(f' Boot Failed with Exception {e} --- Might be an issue with bootscript -- Retrying..... ',4)
+				self.powercycle(u600w = self.u600w)
+				#dpm.powercycle(ports=[1])
+				#time.sleep(60)
+				#gcm._wait_for_post(gcm.EFI_POST, sleeptime=60)
+				#gcm.svStatus(refresh=True)		
+				s2t.SliceQuickTest(Target_core = coreslice, core_freq = self.freqIA, mesh_freq = self.freqCFC, vbump_core = self.voltIA, vbump_mesh = self.voltCFC, Reset = self.Reset, pseudo = False, dis_2CPM = self.dis2CPM, GUI = False, fastboot = self.fastboot, corelic = self.corelic, volttype = self.bumps, debug= False)
+				bootReady = True
+			finally:
+				if bootReady: 
+					self.Debuglog(' Framework boot process completed.....',1)
+				else: 
+					self.Debuglog(' Framework was not able to properly configure the system after a retry.....',3)
+
+		else:
+			self.Debuglog(" --- Not valid type of test, select either mesh or slice",3)
+			sys.exit()
+		
+		if self.script_file != None:
+			if self.content == 'PYSVConsole': log(self.log_file_path)
+			self.Debuglog(f" --- Executing Custom script before test: {self.script_file}",1)
+			fh.execute_file(file_path = self.script_file, logger = self.Debuglog)
+			if self.content == 'PYSVConsole': nolog()
+				
+		#if bootReady:
+		serial = ser.teraterm(visual=self.visual, qdf=self.qdf, bucket=self.bucket, log=self.log_file_path, cmds=self.macro_files, tfolder=self.tfolder, test=test, ttime=self.ttime, tnum=self.tnum, DebugLog = self.Debuglog, chkcore = self.coreslice, content = self.content, host = self.host, PassString = self.passstring, FailString = self.failstring)
+		
+		if self.content == 'PYSVConsole': serial.PYSVconsole()
+		else: serial.run()
+		## Take data from current run PASS / FAIL and testname
+		result = serial.testresult.split("::")
+		
+		self.runStatus = result[0]
+		self.runName = result[-1]
+		
+		## Moves the log a another file to avoid overwrite in loops
+
+		log_new_path = os.path.join(self.tfolder, f'{self.tnum}_{test}.log')
+
+		if os.path.exists(self.log_file_path):
+			shutil.copy(self.log_file_path, log_new_path)
+			validTTLog = True
+		else:
+			validTTLog = False
+		
+		## Saves current configuration into selected new path
+
+		s2t_config_path = os.path.join(self.tfolder, f'{self.tnum}_{test}.json')
+		if os.path.exists(self.s2t_config_path):
+			shutil.copy(self.s2t_config_path, s2t_config_path)
+		
+		self.seed = fh.extract_fail_seed(log_new_path)
+		self.scratchpad = serial.scratchpad
+		self.Iteration_end(log_new_path, s2t_config_path, validTTLog)
+
+		#self.Debuglog(f'tdata_{self.tnum}::{self.runName}::{self.runStatus}::{self.scratchpad}::{self.seed}')
+		#self.Debuglog(print_custom_separator(f'Test iteration summary'))
+		#self.Debuglog(f' -- Test Name: {self.runName} --- ')
+		#self.Debuglog(f' -- Test Result: {self.runStatus} --- ')
+		#self.Debuglog(f' -- Dragon Seeds Status: {self.seed} --- ')
+		#self.Debuglog(f' -- Current Unit Scratchpad: {self.scratchpad} --- ')
+		#self.Debuglog(f' -- SerialConsoleLog: {log_new_path} --- ')
+		#self.Debuglog(f' -- System2TesterConfig: {s2t_config_path} --- ')
+		#self.Debuglog(f' -- Test End --- ')
+
+	def Iteration_end(self, log_new_path, s2t_config_path, validTTLog):
+
+		self.Debuglog(f'tdata_{self.tnum}::{self.runName}::{self.runStatus}::{self.scratchpad}::{self.seed}')
+		self.Debuglog(print_custom_separator(f'Test iteration summary'))
+		self.Debuglog(f' -- Test Name: {self.runName} --- ')
+		self.Debuglog(f' -- Test Result: {self.runStatus} --- ')
+		if self.content == 'Dragon': self.Debuglog(f' -- Dragon Seeds Status: {self.seed} --- ')
+		self.Debuglog(f' -- Current Unit Scratchpad: {self.scratchpad} --- ')
+		if validTTLog: self.Debuglog(f' -- SerialConsoleLog: {log_new_path} --- ')
+		self.Debuglog(f' -- System2TesterConfig: {s2t_config_path} --- ')
+		self.Debuglog(f' -- Test End --- ')
+
+	def TestBanner(self):
+		
+		if self.ismesh and self.Dragon:
+			runtxt = f' -- Running Dragon {"Pseudo " if self.htdis else "Bare Metal"} content --- '
+		elif self.isslice and self.Dragon:
+			runtxt = f' -- Running Dragon Slice content --- '
+		self.Debuglog(f' -- Test Start --- ')
+		self.Debuglog(f' -- Debug Framework {self.tname} --- ')
+		self.Debuglog(f' -- Performing test iteration {self.tnum} with the following parameters: ')
+		if self.Dragon: self.Debuglog(f'{runtxt}')
+		if self.Linux: self.Debuglog(f' -- Running Linux Content ---') # Need to add more here, stil WIP, working only for Dragon
+		if self.PYSVConsole: self.Debuglog(f' -- PYSVConsole Custom Script Run ---')
+		self.Debuglog(f'\t > Unit VisualID: {self.visual}')
+		self.Debuglog(f'\t > Unit QDF: {self.qdf}')
+		self.Debuglog(f'\t > Configuration: {self.mask if self.mask != None else "System Mask"} ')
+		if self.corelic: self.Debuglog(f'\t > Core License: {self.corelic} ')
+		self.Debuglog(f'\t > Voltage set to: {self.bumps} ')
+		self.Debuglog(f'\t > HT Disabled (BigCore): {self.htdis} ')
+		self.Debuglog(f'\t > Dis 2 Cores (Atomcore): {self.dis2CPM} ')
+		self.Debuglog(f'\t > Core Freq: {self.freqIA} ')
+		self.Debuglog(f'\t > Core Voltage: {self.voltIA} ')
+		self.Debuglog(f'\t > Mesh Freq: {self.freqCFC} ')
+		self.Debuglog(f'\t > Mesh Voltage: {self.voltCFC} ')
+		if self.u600w: self.Debuglog(f'\t > Unit 600w Fuses Applied ')
+		if self.extMask != None:
+			printmasks = [["Type", "Value"]]
+			printmasks.append([[k,v] for k, v in self.extMask.items()])
+			self.Debuglog(f'\t > Using External Base Mask: {printmasks} \n')
+			self.Debuglog(tabulate(printmasks, headers="firstrow", tablefmt="grid"))
+
+	def tnamestr(self,prefix, value, default = ""):
+		tstr = f'{prefix}{value}' if value != None or value != None else default
+		return tstr
+
+	def tarray(self, ttype, start, end, step):
+		
+		if start > end:
+			_start = start
+			_end = end
+			invert = True
+		else:
+			_start = start
+			_end = end
+			invert = False
+		
+		# Depending on type will build the new array
+		if ttype == 'frequency':
+
+			rng = list(range(_start, _end+step, step))
+			if rng[-1] > end: rng[-1] = _end
+
+		elif ttype == 'voltage':
+			rng = []
+			current = _start
+			# Round to 5 decimals max
+			while current < (_end+step):
+				current = round(current,5)
+				rng.append(current)
+				current += step
+				#print(current,end,step)
+			if rng[-1] > _end: rng[-1] = _end
+
+		else:
+			self.Debuglog(' --- Invalid type selected for a Sweep test: options are [frequency, voltage]',3)
+			sys.exit()
+		if invert: 
+			self.Debuglog(' --- Reversed range used for Sweep Experiment.')
+			rng = rng[::-1]
+		return rng
+
+	def tupdate(self, ttype, domain, value):
+		# Update frequency  /voltage value
+		if ttype == 'frequency':
+			if domain == 'ia': self.freqIA = value
+			if domain == 'cfc': self.freqCFC = value
+
+		if ttype == 'voltage':
+			if domain == 'ia': self.voltIA = value
+			if domain == 'cfc': self.voltCFC = value
+
+	def powercycle(self, u600w):
+
+		if not u600w: 
+			dpm.powercycle(ports=[1])
+		else:
+			dpm.powercycle(ports=[1])
+			time.sleep(60)
+			dpm.reset_600w()
+		time.sleep(60)
+		gcm._wait_for_post(gcm.EFI_POST, sleeptime=60)
+		gcm.svStatus(refresh=True)				
+
+	## Test Types
+	def Sweep(self, domain, ttype, start, end, step):
+		self.initlog()
+		self.Debuglog(print_custom_separator(f'Starting Sweep  -- {domain.upper()}:{ttype.upper()}'))
+		## Condition if start > end??
+
+		rng = self.tarray(ttype, start, end, step)
+		failnum = 0
+		## Loop
+		shmooy = []
+		legends = []
+		for r in rng:
+			self.Debuglog(f'{print_separator_box(direction="down")}')
+			self.Debuglog(print_custom_separator(f'Running Sweep iteration:{self.tnum}'))
+				
+			# Update frequency  /voltage value
+			self.tupdate(ttype=ttype, domain=domain, value=r)
+
+			## Run the test
+			self.Test()
+			self.Debuglog(f' -- Test iteration {self.tnum} Completed.... ')
+			self.Debuglog(f'Test Result:: {self.runStatus} -- {self.runName}')
+			if self.runStatus == 'FAIL':
+				fail_letter = chr(65+failnum)
+				legends.append(f'{fail_letter} - {self.tnum}:{self.scratchpad}:{self.seed}')
+				shmooy.append([fail_letter])
+				failnum += 1
+				self.Reset = True
+			else:
+				shmooy.append(["*"])
+				if self.resetonpass == True: self.Reset = True
+				else: self.Reset = False
+
+
+			# Update test Number for next Iteartion
+			self.tnum += 1
+			self.Debuglog(f'{print_separator_box(direction="up")}')
+			time.sleep(10)
+		self.legends =  pd.DataFrame(legends,columns=["Legends"])
+		self.shmoodata = pd.DataFrame(shmooy, columns=[ttype], index=rng)
+		#self.shmoo = shmooy
+
+	def Loop(self, loops):
+		self.initlog()
+		self.Debuglog(print_custom_separator(f'Starting Loop'))
+		## Loop
+		shmooy = []
+		legends = []
+		failnum = 0
+		for l in range(loops):
+			self.Debuglog(f'{print_separator_box(direction="down")}')
+			self.Debuglog(print_custom_separator(f'Running Loop iteration:{self.tnum}'))
+				
+			# Update frequency  /voltage value
+
+			## Run the test
+			self.Test()
+			self.Debuglog(f' -- Test iteration {self.tnum} Completed.... ')
+			self.Debuglog(f'Test Result:: {self.runStatus} -- {self.runName}')
+			if self.runStatus == 'FAIL':
+				fail_letter = chr(65+failnum)
+				legends.append(f'{fail_letter} - {self.tnum}:{self.scratchpad}:{self.seed}')
+				shmooy.append([fail_letter])
+				failnum += 1
+				self.Reset = True
+			else:
+				shmooy.append(["*"])
+				if self.resetonpass == True: self.Reset = True
+				else: self.Reset = False
+
+
+			# Update test Number for next Iteartion
+			self.tnum += 1
+			self.Debuglog(f'{print_separator_box(direction="up")}')
+			time.sleep(10)
+		self.legends =  pd.DataFrame(legends,columns=["Legends"])
+		self.shmoodata = pd.DataFrame(shmooy, columns=["Loops"])
+		#self.shmoo = shmooy
+
+	def Shmoo(self, xvalues, yvalues):
+		self.initlog()
+		self.Debuglog(print_custom_separator(f'Starting Shmoo'))
+		## Condition if start > end??
+		ttypex = xvalues.get('Type')
+		domainx = xvalues.get('Domain')
+		startx = xvalues.get('Start')
+		endx = xvalues.get('End')
+		stepx = xvalues.get('Step')
+
+		## Condition if start > end??
+		ttypey = yvalues.get('Type')
+		domainy = xvalues.get('Domain')
+		starty = yvalues.get('Start')
+		endy = yvalues.get('End')
+		stepy = yvalues.get('Step')
+
+		rngx = self.tarray(ttypex, startx, endx, stepx)
+		rngy = self.tarray(ttypey, starty, endy, stepy)
+		## Loop
+		failnum= 0
+		shmooy = []
+		legends = []
+		#print(rngx)
+		#print(rngy)
+		#time.sleep(60)
+		for ry in rngy:
+
+			self.tupdate(ttype=ttypey, domain=domainy, value=ry)
+			shmoox = []
+			for rx in rngx:
+				self.Debuglog(f'{print_separator_box(direction="down")}')
+				self.Debuglog(print_custom_separator(f'Running shmoo iteration:{self.tnum}'))
+				self.tupdate(ttype=ttypex, domain=domainx, value=rx)
+				## Run the test
+
+				self.Test()
+
+				self.Debuglog(f' -- Test iteration {self.tnum} Completed.... ')
+				self.Debuglog(f'Test Result:: {self.runStatus} -- {self.runName}')
+
+				if self.runStatus == 'FAIL':
+					fail_letter = chr(65+failnum)
+					legends.append(f'{fail_letter} - {self.tnum}:{self.scratchpad}:{self.seed}')
+					shmoox.append(fail_letter)
+					failnum += 1
+					self.Reset = True
+				else:
+					shmoox.append("*")
+					if self.resetonpass == True: self.Reset = True
+					else: self.Reset = False
+				# Update test Number for next Iteartion
+				self.tnum += 1
+				self.Debuglog(f'{print_separator_box(direction="up")}')
+				time.sleep(10)
+			self.Debuglog(shmoox)
+			self.Debuglog(legends)
+			shmooy.append(shmoox)
+			self.Debuglog(shmooy)
+		self.legends = pd.DataFrame(legends,columns=["Legends"])
+		self.shmoodata = pd.DataFrame(shmooy, columns=rngx, index=rngy) #shmooy
+
+## Framework Automation functions Object
+class Framework():
+	def __init__(	self,
+			  		name: str = 'Experiment',
+				 	tnumber: int = 1,
+				 	content: str = 'Dragon',
+				 	visual: str = '-9999999',
+				 	qdf: str = '',
+				 	bucket: str = 'FRAMEWORK',
+				 	macro_files: str = None,
+				 	coreslice: int = None,
+				 	fastboot: bool = True,
+				 	target: str = 'mesh',
+				 	mask: str = None,
+				 	pseudo: bool = True,
+				 	dis2CPM: int = None, 
+				 	corelic: int = None, 
+				 	ttime: int =30,  
+				 	reset: bool = True, 
+				 	resetonpass: bool = False, 
+				 	extMask: dict = None, 
+				 	u600w: bool = False, 
+				 	summary: bool = True,
+				 	host: str = "10.250.0.2",
+				 	com_port: str = '8',
+				 	script_file: str = None,
+					passstring: str = 'Test Complete',
+					failstring: str = 'Test Failed',):
+		
+		self.Experiment_Data = None
+		self.Defeature = None
+		self.current_iteration = 0
+		self.current_test = None
+
+		# Experiment Data
+		self.name = name
+		self.tnumber = tnumber
+		self.content = content
+		self.visual = visual
+		self.qdf = qdf
+		self.bucket = bucket
+		self.ttime = ttime
+		self.reset = reset
+		self.resetonpass = resetonpass
+		self.macro_files = macro_files
+		self.coreslice = coreslice
+		self.fastboot = fastboot
+		self.target = target
+		self.mask = mask
+		self.pseudo = pseudo
+		self.dis2CPM = dis2CPM
+		self.corelic = corelic
+		self.extMask = extMask
+		self.u600w = u600w
+		self.summary = summary
+		self.host = host
+		self.com_port = com_port
+		self.script_file = script_file
+		self.passstring = passstring
+		self.failstring = failstring
+
+	def update_test_config(self, name, tnumber, content, visual, bucket, ttime, reset, resetonpass):
+
+		self.name =  name
+		self.tnumber = tnumber
+		self.content = content
+		self.visual = visual
+		self.bucket = bucket
+		self.ttime = ttime 
+		self.reset = reset 
+		self.resetonpass = resetonpass 
+
+	def update_system_to_tester_config(self, coreslice, fastboot, target, mask, pseudo, dis2CPM, corelic, extMask):		
+
+		self.coreslice = coreslice
+		self.fastboot = fastboot
+		self.target = target
+		self.mask = mask
+		self.pseudo = pseudo
+		self.dis2CPM = dis2CPM 
+		self.corelic = corelic
+		self.extMask = extMask 
+		
+	def update_voltage_config(self, volt_type, volt_IA, volt_CFC):
+			
+		self.volt_type= volt_type
+		self.volt_IA = volt_IA
+		self.volt_CFC = volt_CFC
+
+	def update_misc_configs(self, summary):
+		
+		self.summary = summary
+	
+	def update_frequency_config(self, freq_ia, freq_cfc):
+
+		self.freq_ia = freq_ia
+		self.freq_cfc =freq_cfc
+
+	def update_platform_setup(self, u600w, host, com_port):
+		self.u600w = u600w
+		self.host = host
+		self.com_port = com_port
+
+	def update_test_required_files(self, script_file, macro_files):
+
+		self.script_file = script_file
+		self.macro_files = macro_files    		
+
+	def update_experiment_data(self):
+			
+		self.Experiment_Data = Experiment(	name =  self.name,
+								tnumber = self.tnumber,
+								content = self.content,
+								visual = self.visual,
+								bucket =self. bucket,
+								macro_cmds = self.ttl_macros,
+								coreslice = self.coreslice,
+								fastboot = self.fastboot,
+								target = self.target,
+								mask = self.mask,
+								volt_type= self.volt_type, 
+								volt_IA = self.volt_IA, 
+								volt_CFC = self.volt_CFC,
+								freq_ia = self.freq_ia, 
+								freq_cfc = self.freq_cfc, 
+								pseudo = self.pseudo,
+								dis2CPM = self.dis2CPM, 
+								corelic = self.corelic, 
+								ttime = self.ttime,  
+								reset = self.reset, 
+								resetonpass = self.resetonpass, 
+								extMask = self.extMask, 
+								u600w = self.u600w, 
+								summary = self.summary,
+								host = self.host,
+								com_port = self.com_port,
+								script_file = self.script_file,
+								passstring = self.passstring, 
+								failstring = self.failstring)
+	
+	def set_defeature_config(self):	
+		self.Defeature = defeature(Experiment = self.Experiment_Data)
+
+	def check_ttl_macro(self):
+		
+		## Defaults to TTL files in C:\SystemDebug\TTL
+		if self.macro_files == None: 
+			self.ttl_macros = macro_cmds 
+		else:
+			self.ttl_macros = macros_path(self.macro_files)
+		
+		print(f'Using TTL Files: {self.ttl_macros}')
+
+	def check_reset_on_pass_condition(self):
+		# Passing reset variables
+		if self.volt_type == 'vbump':
+			self.Defeature.resetonpass = True
+			self.Defeature.Debuglog('Units will reset on pass when using vbumps  --- \n')
+
+	def end_summary(self):
+
+		shmoodata = self.Defeature.shmoodata
+		legends = self.Defeature.legends
+
+		# Builds Unit Summary
+		if self.summary:
+			genSummary(self.name, self.visual, self.Defeature.tfolder, self.bucket, logger=self.Defeature.Debuglog)
+
+		# Prints Shmoo data
+		self.Defeature.Debuglog(f'{self.Test_Type} Test Results --- \n')
+		self.Defeature.Debuglog(shmoodata)
+		self.Defeature.Debuglog('\nLegends:')
+		self.Defeature.Debuglog(legends)
+
+	def Sweep(self, 
+				ttype = 'frequency', 
+				domain = 'ia', 
+				start = 16, 
+				end = 39, 
+				step= 4, 
+				volt_type= 'vbump', 
+				volt_IA = None,	
+				volt_CFC = None, 
+				freq_ia = None, 
+				freq_cfc =None,):
+		
+		# Variable Initialization
+		self.Test_Type = 'Sweep'
+		self.update_voltage_config(volt_type, volt_IA, volt_CFC)
+		self.update_frequency_config(freq_ia, freq_cfc)
+
+		self.check_ttl_macro()
+		
+		# Update Experiment and Defeature Objects
+		self.update_experiment_data()
+		
+		# Setup Selected TestType Configuration
+		self.Experiment_Data.configSweep(ttype=ttype, domain=domain)
+		
+		# Setup for the defeature config using experiment data
+		self.set_defeature_config()
+
+		# Checks Reset on Pass condition based on voltaje selection
+		self.check_reset_on_pass_condition()
+
+		# Starts the test
+		self.Defeature.Sweep(domain=domain, ttype=ttype, start=start, end=end, step=step)
+		
+		# End Flow
+		self.end_summary()
+
+	def Shmoo(  self,
+				file=r'C:\Temp\ShmooData.json', 
+				label='COREFIX',):
+
+		# Collect data from Json file
+		shmoojs = dpm.dev_dict(file, False)
+		shmoojson = shmoojs[label]
+
+		volt_type = shmoojson['VoltageSettings']['Type']
+		volt_IA = shmoojson['VoltageSettings']['core']
+		volt_CFC = shmoojson['VoltageSettings']['cfc']
+
+		freq_ia = shmoojson['FrequencySettings']['core']
+		freq_cfc = shmoojson['FrequencySettings']['cfc']
+
+		xvalues = shmoojson['Xaxis']
+		yvalues = shmoojson['Yaxis']
+
+		
+		# Variable Initialization
+		self.Test_Type = 'Shmoo'
+		self.update_voltage_config(volt_type, volt_IA, volt_CFC)
+		self.update_frequency_config(freq_ia, freq_cfc)
+
+		self.check_ttl_macro()
+		
+		# Update Experiment and Defeature Objects
+		self.update_experiment_data()
+		
+		# Setup Selected TestType Configuration
+		self.Experiment_Data.configShmoo(label=label)
+		
+		# Setup for the defeature config using experiment data
+		self.set_defeature_config()
+
+		# Checks Reset on Pass condition based on voltaje selection
+		self.check_reset_on_pass_condition()
+
+		# Starts the test
+		self.Defeature.Shmoo(xvalues=xvalues, yvalues=yvalues)
+		
+		# End Flow
+		self.end_summary()
+
+	def Loops(self, 
+				loops = 5, 
+				volt_type= 'bumps', 
+				volt_IA = None, 
+				volt_CFC = None, 
+				freq_ia=None, 
+				freq_cfc=None,):
+
+		
+		# Variable Initialization
+		self.Test_Type = 'Loops'
+
+		self.update_voltage_config(volt_type, volt_IA, volt_CFC)
+		self.update_frequency_config(freq_ia, freq_cfc)
+
+		self.check_ttl_macro()
+		
+		# Update Experiment and Defeature Objects
+		self.update_experiment_data()
+
+		# Setup Selected TestType Configuration		
+		self.Experiment_Data.configLoops(loops=loops)
+
+		# Setup for the defeature config using experiment data
+		self.set_defeature_config()
+
+		# Checks Reset on Pass condition based on voltaje selection
+		self.check_reset_on_pass_condition()
+
+		# Starts the test
+		self.Defeature.Loop(loops=loops)
+		
+		# End Flow
+		self.end_summary()
+
+	def RecipeExecutor(self, data, extmask = None, summary=True):
+
+		# Updating Experiment with newest data
+		self.name = data.get('Test Name','')
+		self.tnumber = data.get('Test Number', 1)
+		self.content = data.get('Content', 'Dragon')
+		self.visual = data.get('Visual ID', '-9999999')
+		#self.qdf = data.get('QDF', 1)
+		self.bucket = data.get('Bucket', 'FRAMEWORK')
+		self.ttime = data.get('Test Time', 30)
+		self.reset = data.get('Reset', True)
+		self.resetonpass = data.get('Reset on PASS', True)
+		self.macro_files = data.get('TTL Folder', '')
+		self.coreslice = data.get('Check Core', '')
+		self.fastboot = data.get('FastBoot', False)
+		self.target = data.get('Test Mode', '').lower()
+		self.mask = data.get('Configuration (Mask)', '')
+		self.pseudo = data.get('Pseudo Config', False)
+		self.dis2CPM = int(data.get('Disable 2 Cores', None),16) if (data.get('Disable 2 Cores', None) != None) else None 
+		self.corelic = int(data.get('Core License',None).split(":")[0]) if (data.get('Core License',None) != None) else None
+		self.extMask = extmask
+		self.u600w = data.get('600W Unit', False)
+		self.summary = summary
+		self.host = data.get('IP Address', '192.168.0.2')
+		self.com_port = data.get('COM Port', '8')
+		self.script_file = data.get('Scripts File', None)
+
+		## Lookup Strings for Pass/Fail Conditions
+		self.passstring = data.get('Pass String', 'Test Complete')
+		self.failstring = data.get('Fail String', 'Test Failed')
+		 
+
+		if data['Test Type'] == 'Loops':				
+					self.Loops(	
+							loops = data['Loops'], 
+							volt_type= data['Voltage Type'].lower(), 
+							volt_IA = data['Voltage IA'], 
+							volt_CFC = data['Voltage CFC'],
+							freq_ia= data['Frequency IA'], 
+							freq_cfc = data['Frequency CFC'], 
+						)
+					
+		elif data['Test Type'] == 'Sweep':	
+					self.Sweep(	
+							ttype = data['Type'].lower(), 
+							domain = data['Domain'].lower(), 
+							start = data['Start'], 
+							end = data['End'], 
+							step= data['Steps'], 
+							volt_type= data['Voltage Type'].lower(), 
+							volt_IA = data['Voltage IA'], 
+							volt_CFC = data['Voltage CFC'], 
+							freq_ia=data['Frequency IA'], 
+							freq_cfc=data['Frequency CFC'], 
+							)			
+
+		elif data['Test Type'] == 'Shmoo':	
+					self.Shmoo(	
+							file=data['ShmooFile'], 
+							label=data['ShmooLabel'], 
+							
+							)
+
+	@staticmethod
+	def Recipes(path=r'C:\Temp\DebugFrameworkTemplate.xlsx'):
+		if path.endswith('.json'):
+			data_from_sheets = fh.load_json_file(path)
+			#tabulated_df = data_from_sheets
+		elif path.endswith('.xlsx'):
+			data_from_sheets = fh.process_excel_file(path)
+			# Create the tabulated format
+		else:
+			return None
+		tabulated_df = fh.create_tabulated_format(data_from_sheets)
+		data_table = tabulate(tabulated_df, headers='keys', tablefmt='grid', showindex=False)
+		# Print the tabulated DataFrame
+		print(data_table)
+
+		return data_from_sheets
+
+	@staticmethod
+	def RecipeLoader(data, extmask = None, summary = True, skip = []):
+		
+		data_from_sheets = data
+		
+		# Print the extracted data
+		for sheet_name, data in data_from_sheets.items():
+			#print(f"Data from sheet: {sheet_name}")
+			if sheet_name in skip:
+				print(f' -- Skipping: {sheet_name}')
+				continue
+			
+			if data['Experiment'] == 'Enabled':
+				
+				print(f'-- Executing {sheet_name} --')
+				
+				for field, value in data.items():
+					print(f"{field}: {value}")
+				
+				print("\n") 
+
+				Framework.RecipeExecutor(data, extmask, summary)
+			
+	@staticmethod
+	def Test_Macros_UI(root=None, data=None):
+		
+		ser.run_ttl(root, data)
+	
+	@staticmethod
+	def TTL_Test(visual, cmds, bucket = 'Dummy', test = 'TTL Macro Validation', ttime = 30, tnum = 1, content='Dragon', host = '192.168.0.2', PassString = 'Test Complete', FailString = 'Test Failed'):
+		qdf = dpm.qdf_str()
+		ser.start(visual=visual, qdf=qdf, bucket=bucket, content = content, host = host, cmds=cmds, test=test, ttime=ttime, tnum=tnum, PassString = PassString, FailString = FailString)
+  
+	
+## Below dicts are inside Experiment Class
+def datadict(visual, bucket, macro_files, tfolder, log_file_path, Mesh, Slice, FastBoot, corelic, extMask, u600w):
+
+
+	data = {
+				'Visual':visual,
+				 'Bucket':bucket,
+				'MacroFile':macro_files,
+				'TestFolder':tfolder,
+				'LogFile':log_file_path,
+				'Mesh':Mesh,
+				'Slice':Slice,
+				'FastBoot':FastBoot,
+				'CoreLicense': corelic,
+				'ExternalMask': extMask,
+				'u600w': u600w,
+				}
+
+	return data
+
+def experimentdict(Type, Name, Number, ttime, mask, pseudo, Dragon, Linux, coreslice):
+
+	experiment = {
+				'Type': Type,
+				'Name': Name,
+				'Number':Number,
+				'Time':ttime,
+				'Mask':mask,
+				'Pseudo':pseudo,
+				'Dragon':Dragon,
+				'Linux':Linux,
+				'Core': coreslice,
+				}
+	return experiment
+
+def fusesdict(Type, volt_IA, volt_CFC, freq_ia, freq_cfc):
+
+	voltage = {
+				'Type': Type,
+				'IA': volt_IA,
+				'CFC':volt_CFC,
+				}
+
+	frequency = {
+				'IA': freq_ia,
+				'CFC':freq_cfc,
+				}
+
+	return voltage, frequency
+
+def shmoodict(ttype, domain, start, end, step):
+
+	shmoodata = {
+				'Type': ttype,
+				'Domain':domain,
+				'Start':start,
+				'End':end,
+				'Step':step,
+				}
+
+	return shmoodata
+
+def Sweep(name = 'Sweep', tnumber = 1, content = 'Dragon', ttype = 'frequency', domain = 'ia', visual = '-9999999', bucket = 'UNCORE',	coreslice = None, 
+			fastboot = True, start = 16, end = 39, step= 4, volt_type= 'vbump', volt_IA = None,	volt_CFC = None, freq_ia = None, freq_cfc =None, mask='RowPass1', 
+			target = 'mesh', pseudo=True, dis2CPM=True, corelic=None, ttime=30, reset= True, resetonpass=False,	extMask=None, u600w=False, summary = True,
+			host = "10.250.0.2", com_port = '8', script_file = None, macro_files = None):
+	
+	## Defaults to TTL files in C:\SystemDebug\TTL
+	if macro_files == None: 
+		ttl_macros = macro_cmds 
+	else:
+		ttl_macros = macros_path(macro_files)
+	
+	print(f'Using TTL Files: {ttl_macros}')
+
+	# Generate Experiment object
+	_experiment = Experiment(	name =  name,
+								tnumber = tnumber,
+								content = content,
+								visual = visual,
+								bucket = bucket,
+								macro_cmds = ttl_macros,
+								coreslice = coreslice,
+								fastboot = fastboot,
+								target = target,
+								mask = mask,
+								volt_type= volt_type, 
+								volt_IA = volt_IA, 
+								volt_CFC = volt_CFC,
+								freq_ia = freq_ia, 
+								freq_cfc =freq_cfc, 
+								pseudo = pseudo,
+								dis2CPM = dis2CPM, 
+								corelic = corelic, 
+								ttime = ttime,  
+								reset = reset, 
+								resetonpass = resetonpass, 
+								extMask = extMask, 
+								u600w = u600w, 
+								summary = summary,
+								host = host,
+								com_port = com_port,
+								script_file = script_file)
+	
+	_experiment.configSweep(ttype=ttype, domain=domain)
+
+	# Init Defeature Class
+	tst = defeature(Experiment=_experiment)
+
+	# Passing reset variables
+	if volt_type == 'vbump':
+		tst.resetonpass = True
+		tst.Debuglog('Units will reset on pass when using vbumps  --- \n')
+	#else:
+	#	tst.resetonpass = resetonpass
+	#tst.Reset = reset
+
+	tst.Sweep(domain=domain, ttype=ttype, start=start, end=end, step=step)
+	shmoodata = tst.shmoodata
+	legends = tst.legends
+
+	# Builds Unit Summary
+	if summary:
+		genSummary(name, visual, tst.tfolder, bucket, logger=tst.Debuglog)
+
+	# Prints Sweep data results
+	tst.Debuglog('Sweep Test Results --- \n')
+	tst.Debuglog(shmoodata)
+	tst.Debuglog('\nLegends:')
+	tst.Debuglog(legends)
+
+def Loops(name = 'Loops', tnumber = 1, content = 'Dragon', loops = 5, visual = '-9999999', bucket = 'UNCORE', coreslice = None, fastboot = True, volt_type= 'bumps', 
+			volt_IA = None, volt_CFC = None, freq_ia=None, freq_cfc=None, mask='RowPass1', target = 'mesh',	pseudo=True, dis2CPM=True, corelic=None, ttime=30,  
+			reset= True, resetonpass=False,	extMask=None, u600w=False, summary = True, host = "10.250.0.2",	com_port = '8', script_file = None, macro_files = None):
+
+	## Defaults to TTL files in C:\SystemDebug\TTL
+	if macro_files == None: 
+		ttl_macros = macro_cmds 
+	else:
+		ttl_macros = macros_path(macro_files)
+
+	print(f'Using TTL Files: {ttl_macros}')
+
+	_experiment = Experiment(	name =  name,
+						tnumber = tnumber,
+						content = content,
+						visual = visual,
+						bucket = bucket,
+						macro_cmds = ttl_macros,
+						coreslice = coreslice,
+						fastboot = fastboot,
+						target = target,
+						mask = mask,
+						volt_type= volt_type, 
+						volt_IA = volt_IA, 
+						volt_CFC = volt_CFC,
+						freq_ia = freq_ia, 
+						freq_cfc =freq_cfc, 
+						pseudo = pseudo,
+						dis2CPM = dis2CPM, 
+						corelic = corelic, 
+						ttime = ttime,  
+						reset = reset, 
+						resetonpass = resetonpass, 
+						extMask = extMask, 
+						u600w = u600w, 
+						summary = summary,
+						host = host,
+						com_port = com_port,
+						script_file = script_file)
+	
+	_experiment.configLoops(loops=loops)
+
+	# Init Defeature Class
+	tst = defeature(Experiment=_experiment)
+
+	# Passing reset variables
+	if volt_type == 'vbump':
+		tst.resetonpass = True
+		tst.Debuglog('Units will reset on pass when using vbumps  --- \n')
+	else:
+		tst.resetonpass = resetonpass
+	tst.Reset = reset
+	# Start Loops
+	tst.Loop(loops=loops)
+	shmoodata = tst.shmoodata
+	legends = tst.legends
+
+	# Builds Unit Summary
+	if summary:
+		genSummary(name, visual, tst.tfolder, bucket, logger=tst.Debuglog)
+
+	# Prints Loops data results
+	tst.Debuglog('Loops Test Results --- \n')
+	tst.Debuglog(shmoodata)
+	tst.Debuglog('\nLegends:')
+	tst.Debuglog(legends)
+
+def Shmoo(name = 'Shmoo', tnumber = 1, content = 'Dragon', visual = '-9999999', bucket = 'UNCORE', coreslice = None, fastboot = True, target = 'mesh', ttime = 30, 
+			pseudo=False, dis2CPM=True, mask=None, file=r'C:\Temp\ShmooData.json', label='COREFIX', reset= True, resetonpass=False, corelic=None, extMask=None,
+			u600w=False, summary = True, host = "10.250.0.2", com_port = '8', script_file = None, macro_files = None):
+
+	# Collect data from Json file
+	shmoojs = dpm.dev_dict(file, False)
+	shmoojson = shmoojs[label]
+
+	volt_type = shmoojson['VoltageSettings']['Type']
+	volt_IA = shmoojson['VoltageSettings']['core']
+	volt_CFC = shmoojson['VoltageSettings']['cfc']
+
+	freq_ia = shmoojson['FrequencySettings']['core']
+	freq_cfc = shmoojson['FrequencySettings']['cfc']
+
+	xvalues = shmoojson['Xaxis']
+	yvalues = shmoojson['Yaxis']
+
+	## Defaults to TTL files in C:\SystemDebug\TTL
+	if macro_files == None: 
+		ttl_macros = macro_cmds 
+	else:
+		ttl_macros = macros_path(macro_files)
+	
+	print(f'Using TTL Files: {ttl_macros}')
+
+	_experiment = Experiment(	name =  name,
+								tnumber = tnumber,
+								content = content,
+								visual = visual,
+								bucket = bucket,
+								macro_cmds = ttl_macros,
+								coreslice = coreslice,
+								fastboot = fastboot,
+								target = target,
+								mask = mask,
+								volt_type= volt_type, 
+								volt_IA = volt_IA, 
+								volt_CFC = volt_CFC,
+								freq_ia = freq_ia, 
+								freq_cfc =freq_cfc, 
+								pseudo = pseudo,
+								dis2CPM = dis2CPM, 
+								corelic = corelic, 
+								ttime = ttime,  
+								reset = reset, 
+								resetonpass = resetonpass, 
+								extMask = extMask, 
+								u600w = u600w, 
+								summary = summary,
+								host = host,
+								com_port = com_port,
+								script_file = script_file)
+	
+	_experiment.configShmoo(label=label)
+
+	# Init Defeature Class
+	tst = defeature(Experiment=_experiment)
+
+	# Passing reset variables
+	if volt_type == 'vbump':
+		tst.resetonpass = True
+		tst.Debuglog('Units will reset on pass when using vbumps  --- \n')
+	else:
+		tst.resetonpass = resetonpass
+	tst.Reset = reset
+	
+
+	# Start Shmoo generation
+	tst.Shmoo(xvalues=xvalues, yvalues=yvalues)
+	shmoodata = tst.shmoodata
+	legends = tst.legends
+
+	# Builds Unit Summary
+	if summary:
+		genSummary(name, visual, tst.tfolder, bucket, logger=tst.Debuglog)
+
+	# Prints Shmoo data
+	tst.Debuglog('Sweep Test Results --- \n')
+	tst.Debuglog(shmoodata)
+	tst.Debuglog('\nLegends:')
+	tst.Debuglog(legends)
+
+def Recipes(path=r'C:\Temp\DebugFrameworkTemplate.xlsx'):
+	
+	data_from_sheets = Framework.Recipes(path)
+
+	return data_from_sheets
+
+def RecipeLoader(data, extmask = None, summary = True, skip = []):
+	
+	Framework.RecipeLoader(data, extmask, summary, skip)
+
+def ControlPanel():
+	fcp.run(Framework)
+
+def TTLMacroTest():
+	Framework.Test_Macros_UI()
+
+def DebugMask():
+	#masks, array = gcm.CheckMasks(readfuse = True, extMasks=None)
+	die = dpm.product_str()
+	masks = dpm.fuses(rdFuses = True, sktnum =[0], printFuse=False)
+
+	# Checks for all configurations, the dpm fuses will return None if that die is non existing on the system product
+
+	compute0_core_hex = str(masks["ia_compute_0"]) if masks["ia_compute_0"] != None else None
+	compute0_cha_hex = str(masks["llc_compute_0"]) if masks["llc_compute_0"] != None else None
+	compute1_core_hex = str(masks["ia_compute_1"]) if masks["ia_compute_1"] != None else None
+	compute1_cha_hex = str(masks["llc_compute_1"]) if masks["llc_compute_1"] != None else None
+	compute2_core_hex = str(masks["ia_compute_2"]) if masks["ia_compute_2"] != None else None
+	compute2_cha_hex = str(masks["llc_compute_2"]) if masks["llc_compute_2"] != None else None
+
+	editor = gme.SystemMaskEditor(compute0_core_hex, compute0_cha_hex, compute1_core_hex, compute1_cha_hex, compute2_core_hex, compute2_cha_hex, product = die.upper())
+	newmask = editor.start()
+	return newmask
+
+def genSummary(name, visual, tfolder, bucket, logger = None):
+	if logger == None: print
+	SummaryName = f'Summary_{visual}_{name}'
+	SummaryFile = fh.create_path(tfolder, f'{SummaryName}.xlsx')
+	WW = str(dpm.getWW())
+	Product = s2t.SELECTED_PRODUCT
+
+	## Temporary DATA Destination -- Saving it into I Drive for now
+	DATA_SERVER = r'\\Amr\ec\proj\mdl\cr'
+	DATA_DESTINATION = rf'{DATA_SERVER}\intel\engineering\dev\user_links\gaespino\DebugFramework\{Product}'
+
+	logger('Generating Summary files --- \n')
+
+	fh.merge_mca_files(input_folder=tfolder, output_file=SummaryFile)
+	fh.decode_mcas(name=SummaryName, week=WW, source_file=SummaryFile, label=bucket, path=tfolder, product = Product)
+	
+	logger('Copying Data to Server --- \n')
+	fh.copy_folder(src=tfolder, dest=DATA_DESTINATION, visual=visual, zipdata=True , logger = logger)
+	
+def currentTime():
+	# Define the GMT-6 timezone
+	gmt_minus_6 = pytz.timezone('Etc/GMT+6')
+
+	# Get the current time in GMT-6
+	current_time_gmt_minus_6 = datetime.now(gmt_minus_6)
+
+	# Print the current time in GMT-6
+	print("Current time in GMT-6:", current_time_gmt_minus_6.strftime('%Y-%m-%d %H:%M:%S'))
+
+	return current_time_gmt_minus_6
+
+## Init conditions, creates required folder and files
+initscript()
+
+
+

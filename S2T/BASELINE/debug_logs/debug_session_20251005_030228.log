@@ -1,0 +1,144 @@
+=== EXPERIMENT TRACKER DEBUG SESSION STARTED ===
+Session ID: 20251005_030228
+Start Time: 2025-10-05T03:02:28.112642
+============================================================
+
+[2025-10-05T03:02:28.173342] [TRACKER] ExperimentTracker initialized
+
+[2025-10-05T03:02:30.235947] [EXPERIMENT] EXPERIMENT START - Node: Base (ID: NODE_002)
+
+[2025-10-05T03:02:30.323518] [CONFIG] Experiment config saved to: debug_logs\experiment_config_NODE_002_20251005_030228.json
+
+[2025-10-05T03:02:30.368745] [CONFIG] Key Config Parameters: {'Test Type': 'Loops', 'Content': 'Dragon'}
+    Data: {
+  "Test Type": "Loops",
+  "Content": "Dragon"
+}
+
+[2025-10-05T03:02:30.421073] [EXPERIMENT] Flow experiment started: Base
+
+[2025-10-05T03:02:39.397351] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-05T03:02:57.284468] [TRACKER] ITERATION 0 - Status: PASS
+
+[2025-10-05T03:03:16.826536] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-05T03:03:34.371371] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-05T03:03:52.549410] [TRACKER] ITERATION 0 - Status: PASS
+
+[2025-10-05T03:03:54.132556] [SUCCESS] EXPERIMENT COMPLETE - Result: MOSTLY_FAILING, Port: 2
+
+[2025-10-05T03:03:54.188708] [INFO] Test Folder: C:\SystemDebug\Logs\20251005_030230_T11_Baseline
+
+[2025-10-05T03:03:54.383547] [INFO] Experiment data persisted to node section: Base
+
+[2025-10-05T03:03:54.427661] [INFO] Execution status: COMPLETED_UNKNOWN
+
+[2025-10-05T03:03:54.490892] [TRACKER] TRACKER STATE SNAPSHOT
+
+[2025-10-05T03:03:54.542885] [TRACKER] Tracker State: {'experiments_count': 1, 'current_experiment': {'node_name': 'Base', 'node_type': 'FlowInstance', 'iterations_count': 5}, 'flow_summary': {'total_nodes': 1, 'recovery_conditions': 0, 'failure_conditions': 0}}
+    Data: {
+  "experiments_count": 1,
+  "current_experiment": {
+    "node_name": "Base",
+    "node_type": "FlowInstance",
+    "iterations_count": 5
+  },
+  "flow_summary": {
+    "total_nodes": 1,
+    "recovery_conditions": 0,
+    "failure_conditions": 0
+  }
+}
+
+[2025-10-05T03:03:54.794364] [EXPERIMENT] EXPERIMENT START - Node: PPVC (ID: NODE_003)
+
+[2025-10-05T03:03:54.912275] [CONFIG] Experiment config saved to: debug_logs\experiment_config_NODE_003_20251005_030228.json
+
+[2025-10-05T03:03:54.963717] [CONFIG] Key Config Parameters: {'Test Type': 'Loops', 'Content': 'Dragon'}
+    Data: {
+  "Test Type": "Loops",
+  "Content": "Dragon"
+}
+
+[2025-10-05T03:03:55.013909] [EXPERIMENT] Flow experiment started: PPVC
+
+[2025-10-05T03:04:02.382266] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-05T03:04:19.326693] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-05T03:04:37.633622] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-05T03:04:39.741871] [SUCCESS] EXPERIMENT COMPLETE - Result: SOLID_REPRO, Port: 1
+
+[2025-10-05T03:04:39.799560] [INFO] Test Folder: C:\SystemDebug\Logs\20251005_030355_T12_PPVC
+
+[2025-10-05T03:04:40.000448] [INFO] Experiment data persisted to node section: PPVC
+
+[2025-10-05T03:04:40.047734] [INFO] Execution status: COMPLETED_REPRO_FOUND
+
+[2025-10-05T03:04:40.097500] [TRACKER] TRACKER STATE SNAPSHOT
+
+[2025-10-05T03:04:40.150382] [TRACKER] Tracker State: {'experiments_count': 2, 'current_experiment': {'node_name': 'PPVC', 'node_type': 'FlowInstance', 'iterations_count': 3}, 'flow_summary': {'total_nodes': 2, 'recovery_conditions': 0, 'failure_conditions': 0}}
+    Data: {
+  "experiments_count": 2,
+  "current_experiment": {
+    "node_name": "PPVC",
+    "node_type": "FlowInstance",
+    "iterations_count": 3
+  },
+  "flow_summary": {
+    "total_nodes": 2,
+    "recovery_conditions": 0,
+    "failure_conditions": 0
+  }
+}
+
+[2025-10-05T03:04:40.328697] [ANALYSIS] Getting adaptive analysis data for: AllFailFlowInstance
+
+[2025-10-05T03:04:40.373480] [ANALYSIS] ADAPTIVE ANALYSIS
+
+[2025-10-05T03:04:40.416678] [WARNING] No adaptive data available: No AllFailFlowInstance data available for adaptive analysis
+
+[2025-10-05T03:04:40.660448] [SUCCESS] EXPERIMENT COMPLETE - Result: CONFIG_PASSED, Port: 0
+
+[2025-10-05T03:04:40.823391] [INFO] Experiment data persisted to node section: PPVC
+
+[2025-10-05T03:04:40.873298] [INFO] Execution status: COMPLETED_UNKNOWN
+
+[2025-10-05T03:04:40.922485] [TRACKER] TRACKER STATE SNAPSHOT
+
+[2025-10-05T03:04:40.981532] [TRACKER] Tracker State: {'experiments_count': 3, 'current_experiment': {'node_name': 'PPVC', 'node_type': 'FlowInstance', 'iterations_count': 3}, 'flow_summary': {'total_nodes': 3, 'recovery_conditions': 0, 'failure_conditions': 0}}
+    Data: {
+  "experiments_count": 3,
+  "current_experiment": {
+    "node_name": "PPVC",
+    "node_type": "FlowInstance",
+    "iterations_count": 3
+  },
+  "flow_summary": {
+    "total_nodes": 3,
+    "recovery_conditions": 0,
+    "failure_conditions": 0
+  }
+}
+
+[2025-10-05T03:04:42.176130] [EXPERIMENT] EXPERIMENT START - Node: VoltageCFC (ID: NODE_006)
+
+[2025-10-05T03:04:42.264828] [CONFIG] Experiment config saved to: debug_logs\experiment_config_NODE_006_20251005_030228.json
+
+[2025-10-05T03:04:42.325270] [CONFIG] Key Config Parameters: {'Test Type': 'Sweep', 'Content': <ContentType.DRAGON: 'Dragon'>}
+    Data: {
+  "Test Type": "Sweep",
+  "Content": "ContentType.DRAGON"
+}
+
+[2025-10-05T03:04:42.383510] [CONFIG] Sweep detected: {'sweep_type': 'Voltage', 'sweep_domain': 'CFC', 'start_value': -0.04, 'end_value': 0.1, 'step_value': 0.02, 'voltage_type': 'vbump', 'sweep_values': []}
+
+[2025-10-05T03:04:42.447674] [EXPERIMENT] Flow experiment started: VoltageCFC
+
+[2025-10-05T03:04:50.912386] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-05T03:04:50.974687] [TRACKER]   Config: {'voltage_cfc': -0.04}
+

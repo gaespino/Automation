@@ -1,0 +1,430 @@
+{
+  "dynamic_injections": {
+    "cfc_voltage_bump": {
+      "type": "voltage_bump",
+      "fields": [
+        { "name": "offset", "type": "float", "required": true }
+      ],
+      "sockets": ["socket0", "socket1"],
+      "fuses": [
+         {
+          "name": "CFC IO",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.fuses.punit.pcode_cfcio_vf_voltage_&points&",
+          "parameters": {
+            "dies": ["imh0", "imh1"],
+             "points": ["point0", "point1", "point2", "point3", "point4", "point5", "point6", "point7", "point8", "point9", "point10", "point11"]
+            }
+          },
+         {
+          "name": "CFC Mem",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.fuses.punit.pcode_cfcmem_vf_voltage_&points&",
+          "parameters": {
+            "dies":["imh0", "imh1"],
+            "points": ["point0", "point1", "point2", "point3", "point4", "point5"]
+          }
+         },
+         {
+          "name": "CFC VF Curves",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.base.fuses.punit_fuses.fw_fuses_&cfc&_vf_voltage_&points&",
+          "parameters": {
+            "dies":["cbb0","cbb1","cbb2","cbb3"],
+            "cfc":["cfc0","cfc1","cfc2","cfc3","cfc4","cfc5","cfc6","cfc7"],
+            "points": ["0","1","2","3","4","5"]
+          }
+         }
+      ]
+    },
+
+
+    "ia_voltage_bump": {
+      "type": "voltage_bump",
+      "fields": [
+        { "name": "offset", "type": "float", "required": true }
+      ],
+      "sockets": ["socket0", "socket1"],
+      "fuses": [
+        {
+          "name": "IA Base",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.&computes&.fuses.&cores&_fuse.core_fuse_core_fuse_acode_ia_base_vf_voltage_&vf_points&",
+          "parameters": {
+            "dies": ["cbb0","cbb1","cbb2","cbb3"],
+            "computes":["compute0","compute1","compute2","compute3"],
+            "cores":["core0","core1","core2","core3","core4","core5","core6","core7"],
+            "vf_points": ["0","1","2","3","4","5","6","7","8","9","10","11"]
+          }
+        },
+        {
+          "name": "IA Delta",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.&computes&.fuses.&cores&_fuse.core_fuse_core_fuse_acode_ia_delta_&idx&_vf_voltage_&vf_points&",
+          "parameters": {
+            "dies":["cbb0","cbb1","cbb2","cbb3"],
+            "computes":["compute0","compute1","compute2","compute3"],
+            "cores":["core0","core1","core2","core3","core4","core5","core6","core7"],
+            "idx":["idx1","idx2","idx3","idx4"],
+            "vf_points": ["0","1","2","3","4","5","6","7","8","9","10","11"]
+          }
+        }
+      ]
+    },
+
+    "ddrd_voltage_bump": {
+      "type": "voltage_bump",
+      "fields": [
+        { "name": "offset", "type": "float", "required": true }
+      ],
+      "sockets": ["socket0", "socket1"],
+      "fuses": [
+        {
+          "name": "DDRD",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.fuses.punit.pcode_vccfixdig_&locations&_active_voltage",
+          "parameters": {
+            "dies": ["imh0", "imh1"],
+            "locations": ["e", "w"]
+          }
+        }
+      ]
+    },
+
+    "cfc_flat_ratios": {
+      "type": "frequency_flat_ratio",
+      "fields": [
+        { "name": "ratio", "type": "hex", "required": true }
+      ],
+      "sockets": ["socket0", "socket1"],
+      "fuses": [
+        {
+          "name": "Pstate Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.base.fuses.punit_fuses.fw_fuses_cfc_&pstate&_ratio",
+          "parameters": {
+            "dies": ["cbb0","cbb1","cbb2","cbb3"],
+            "pstate":["min"]
+          }
+        },
+        {
+          "name": "PP-Pstate Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.base.fuses.punit_fuses.fw_fuses_sst_pp_&power_profile&_cfc_&pstate&_ratio",
+          "parameters": {
+            "dies": ["cbb0","cbb1","cbb2","cbb3"],
+            "power_profile":["0","1","2","3","4"],
+            "pstate": ["p0","p1"]
+          }
+        },
+        {
+          "name": "IO Pstate Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.fuses.punit.pcode_&cfc_domain&_&pstate&_ratio",
+          "parameters": {
+            "dies": ["imh0", "imh1"],
+            "cfc_domain":["cfcio","cfcmem","cfccbb"],
+            "pstate":["min"]
+          }
+        },
+        {
+          "name": "IO PP-Pstate Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.fuses.punit.pcode_sst_pp_&power_profile&_&cfc_domain&_&pstate&_ratio",
+          "parameters": {
+            "dies": ["imh0", "imh1"],
+            "power_profile":["0","1","2","3","4"],
+            "cfc_domain":["cfcio","cfcmem","cfccbb"],
+            "pstate": ["p0","p1"]
+          }
+        },
+        {
+          "name": "VF Curve Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.fuses.punit.pcode_&cfc_domain&_vf_ratio_point&vf_point&",
+          "parameters": {
+            "dies": ["imh0", "imh1"],
+            "cfc_domain":["cfcio","cfcmem"],
+            "vf_point": ["0", "1", "2", "3", "4", "5"]
+          }
+        }
+      ]
+    },
+
+    "ia_flat_ratios": {
+      "type": "frequency_flat_ratio",
+      "fields": [
+        { "name": "ratio", "type": "hex", "required": true }
+      ],
+      "sockets": ["socket0", "socket1"],
+      "fuses": [
+        {
+          "name": "Pstate Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.base.fuses.punit_fuses.fw_fuses_ia_&pstate&_ratio",
+          "parameters": {
+            "dies": ["cbb0","cbb1","cbb2","cbb3"],
+            "pstate":["pn","min","boot"]
+          }
+        },
+        {
+          "name": "License Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.base.fuses.punit_fuses.fw_fuses_sst_pp_&power_profile&_&license&_p1_ratio",
+          "parameters": {
+            "dies": ["cbb0","cbb1","cbb2","cbb3"],
+            "power_profile":["0","1","2","3","4"],
+            "license": ["sse","amx","avx2","avx512"]
+          }
+        },
+        {
+          "name": "Turbo Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.base.fuses.punit_fuses.fw_fuses_sst_pp_&power_profile&_turbo_ratio_limit_ratios_cdyn_&index&_&ratio&",
+          "parameters": {
+            "dies": ["cbb0","cbb1","cbb2","cbb3"],
+            "power_profile":["0","1","2","3","4"],
+            "index":["index0","index1","index2","index3","index4","index5"],
+            "ratio":["ratio0","ratio1","ratio2","ratio3","ratio4","ratio5","ratio6","ratio7"]
+          }
+        },
+        {
+          "name": "IO Pstate Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.fuses.punit.pcode_ia_&pstate&_ratio",
+          "parameters": {
+            "dies": ["imh0", "imh1"],
+            "pstate":["pn","min"]
+          }
+        },
+        {
+          "name": "IO License Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.fuses.punit.pcode_sst_pp_&power_profile&_&license&_p1_ratio",
+          "parameters": {
+            "dies": ["imh0", "imh1"],
+            "power_profile":["0","1","2","3","4"],
+            "license": ["sse","amx","avx2","avx512"]
+          }
+        },
+        {
+          "name": "IO Turbo Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.fuses.punit.pcode_sst_pp_&power_profile&_turbo_ratio_limit_ratios_cdyn_&index&_&ratio&",
+          "parameters": {
+            "dies": ["imh0", "imh1"],
+            "power_profile":["0","1","2","3","4"],
+            "index":["index0","index1","index2","index3","index4","index5"],
+            "ratio":["ratio0","ratio1","ratio2","ratio3","ratio4","ratio5","ratio6","ratio7"]
+          }
+        },
+        {
+          "name": "VF Curve Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.&compute&.fuses.&core&_fuse.core_fuse_core_fuse_acode_ia_base_vf_ratio_&vf_ratio&",
+          "parameters": {
+            "dies": ["cbb0","cbb1","cbb2","cbb3"],
+            "compute":["compute0","compute1","compute2","compute3"],
+            "core":["core0","core1","core2","core3","core4","core5","core6","core7"],
+            "vf_ratio":["0","1","2","3","4","5","6","7","8","9","10","11"]
+          }
+        },
+        {
+          "name": "VF Numcores Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.base.fuses.punit_fuses.fw_fuses_sst_pp_&power_profile&_turbo_ratio_limit_cores_num&core&",
+          "parameters": {
+            "dies": ["cbb0","cbb1","cbb2","cbb3"],
+            "power_profile":["0","1","2","3","4"],
+            "core":["core0","core1","core2","core3","core4","core5","core6","core7"]
+          }
+        }
+      ]
+    },
+
+    "core_disabling": {
+      "type": "ip_disable",
+      "fields": [],
+      "sockets": ["socket0", "socket1"],
+      "fuses": [
+         {
+          "name": "cbb0",
+          "debug_notes": "At least one core must remain enabled per module for correct system operation.",
+          "user_input_type" : "checkbox",
+          "template": "compute&computes&.module&modules&.core&cores&",
+          "parameters": {
+              "computes": ["0", "1", "2", "3"],
+              "modules": ["0", "1", "2", "3", "4", "5", "6", "7"],
+              "cores": ["0", "1"]
+            }
+          },
+         {
+          "name": "cbb1",
+          "debug_notes": "At least one core must remain enabled per module for correct system operation.",
+          "user_input_type" : "checkbox",
+          "template": "compute&computes&.module&modules&.core&cores&",
+          "parameters": {
+              "computes": ["0", "1", "2", "3"],
+              "modules": ["0", "1", "2", "3", "4", "5", "6", "7"],
+              "cores": ["0", "1"]
+            }
+          },
+         {
+          "name": "cbb2",
+          "debug_notes": "At least one core must remain enabled per module for correct system operation.",
+          "user_input_type" : "checkbox",
+          "template": "compute&computes&.module&modules&.core&cores&",
+          "parameters": {
+              "computes": ["0", "1", "2", "3"],
+              "modules": ["0", "1", "2", "3", "4", "5", "6", "7"],
+              "cores": ["0", "1"]
+            }
+          },
+         {
+          "name": "cbb3",
+          "debug_notes": "At least one core must remain enabled per module for correct system operation.",
+          "user_input_type" : "checkbox",
+          "template": "compute&computes&.module&modules&.core&cores&",
+          "parameters": {
+              "computes": ["0", "1", "2", "3"],
+              "modules": ["0", "1", "2", "3", "4", "5", "6", "7"],
+              "cores": ["0", "1"]
+            }
+          }
+      ]
+    },
+
+    "DCM_disabling": {
+      "type": "ip_disable",
+      "fields": [],
+      "sockets": ["socket0", "socket1"],
+      "fuses": [
+         {
+          "name": "cbb0",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "compute&computes&.module&modules&",
+          "parameters": {
+            "computes": ["0","1","2","3"],
+            "modules": ["0","1","2","3","4","5","6","7"]
+          }
+         },
+         {
+          "name": "cbb1",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "compute&computes&.module&modules&",
+          "parameters": {
+            "computes": ["0","1","2","3"],
+            "modules": ["0","1","2","3","4","5","6","7"]
+          }
+         },
+         {
+          "name": "cbb2",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "compute&computes&.module&modules&",
+          "parameters": {
+            "computes": ["0","1","2","3"],
+            "modules": ["0","1","2","3","4","5","6","7"]
+          }
+         },
+         {
+          "name": "cbb3",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "compute&computes&.module&modules&",
+          "parameters": {
+            "computes": ["0","1","2","3"],
+            "modules": ["0","1","2","3","4","5","6","7"]
+          }
+         }
+      ]
+    },
+
+    "DCM_enabling": {
+      "type": "ip_enable",
+      "fields": [],
+      "sockets": ["socket0", "socket1"],
+      "fuses": [
+         {
+          "name": "cbb0",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "compute&computes&.module&modules&",
+          "parameters": {
+            "computes": ["0","1","2","3"],
+            "modules": ["0","1","2","3","4","5","6","7"]
+          }
+         },
+         {
+          "name": "cbb1",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "compute&computes&.module&modules&",
+          "parameters": {
+            "computes": ["0","1","2","3"],
+            "modules": ["0","1","2","3","4","5","6","7"]
+          }
+         },
+         {
+          "name": "cbb2",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "compute&computes&.module&modules&",
+          "parameters": {
+            "computes": ["0","1","2","3"],
+            "modules": ["0","1","2","3","4","5","6","7"]
+          }
+         },
+         {
+          "name": "cbb3",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "compute&computes&.module&modules&",
+          "parameters": {
+            "computes": ["0","1","2","3"],
+            "modules": ["0","1","2","3","4","5","6","7"]
+          }
+         }
+      ]
+    },
+
+    "slice_disabling": {
+      "type": "ip_disable",
+      "fields": [],
+      "sockets": ["socket0", "socket1"],
+      "fuses": [
+         {
+          "name": "Slices",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "cbb&cbbs&.compute&computes&",
+          "parameters": {
+            "cbbs": ["0", "1", "2", "3"],
+            "computes": ["0", "1", "2", "3"]
+          }
+         }
+      ]
+    }
+  }
+}

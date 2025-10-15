@@ -1,0 +1,14 @@
+{
+  "fields": {
+    "Visual ID": { "type": "str", "tooltip": "Unit Visual ID (Not empty)" },
+    "COM Port": { "type": "int", "tooltip": "Serial Port to communicate to MB (Valid port number)" },
+    "IP Address": { "type": "str", "tooltip": "IP Address to communicate to MB (Must be valid IP)" },
+    "CFC Voltage Start": { "type": "float", "min": -0.2, "max": 0.2, "tooltip": "Start point of Sweep (Between -0.2 and 0.2)" },
+    "CFC Voltage End": { "type": "float", "min": -0.2, "max": 0.2, "tooltip": "End point of Sweep (Between -0.2 and 0.2)" },
+    "CFC Voltage Steps": { "type": "float", "min": -0.2, "max": 0.2, "tooltip": "Size of each step (Between -0.2 and 0.2)" },
+    "IA Voltage Start": { "type": "float", "min": -0.2, "max": 0.2, "tooltip": "Start point of Sweep (Between -0.2 and 0.2)" },
+    "IA Voltage End": { "type": "float", "min": -0.2, "max": 0.2, "tooltip": "End point of Sweep (Between -0.2 and 0.2)" },
+    "IA Voltage Steps": { "type": "float", "min": -0.2, "max": 0.2, "tooltip": "Size of each step (Between -0.2 and 0.2)" },
+    "Temperature": { "type": "float", "min": 25, "max": 85, "tooltip": "Intec Temperature (Between 25 and 85)" }
+  }
+}

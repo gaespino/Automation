@@ -1,0 +1,370 @@
+=== EXPERIMENT TRACKER DEBUG SESSION STARTED ===
+Session ID: 20251006_182325
+Start Time: 2025-10-06T18:23:25.201483
+============================================================
+
+[2025-10-06T18:23:25.219892] [TRACKER] ExperimentTracker initialized
+
+[2025-10-06T18:23:31.438360] [EXPERIMENT] EXPERIMENT START - Node: BaseRepro (ID: NODE_002)
+
+[2025-10-06T18:23:31.553074] [CONFIG] Experiment config saved to: debug_logs\experiment_config_NODE_002_20251006_182325.json
+
+[2025-10-06T18:23:31.602121] [CONFIG] Key Config Parameters: {'Test Type': 'Loops', 'Content': 'Dragon'}
+    Data: {
+  "Test Type": "Loops",
+  "Content": "Dragon"
+}
+
+[2025-10-06T18:23:31.654029] [EXPERIMENT] Flow experiment started: BaseRepro
+
+[2025-10-06T18:23:39.503879] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-06T18:23:58.353448] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-06T18:24:17.642639] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-06T18:24:19.748335] [SUCCESS] EXPERIMENT COMPLETE - Result: SOLID_REPRO, Port: 1
+
+[2025-10-06T18:24:19.820034] [INFO] Test Folder: C:\SystemDebug\Logs\20251006_182332_T1_DragonBaseline
+
+[2025-10-06T18:24:20.007830] [INFO] Experiment data persisted to test section: DragonBaseline
+
+[2025-10-06T18:24:20.066599] [INFO] Node name: BaseRepro
+
+[2025-10-06T18:24:20.140557] [TRACKER] TRACKER STATE SNAPSHOT
+
+[2025-10-06T18:24:20.206906] [TRACKER] Tracker State: {'experiments_count': 1, 'current_experiment': {'node_name': 'BaseRepro', 'node_type': 'AllFailFlowInstance', 'iterations_count': 3}, 'flow_summary': {'total_nodes': 1, 'recovery_conditions': 0, 'failure_conditions': 1}}
+    Data: {
+  "experiments_count": 1,
+  "current_experiment": {
+    "node_name": "BaseRepro",
+    "node_type": "AllFailFlowInstance",
+    "iterations_count": 3
+  },
+  "flow_summary": {
+    "total_nodes": 1,
+    "recovery_conditions": 0,
+    "failure_conditions": 1
+  }
+}
+
+[2025-10-06T18:24:20.560918] [ANALYSIS] Getting adaptive analysis data for: AllFailFlowInstance
+
+[2025-10-06T18:24:20.649172] [ANALYSIS] ADAPTIVE ANALYSIS
+
+[2025-10-06T18:24:20.708342] [ANALYSIS] Source: BaseRepro (Port: 1)
+
+[2025-10-06T18:24:20.756992] [ANALYSIS] Recovery Potential: low
+
+[2025-10-06T18:24:20.808983] [ANALYSIS] Recommended Config: {'Experiment': 'Enabled', 'Test Name': 'DragonBaseline', 'Test Mode': 'Mesh', 'Test Type': 'Loops', 'Visual ID': '75YB873100474', 'Bucket': 'IDIPAR', 'COM Port': 11, 'IP Address': '192.168.0.2', 'TTL Folder': 'Q:\\DPM_Debug\\GNR\\Logs\\LLC\\2509_75YB873100474\\TTL_DragonMesh', 'Scripts File': None, 'Pass String': 'Test Complete', 'Fail String': 'Test Failed', 'Content': <ContentType.DRAGON: 'Dragon'>, 'Test Number': 1, 'Test Time': 45, 'Reset': True, 'Reset on PASS': True, 'FastBoot': True, 'Core License': None, '600W Unit': True, 'Pseudo Config': False, 'Configuration (Mask)': '', 'Boot Breakpoint': None, 'Disable 2 Cores': None, 'Check Core': 141, 'Voltage Type': 'vbump', 'Voltage IA': None, 'Voltage CFC': None, 'Frequency IA': None, 'Frequency CFC': None, 'Loops': 5, 'Type': 'Voltage', 'Domain': 'IA', 'Start': -0.03, 'End': 0.06, 'Steps': 0.03, 'ShmooFile': 'C:\\SystemDebug\\Shmoos\\RVPShmooConfig.json', 'ShmooLabel': 'COREFIX', 'Linux Pre Command': None, 'Linux Post Command': None, 'Startup Linux': None, 'Linux Path': None, 'Linux Content Wait Time': None, 'Linux Content Line 0': None, 'Linux Content Line 1': None, 'Dragon Pre Command': None, 'Dragon Post Command': None, 'Startup Dragon': 'startup_efi.nsh', 'ULX Path': 'FS1:\\EFI\\ulx', 'ULX CPU': 'GNR_B0', 'Product Chop': 'GNR', 'VVAR0': '0x4C4B40', 'VVAR1': 80064000, 'VVAR2': '0x1000000', 'VVAR3': '0x4000000', 'VVAR_EXTRA': None, 'Dragon Content Path': 'FS1:\\content\\Dragon\\7410_0x0E_PPV_MegaMem\\GNR128C_H_1UP', 'Dragon Content Line': None, 'Stop on Fail': True, 'Merlin Name': 'MerlinX.efi', 'Merlin Drive': 'FS1:', 'Merlin Path': 'FS1:\\EFI\\Version8.15\\BinFiles\\Release'}
+    Data: {
+  "Experiment": "Enabled",
+  "Test Name": "DragonBaseline",
+  "Test Mode": "Mesh",
+  "Test Type": "Loops",
+  "Visual ID": "75YB873100474",
+  "Bucket": "IDIPAR",
+  "COM Port": 11,
+  "IP Address": "192.168.0.2",
+  "TTL Folder": "Q:\\DPM_Debug\\GNR\\Logs\\LLC\\2509_75YB873100474\\TTL_DragonMesh",
+  "Scripts File": null,
+  "Pass String": "Test Complete",
+  "Fail String": "Test Failed",
+  "Content": "ContentType.DRAGON",
+  "Test Number": 1,
+  "Test Time": 45,
+  "Reset": true,
+  "Reset on PASS": true,
+  "FastBoot": true,
+  "Core License": null,
+  "600W Unit": true,
+  "Pseudo Config": false,
+  "Configuration (Mask)": "",
+  "Boot Breakpoint": null,
+  "Disable 2 Cores": null,
+  "Check Core": 141,
+  "Voltage Type": "vbump",
+  "Voltage IA": null,
+  "Voltage CFC": null,
+  "Frequency IA": null,
+  "Frequency CFC": null,
+  "Loops": 5,
+  "Type": "Voltage",
+  "Domain": "IA",
+  "Start": -0.03,
+  "End": 0.06,
+  "Steps": 0.03,
+  "ShmooFile": "C:\\SystemDebug\\Shmoos\\RVPShmooConfig.json",
+  "ShmooLabel": "COREFIX",
+  "Linux Pre Command": null,
+  "Linux Post Command": null,
+  "Startup Linux": null,
+  "Linux Path": null,
+  "Linux Content Wait Time": null,
+  "Linux Content Line 0": null,
+  "Linux Content Line 1": null,
+  "Dragon Pre Command": null,
+  "Dragon Post Command": null,
+  "Startup Dragon": "startup_efi.nsh",
+  "ULX Path": "FS1:\\EFI\\ulx",
+  "ULX CPU": "GNR_B0",
+  "Product Chop": "GNR",
+  "VVAR0": "0x4C4B40",
+  "VVAR1": 80064000,
+  "VVAR2": "0x1000000",
+  "VVAR3": "0x4000000",
+  "VVAR_EXTRA": null,
+  "Dragon Content Path": "FS1:\\content\\Dragon\\7410_0x0E_PPV_MegaMem\\GNR128C_H_1UP",
+  "Dragon Content Line": null,
+  "Stop on Fail": true,
+  "Merlin Name": "MerlinX.efi",
+  "Merlin Drive": "FS1:",
+  "Merlin Path": "FS1:\\EFI\\Version8.15\\BinFiles\\Release"
+}
+
+[2025-10-06T18:24:21.034000] [SUCCESS] EXPERIMENT COMPLETE - Result: CONFIG_PASSED, Port: 0
+
+[2025-10-06T18:24:21.203879] [INFO] Experiment data persisted to test section: DragonBaseline
+
+[2025-10-06T18:24:21.258397] [INFO] Node name: BaseRepro
+
+[2025-10-06T18:24:21.323723] [TRACKER] TRACKER STATE SNAPSHOT
+
+[2025-10-06T18:24:21.396803] [TRACKER] Tracker State: {'experiments_count': 2, 'current_experiment': {'node_name': 'BaseRepro', 'node_type': 'AllFailFlowInstance', 'iterations_count': 3}, 'flow_summary': {'total_nodes': 2, 'recovery_conditions': 0, 'failure_conditions': 1}}
+    Data: {
+  "experiments_count": 2,
+  "current_experiment": {
+    "node_name": "BaseRepro",
+    "node_type": "AllFailFlowInstance",
+    "iterations_count": 3
+  },
+  "flow_summary": {
+    "total_nodes": 2,
+    "recovery_conditions": 0,
+    "failure_conditions": 1
+  }
+}
+
+[2025-10-06T18:24:22.595809] [EXPERIMENT] EXPERIMENT START - Node: CFC_Voltage (ID: NODE_006)
+
+[2025-10-06T18:24:22.754703] [CONFIG] Experiment config saved to: debug_logs\experiment_config_NODE_006_20251006_182325.json
+
+[2025-10-06T18:24:22.819319] [CONFIG] Key Config Parameters: {'Test Type': 'Sweep', 'Content': 'Dragon'}
+    Data: {
+  "Test Type": "Sweep",
+  "Content": "Dragon"
+}
+
+[2025-10-06T18:24:22.876695] [EXPERIMENT] Flow experiment started: CFC_Voltage
+
+[2025-10-06T18:24:30.636248] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-06T18:24:30.703514] [TRACKER]   Sweep Value: 0.0
+
+[2025-10-06T18:24:30.813622] [TRACKER]   Config: {'voltage_cfc': 0.0}
+
+[2025-10-06T18:24:41.882786] [TRACKER] ITERATION 0 - Status: PASS
+
+[2025-10-06T18:24:41.955162] [TRACKER]   Sweep Value: 0.05
+
+[2025-10-06T18:24:42.022770] [TRACKER]   Config: {'voltage_cfc': 0.05}
+
+[2025-10-06T18:24:53.322385] [TRACKER] ITERATION 0 - Status: PASS
+
+[2025-10-06T18:24:53.384801] [TRACKER]   Sweep Value: 0.1
+
+[2025-10-06T18:24:53.440601] [TRACKER]   Config: {'voltage_cfc': 0.1}
+
+[2025-10-06T18:25:04.799540] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-06T18:25:04.868010] [TRACKER]   Sweep Value: 0.15
+
+[2025-10-06T18:25:04.960411] [TRACKER]   Config: {'voltage_cfc': 0.15}
+
+[2025-10-06T18:25:15.551311] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-06T18:25:15.630598] [TRACKER]   Sweep Value: 0.2
+
+[2025-10-06T18:25:15.687063] [TRACKER]   Config: {'voltage_cfc': 0.2}
+
+[2025-10-06T18:25:16.949149] [SUCCESS] EXPERIMENT COMPLETE - Result: MOSTLY_FAILING, Port: 0
+
+[2025-10-06T18:25:17.028205] [INFO] Test Folder: C:\SystemDebug\Logs\20251006_182423_T1_CFCVoltage
+
+[2025-10-06T18:25:17.080783] [ANALYSIS] SWEEP ANALYSIS COMPLETE
+
+[2025-10-06T18:25:17.133189] [ANALYSIS] Sweep Summary: {'sweep_type': 'voltage', 'sweep_domain': 'cfc', 'total_points': 5, 'failure_points': 3, 'pattern': 'mixed_sensitivity'}
+    Data: {
+  "sweep_type": "voltage",
+  "sweep_domain": "cfc",
+  "voltage_type": "vbump",
+  "total_points": 5,
+  "failure_points": 3,
+  "pass_points": 2,
+  "failure_values": [
+    0.0,
+    0.15,
+    0.2
+  ],
+  "pass_values": [
+    0.05,
+    0.1
+  ],
+  "sensitivity_analysis": {
+    "pattern": "mixed_sensitivity",
+    "description": "Unit has mixed sensitivity pattern for voltage cfc (vbump)",
+    "failure_range": [
+      0.0,
+      0.2
+    ],
+    "pass_range": [
+      0.05,
+      0.1
+    ],
+    "safe_values": [
+      0.05,
+      0.1
+    ],
+    "voltage_type_context": "vbump",
+    "recommendation": "Avoid failure values, use passing values for recovery (vbump specific to tested domain)"
+  }
+}
+
+[2025-10-06T18:25:17.290923] [INFO] Experiment data persisted to test section: CFCVoltage
+
+[2025-10-06T18:25:17.342664] [INFO] Node name: CFC_Voltage
+
+[2025-10-06T18:25:17.391522] [TRACKER] TRACKER STATE SNAPSHOT
+
+[2025-10-06T18:25:17.445904] [TRACKER] Tracker State: {'experiments_count': 3, 'current_experiment': {'node_name': 'CFC_Voltage', 'node_type': 'CharacterizationFlowInstance', 'iterations_count': 5}, 'flow_summary': {'total_nodes': 3, 'recovery_conditions': 0, 'failure_conditions': 1}}
+    Data: {
+  "experiments_count": 3,
+  "current_experiment": {
+    "node_name": "CFC_Voltage",
+    "node_type": "CharacterizationFlowInstance",
+    "iterations_count": 5
+  },
+  "flow_summary": {
+    "total_nodes": 3,
+    "recovery_conditions": 0,
+    "failure_conditions": 1
+  }
+}
+
+[2025-10-06T18:25:17.969191] [EXPERIMENT] EXPERIMENT START - Node: CFC_Frequency (ID: NODE_007)
+
+[2025-10-06T18:25:18.070001] [CONFIG] Experiment config saved to: debug_logs\experiment_config_NODE_007_20251006_182325.json
+
+[2025-10-06T18:25:18.126107] [CONFIG] Key Config Parameters: {'Test Type': 'Sweep', 'Content': 'Dragon'}
+    Data: {
+  "Test Type": "Sweep",
+  "Content": "Dragon"
+}
+
+[2025-10-06T18:25:18.177717] [EXPERIMENT] Flow experiment started: CFC_Frequency
+
+[2025-10-06T18:25:26.252036] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-06T18:25:26.311224] [TRACKER]   Sweep Value: 8
+
+[2025-10-06T18:25:26.363884] [TRACKER]   Config: {'frequency_cfc': 8}
+
+[2025-10-06T18:25:37.652665] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-06T18:25:37.736698] [TRACKER]   Sweep Value: 12
+
+[2025-10-06T18:25:37.790871] [TRACKER]   Config: {'frequency_cfc': 12}
+
+[2025-10-06T18:25:49.373060] [TRACKER] ITERATION 0 - Status: PASS
+
+[2025-10-06T18:25:49.434518] [TRACKER]   Sweep Value: 16
+
+[2025-10-06T18:25:49.496903] [TRACKER]   Config: {'frequency_cfc': 16}
+
+[2025-10-06T18:26:00.065837] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-06T18:26:00.127557] [TRACKER]   Sweep Value: 20
+
+[2025-10-06T18:26:00.184737] [TRACKER]   Config: {'frequency_cfc': 20}
+
+[2025-10-06T18:26:11.034641] [TRACKER] ITERATION 0 - Status: FAIL
+
+[2025-10-06T18:26:11.097400] [TRACKER]   Sweep Value: 24
+
+[2025-10-06T18:26:11.147505] [TRACKER]   Config: {'frequency_cfc': 24}
+
+[2025-10-06T18:26:12.533863] [SUCCESS] EXPERIMENT COMPLETE - Result: MOSTLY_FAILING, Port: 0
+
+[2025-10-06T18:26:12.603313] [INFO] Test Folder: C:\SystemDebug\Logs\20251006_182518_T1_CFCFrequency
+
+[2025-10-06T18:26:12.660211] [ANALYSIS] SWEEP ANALYSIS COMPLETE
+
+[2025-10-06T18:26:12.714573] [ANALYSIS] Sweep Summary: {'sweep_type': 'frequency', 'sweep_domain': 'cfc', 'total_points': 5, 'failure_points': 4, 'pattern': 'mixed_sensitivity'}
+    Data: {
+  "sweep_type": "frequency",
+  "sweep_domain": "cfc",
+  "voltage_type": "vbump",
+  "total_points": 5,
+  "failure_points": 4,
+  "pass_points": 1,
+  "failure_values": [
+    8,
+    12,
+    20,
+    24
+  ],
+  "pass_values": [
+    16
+  ],
+  "sensitivity_analysis": {
+    "pattern": "mixed_sensitivity",
+    "description": "Unit has mixed sensitivity pattern for frequency cfc (vbump)",
+    "failure_range": [
+      8,
+      24
+    ],
+    "pass_range": [
+      16,
+      16
+    ],
+    "safe_values": [
+      16
+    ],
+    "voltage_type_context": "vbump",
+    "recommendation": "Avoid failure values, use passing values for recovery (vbump specific to tested domain)"
+  }
+}
+
+[2025-10-06T18:26:12.890990] [INFO] Experiment data persisted to test section: CFCFrequency
+
+[2025-10-06T18:26:12.947069] [INFO] Node name: CFC_Frequency
+
+[2025-10-06T18:26:13.002129] [TRACKER] TRACKER STATE SNAPSHOT
+
+[2025-10-06T18:26:13.055058] [TRACKER] Tracker State: {'experiments_count': 4, 'current_experiment': {'node_name': 'CFC_Frequency', 'node_type': 'CharacterizationFlowInstance', 'iterations_count': 5}, 'flow_summary': {'total_nodes': 4, 'recovery_conditions': 0, 'failure_conditions': 1}}
+    Data: {
+  "experiments_count": 4,
+  "current_experiment": {
+    "node_name": "CFC_Frequency",
+    "node_type": "CharacterizationFlowInstance",
+    "iterations_count": 5
+  },
+  "flow_summary": {
+    "total_nodes": 4,
+    "recovery_conditions": 0,
+    "failure_conditions": 1
+  }
+}
+
+[2025-10-06T18:26:13.684776] [EXPERIMENT] EXPERIMENT START - Node: IA_Voltage (ID: NODE_008)
+
+[2025-10-06T18:26:13.799084] [CONFIG] Experiment config saved to: debug_logs\experiment_config_NODE_008_20251006_182325.json
+
+[2025-10-06T18:26:13.855768] [CONFIG] Key Config Parameters: {'Test Type': 'Sweep', 'Content': 'Dragon'}
+    Data: {
+  "Test Type": "Sweep",
+  "Content": "Dragon"
+}
+
+[2025-10-06T18:26:13.906478] [EXPERIMENT] Flow experiment started: IA_Voltage
+

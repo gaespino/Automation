@@ -1,0 +1,393 @@
+{
+  "dynamic_injections": {
+    "MLCSSA_voltage_bump": {
+     "type": "voltage_bump",
+      "fields": [
+        { "name": "offset", "type": "float", "required": true }
+      ],
+      "sockets": ["socket0", "socket1"],
+      "fuses": [
+        {
+          "name": "MLCSSA",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.&computes&.fuses.&cores&_fuse.core_fuse_core_fuse_acode_mlcssa_min_voltage",
+          "default_value": true,
+          "parameters": {
+            "dies": ["cbb0", "cbb1", "cbb2", "cbb3"],
+            "computes":["compute0","compute1","compute2","compute3"],
+            "cores":["core0","core1","core2","core3","core4","core5","core6","core7"]
+          }
+        }
+      ]
+    },
+    "cfc_voltage_bump": {
+      "type": "voltage_bump",
+      "fields": [
+        { "name": "offset", "type": "float", "required": true }
+      ],
+      "sockets": ["socket0", "socket1"],
+      "fuses": [
+         {
+          "name": "FIVR Voltage Config CFC IOs",
+          "debug_notes": "Voltage Domain VCCR* (CFC) Fuses IO",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.fuses.punit.pcode_cfcio_vf_voltage_&points&",
+           "default_value": true,
+          "parameters": {
+            "dies": ["imh0", "imh1"],
+             "points": ["point0", "point1", "point2", "point3", "point4", "point5", "point6", "point7", "point8", "point9", "point10", "point11"]
+            }
+          },
+         {
+          "name": "FIVR Voltage Config CFC Mem",
+          "debug_notes": "Voltage Domain VCCR* (CFC) Fuses MEM",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.fuses.punit.pcode_cfcmem_vf_voltage_&points&",
+           "default_value": true,
+          "parameters": {
+            "dies":["imh0", "imh1"],
+            "points": ["point0", "point1", "point2", "point3", "point4", "point5"]
+          }
+         },
+         {
+          "name": "FIVR Voltage Config CFC CBBs",
+          "debug_notes": "Voltage Domain VCCR* (CFC) Fuses CBBs",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.fuses.punit_fuses.fw_fuses_&cfc&_vf_voltage_&points&",
+           "default_value": true,
+          "parameters": {
+            "dies":["cbb0.base","cbb1.base","cbb2.base","cbb3.base"],
+            "cfc":["cfc0","cfc1","cfc2","cfc3","cfc4","cfc5","cfc6","cfc7"],
+            "points": ["0","1","2","3","4","5"]
+          }
+         }
+      ]
+    },
+    "ia_voltage_bump": {
+      "type": "voltage_bump",
+      "fields": [
+        { "name": "offset", "type": "float", "required": true }
+      ],
+      "sockets": ["socket0", "socket1"],
+      "fuses": [
+        {
+          "name": "IA Base",
+          "debug_notes": "Base VF voltage fuses have SSE VF curve voltages fused.\nThen IDX1 - SSE\nIDX2-AVX\nIDX3-AVX512\nIDX4-AMX\n \nIDX1, IDX2, IDX3, IDX4 are delta voltages on top of BASE. \nso if you want to increase voltages per licence level, then modify the delta fuses. \nIf you want the same increase across all licence levels,\n then you can increase base fuses",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.&computes&.fuses.&cores&_fuse.core_fuse_core_fuse_acode_ia_base_vf_voltage_&vf_points&",
+          "default_value": true,
+          "parameters": {
+            "dies": ["cbb0","cbb1","cbb2","cbb3"],
+            "computes":["compute0","compute1","compute2","compute3"],
+            "cores":["core0","core1","core2","core3","core4","core5","core6","core7"],
+            "vf_points": ["0","1","2","3","4","5","6","7","8","9","10","11"]
+          }
+        },
+        {
+          "name": "IA Delta",
+          "debug_notes": "Base VF voltage fuses have SSE VF curve voltages fused.\nThen IDX1 - SSE\nIDX2-AVX\nIDX3-AVX512\nIDX4-AMX\n \nIDX1, IDX2, IDX3, IDX4 are delta voltages on top of BASE. \nso if you want to increase voltages per licence level, then modify the delta fuses. \nIf you want the same increase across all licence levels,\n then you can increase base fuses",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.&computes&.fuses.&cores&_fuse.core_fuse_core_fuse_acode_ia_delta_&idx&_vf_voltage_&vf_points&",
+          "default_value": true,
+          "parameters": {
+            "dies":["cbb0","cbb1","cbb2","cbb3"],
+            "computes":["compute0","compute1","compute2","compute3"],
+            "cores":["core0","core1","core2","core3","core4","core5","core6","core7"],
+            "idx":["idx1","idx2","idx3","idx4"],
+            "vf_points": ["0","1","2","3","4","5","6","7","8","9","10","11"]
+          }
+        }
+      ]
+    },
+    "ddrd_voltage_bump": {
+      "type": "voltage_bump",
+      "fields": [
+        { "name": "offset", "type": "float", "required": true }
+      ],
+      "sockets": ["socket0", "socket1"],
+      "fuses": [
+        {
+          "name": "DDRD",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.fuses.punit.pcode_vccfixdig_&locations&_active_voltage",
+          "default_value": true,
+          "parameters": {
+            "dies": ["imh0", "imh1"],
+            "locations": ["e", "w"]
+          }
+        }
+      ]
+    },
+    "cfc_flat_ratios": {
+      "type": "fuse_override",
+      "fields": [
+        { "name": "new_value", "type": "hex", "required": true }
+      ],
+      "sockets": ["socket0", "socket1"],
+      "fuses": [
+        {
+          "name": "Pstate Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.base.fuses.punit_fuses.fw_fuses_cfc_&pstate&_ratio",
+          "default_value": true,
+          "parameters": {
+            "dies": ["cbb0","cbb1","cbb2","cbb3"],
+            "pstate":["min"]
+          }
+        },
+        {
+          "name": "PP-Pstate Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.base.fuses.punit_fuses.fw_fuses_sst_pp_&power_profile&_cfc_&pstate&_ratio",
+          "default_value": true,
+          "parameters": {
+            "dies": ["cbb0","cbb1","cbb2","cbb3"],
+            "power_profile":["0","1","2","3","4"],
+            "pstate": ["p0","p1"]
+          }
+        },
+        {
+          "name": "IO Pstate Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.fuses.punit.pcode_&cfc_domain&_&pstate&_ratio",
+          "default_value": true,
+          "parameters": {
+            "dies": ["imh0", "imh1"],
+            "cfc_domain":["cfcio","cfcmem","cfccbb"],
+            "pstate":["min"]
+          }
+        },
+        {
+          "name": "IO PP-Pstate Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.fuses.punit.pcode_sst_pp_&power_profile&_&cfc_domain&_&pstate&_ratio",
+          "default_value": true,
+          "parameters": {
+            "dies": ["imh0", "imh1"],
+            "power_profile":["0","1","2","3","4"],
+            "cfc_domain":["cfcio","cfcmem","cfccbb"],
+            "pstate": ["p0","p1"]
+          }
+        },
+        {
+          "name": "VF Curve Ratio",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "&dies&.fuses.punit.pcode_&cfc_domain&_vf_ratio_point&vf_point&",
+          "default_value": true,
+          "parameters": {
+            "dies": ["imh0", "imh1"],
+            "cfc_domain":["cfcio","cfcmem"],
+            "vf_point": ["0", "1", "2", "3", "4", "5"]
+          }
+        }
+      ]
+    },
+    "ia_flat_ratios": {
+      "type": "fuse_override",
+      "fields": [
+        { "name": "new_value", "type": "hex", "required": true }
+      ],
+      "sockets": ["socket0", "socket1"],
+      "fuses": [
+        {
+          "name": "Pstate Ratio",
+          "debug_notes": "",
+          "default_value": true,
+          "template": "&dies&.base.fuses.punit_fuses.fw_fuses_ia_&pstate&_ratio",
+          "parameters": {
+            "dies": ["cbb0","cbb1","cbb2","cbb3"],
+            "pstate":["pn","min","boot"]
+          }
+        },
+        {
+          "name": "License Ratio",
+          "debug_notes": "",
+          "default_value": true,
+          "template": "&dies&.base.fuses.punit_fuses.fw_fuses_sst_pp_&power_profile&_&license&_p1_ratio",
+          "parameters": {
+            "dies": ["cbb0","cbb1","cbb2","cbb3"],
+            "power_profile":["0","1","2","3","4"],
+            "license": ["sse","amx","avx2","avx512"]
+          }
+        },
+        {
+          "name": "Turbo Ratio",
+          "debug_notes": "",
+          "default_value": true,
+          "template": "&dies&.base.fuses.punit_fuses.fw_fuses_sst_pp_&power_profile&_turbo_ratio_limit_ratios_cdyn_&index&_&ratio&",
+          "parameters": {
+            "dies": ["cbb0","cbb1","cbb2","cbb3"],
+            "power_profile":["0","1","2","3","4"],
+            "index":["index0","index1","index2","index3","index4","index5"],
+            "ratio":["ratio0","ratio1","ratio2","ratio3","ratio4","ratio5","ratio6","ratio7"]
+          }
+        },
+        {
+          "name": "IO Pstate Ratio",
+          "debug_notes": "",
+          "default_value": true,
+          "template": "&dies&.fuses.punit.pcode_ia_&pstate&_ratio",
+          "parameters": {
+            "dies": ["imh0", "imh1"],
+            "pstate":["pn","min"]
+          }
+        },
+        {
+          "name": "IO License Ratio",
+          "debug_notes": "",
+          "default_value": true,
+          "template": "&dies&.fuses.punit.pcode_sst_pp_&power_profile&_&license&_p1_ratio",
+          "parameters": {
+            "dies": ["imh0", "imh1"],
+            "power_profile":["0","1","2","3","4"],
+            "license": ["sse","amx","avx2","avx512"]
+          }
+        },
+        {
+          "name": "IO Turbo Ratio",
+          "debug_notes": "",
+          "default_value": true,
+          "template": "&dies&.fuses.punit.pcode_sst_pp_&power_profile&_turbo_ratio_limit_ratios_cdyn_&index&_&ratio&",
+          "parameters": {
+            "dies": ["imh0", "imh1"],
+            "power_profile":["0","1","2","3","4"],
+            "index":["index0","index1","index2","index3","index4","index5"],
+            "ratio":["ratio0","ratio1","ratio2","ratio3","ratio4","ratio5","ratio6","ratio7"]
+          }
+        },
+        {
+          "name": "VF Curve Ratio",
+          "debug_notes": "",
+          "default_value": true,
+          "template": "&dies&.&compute&.fuses.&core&_fuse.core_fuse_core_fuse_acode_ia_base_vf_ratio_&vf_ratio&",
+          "parameters": {
+            "dies": ["cbb0","cbb1","cbb2","cbb3"],
+            "compute":["compute0","compute1","compute2","compute3"],
+            "core":["core0","core1","core2","core3","core4","core5","core6","core7"],
+            "vf_ratio":["0","1","2","3","4","5","6","7","8","9","10","11"]
+          }
+        },
+        {
+          "name": "VF Numcores Ratio",
+          "debug_notes": "",
+          "default_value": true,
+          "template": "&dies&.base.fuses.punit_fuses.fw_fuses_sst_pp_&power_profile&_turbo_ratio_limit_cores_num&core&",
+          "parameters": {
+            "dies": ["cbb0","cbb1","cbb2","cbb3"],
+            "power_profile":["0","1","2","3","4"],
+            "core":["core0","core1","core2","core3","core4","core5","core6","core7"]
+          }
+        }
+      ]
+    },
+    "core_disabling": {
+      "type": "ip_disable",
+      "fields": [],
+      "sockets": ["socket0", "socket1"],
+      "fuses": [
+         {
+          "name": "cbb0",
+          "debug_notes": "At least one core must remain enabled per module for correct system operation.",
+          "user_input_type" : "checkbox",
+          "template": "cbb0.base-core_module-&modules&",
+           "default_value": false,
+          "parameters": {
+              "modules": ["0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19",
+                "20","21","22","23","24","25","26","27","28","29","30","31"]
+            }
+          },
+         {
+          "name": "cbb1",
+          "debug_notes": "At least one core must remain enabled per module for correct system operation.",
+          "user_input_type" : "checkbox",
+          "template": "cbb1.base-core_module-&modules&",
+           "default_value": false,
+          "parameters": {
+              "modules": ["32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49",
+                "50","51","52","53","54","55","56","57","58","59","60","61","62","63"]
+            }
+          },
+         {
+          "name": "cbb2",
+          "debug_notes": "At least one core must remain enabled per module for correct system operation.",
+          "user_input_type" : "checkbox",
+          "template": "cbb2.base-core_module-&modules&",
+           "default_value": false,
+          "parameters": {
+              "modules": ["64","65","66","67","68","69","70","71","72","73","74","75","76","77","78","79", "80","81",
+                "82","83","84","85","86","87","88","89","90","91","92","93","94","95"]
+            }
+          },
+         {
+          "name": "cbb3",
+          "debug_notes": "At least one core must remain enabled per module for correct system operation.",
+          "user_input_type" : "checkbox",
+          "template": "cbb3.base-core_module-&modules&",
+           "default_value": false,
+          "parameters": {
+              "modules": ["96","97","98","99","100","101","102","103","104","105","106","107","108","109","110","111",
+                "112","113","114","115","116","117","118","119","120","121","122","123","124","125","126","127"]
+            }
+          }
+      ]
+    },
+     "slice_disabling": {
+      "type": "ip_disable",
+      "fields": [],
+      "sockets": ["socket0", "socket1"],
+      "fuses": [
+         {
+          "name": "cbb0",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "cbb0.base-slice_cbo-&cbos&",
+           "default_value": false,
+          "parameters": {
+              "cbos": ["0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19",
+                "20","21","22","23","24","25","26","27","28","29","30","31"]
+            }
+          },
+         {
+          "name": "cbb1",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "cbb0.base-slice_cbo-&cbos&",
+           "default_value": false,
+          "parameters": {
+              "cbos": ["0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19",
+                "20","21","22","23","24","25","26","27","28","29","30","31"]
+            }
+          },
+         {
+          "name": "cbb2",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "cbb0.base-slice_cbo-&cbos&",
+           "default_value": false,
+          "parameters": {
+              "cbos": ["0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19",
+                "20","21","22","23","24","25","26","27","28","29","30","31"]
+            }
+          },
+         {
+          "name": "cbb3",
+          "debug_notes": "",
+          "user_input_type" : "checkbox",
+          "template": "cbb0.base-slice_cbo-&cbos&",
+           "default_value": false,
+          "parameters": {
+              "cbos": ["0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19",
+                "20","21","22","23","24","25","26","27","28","29","30","31"]
+            }
+          }
+      ]
+    }
+  }
+}

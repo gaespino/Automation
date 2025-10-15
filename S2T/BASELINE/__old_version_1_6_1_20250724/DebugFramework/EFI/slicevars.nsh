@@ -1,0 +1,20 @@
+
+set SLICE FS1:\content\Dragon\GNR1C_Q_Slice_2M_pseudoSBFT_System\
+set SLICE
+
+set MERLIN_DIR FS1:\EFI\Version8.15\BinFiles\Release
+set MERLIN_DIR 
+set MERLIN_DRIVE fs1:
+set MERLIN_DRIVE
+set DRG_START_FRESH 1
+set DRG_START_FRESH
+set DRG_STOP_ON_FAIL 0
+set DRG_STOP_ON_FAIL
+set VVAR3 "0x10000"
+set VVAR3
+set VVAR2 "0x1000002"
+set VVAR2
+set VVAR_EXTRA "0 0x04C4B40 1 80064000" 
+set VVAR_EXTRA
+set MERLIN "MerlinX"
+set MERLIN

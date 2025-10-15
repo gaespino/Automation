@@ -1,0 +1,102 @@
+{
+    "Baseline_Mesh": {
+        "Experiment": "Enabled",
+        "Test Name": "Baseline  Definition Loop",
+        "Test Mode": "Mesh",
+        "Test Type": "Loops",
+        
+        "Test Number": 1,
+        "Test Time": 45,
+        
+        "Reset": true,
+        "Reset on PASS": true,
+        "FastBoot": true,
+
+        "Core License": "",
+        
+        "Boot Breakpoint": "0xa2000000",
+        "Disable 2 Cores": null,
+        
+        "Voltage Type": "vbump",
+        "Voltage IA": null,
+        "Voltage CFC": null,
+        "Frequency IA": null,
+        "Frequency CFC": null,
+        "Loops": 5,
+        "Type": null,
+        "Domain": null,
+        "Start": null,
+        "End": null,
+        "Steps": null,
+        "ShmooFile": null,
+        "ShmooLabel": null,
+        "External Mask":null,
+
+
+        "Content": "Dragon",
+        "Bucket": "DUMMY",
+        "Pseudo Config": true,
+
+
+        "Visual ID": "45S50N5500909"
+    },
+    "Baseline_Mesh_Process_Define":{
+        "Content": "",
+        "Bucket": "",
+        "Pseudo Config": true,
+        
+        "Configuration (Mask)": "",
+        "Check Core": 0,
+
+        "TTL Folder": "",
+        "Scripts File": "",
+        "Pass String": "",
+        "Fail String": ""
+    },
+    "Baseline_Mesh_Input_Needed":{
+        "Visual ID": "", 
+
+        "COM Port": 0,
+        "IP Address": ""
+    },
+    "PPVC_Mesh":{
+        "Experiment": "Enabled",
+        "Test Name": "PPVC Conditions",
+        "Test Mode": "Mesh",
+        "Test Type": "Loops",
+        
+        "Test Number": 2,
+        "Test Time": 45,
+        
+        "Reset": true,
+        "Reset on PASS": true,
+        "FastBoot": true,
+
+        "Core License": "",
+        
+        "Boot Breakpoint": "0xa2000000",
+        "Disable 2 Cores": null,
+        
+        "Voltage Type": "ppvc",
+        "Voltage IA": null,
+        "Voltage CFC": null,
+        "Frequency IA": null,
+        "Frequency CFC": null,
+        "Loops": 5,
+        "Type": null,
+        "Domain": null,
+        "Start": null,
+        "End": null,
+        "Steps": null,
+        "ShmooFile": null,
+        "ShmooLabel": null,
+        "External Mask":null,
+        
+        
+        "Content": "Dragon",
+        "Bucket": "DUMMY",
+        "Pseudo Config": true,
+
+        "Visual ID": "45S50N5500909"
+    }
+}

@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "q:\Gaespino\scripts\s2t\BASELINE\DebugFramework\Automation_Flow\TestFlow1.py", line 204, in <module>
+    executor = builder.build_flow(rootID='BASELINE')  # Ensure 'BASELINE' is a valid root node ID from your structure
+  File "q:\Gaespino\scripts\s2t\BASELINE\DebugFramework\Automation_Flow\TestFlow1.py", line 109, in build_flow       
+    self.create_interface(root)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "q:\Gaespino\scripts\s2t\BASELINE\DebugFramework\Automation_Flow\TestFlow1.py", line 193, in create_interface 
+    draw_connections(root_node.ID, root_node, initial_position)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "q:\Gaespino\scripts\s2t\BASELINE\DebugFramework\Automation_Flow\TestFlow1.py", line 179, in draw_connections
+    canvas.create_line(x + node_width, y + square_size / 2, mid_x1, y, fill=connection_color, width=2)
+                                           ^^^^^^^^^^^
+NameError: name 'square_size' is not defined

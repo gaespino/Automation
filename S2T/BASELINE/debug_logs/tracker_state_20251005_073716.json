@@ -1,0 +1,5250 @@
+{
+  "timestamp": "2025-10-05T07:45:43.409046",
+  "experiments_history": [
+    {
+      "node_id": "NODE_002",
+      "node_name": "Base",
+      "node_type": "AllFailFlowInstance",
+      "experiment_config": {
+        "Experiment": "Enabled",
+        "Test Name": "Baseline",
+        "Test Mode": "Mesh",
+        "Test Type": "Loops",
+        "Visual ID": "TestUnitData",
+        "Bucket": "IDIPAR",
+        "COM Port": 11,
+        "IP Address": "192.168.0.2",
+        "TTL Folder": "R:\\Templates\\GNR\\version_2_0\\TTL_DragonMesh",
+        "Scripts File": null,
+        "Post Process": null,
+        "Pass String": "Test Complete",
+        "Fail String": "Test Failed",
+        "Content": "Dragon",
+        "Test Number": 11,
+        "Test Time": 30,
+        "Reset": true,
+        "Reset on PASS": true,
+        "FastBoot": true,
+        "Core License": "1: SSE/128",
+        "600W Unit": false,
+        "Pseudo Config": true,
+        "Configuration (Mask)": "FirstPass",
+        "Boot Breakpoint": null,
+        "Disable 2 Cores": null,
+        "Check Core": 7,
+        "Voltage Type": "ppvc",
+        "Voltage IA": null,
+        "Voltage CFC": null,
+        "Frequency IA": null,
+        "Frequency CFC": null,
+        "Loops": 5,
+        "Type": "Voltage",
+        "Domain": "IA",
+        "Start": -0.03,
+        "End": 0.06,
+        "Steps": 0.03,
+        "ShmooFile": "C:\\SystemDebug\\Shmoos\\RVPShmooConfig.json",
+        "ShmooLabel": "COREFIX",
+        "Linux Pre Command": null,
+        "Linux Post Command": null,
+        "Linux Pass String": null,
+        "Linux Fail String": null,
+        "Startup Linux": null,
+        "Linux Path": null,
+        "Linux Content Wait Time": null,
+        "Linux Content Line 0": null,
+        "Linux Content Line 1": null,
+        "Dragon Pre Command": null,
+        "Dragon Post Command": null,
+        "Startup Dragon": "startup_efi.nsh",
+        "ULX Path": "FS1:\\EFI\\ulx",
+        "ULX CPU": "GNR_B0",
+        "Product Chop": "GNR",
+        "VVAR0": "0x4C4B40",
+        "VVAR1": 80064000,
+        "VVAR2": "0x1000000",
+        "VVAR3": "0x4000000",
+        "VVAR_EXTRA": null,
+        "Dragon Content Path": "FS1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\",
+        "Dragon Content Line": null,
+        "Stop on Fail": true,
+        "Merlin Name": "MerlinX.efi",
+        "Merlin Drive": "FS1:",
+        "Merlin Path": "FS1:\\EFI\\Version8.15\\BinFiles\\Release",
+        "Linux Content Line 2": null,
+        "Linux Content Line 3": null,
+        "Linux Content Line 4": null,
+        "Linux Content Line 5": null,
+        "executed": true,
+        "execution status": "COMPLETED_UNKNOWN",
+        "node name": "Base",
+        "node type": "AllFailFlowInstance",
+        "node id": "NODE_002",
+        "execution timestamp": "2025-10-05T06:54:56.973452",
+        "start time": "2025-10-05T06:53:52.186686",
+        "end time": "2025-10-05T06:54:56.918543",
+        "duration seconds": 64,
+        "final result": "CONFIG_PASSED",
+        "output port": false,
+        "total iterations": 4,
+        "pass count": true,
+        "fail count": 3,
+        "other count": false,
+        "pass rate percent": 25.0,
+        "test folder": "",
+        "summary file": "",
+        "config test type": "Loops",
+        "config content": "Dragon",
+        "config voltage type": "ppvc",
+        "config configuration mask": "FirstPass",
+        "config check core": 7,
+        "config type": "Voltage",
+        "config domain": "IA",
+        "config start": -0.03,
+        "config end": 0.06,
+        "config steps": 0.03,
+        "config loops": 5,
+        "result summary": "Mixed results: 1 passes, 3 fails"
+      },
+      "start_time": "2025-10-05 07:37:18.988840",
+      "end_time": "2025-10-05 07:38:38.838385",
+      "iterations": [
+        {
+          "iteration": 0,
+          "status": "PASS",
+          "scratchpad": "Test completed successfully",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:37:26.901630",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "FirstPass",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": null,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": null,
+            "result": "PASS",
+            "is_failure": false,
+            "is_pass": true
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Test_Timeout_300s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:37:44.152686",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "FirstPass",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": null,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": null,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "DDR_Training_Fail",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:38:01.820232",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "FirstPass",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": null,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": null,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "PASS",
+          "scratchpad": "Test completed successfully",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:38:19.444004",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "FirstPass",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": null,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": null,
+            "result": "PASS",
+            "is_failure": false,
+            "is_pass": true
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "DDR_Training_Fail",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:38:37.238979",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "FirstPass",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": null,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": null,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        }
+      ],
+      "final_result": "MOSTLY_FAILING",
+      "output_port": 2,
+      "test_folder": "C:\\SystemDebug\\Logs\\20251005_073719_T11_Baseline",
+      "summary_file_path": null,
+      "unit_state": {},
+      "failure_patterns": {
+        "Test_Timeout_300s_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "FirstPass",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        },
+        "DDR_Training_Fail_NA": {
+          "count": 2,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "FirstPass",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0,
+            0
+          ]
+        }
+      },
+      "recovery_indicators": [],
+      "sweep_data": null,
+      "voltage_frequency_analysis": {
+        "voltage_dependency": null,
+        "frequency_dependency": null,
+        "combined_sensitivity": null,
+        "voltage_type_used": "ppvc"
+      }
+    },
+    {
+      "node_id": "NODE_003",
+      "node_name": "PPVC",
+      "node_type": "AllFailFlowInstance",
+      "experiment_config": {
+        "Experiment": "Enabled",
+        "Test Name": "PPVC",
+        "Test Mode": "Mesh",
+        "Test Type": "Loops",
+        "Visual ID": "TestUnitData",
+        "Bucket": "IDIPAR",
+        "COM Port": 11,
+        "IP Address": "192.168.0.2",
+        "TTL Folder": "R:\\Templates\\GNR\\version_2_0\\TTL_DragonMesh",
+        "Scripts File": null,
+        "Post Process": null,
+        "Pass String": "Test Complete",
+        "Fail String": "Test Failed",
+        "Content": "Dragon",
+        "Test Number": 99,
+        "Test Time": 5,
+        "Reset": true,
+        "Reset on PASS": true,
+        "FastBoot": false,
+        "Core License": "4: AVX3/512 Light",
+        "600W Unit": false,
+        "Pseudo Config": true,
+        "Configuration (Mask)": "RowPass1",
+        "Boot Breakpoint": null,
+        "Disable 2 Cores": null,
+        "Check Core": 156,
+        "Voltage Type": "ppvc",
+        "Voltage IA": null,
+        "Voltage CFC": null,
+        "Frequency IA": null,
+        "Frequency CFC": null,
+        "Loops": 5,
+        "Type": "Voltage",
+        "Domain": "IA",
+        "Start": -0.03,
+        "End": 0.06,
+        "Steps": 0.03,
+        "ShmooFile": "C:\\SystemDebug\\Shmoos\\RVPShmooConfig.json",
+        "ShmooLabel": "COREFIX",
+        "Linux Pre Command": null,
+        "Linux Post Command": null,
+        "Linux Pass String": null,
+        "Linux Fail String": null,
+        "Startup Linux": null,
+        "Linux Path": null,
+        "Linux Content Wait Time": null,
+        "Linux Content Line 0": null,
+        "Linux Content Line 1": null,
+        "Dragon Pre Command": null,
+        "Dragon Post Command": null,
+        "Startup Dragon": "startup_efi.nsh",
+        "ULX Path": "FS1:\\EFI\\ulx",
+        "ULX CPU": "GNR_B0",
+        "Product Chop": "GNR",
+        "VVAR0": "0x4C4B40",
+        "VVAR1": 80064000,
+        "VVAR2": "0x1000000",
+        "VVAR3": "0x4000000",
+        "VVAR_EXTRA": null,
+        "Dragon Content Path": "FS1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\",
+        "Dragon Content Line": null,
+        "Stop on Fail": true,
+        "Merlin Name": "MerlinX.efi",
+        "Merlin Drive": "FS1:",
+        "Merlin Path": "FS1:\\EFI\\Version8.15\\BinFiles\\Release",
+        "Linux Content Line 2": null,
+        "Linux Content Line 3": null,
+        "Linux Content Line 4": null,
+        "Linux Content Line 5": null,
+        "executed": true,
+        "execution status": "COMPLETED_UNKNOWN",
+        "node name": "PPVC",
+        "node type": "AllFailFlowInstance",
+        "node id": "NODE_003",
+        "execution timestamp": "2025-10-05T06:15:18.354020",
+        "start time": "2025-10-05T06:13:56.873727",
+        "end time": "2025-10-05T06:15:18.281027",
+        "duration seconds": 81,
+        "final result": "MOSTLY_FAILING",
+        "output port": 2,
+        "total iterations": 5,
+        "pass count": true,
+        "fail count": 4,
+        "other count": false,
+        "pass rate percent": 20.0,
+        "test folder": "C:\\SystemDebug\\Logs\\20251005_061357_T99_PPVC",
+        "summary file": "",
+        "config test type": "Loops",
+        "config content": "Dragon",
+        "config voltage type": "ppvc",
+        "config configuration mask": "RowPass1",
+        "config check core": 156,
+        "config type": "Voltage",
+        "config domain": "IA",
+        "config start": -0.03,
+        "config end": 0.06,
+        "config steps": 0.03,
+        "config loops": 5,
+        "result summary": "Mixed results: 1 passes, 4 fails"
+      },
+      "start_time": "2025-10-05 07:38:39.608030",
+      "end_time": "2025-10-05 07:40:03.699354",
+      "iterations": [
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Execution_Error",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:38:48.006415",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": null,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": null,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Execution_Error",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:39:05.974014",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": null,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": null,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "PASS",
+          "scratchpad": "Test completed successfully",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:39:24.266434",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": null,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": null,
+            "result": "PASS",
+            "is_failure": false,
+            "is_pass": true
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Test_Timeout_300s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:39:42.555319",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": null,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": null,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "PASS",
+          "scratchpad": "Test completed successfully",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:40:02.104612",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": null,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": null,
+            "result": "PASS",
+            "is_failure": false,
+            "is_pass": true
+          }
+        }
+      ],
+      "final_result": "MOSTLY_FAILING",
+      "output_port": 2,
+      "test_folder": "C:\\SystemDebug\\Logs\\20251005_073839_T99_PPVC",
+      "summary_file_path": null,
+      "unit_state": {},
+      "failure_patterns": {
+        "Execution_Error_NA": {
+          "count": 2,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0,
+            0
+          ]
+        },
+        "Test_Timeout_300s_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        }
+      },
+      "recovery_indicators": [],
+      "sweep_data": null,
+      "voltage_frequency_analysis": {
+        "voltage_dependency": null,
+        "frequency_dependency": null,
+        "combined_sensitivity": null,
+        "voltage_type_used": "ppvc"
+      }
+    },
+    {
+      "node_id": "NODE_010",
+      "node_name": "ExtendedDragon",
+      "node_type": "AllFailFlowInstance",
+      "experiment_config": {
+        "Experiment": "Enabled",
+        "Test Name": "Baseline",
+        "Test Mode": "Mesh",
+        "Test Type": "Loops",
+        "Visual ID": "TestUnitData",
+        "Bucket": "IDIPAR",
+        "COM Port": 11,
+        "IP Address": "192.168.0.2",
+        "TTL Folder": "R:\\Templates\\GNR\\version_2_0\\TTL_DragonMesh",
+        "Scripts File": null,
+        "Post Process": null,
+        "Pass String": "Test Complete",
+        "Fail String": "Test Failed",
+        "Content": "Dragon",
+        "Test Number": 11,
+        "Test Time": 30,
+        "Reset": true,
+        "Reset on PASS": true,
+        "FastBoot": true,
+        "Core License": null,
+        "600W Unit": false,
+        "Pseudo Config": false,
+        "Configuration (Mask)": null,
+        "Boot Breakpoint": null,
+        "Disable 2 Cores": null,
+        "Check Core": 7,
+        "Voltage Type": "vbump",
+        "Voltage IA": null,
+        "Voltage CFC": null,
+        "Frequency IA": null,
+        "Frequency CFC": null,
+        "Loops": 5,
+        "Type": "Voltage",
+        "Domain": "IA",
+        "Start": -0.03,
+        "End": 0.06,
+        "Steps": 0.03,
+        "ShmooFile": "C:\\SystemDebug\\Shmoos\\RVPShmooConfig.json",
+        "ShmooLabel": "COREFIX",
+        "Linux Pre Command": null,
+        "Linux Post Command": null,
+        "Linux Pass String": null,
+        "Linux Fail String": null,
+        "Startup Linux": null,
+        "Linux Path": null,
+        "Linux Content Wait Time": null,
+        "Linux Content Line 0": null,
+        "Linux Content Line 1": null,
+        "Dragon Pre Command": null,
+        "Dragon Post Command": null,
+        "Startup Dragon": "startup_efi.nsh",
+        "ULX Path": "FS1:\\EFI\\ulx",
+        "ULX CPU": "GNR_B0",
+        "Product Chop": "GNR",
+        "VVAR0": "0x989680",
+        "VVAR1": 80064000,
+        "VVAR2": "0x1000000",
+        "VVAR3": "0x4000000",
+        "VVAR_EXTRA": null,
+        "Dragon Content Path": "FS1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\",
+        "Dragon Content Line": null,
+        "Stop on Fail": true,
+        "Merlin Name": "MerlinX.efi",
+        "Merlin Drive": "FS1:",
+        "Merlin Path": "FS1:\\EFI\\Version8.15\\BinFiles\\Release",
+        "Linux Content Line 2": null,
+        "Linux Content Line 3": null,
+        "Linux Content Line 4": null,
+        "Linux Content Line 5": null
+      },
+      "start_time": "2025-10-05 07:40:04.483417",
+      "end_time": "2025-10-05 07:40:49.598317",
+      "iterations": [
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "VR_Fault_Detected",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:40:12.451600",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": null,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": null,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Test_Timeout_300s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:40:30.081217",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": null,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": null,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Thermal_Shutdown",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:40:47.499493",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": null,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": null,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        }
+      ],
+      "final_result": "SOLID_REPRO",
+      "output_port": 1,
+      "test_folder": "C:\\SystemDebug\\Logs\\20251005_074004_T11_Baseline",
+      "summary_file_path": null,
+      "unit_state": {},
+      "failure_patterns": {
+        "VR_Fault_Detected_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        },
+        "Test_Timeout_300s_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        },
+        "Thermal_Shutdown_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        }
+      },
+      "recovery_indicators": [],
+      "sweep_data": null,
+      "voltage_frequency_analysis": {
+        "voltage_dependency": null,
+        "frequency_dependency": null,
+        "combined_sensitivity": null,
+        "voltage_type_used": "vbump"
+      }
+    },
+    {
+      "node_id": "NODE_010",
+      "node_name": "ExtendedDragon",
+      "node_type": "AllFailFlowInstance",
+      "experiment_config": {
+        "Experiment": "Enabled",
+        "Test Name": "Baseline",
+        "Test Mode": "Mesh",
+        "Test Type": "Loops",
+        "Visual ID": "TestUnitData",
+        "Bucket": "IDIPAR",
+        "COM Port": 11,
+        "IP Address": "192.168.0.2",
+        "TTL Folder": "R:\\Templates\\GNR\\version_2_0\\TTL_DragonMesh",
+        "Scripts File": null,
+        "Post Process": null,
+        "Pass String": "Test Complete",
+        "Fail String": "Test Failed",
+        "Content": "Dragon",
+        "Test Number": 11,
+        "Test Time": 30,
+        "Reset": true,
+        "Reset on PASS": true,
+        "FastBoot": true,
+        "Core License": null,
+        "600W Unit": false,
+        "Pseudo Config": false,
+        "Configuration (Mask)": null,
+        "Boot Breakpoint": null,
+        "Disable 2 Cores": null,
+        "Check Core": 7,
+        "Voltage Type": "vbump",
+        "Voltage IA": null,
+        "Voltage CFC": null,
+        "Frequency IA": null,
+        "Frequency CFC": null,
+        "Loops": 5,
+        "Type": "Voltage",
+        "Domain": "IA",
+        "Start": -0.03,
+        "End": 0.06,
+        "Steps": 0.03,
+        "ShmooFile": "C:\\SystemDebug\\Shmoos\\RVPShmooConfig.json",
+        "ShmooLabel": "COREFIX",
+        "Linux Pre Command": null,
+        "Linux Post Command": null,
+        "Linux Pass String": null,
+        "Linux Fail String": null,
+        "Startup Linux": null,
+        "Linux Path": null,
+        "Linux Content Wait Time": null,
+        "Linux Content Line 0": null,
+        "Linux Content Line 1": null,
+        "Dragon Pre Command": null,
+        "Dragon Post Command": null,
+        "Startup Dragon": "startup_efi.nsh",
+        "ULX Path": "FS1:\\EFI\\ulx",
+        "ULX CPU": "GNR_B0",
+        "Product Chop": "GNR",
+        "VVAR0": "0x989680",
+        "VVAR1": 80064000,
+        "VVAR2": "0x1000000",
+        "VVAR3": "0x4000000",
+        "VVAR_EXTRA": null,
+        "Dragon Content Path": "FS1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\",
+        "Dragon Content Line": null,
+        "Stop on Fail": true,
+        "Merlin Name": "MerlinX.efi",
+        "Merlin Drive": "FS1:",
+        "Merlin Path": "FS1:\\EFI\\Version8.15\\BinFiles\\Release",
+        "Linux Content Line 2": null,
+        "Linux Content Line 3": null,
+        "Linux Content Line 4": null,
+        "Linux Content Line 5": null
+      },
+      "start_time": "2025-10-05 07:40:04.483417",
+      "end_time": "2025-10-05 07:40:50.697401",
+      "iterations": [
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "VR_Fault_Detected",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:40:12.451600",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": null,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": null,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Test_Timeout_300s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:40:30.081217",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": null,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": null,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Thermal_Shutdown",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:40:47.499493",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": null,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": null,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        }
+      ],
+      "final_result": "CONFIG_PASSED",
+      "output_port": 0,
+      "test_folder": null,
+      "summary_file_path": null,
+      "unit_state": {},
+      "failure_patterns": {
+        "VR_Fault_Detected_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        },
+        "Test_Timeout_300s_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        },
+        "Thermal_Shutdown_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": null,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        }
+      },
+      "recovery_indicators": [],
+      "sweep_data": null,
+      "voltage_frequency_analysis": {
+        "voltage_dependency": null,
+        "frequency_dependency": null,
+        "combined_sensitivity": null,
+        "voltage_type_used": "vbump"
+      }
+    },
+    {
+      "node_id": "NODE_006",
+      "node_name": "VoltageCFC",
+      "node_type": "CharacterizationFlowInstance",
+      "experiment_config": {
+        "Experiment": "Enabled",
+        "Test Name": "CFCVoltage",
+        "Test Mode": "Mesh",
+        "Test Type": "Sweep",
+        "Visual ID": "TestUnitData",
+        "Bucket": "IDIPAR",
+        "COM Port": 11,
+        "IP Address": "192.168.0.2",
+        "TTL Folder": "R:\\Templates\\GNR\\version_2_0\\TTL_DragonMesh",
+        "Scripts File": null,
+        "Post Process": null,
+        "Pass String": "Test Complete",
+        "Fail String": "Test Failed",
+        "Content": "Dragon",
+        "Test Number": 11,
+        "Test Time": 30,
+        "Reset": true,
+        "Reset on PASS": true,
+        "FastBoot": true,
+        "Core License": null,
+        "600W Unit": false,
+        "Pseudo Config": false,
+        "Configuration (Mask)": null,
+        "Boot Breakpoint": null,
+        "Disable 2 Cores": null,
+        "Check Core": 7,
+        "Voltage Type": "vbump",
+        "Voltage IA": null,
+        "Voltage CFC": null,
+        "Frequency IA": null,
+        "Frequency CFC": null,
+        "Loops": 2,
+        "Type": "Voltage",
+        "Domain": "CFC",
+        "Start": -0.04,
+        "End": 0.1,
+        "Steps": 0.02,
+        "ShmooFile": "C:\\SystemDebug\\Shmoos\\RVPShmooConfig.json",
+        "ShmooLabel": "COREFIX",
+        "Linux Pre Command": null,
+        "Linux Post Command": null,
+        "Linux Pass String": null,
+        "Linux Fail String": null,
+        "Startup Linux": null,
+        "Linux Path": null,
+        "Linux Content Wait Time": null,
+        "Linux Content Line 0": null,
+        "Linux Content Line 1": null,
+        "Dragon Pre Command": null,
+        "Dragon Post Command": null,
+        "Startup Dragon": "startup_efi.nsh",
+        "ULX Path": "FS1:\\EFI\\ulx",
+        "ULX CPU": "GNR_B0",
+        "Product Chop": "GNR",
+        "VVAR0": "0x989680",
+        "VVAR1": 80064000,
+        "VVAR2": "0x1000000",
+        "VVAR3": "0x4000000",
+        "VVAR_EXTRA": null,
+        "Dragon Content Path": "FS1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\",
+        "Dragon Content Line": null,
+        "Stop on Fail": true,
+        "Merlin Name": "MerlinX.efi",
+        "Merlin Drive": "FS1:",
+        "Merlin Path": "FS1:\\EFI\\Version8.15\\BinFiles\\Release",
+        "Linux Content Line 2": null,
+        "Linux Content Line 3": null,
+        "Linux Content Line 4": null,
+        "Linux Content Line 5": null
+      },
+      "start_time": "2025-10-05 07:40:52.756394",
+      "end_time": "2025-10-05 07:42:19.096535",
+      "iterations": [
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Core0_Hang_Detected",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:41:01.892102",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": -0.04,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": -0.04,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": -0.04,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Boot_Timeout_90s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:41:13.063051",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": -0.02,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": -0.02,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": -0.02,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "DDR_Training_Fail",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:41:23.591124",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": 0.0,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 0.0,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 0.0,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Execution_Error",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:41:34.439045",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": 0.02,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 0.02,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 0.02,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Test_Timeout_300s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:41:45.286752",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": 0.04,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 0.04,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 0.04,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Test_Timeout_300s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:41:55.673175",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": 0.06,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 0.06,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 0.06,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Test_Timeout_300s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:42:06.398036",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": 0.08,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 0.08,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 0.08,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Core0_Hang_Detected",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:42:17.062967",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 0.1,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 0.1,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        }
+      ],
+      "final_result": "SOLID_REPRO",
+      "output_port": 0,
+      "test_folder": "C:\\SystemDebug\\Logs\\20251005_074053_T11_CFCVoltage",
+      "summary_file_path": null,
+      "unit_state": {},
+      "failure_patterns": {
+        "Core0_Hang_Detected_NA": {
+          "count": 2,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": -0.04,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0,
+            0
+          ]
+        },
+        "Boot_Timeout_90s_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": -0.02,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        },
+        "DDR_Training_Fail_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": 0.0,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        },
+        "Execution_Error_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": 0.02,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        },
+        "Test_Timeout_300s_NA": {
+          "count": 3,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": 0.04,
+            "frequency_ia": null,
+            "frequency_cfc": null,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "recovery_indicators": [],
+      "sweep_data": {
+        "sweep_type": "voltage",
+        "sweep_domain": "cfc",
+        "start_value": -0.04,
+        "end_value": 0.1,
+        "step_value": 0.02,
+        "voltage_type": "vbump",
+        "sweep_values": []
+      },
+      "voltage_frequency_analysis": {
+        "voltage_dependency": null,
+        "frequency_dependency": null,
+        "combined_sensitivity": null,
+        "voltage_type_used": "vbump"
+      },
+      "sweep_analysis": {
+        "sweep_type": "voltage",
+        "sweep_domain": "cfc",
+        "voltage_type": "vbump",
+        "total_points": 8,
+        "failure_points": 8,
+        "pass_points": 0,
+        "failure_values": [
+          -0.04,
+          -0.02,
+          0.0,
+          0.02,
+          0.04,
+          0.06,
+          0.08,
+          0.1
+        ],
+        "pass_values": [],
+        "sensitivity_analysis": {
+          "pattern": "no_sensitivity",
+          "description": "Unit not sensitive to voltage cfc (vbump) - fails across entire range (no recovery condition)",
+          "recommendation": "Unit fails across entire tested voltage range - no sensitivity threshold found",
+          "voltage_type_context": "vbump",
+          "failure_mode": "complete_failure_no_recovery"
+        }
+      }
+    },
+    {
+      "node_id": "NODE_007",
+      "node_name": "FreqCFC",
+      "node_type": "CharacterizationFlowInstance",
+      "experiment_config": {
+        "Experiment": "Enabled",
+        "Test Name": "CFCFrequency",
+        "Test Mode": "Mesh",
+        "Test Type": "Sweep",
+        "Visual ID": "TestUnitData",
+        "Bucket": "IDIPAR",
+        "COM Port": 11,
+        "IP Address": "192.168.0.2",
+        "TTL Folder": "R:\\Templates\\GNR\\version_2_0\\TTL_DragonMesh",
+        "Scripts File": null,
+        "Post Process": null,
+        "Pass String": "Test Complete",
+        "Fail String": "Test Failed",
+        "Content": "Dragon",
+        "Test Number": 11,
+        "Test Time": 30,
+        "Reset": true,
+        "Reset on PASS": true,
+        "FastBoot": true,
+        "Core License": null,
+        "600W Unit": false,
+        "Pseudo Config": false,
+        "Configuration (Mask)": null,
+        "Boot Breakpoint": null,
+        "Disable 2 Cores": null,
+        "Check Core": 7,
+        "Voltage Type": "vbump",
+        "Voltage IA": null,
+        "Voltage CFC": null,
+        "Frequency IA": null,
+        "Frequency CFC": null,
+        "Loops": 2,
+        "Type": "Frequency",
+        "Domain": "CFC",
+        "Start": 8.0,
+        "End": 22.0,
+        "Steps": 4.0,
+        "ShmooFile": "C:\\SystemDebug\\Shmoos\\RVPShmooConfig.json",
+        "ShmooLabel": "COREFIX",
+        "Linux Pre Command": null,
+        "Linux Post Command": null,
+        "Linux Pass String": null,
+        "Linux Fail String": null,
+        "Startup Linux": null,
+        "Linux Path": null,
+        "Linux Content Wait Time": null,
+        "Linux Content Line 0": null,
+        "Linux Content Line 1": null,
+        "Dragon Pre Command": null,
+        "Dragon Post Command": null,
+        "Startup Dragon": "startup_efi.nsh",
+        "ULX Path": "FS1:\\EFI\\ulx",
+        "ULX CPU": "GNR_B0",
+        "Product Chop": "GNR",
+        "VVAR0": "0x989680",
+        "VVAR1": 80064000,
+        "VVAR2": "0x1000000",
+        "VVAR3": "0x4000000",
+        "VVAR_EXTRA": null,
+        "Dragon Content Path": "FS1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\",
+        "Dragon Content Line": null,
+        "Stop on Fail": true,
+        "Merlin Name": "MerlinX.efi",
+        "Merlin Drive": "FS1:",
+        "Merlin Path": "FS1:\\EFI\\Version8.15\\BinFiles\\Release",
+        "Linux Content Line 2": null,
+        "Linux Content Line 3": null,
+        "Linux Content Line 4": null,
+        "Linux Content Line 5": null
+      },
+      "start_time": "2025-10-05 07:42:22.441485",
+      "end_time": "2025-10-05 07:43:16.611605",
+      "iterations": [
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Execution_Error",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:42:31.069450",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": 8,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 8,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 8,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Test_Timeout_300s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:42:42.072652",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": 12,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 12,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 12,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Execution_Error",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:42:52.540162",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": 16,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 16,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 16,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Execution_Error",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:43:03.714432",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": 20,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 20,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 20,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Thermal_Shutdown",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:43:15.238917",
+          "config_snapshot": {
+            "voltage_ia": null,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 24,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 24,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        }
+      ],
+      "final_result": "SOLID_REPRO",
+      "output_port": 0,
+      "test_folder": "C:\\SystemDebug\\Logs\\20251005_074222_T11_CFCFrequency",
+      "summary_file_path": null,
+      "unit_state": {},
+      "failure_patterns": {
+        "Execution_Error_NA": {
+          "count": 3,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": 8,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0,
+            0,
+            0
+          ]
+        },
+        "Test_Timeout_300s_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": 12,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        },
+        "Thermal_Shutdown_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": null,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        }
+      },
+      "recovery_indicators": [],
+      "sweep_data": {
+        "sweep_type": "frequency",
+        "sweep_domain": "cfc",
+        "start_value": 8.0,
+        "end_value": 22.0,
+        "step_value": 4.0,
+        "voltage_type": "vbump",
+        "sweep_values": []
+      },
+      "voltage_frequency_analysis": {
+        "voltage_dependency": null,
+        "frequency_dependency": null,
+        "combined_sensitivity": null,
+        "voltage_type_used": "vbump"
+      },
+      "sweep_analysis": {
+        "sweep_type": "frequency",
+        "sweep_domain": "cfc",
+        "voltage_type": "vbump",
+        "total_points": 5,
+        "failure_points": 5,
+        "pass_points": 0,
+        "failure_values": [
+          8,
+          12,
+          16,
+          20,
+          24
+        ],
+        "pass_values": [],
+        "sensitivity_analysis": {
+          "pattern": "no_sensitivity",
+          "description": "Unit not sensitive to frequency cfc (vbump) - fails across entire range (no recovery condition)",
+          "recommendation": "Unit fails across entire tested frequency range - no sensitivity threshold found",
+          "voltage_type_context": "vbump",
+          "failure_mode": "complete_failure_no_recovery"
+        }
+      }
+    },
+    {
+      "node_id": "NODE_008",
+      "node_name": "VoltageIA",
+      "node_type": "CharacterizationFlowInstance",
+      "experiment_config": {
+        "Experiment": "Enabled",
+        "Test Name": "CoreVoltage",
+        "Test Mode": "Mesh",
+        "Test Type": "Sweep",
+        "Visual ID": "TestUnitData",
+        "Bucket": "IDIPAR",
+        "COM Port": 11,
+        "IP Address": "192.168.0.2",
+        "TTL Folder": "R:\\Templates\\GNR\\version_2_0\\TTL_DragonMesh",
+        "Scripts File": null,
+        "Post Process": null,
+        "Pass String": "Test Complete",
+        "Fail String": "Test Failed",
+        "Content": "Dragon",
+        "Test Number": 11,
+        "Test Time": 30,
+        "Reset": true,
+        "Reset on PASS": true,
+        "FastBoot": true,
+        "Core License": null,
+        "600W Unit": false,
+        "Pseudo Config": false,
+        "Configuration (Mask)": null,
+        "Boot Breakpoint": null,
+        "Disable 2 Cores": null,
+        "Check Core": 7,
+        "Voltage Type": "vbump",
+        "Voltage IA": null,
+        "Voltage CFC": null,
+        "Frequency IA": null,
+        "Frequency CFC": null,
+        "Loops": 2,
+        "Type": "Voltage",
+        "Domain": "IA",
+        "Start": 0.0,
+        "End": 0.1,
+        "Steps": 0.02,
+        "ShmooFile": "C:\\SystemDebug\\Shmoos\\RVPShmooConfig.json",
+        "ShmooLabel": "COREFIX",
+        "Linux Pre Command": null,
+        "Linux Post Command": null,
+        "Linux Pass String": null,
+        "Linux Fail String": null,
+        "Startup Linux": null,
+        "Linux Path": null,
+        "Linux Content Wait Time": null,
+        "Linux Content Line 0": null,
+        "Linux Content Line 1": null,
+        "Dragon Pre Command": null,
+        "Dragon Post Command": null,
+        "Startup Dragon": "startup_efi.nsh",
+        "ULX Path": "FS1:\\EFI\\ulx",
+        "ULX CPU": "GNR_B0",
+        "Product Chop": "GNR",
+        "VVAR0": "0x989680",
+        "VVAR1": 80064000,
+        "VVAR2": "0x1000000",
+        "VVAR3": "0x4000000",
+        "VVAR_EXTRA": null,
+        "Dragon Content Path": "FS1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\",
+        "Dragon Content Line": null,
+        "Stop on Fail": true,
+        "Merlin Name": "MerlinX.efi",
+        "Merlin Drive": "FS1:",
+        "Merlin Path": "FS1:\\EFI\\Version8.15\\BinFiles\\Release",
+        "Linux Content Line 2": null,
+        "Linux Content Line 3": null,
+        "Linux Content Line 4": null,
+        "Linux Content Line 5": null
+      },
+      "start_time": "2025-10-05 07:43:18.948634",
+      "end_time": "2025-10-05 07:44:22.616679",
+      "iterations": [
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Boot_Timeout_90s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:43:26.490929",
+          "config_snapshot": {
+            "voltage_ia": 0.0,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 0.0,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 0.0,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Execution_Error",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:43:36.716324",
+          "config_snapshot": {
+            "voltage_ia": 0.02,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 0.02,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 0.02,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Execution_Error",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:43:48.127121",
+          "config_snapshot": {
+            "voltage_ia": 0.04,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 0.04,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 0.04,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "PASS",
+          "scratchpad": "Test completed successfully",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:43:59.610964",
+          "config_snapshot": {
+            "voltage_ia": 0.06,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 0.06,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 0.06,
+            "result": "PASS",
+            "is_failure": false,
+            "is_pass": true
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Test_Timeout_300s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:44:11.052033",
+          "config_snapshot": {
+            "voltage_ia": 0.08,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 0.08,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 0.08,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Test_Timeout_300s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:44:21.180104",
+          "config_snapshot": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 0.1,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 0.1,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        }
+      ],
+      "final_result": "MOSTLY_FAILING",
+      "output_port": 0,
+      "test_folder": "C:\\SystemDebug\\Logs\\20251005_074319_T11_CoreVoltage",
+      "summary_file_path": null,
+      "unit_state": {},
+      "failure_patterns": {
+        "Boot_Timeout_90s_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": 0.0,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        },
+        "Execution_Error_NA": {
+          "count": 2,
+          "config": {
+            "voltage_ia": 0.02,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0,
+            0
+          ]
+        },
+        "Test_Timeout_300s_NA": {
+          "count": 2,
+          "config": {
+            "voltage_ia": 0.08,
+            "voltage_cfc": 0.1,
+            "frequency_ia": null,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0,
+            0
+          ]
+        }
+      },
+      "recovery_indicators": [],
+      "sweep_data": {
+        "sweep_type": "voltage",
+        "sweep_domain": "ia",
+        "start_value": 0.0,
+        "end_value": 0.1,
+        "step_value": 0.02,
+        "voltage_type": "vbump",
+        "sweep_values": []
+      },
+      "voltage_frequency_analysis": {
+        "voltage_dependency": null,
+        "frequency_dependency": null,
+        "combined_sensitivity": null,
+        "voltage_type_used": "vbump"
+      },
+      "sweep_analysis": {
+        "sweep_type": "voltage",
+        "sweep_domain": "ia",
+        "voltage_type": "vbump",
+        "total_points": 6,
+        "failure_points": 5,
+        "pass_points": 1,
+        "failure_values": [
+          0.0,
+          0.02,
+          0.04,
+          0.08,
+          0.1
+        ],
+        "pass_values": [
+          0.06
+        ],
+        "sensitivity_analysis": {
+          "pattern": "mixed_sensitivity",
+          "description": "Unit has mixed sensitivity pattern for voltage ia (vbump)",
+          "failure_range": [
+            0.0,
+            0.1
+          ],
+          "pass_range": [
+            0.06,
+            0.06
+          ],
+          "safe_values": [
+            0.06
+          ],
+          "voltage_type_context": "vbump",
+          "recommendation": "Avoid failure values, use passing values for recovery (vbump specific to tested domain)"
+        }
+      }
+    },
+    {
+      "node_id": "NODE_009",
+      "node_name": "FreqIA",
+      "node_type": "CharacterizationFlowInstance",
+      "experiment_config": {
+        "Experiment": "Enabled",
+        "Test Name": "CoreFrequency",
+        "Test Mode": "Mesh",
+        "Test Type": "Sweep",
+        "Visual ID": "TestUnitData",
+        "Bucket": "IDIPAR",
+        "COM Port": 11,
+        "IP Address": "192.168.0.2",
+        "TTL Folder": "R:\\Templates\\GNR\\version_2_0\\TTL_DragonMesh",
+        "Scripts File": null,
+        "Post Process": null,
+        "Pass String": "Test Complete",
+        "Fail String": "Test Failed",
+        "Content": "Dragon",
+        "Test Number": 11,
+        "Test Time": 30,
+        "Reset": true,
+        "Reset on PASS": true,
+        "FastBoot": true,
+        "Core License": null,
+        "600W Unit": false,
+        "Pseudo Config": false,
+        "Configuration (Mask)": null,
+        "Boot Breakpoint": null,
+        "Disable 2 Cores": null,
+        "Check Core": 7,
+        "Voltage Type": "ppvc",
+        "Voltage IA": null,
+        "Voltage CFC": null,
+        "Frequency IA": null,
+        "Frequency CFC": null,
+        "Loops": 2,
+        "Type": "Frequency",
+        "Domain": "IA",
+        "Start": 8,
+        "End": 30,
+        "Steps": 4,
+        "ShmooFile": "C:\\SystemDebug\\Shmoos\\RVPShmooConfig.json",
+        "ShmooLabel": "COREFIX",
+        "Linux Pre Command": null,
+        "Linux Post Command": null,
+        "Linux Pass String": null,
+        "Linux Fail String": null,
+        "Startup Linux": null,
+        "Linux Path": null,
+        "Linux Content Wait Time": null,
+        "Linux Content Line 0": null,
+        "Linux Content Line 1": null,
+        "Dragon Pre Command": null,
+        "Dragon Post Command": null,
+        "Startup Dragon": "startup_efi.nsh",
+        "ULX Path": "FS1:\\EFI\\ulx",
+        "ULX CPU": "GNR_B0",
+        "Product Chop": "GNR",
+        "VVAR0": "0x989680",
+        "VVAR1": 80064000,
+        "VVAR2": "0x1000000",
+        "VVAR3": "0x4000000",
+        "VVAR_EXTRA": null,
+        "Dragon Content Path": "FS1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\",
+        "Dragon Content Line": null,
+        "Stop on Fail": true,
+        "Merlin Name": "MerlinX.efi",
+        "Merlin Drive": "FS1:",
+        "Merlin Path": "FS1:\\EFI\\Version8.15\\BinFiles\\Release"
+      },
+      "start_time": "2025-10-05 07:44:24.705523",
+      "end_time": "2025-10-05 07:45:40.676009",
+      "iterations": [
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Test_Timeout_300s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:44:32.789705",
+          "config_snapshot": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 8,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 8,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 8,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Test_Timeout_300s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:44:43.431915",
+          "config_snapshot": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 12,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 12,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 12,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "DDR_Training_Fail",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:44:54.425186",
+          "config_snapshot": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 16,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 16,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 16,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Execution_Error",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:45:05.722426",
+          "config_snapshot": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 20,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 20,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 20,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Core0_Hang_Detected",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:45:16.353418",
+          "config_snapshot": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 24,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 24,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 24,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Core0_Hang_Detected",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:45:27.691357",
+          "config_snapshot": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 28,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 28,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 28,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Test_Timeout_300s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:45:39.109765",
+          "config_snapshot": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 32,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 32,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 32,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        }
+      ],
+      "final_result": "SOLID_REPRO",
+      "output_port": 0,
+      "test_folder": "C:\\SystemDebug\\Logs\\20251005_074425_T11_CoreFrequency",
+      "summary_file_path": null,
+      "unit_state": {},
+      "failure_patterns": {
+        "Test_Timeout_300s_NA": {
+          "count": 3,
+          "config": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 8,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0,
+            0,
+            0
+          ]
+        },
+        "DDR_Training_Fail_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 16,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        },
+        "Execution_Error_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 20,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        },
+        "Core0_Hang_Detected_NA": {
+          "count": 2,
+          "config": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 24,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0,
+            0
+          ]
+        }
+      },
+      "recovery_indicators": [],
+      "sweep_data": {
+        "sweep_type": "frequency",
+        "sweep_domain": "ia",
+        "start_value": 8,
+        "end_value": 30,
+        "step_value": 4,
+        "voltage_type": "ppvc",
+        "sweep_values": []
+      },
+      "voltage_frequency_analysis": {
+        "voltage_dependency": null,
+        "frequency_dependency": null,
+        "combined_sensitivity": null,
+        "voltage_type_used": "ppvc"
+      },
+      "sweep_analysis": {
+        "sweep_type": "frequency",
+        "sweep_domain": "ia",
+        "voltage_type": "ppvc",
+        "total_points": 7,
+        "failure_points": 7,
+        "pass_points": 0,
+        "failure_values": [
+          8,
+          12,
+          16,
+          20,
+          24,
+          28,
+          32
+        ],
+        "pass_values": [],
+        "sensitivity_analysis": {
+          "pattern": "no_sensitivity",
+          "description": "Unit not sensitive to frequency ia (ppvc) - fails across entire range (no recovery condition)",
+          "recommendation": "Unit fails across entire tested frequency range - no sensitivity threshold found",
+          "voltage_type_context": "ppvc",
+          "failure_mode": "complete_failure_no_recovery"
+        }
+      }
+    },
+    {
+      "node_id": "NODE_009",
+      "node_name": "FreqIA",
+      "node_type": "CharacterizationFlowInstance",
+      "experiment_config": {
+        "Experiment": "Enabled",
+        "Test Name": "CoreFrequency",
+        "Test Mode": "Mesh",
+        "Test Type": "Sweep",
+        "Visual ID": "TestUnitData",
+        "Bucket": "IDIPAR",
+        "COM Port": 11,
+        "IP Address": "192.168.0.2",
+        "TTL Folder": "R:\\Templates\\GNR\\version_2_0\\TTL_DragonMesh",
+        "Scripts File": null,
+        "Post Process": null,
+        "Pass String": "Test Complete",
+        "Fail String": "Test Failed",
+        "Content": "Dragon",
+        "Test Number": 11,
+        "Test Time": 30,
+        "Reset": true,
+        "Reset on PASS": true,
+        "FastBoot": true,
+        "Core License": null,
+        "600W Unit": false,
+        "Pseudo Config": false,
+        "Configuration (Mask)": null,
+        "Boot Breakpoint": null,
+        "Disable 2 Cores": null,
+        "Check Core": 7,
+        "Voltage Type": "ppvc",
+        "Voltage IA": null,
+        "Voltage CFC": null,
+        "Frequency IA": null,
+        "Frequency CFC": null,
+        "Loops": 2,
+        "Type": "Frequency",
+        "Domain": "IA",
+        "Start": 8,
+        "End": 30,
+        "Steps": 4,
+        "ShmooFile": "C:\\SystemDebug\\Shmoos\\RVPShmooConfig.json",
+        "ShmooLabel": "COREFIX",
+        "Linux Pre Command": null,
+        "Linux Post Command": null,
+        "Linux Pass String": null,
+        "Linux Fail String": null,
+        "Startup Linux": null,
+        "Linux Path": null,
+        "Linux Content Wait Time": null,
+        "Linux Content Line 0": null,
+        "Linux Content Line 1": null,
+        "Dragon Pre Command": null,
+        "Dragon Post Command": null,
+        "Startup Dragon": "startup_efi.nsh",
+        "ULX Path": "FS1:\\EFI\\ulx",
+        "ULX CPU": "GNR_B0",
+        "Product Chop": "GNR",
+        "VVAR0": "0x989680",
+        "VVAR1": 80064000,
+        "VVAR2": "0x1000000",
+        "VVAR3": "0x4000000",
+        "VVAR_EXTRA": null,
+        "Dragon Content Path": "FS1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\",
+        "Dragon Content Line": null,
+        "Stop on Fail": true,
+        "Merlin Name": "MerlinX.efi",
+        "Merlin Drive": "FS1:",
+        "Merlin Path": "FS1:\\EFI\\Version8.15\\BinFiles\\Release"
+      },
+      "start_time": "2025-10-05 07:44:24.705523",
+      "end_time": "2025-10-05 07:45:42.946814",
+      "iterations": [
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Test_Timeout_300s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:44:32.789705",
+          "config_snapshot": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 8,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 8,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 8,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Test_Timeout_300s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:44:43.431915",
+          "config_snapshot": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 12,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 12,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 12,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "DDR_Training_Fail",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:44:54.425186",
+          "config_snapshot": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 16,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 16,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 16,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Execution_Error",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:45:05.722426",
+          "config_snapshot": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 20,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 20,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 20,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Core0_Hang_Detected",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:45:16.353418",
+          "config_snapshot": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 24,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 24,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 24,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Core0_Hang_Detected",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:45:27.691357",
+          "config_snapshot": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 28,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 28,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 28,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        },
+        {
+          "iteration": 0,
+          "status": "FAIL",
+          "scratchpad": "Test_Timeout_300s",
+          "seed": "NA",
+          "timestamp": "2025-10-05 07:45:39.109765",
+          "config_snapshot": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 32,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "sweep_value": 32,
+          "sweep_point_analysis": {
+            "iteration": 0,
+            "sweep_value": 32,
+            "result": "FAIL",
+            "is_failure": true,
+            "is_pass": false
+          }
+        }
+      ],
+      "final_result": "ANALYSIS_COMPLETE",
+      "output_port": 0,
+      "test_folder": null,
+      "summary_file_path": null,
+      "unit_state": {},
+      "failure_patterns": {
+        "Test_Timeout_300s_NA": {
+          "count": 3,
+          "config": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 8,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0,
+            0,
+            0
+          ]
+        },
+        "DDR_Training_Fail_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 16,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        },
+        "Execution_Error_NA": {
+          "count": 1,
+          "config": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 20,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0
+          ]
+        },
+        "Core0_Hang_Detected_NA": {
+          "count": 2,
+          "config": {
+            "voltage_ia": 0.1,
+            "voltage_cfc": 0.1,
+            "frequency_ia": 24,
+            "frequency_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null,
+            "voltage_type": "vbump"
+          },
+          "iterations": [
+            0,
+            0
+          ]
+        }
+      },
+      "recovery_indicators": [],
+      "sweep_data": {
+        "sweep_type": "frequency",
+        "sweep_domain": "ia",
+        "start_value": 8,
+        "end_value": 30,
+        "step_value": 4,
+        "voltage_type": "ppvc",
+        "sweep_values": []
+      },
+      "voltage_frequency_analysis": {
+        "voltage_dependency": null,
+        "frequency_dependency": null,
+        "combined_sensitivity": null,
+        "voltage_type_used": "ppvc"
+      },
+      "sweep_analysis": {
+        "sweep_type": "frequency",
+        "sweep_domain": "ia",
+        "voltage_type": "ppvc",
+        "total_points": 7,
+        "failure_points": 7,
+        "pass_points": 0,
+        "failure_values": [
+          8,
+          12,
+          16,
+          20,
+          24,
+          28,
+          32
+        ],
+        "pass_values": [],
+        "sensitivity_analysis": {
+          "pattern": "no_sensitivity",
+          "description": "Unit not sensitive to frequency ia (ppvc) - fails across entire range (no recovery condition)",
+          "recommendation": "Unit fails across entire tested frequency range - no sensitivity threshold found",
+          "voltage_type_context": "ppvc",
+          "failure_mode": "complete_failure_no_recovery"
+        }
+      },
+      "characterization_results": {
+        "total_points": 14,
+        "failing_points": [
+          {
+            "iteration": 1,
+            "status": "FAIL",
+            "config": {
+              "volt_IA": 0.1,
+              "volt_CFC": 0.1,
+              "freq_ia": 32,
+              "freq_cfc": 24,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null
+            },
+            "sweep_value": 1
+          },
+          {
+            "iteration": 2,
+            "status": "FAIL",
+            "config": {
+              "volt_IA": 0.1,
+              "volt_CFC": 0.1,
+              "freq_ia": 32,
+              "freq_cfc": 24,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null
+            },
+            "sweep_value": 2
+          },
+          {
+            "iteration": 3,
+            "status": "FAIL",
+            "config": {
+              "volt_IA": 0.1,
+              "volt_CFC": 0.1,
+              "freq_ia": 32,
+              "freq_cfc": 24,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null
+            },
+            "sweep_value": 3
+          },
+          {
+            "iteration": 4,
+            "status": "FAIL",
+            "config": {
+              "volt_IA": 0.1,
+              "volt_CFC": 0.1,
+              "freq_ia": 32,
+              "freq_cfc": 24,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null
+            },
+            "sweep_value": 4
+          },
+          {
+            "iteration": 5,
+            "status": "FAIL",
+            "config": {
+              "volt_IA": 0.1,
+              "volt_CFC": 0.1,
+              "freq_ia": 32,
+              "freq_cfc": 24,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null
+            },
+            "sweep_value": 5
+          },
+          {
+            "iteration": 6,
+            "status": "FAIL",
+            "config": {
+              "volt_IA": 0.1,
+              "volt_CFC": 0.1,
+              "freq_ia": 32,
+              "freq_cfc": 24,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null
+            },
+            "sweep_value": 6
+          },
+          {
+            "iteration": 7,
+            "status": "FAIL",
+            "config": {
+              "volt_IA": 0.1,
+              "volt_CFC": 0.1,
+              "freq_ia": 32,
+              "freq_cfc": 24,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null
+            },
+            "sweep_value": 7
+          },
+          {
+            "iteration": 8,
+            "status": "FAIL",
+            "config": {
+              "volt_IA": 0.1,
+              "volt_CFC": 0.1,
+              "freq_ia": 32,
+              "freq_cfc": 24,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null
+            },
+            "sweep_value": 8
+          },
+          {
+            "iteration": 9,
+            "status": "FAIL",
+            "config": {
+              "volt_IA": 0.1,
+              "volt_CFC": 0.1,
+              "freq_ia": 32,
+              "freq_cfc": 24,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null
+            },
+            "sweep_value": 9
+          },
+          {
+            "iteration": 10,
+            "status": "FAIL",
+            "config": {
+              "volt_IA": 0.1,
+              "volt_CFC": 0.1,
+              "freq_ia": 32,
+              "freq_cfc": 24,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null
+            },
+            "sweep_value": 10
+          },
+          {
+            "iteration": 11,
+            "status": "FAIL",
+            "config": {
+              "volt_IA": 0.1,
+              "volt_CFC": 0.1,
+              "freq_ia": 32,
+              "freq_cfc": 24,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null
+            },
+            "sweep_value": 11
+          },
+          {
+            "iteration": 12,
+            "status": "FAIL",
+            "config": {
+              "volt_IA": 0.1,
+              "volt_CFC": 0.1,
+              "freq_ia": 32,
+              "freq_cfc": 24,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null
+            },
+            "sweep_value": 12
+          },
+          {
+            "iteration": 13,
+            "status": "FAIL",
+            "config": {
+              "volt_IA": 0.1,
+              "volt_CFC": 0.1,
+              "freq_ia": 32,
+              "freq_cfc": 24,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null
+            },
+            "sweep_value": 13
+          },
+          {
+            "iteration": 14,
+            "status": "FAIL",
+            "config": {
+              "volt_IA": 0.1,
+              "volt_CFC": 0.1,
+              "freq_ia": 32,
+              "freq_cfc": 24,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null
+            },
+            "sweep_value": 14
+          }
+        ],
+        "passing_points": [],
+        "other_points": [],
+        "fail_rate": 1.0,
+        "pass_rate": 0.0,
+        "other_rate": 0.0,
+        "reproduction_quality": "excellent_characterization",
+        "failure_characterization": {
+          "status": "characterized",
+          "failure_count": 14,
+          "failure_values": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "failure_range": [
+            1,
+            14
+          ],
+          "failure_span": 13,
+          "characterization_summary": "Unit fails across Frequency IA range 1 to 14 (span: 13)"
+        },
+        "inherited_from_node": "Unknown",
+        "test_execution_type": "Sweep"
+      },
+      "comprehensive_analysis": {
+        "flow_execution_summary": {
+          "start_time": "2025-10-05 07:37:16.911924",
+          "end_time": null,
+          "total_nodes_executed": 9,
+          "recovery_conditions": [],
+          "failure_conditions": [
+            {
+              "node_name": "ExtendedDragon",
+              "config": {
+                "voltage_ia": null,
+                "voltage_cfc": null,
+                "frequency_ia": null,
+                "frequency_cfc": null,
+                "content": "ContentType.DRAGON",
+                "mask": "RowPass1",
+                "check_core": null,
+                "voltage_type": "vbump"
+              },
+              "failure_patterns": {
+                "VR_Fault_Detected_NA": {
+                  "count": 1,
+                  "config": {
+                    "voltage_ia": null,
+                    "voltage_cfc": null,
+                    "frequency_ia": null,
+                    "frequency_cfc": null,
+                    "content": "ContentType.DRAGON",
+                    "mask": "RowPass1",
+                    "check_core": null,
+                    "voltage_type": "vbump"
+                  },
+                  "iterations": [
+                    0
+                  ]
+                },
+                "Test_Timeout_300s_NA": {
+                  "count": 1,
+                  "config": {
+                    "voltage_ia": null,
+                    "voltage_cfc": null,
+                    "frequency_ia": null,
+                    "frequency_cfc": null,
+                    "content": "ContentType.DRAGON",
+                    "mask": "RowPass1",
+                    "check_core": null,
+                    "voltage_type": "vbump"
+                  },
+                  "iterations": [
+                    0
+                  ]
+                },
+                "Thermal_Shutdown_NA": {
+                  "count": 1,
+                  "config": {
+                    "voltage_ia": null,
+                    "voltage_cfc": null,
+                    "frequency_ia": null,
+                    "frequency_cfc": null,
+                    "content": "ContentType.DRAGON",
+                    "mask": "RowPass1",
+                    "check_core": null,
+                    "voltage_type": "vbump"
+                  },
+                  "iterations": [
+                    0
+                  ]
+                }
+              }
+            }
+          ],
+          "characterization_data": [],
+          "test_folders": [
+            "C:\\SystemDebug\\Logs\\20251005_073719_T11_Baseline",
+            "C:\\SystemDebug\\Logs\\20251005_073839_T99_PPVC",
+            "C:\\SystemDebug\\Logs\\20251005_074004_T11_Baseline",
+            null,
+            "C:\\SystemDebug\\Logs\\20251005_074053_T11_CFCVoltage",
+            "C:\\SystemDebug\\Logs\\20251005_074222_T11_CFCFrequency",
+            "C:\\SystemDebug\\Logs\\20251005_074319_T11_CoreVoltage",
+            "C:\\SystemDebug\\Logs\\20251005_074425_T11_CoreFrequency",
+            null
+          ],
+          "unit_configurations": [],
+          "sweep_analysis": {
+            "voltage_sweeps": [],
+            "frequency_sweeps": [],
+            "sensitivity_patterns": {
+              "voltage_cfc": [
+                {
+                  "node_name": "VoltageCFC",
+                  "analysis": {
+                    "sweep_type": "voltage",
+                    "sweep_domain": "cfc",
+                    "voltage_type": "vbump",
+                    "total_points": 8,
+                    "failure_points": 8,
+                    "pass_points": 0,
+                    "failure_values": [
+                      -0.04,
+                      -0.02,
+                      0.0,
+                      0.02,
+                      0.04,
+                      0.06,
+                      0.08,
+                      0.1
+                    ],
+                    "pass_values": [],
+                    "sensitivity_analysis": {
+                      "pattern": "no_sensitivity",
+                      "description": "Unit not sensitive to voltage cfc (vbump) - fails across entire range (no recovery condition)",
+                      "recommendation": "Unit fails across entire tested voltage range - no sensitivity threshold found",
+                      "voltage_type_context": "vbump",
+                      "failure_mode": "complete_failure_no_recovery"
+                    }
+                  },
+                  "timestamp": "2025-10-05 07:42:19.097255"
+                }
+              ],
+              "frequency_cfc": [
+                {
+                  "node_name": "FreqCFC",
+                  "analysis": {
+                    "sweep_type": "frequency",
+                    "sweep_domain": "cfc",
+                    "voltage_type": "vbump",
+                    "total_points": 5,
+                    "failure_points": 5,
+                    "pass_points": 0,
+                    "failure_values": [
+                      8,
+                      12,
+                      16,
+                      20,
+                      24
+                    ],
+                    "pass_values": [],
+                    "sensitivity_analysis": {
+                      "pattern": "no_sensitivity",
+                      "description": "Unit not sensitive to frequency cfc (vbump) - fails across entire range (no recovery condition)",
+                      "recommendation": "Unit fails across entire tested frequency range - no sensitivity threshold found",
+                      "voltage_type_context": "vbump",
+                      "failure_mode": "complete_failure_no_recovery"
+                    }
+                  },
+                  "timestamp": "2025-10-05 07:43:16.612234"
+                }
+              ],
+              "voltage_ia": [
+                {
+                  "node_name": "VoltageIA",
+                  "analysis": {
+                    "sweep_type": "voltage",
+                    "sweep_domain": "ia",
+                    "voltage_type": "vbump",
+                    "total_points": 6,
+                    "failure_points": 5,
+                    "pass_points": 1,
+                    "failure_values": [
+                      0.0,
+                      0.02,
+                      0.04,
+                      0.08,
+                      0.1
+                    ],
+                    "pass_values": [
+                      0.06
+                    ],
+                    "sensitivity_analysis": {
+                      "pattern": "mixed_sensitivity",
+                      "description": "Unit has mixed sensitivity pattern for voltage ia (vbump)",
+                      "failure_range": [
+                        0.0,
+                        0.1
+                      ],
+                      "pass_range": [
+                        0.06,
+                        0.06
+                      ],
+                      "safe_values": [
+                        0.06
+                      ],
+                      "voltage_type_context": "vbump",
+                      "recommendation": "Avoid failure values, use passing values for recovery (vbump specific to tested domain)"
+                    }
+                  },
+                  "timestamp": "2025-10-05 07:44:22.617982"
+                }
+              ],
+              "frequency_ia": [
+                {
+                  "node_name": "FreqIA",
+                  "analysis": {
+                    "sweep_type": "frequency",
+                    "sweep_domain": "ia",
+                    "voltage_type": "ppvc",
+                    "total_points": 7,
+                    "failure_points": 7,
+                    "pass_points": 0,
+                    "failure_values": [
+                      8,
+                      12,
+                      16,
+                      20,
+                      24,
+                      28,
+                      32
+                    ],
+                    "pass_values": [],
+                    "sensitivity_analysis": {
+                      "pattern": "no_sensitivity",
+                      "description": "Unit not sensitive to frequency ia (ppvc) - fails across entire range (no recovery condition)",
+                      "recommendation": "Unit fails across entire tested frequency range - no sensitivity threshold found",
+                      "voltage_type_context": "ppvc",
+                      "failure_mode": "complete_failure_no_recovery"
+                    }
+                  },
+                  "timestamp": "2025-10-05 07:45:40.714929"
+                },
+                {
+                  "node_name": "FreqIA",
+                  "analysis": {
+                    "sweep_type": "frequency",
+                    "sweep_domain": "ia",
+                    "voltage_type": "ppvc",
+                    "total_points": 7,
+                    "failure_points": 7,
+                    "pass_points": 0,
+                    "failure_values": [
+                      8,
+                      12,
+                      16,
+                      20,
+                      24,
+                      28,
+                      32
+                    ],
+                    "pass_values": [],
+                    "sensitivity_analysis": {
+                      "pattern": "no_sensitivity",
+                      "description": "Unit not sensitive to frequency ia (ppvc) - fails across entire range (no recovery condition)",
+                      "recommendation": "Unit fails across entire tested frequency range - no sensitivity threshold found",
+                      "voltage_type_context": "ppvc",
+                      "failure_mode": "complete_failure_no_recovery"
+                    }
+                  },
+                  "timestamp": "2025-10-05 07:45:42.947480"
+                }
+              ]
+            }
+          }
+        },
+        "voltage_frequency_analysis": {
+          "voltage_sensitivity": {
+            "status": "analyzed",
+            "ia_voltage_sensitivity": {
+              "status": "analyzed",
+              "experiments_count": 1,
+              "dominant_pattern": "mixed_sensitivity",
+              "all_patterns": [
+                "mixed_sensitivity"
+              ],
+              "recovery_experiments": 1,
+              "conclusion": "Unit shows inconsistent sensitivity pattern with some recovery points - Recovery conditions found in 1/1 experiments"
+            },
+            "cfc_voltage_sensitivity": {
+              "status": "analyzed",
+              "experiments_count": 1,
+              "dominant_pattern": "no_sensitivity",
+              "all_patterns": [
+                "no_sensitivity"
+              ],
+              "recovery_experiments": 0,
+              "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+            },
+            "overall_voltage_conclusion": "IA voltage: Unit shows inconsistent sensitivity pattern with some recovery points - Recovery conditions found in 1/1 experiments; CFC voltage: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment",
+            "debug_info": {
+              "total_voltage_experiments": 2,
+              "ia_experiments": 1,
+              "cfc_experiments": 1
+            }
+          },
+          "frequency_sensitivity": {
+            "status": "analyzed",
+            "ia_frequency_sensitivity": {
+              "status": "analyzed",
+              "experiments_count": 1,
+              "dominant_pattern": "no_sensitivity",
+              "all_patterns": [
+                "no_sensitivity"
+              ],
+              "recovery_experiments": 0,
+              "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+            },
+            "cfc_frequency_sensitivity": {
+              "status": "analyzed",
+              "experiments_count": 1,
+              "dominant_pattern": "no_sensitivity",
+              "all_patterns": [
+                "no_sensitivity"
+              ],
+              "recovery_experiments": 0,
+              "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+            },
+            "overall_frequency_conclusion": "IA frequency: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment; CFC frequency: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment",
+            "debug_info": {
+              "total_frequency_experiments": 2,
+              "ia_experiments": 1,
+              "cfc_experiments": 1
+            }
+          },
+          "combined_analysis": {
+            "voltage_sensitive": true,
+            "frequency_sensitive": true,
+            "conclusion": "Unit is sensitive to both voltage and frequency"
+          },
+          "debug_info": {
+            "total_experiments_checked": 8,
+            "voltage_experiments_found": 2,
+            "frequency_experiments_found": 2,
+            "voltage_experiment_names": [
+              "VoltageCFC",
+              "VoltageIA"
+            ],
+            "frequency_experiment_names": [
+              "FreqCFC",
+              "FreqIA"
+            ]
+          }
+        },
+        "unit_characterization": {
+          "total_experiments_run": 8,
+          "recovery_conditions_found": 0,
+          "failure_conditions_found": 1,
+          "unit_stability": "unstable",
+          "dominant_failure_patterns": [
+            [
+              "Test_Timeout_300s_NA",
+              13
+            ],
+            [
+              "Execution_Error_NA",
+              9
+            ],
+            [
+              "DDR_Training_Fail_NA",
+              4
+            ]
+          ],
+          "recommended_operating_conditions": {}
+        },
+        "recovery_analysis": {
+          "status": "no_recovery_found"
+        },
+        "failure_analysis": {
+          "status": "failures_analyzed",
+          "total_failure_conditions": 1,
+          "failure_distribution": {
+            "ExtendedDragon": 1
+          },
+          "common_failure_patterns": [
+            [
+              "VR_Fault_Detected_NA",
+              1
+            ],
+            [
+              "Test_Timeout_300s_NA",
+              1
+            ],
+            [
+              "Thermal_Shutdown_NA",
+              1
+            ]
+          ]
+        },
+        "sweep_summary": {
+          "status": "sweep_data_available",
+          "total_sweep_experiments": 4,
+          "voltage_sweeps": 2,
+          "frequency_sweeps": 2,
+          "sweep_insights": [
+            {
+              "node_name": "VoltageCFC",
+              "sweep_type": "voltage",
+              "sweep_domain": "cfc",
+              "sensitivity_pattern": "no_sensitivity",
+              "recommendation": "Unit fails across entire tested voltage range - no sensitivity threshold found"
+            },
+            {
+              "node_name": "FreqCFC",
+              "sweep_type": "frequency",
+              "sweep_domain": "cfc",
+              "sensitivity_pattern": "no_sensitivity",
+              "recommendation": "Unit fails across entire tested frequency range - no sensitivity threshold found"
+            },
+            {
+              "node_name": "VoltageIA",
+              "sweep_type": "voltage",
+              "sweep_domain": "ia",
+              "sensitivity_pattern": "mixed_sensitivity",
+              "recommendation": "Avoid failure values, use passing values for recovery (vbump specific to tested domain)"
+            },
+            {
+              "node_name": "FreqIA",
+              "sweep_type": "frequency",
+              "sweep_domain": "ia",
+              "sensitivity_pattern": "no_sensitivity",
+              "recommendation": "Unit fails across entire tested frequency range - no sensitivity threshold found"
+            }
+          ]
+        },
+        "unit_sensitivity_profile": {
+          "overall_stability": "unstable",
+          "voltage_sensitivity": {
+            "ia_voltage": {
+              "status": "analyzed",
+              "pattern": "mixed_sensitivity",
+              "conclusion": "Unit shows inconsistent sensitivity pattern with some recovery points - Recovery conditions found in 1/1 experiments"
+            },
+            "cfc_voltage": {
+              "status": "analyzed",
+              "pattern": "no_sensitivity",
+              "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+            },
+            "overall_conclusion": "IA voltage: Unit shows inconsistent sensitivity pattern with some recovery points - Recovery conditions found in 1/1 experiments; CFC voltage: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+          },
+          "frequency_sensitivity": {
+            "ia_frequency": {
+              "status": "analyzed",
+              "pattern": "no_sensitivity",
+              "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+            },
+            "cfc_frequency": {
+              "status": "analyzed",
+              "pattern": "no_sensitivity",
+              "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+            },
+            "overall_conclusion": "IA frequency: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment; CFC frequency: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+          },
+          "combined_sensitivity": {
+            "voltage_sensitive": true,
+            "frequency_sensitive": true,
+            "conclusion": "Unit is sensitive to both voltage and frequency"
+          },
+          "dominant_failure_modes": [
+            [
+              "Test_Timeout_300s_NA",
+              13
+            ],
+            [
+              "Execution_Error_NA",
+              9
+            ],
+            [
+              "DDR_Training_Fail_NA",
+              4
+            ]
+          ],
+          "recovery_success_rate": 0
+        },
+        "recommended_next_steps": [
+          {
+            "type": "voltage_characterization",
+            "priority": "medium",
+            "description": "Voltage analysis: Unit is sensitive to both voltage and frequency",
+            "details": {
+              "status": "analyzed",
+              "ia_voltage_sensitivity": {
+                "status": "analyzed",
+                "experiments_count": 1,
+                "dominant_pattern": "mixed_sensitivity",
+                "all_patterns": [
+                  "mixed_sensitivity"
+                ],
+                "recovery_experiments": 1,
+                "conclusion": "Unit shows inconsistent sensitivity pattern with some recovery points - Recovery conditions found in 1/1 experiments"
+              },
+              "cfc_voltage_sensitivity": {
+                "status": "analyzed",
+                "experiments_count": 1,
+                "dominant_pattern": "no_sensitivity",
+                "all_patterns": [
+                  "no_sensitivity"
+                ],
+                "recovery_experiments": 0,
+                "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+              },
+              "overall_voltage_conclusion": "IA voltage: Unit shows inconsistent sensitivity pattern with some recovery points - Recovery conditions found in 1/1 experiments; CFC voltage: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment",
+              "debug_info": {
+                "total_voltage_experiments": 2,
+                "ia_experiments": 1,
+                "cfc_experiments": 1
+              }
+            }
+          },
+          {
+            "type": "frequency_characterization",
+            "priority": "medium",
+            "description": "Frequency analysis: Unit is sensitive to both voltage and frequency",
+            "details": {
+              "status": "analyzed",
+              "ia_frequency_sensitivity": {
+                "status": "analyzed",
+                "experiments_count": 1,
+                "dominant_pattern": "no_sensitivity",
+                "all_patterns": [
+                  "no_sensitivity"
+                ],
+                "recovery_experiments": 0,
+                "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+              },
+              "cfc_frequency_sensitivity": {
+                "status": "analyzed",
+                "experiments_count": 1,
+                "dominant_pattern": "no_sensitivity",
+                "all_patterns": [
+                  "no_sensitivity"
+                ],
+                "recovery_experiments": 0,
+                "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+              },
+              "overall_frequency_conclusion": "IA frequency: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment; CFC frequency: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment",
+              "debug_info": {
+                "total_frequency_experiments": 2,
+                "ia_experiments": 1,
+                "cfc_experiments": 1
+              }
+            }
+          }
+        ]
+      },
+      "smart_experiment_proposals": {
+        "total_proposals": 1,
+        "proposals": [
+          {
+            "type": "2d_characterization",
+            "priority": "medium",
+            "description": "Combined voltage/frequency 2D characterization",
+            "experiment_config": {
+              "Experiment": "Enabled",
+              "Test Mode": "Mesh",
+              "Visual ID": "TestUnitData",
+              "Bucket": "IDIPAR",
+              "COM Port": 11,
+              "IP Address": "192.168.0.2",
+              "TTL Folder": "R:\\Templates\\GNR\\version_2_0\\TTL_DragonMesh",
+              "Scripts File": null,
+              "Pass String": "Test Complete",
+              "Fail String": "Test Failed",
+              "Content": "Dragon",
+              "Test Number": 11,
+              "Test Time": 30,
+              "Reset": true,
+              "Reset on PASS": true,
+              "FastBoot": true,
+              "Core License": "1: SSE/128",
+              "600W Unit": false,
+              "Pseudo Config": true,
+              "Configuration (Mask)": "FirstPass",
+              "Boot Breakpoint": null,
+              "Disable 2 Cores": null,
+              "Check Core": 7,
+              "Voltage Type": "ppvc",
+              "Voltage IA": null,
+              "Voltage CFC": null,
+              "Frequency IA": null,
+              "Frequency CFC": null,
+              "Linux Pre Command": null,
+              "Linux Post Command": null,
+              "Startup Linux": null,
+              "Linux Path": null,
+              "Linux Content Wait Time": null,
+              "Linux Content Line 0": null,
+              "Linux Content Line 1": null,
+              "Dragon Pre Command": null,
+              "Dragon Post Command": null,
+              "Startup Dragon": "startup_efi.nsh",
+              "ULX Path": "FS1:\\EFI\\ulx",
+              "ULX CPU": "GNR_B0",
+              "Product Chop": "GNR",
+              "VVAR0": "0x4C4B40",
+              "VVAR1": 80064000,
+              "VVAR2": "0x1000000",
+              "VVAR3": "0x4000000",
+              "VVAR_EXTRA": null,
+              "Dragon Content Path": "FS1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\",
+              "Dragon Content Line": null,
+              "Stop on Fail": true,
+              "Merlin Name": "MerlinX.efi",
+              "Merlin Drive": "FS1:",
+              "Merlin Path": "FS1:\\EFI\\Version8.15\\BinFiles\\Release",
+              "Post Process": null,
+              "Linux Pass String": null,
+              "Linux Fail String": null,
+              "Linux Content Line 2": null,
+              "Linux Content Line 3": null,
+              "Linux Content Line 4": null,
+              "Linux Content Line 5": null,
+              "Test Name": "2D_Voltage_Frequency_Characterization",
+              "Test Type": "Shmoo",
+              "ShmooFile": "C:\\SystemDebug\\Shmoos\\VoltageFrequencyShmoo.json",
+              "ShmooLabel": "VOLT_FREQ_CHAR"
+            },
+            "rationale": "Unit shows sensitivity to both voltage and frequency"
+          }
+        ],
+        "recommended_sequence": [
+          {
+            "sequence_number": 1,
+            "proposal": {
+              "type": "2d_characterization",
+              "priority": "medium",
+              "description": "Combined voltage/frequency 2D characterization",
+              "experiment_config": {
+                "Experiment": "Enabled",
+                "Test Mode": "Mesh",
+                "Visual ID": "TestUnitData",
+                "Bucket": "IDIPAR",
+                "COM Port": 11,
+                "IP Address": "192.168.0.2",
+                "TTL Folder": "R:\\Templates\\GNR\\version_2_0\\TTL_DragonMesh",
+                "Scripts File": null,
+                "Pass String": "Test Complete",
+                "Fail String": "Test Failed",
+                "Content": "Dragon",
+                "Test Number": 11,
+                "Test Time": 30,
+                "Reset": true,
+                "Reset on PASS": true,
+                "FastBoot": true,
+                "Core License": "1: SSE/128",
+                "600W Unit": false,
+                "Pseudo Config": true,
+                "Configuration (Mask)": "FirstPass",
+                "Boot Breakpoint": null,
+                "Disable 2 Cores": null,
+                "Check Core": 7,
+                "Voltage Type": "ppvc",
+                "Voltage IA": null,
+                "Voltage CFC": null,
+                "Frequency IA": null,
+                "Frequency CFC": null,
+                "Linux Pre Command": null,
+                "Linux Post Command": null,
+                "Startup Linux": null,
+                "Linux Path": null,
+                "Linux Content Wait Time": null,
+                "Linux Content Line 0": null,
+                "Linux Content Line 1": null,
+                "Dragon Pre Command": null,
+                "Dragon Post Command": null,
+                "Startup Dragon": "startup_efi.nsh",
+                "ULX Path": "FS1:\\EFI\\ulx",
+                "ULX CPU": "GNR_B0",
+                "Product Chop": "GNR",
+                "VVAR0": "0x4C4B40",
+                "VVAR1": 80064000,
+                "VVAR2": "0x1000000",
+                "VVAR3": "0x4000000",
+                "VVAR_EXTRA": null,
+                "Dragon Content Path": "FS1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\",
+                "Dragon Content Line": null,
+                "Stop on Fail": true,
+                "Merlin Name": "MerlinX.efi",
+                "Merlin Drive": "FS1:",
+                "Merlin Path": "FS1:\\EFI\\Version8.15\\BinFiles\\Release",
+                "Post Process": null,
+                "Linux Pass String": null,
+                "Linux Fail String": null,
+                "Linux Content Line 2": null,
+                "Linux Content Line 3": null,
+                "Linux Content Line 4": null,
+                "Linux Content Line 5": null,
+                "Test Name": "2D_Voltage_Frequency_Characterization",
+                "Test Type": "Shmoo",
+                "ShmooFile": "C:\\SystemDebug\\Shmoos\\VoltageFrequencyShmoo.json",
+                "ShmooLabel": "VOLT_FREQ_CHAR"
+              },
+              "rationale": "Unit shows sensitivity to both voltage and frequency"
+            },
+            "estimated_duration": 30
+          }
+        ]
+      },
+      "summary_report_path": null
+    }
+  ],
+  "current_experiment": {
+    "node_id": "NODE_009",
+    "node_name": "FreqIA",
+    "node_type": "CharacterizationFlowInstance",
+    "experiment_config": {
+      "Experiment": "Enabled",
+      "Test Name": "CoreFrequency",
+      "Test Mode": "Mesh",
+      "Test Type": "Sweep",
+      "Visual ID": "TestUnitData",
+      "Bucket": "IDIPAR",
+      "COM Port": 11,
+      "IP Address": "192.168.0.2",
+      "TTL Folder": "R:\\Templates\\GNR\\version_2_0\\TTL_DragonMesh",
+      "Scripts File": null,
+      "Post Process": null,
+      "Pass String": "Test Complete",
+      "Fail String": "Test Failed",
+      "Content": "Dragon",
+      "Test Number": 11,
+      "Test Time": 30,
+      "Reset": true,
+      "Reset on PASS": true,
+      "FastBoot": true,
+      "Core License": null,
+      "600W Unit": false,
+      "Pseudo Config": false,
+      "Configuration (Mask)": null,
+      "Boot Breakpoint": null,
+      "Disable 2 Cores": null,
+      "Check Core": 7,
+      "Voltage Type": "ppvc",
+      "Voltage IA": null,
+      "Voltage CFC": null,
+      "Frequency IA": null,
+      "Frequency CFC": null,
+      "Loops": 2,
+      "Type": "Frequency",
+      "Domain": "IA",
+      "Start": 8,
+      "End": 30,
+      "Steps": 4,
+      "ShmooFile": "C:\\SystemDebug\\Shmoos\\RVPShmooConfig.json",
+      "ShmooLabel": "COREFIX",
+      "Linux Pre Command": null,
+      "Linux Post Command": null,
+      "Linux Pass String": null,
+      "Linux Fail String": null,
+      "Startup Linux": null,
+      "Linux Path": null,
+      "Linux Content Wait Time": null,
+      "Linux Content Line 0": null,
+      "Linux Content Line 1": null,
+      "Dragon Pre Command": null,
+      "Dragon Post Command": null,
+      "Startup Dragon": "startup_efi.nsh",
+      "ULX Path": "FS1:\\EFI\\ulx",
+      "ULX CPU": "GNR_B0",
+      "Product Chop": "GNR",
+      "VVAR0": "0x989680",
+      "VVAR1": 80064000,
+      "VVAR2": "0x1000000",
+      "VVAR3": "0x4000000",
+      "VVAR_EXTRA": null,
+      "Dragon Content Path": "FS1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\",
+      "Dragon Content Line": null,
+      "Stop on Fail": true,
+      "Merlin Name": "MerlinX.efi",
+      "Merlin Drive": "FS1:",
+      "Merlin Path": "FS1:\\EFI\\Version8.15\\BinFiles\\Release"
+    },
+    "start_time": "2025-10-05 07:44:24.705523",
+    "end_time": "2025-10-05 07:45:42.946814",
+    "iterations": [
+      {
+        "iteration": 0,
+        "status": "FAIL",
+        "scratchpad": "Test_Timeout_300s",
+        "seed": "NA",
+        "timestamp": "2025-10-05 07:44:32.789705",
+        "config_snapshot": {
+          "voltage_ia": 0.1,
+          "voltage_cfc": 0.1,
+          "frequency_ia": 8,
+          "frequency_cfc": 24,
+          "content": "ContentType.DRAGON",
+          "mask": "RowPass1",
+          "check_core": null,
+          "voltage_type": "vbump"
+        },
+        "sweep_value": 8,
+        "sweep_point_analysis": {
+          "iteration": 0,
+          "sweep_value": 8,
+          "result": "FAIL",
+          "is_failure": true,
+          "is_pass": false
+        }
+      },
+      {
+        "iteration": 0,
+        "status": "FAIL",
+        "scratchpad": "Test_Timeout_300s",
+        "seed": "NA",
+        "timestamp": "2025-10-05 07:44:43.431915",
+        "config_snapshot": {
+          "voltage_ia": 0.1,
+          "voltage_cfc": 0.1,
+          "frequency_ia": 12,
+          "frequency_cfc": 24,
+          "content": "ContentType.DRAGON",
+          "mask": "RowPass1",
+          "check_core": null,
+          "voltage_type": "vbump"
+        },
+        "sweep_value": 12,
+        "sweep_point_analysis": {
+          "iteration": 0,
+          "sweep_value": 12,
+          "result": "FAIL",
+          "is_failure": true,
+          "is_pass": false
+        }
+      },
+      {
+        "iteration": 0,
+        "status": "FAIL",
+        "scratchpad": "DDR_Training_Fail",
+        "seed": "NA",
+        "timestamp": "2025-10-05 07:44:54.425186",
+        "config_snapshot": {
+          "voltage_ia": 0.1,
+          "voltage_cfc": 0.1,
+          "frequency_ia": 16,
+          "frequency_cfc": 24,
+          "content": "ContentType.DRAGON",
+          "mask": "RowPass1",
+          "check_core": null,
+          "voltage_type": "vbump"
+        },
+        "sweep_value": 16,
+        "sweep_point_analysis": {
+          "iteration": 0,
+          "sweep_value": 16,
+          "result": "FAIL",
+          "is_failure": true,
+          "is_pass": false
+        }
+      },
+      {
+        "iteration": 0,
+        "status": "FAIL",
+        "scratchpad": "Execution_Error",
+        "seed": "NA",
+        "timestamp": "2025-10-05 07:45:05.722426",
+        "config_snapshot": {
+          "voltage_ia": 0.1,
+          "voltage_cfc": 0.1,
+          "frequency_ia": 20,
+          "frequency_cfc": 24,
+          "content": "ContentType.DRAGON",
+          "mask": "RowPass1",
+          "check_core": null,
+          "voltage_type": "vbump"
+        },
+        "sweep_value": 20,
+        "sweep_point_analysis": {
+          "iteration": 0,
+          "sweep_value": 20,
+          "result": "FAIL",
+          "is_failure": true,
+          "is_pass": false
+        }
+      },
+      {
+        "iteration": 0,
+        "status": "FAIL",
+        "scratchpad": "Core0_Hang_Detected",
+        "seed": "NA",
+        "timestamp": "2025-10-05 07:45:16.353418",
+        "config_snapshot": {
+          "voltage_ia": 0.1,
+          "voltage_cfc": 0.1,
+          "frequency_ia": 24,
+          "frequency_cfc": 24,
+          "content": "ContentType.DRAGON",
+          "mask": "RowPass1",
+          "check_core": null,
+          "voltage_type": "vbump"
+        },
+        "sweep_value": 24,
+        "sweep_point_analysis": {
+          "iteration": 0,
+          "sweep_value": 24,
+          "result": "FAIL",
+          "is_failure": true,
+          "is_pass": false
+        }
+      },
+      {
+        "iteration": 0,
+        "status": "FAIL",
+        "scratchpad": "Core0_Hang_Detected",
+        "seed": "NA",
+        "timestamp": "2025-10-05 07:45:27.691357",
+        "config_snapshot": {
+          "voltage_ia": 0.1,
+          "voltage_cfc": 0.1,
+          "frequency_ia": 28,
+          "frequency_cfc": 24,
+          "content": "ContentType.DRAGON",
+          "mask": "RowPass1",
+          "check_core": null,
+          "voltage_type": "vbump"
+        },
+        "sweep_value": 28,
+        "sweep_point_analysis": {
+          "iteration": 0,
+          "sweep_value": 28,
+          "result": "FAIL",
+          "is_failure": true,
+          "is_pass": false
+        }
+      },
+      {
+        "iteration": 0,
+        "status": "FAIL",
+        "scratchpad": "Test_Timeout_300s",
+        "seed": "NA",
+        "timestamp": "2025-10-05 07:45:39.109765",
+        "config_snapshot": {
+          "voltage_ia": 0.1,
+          "voltage_cfc": 0.1,
+          "frequency_ia": 32,
+          "frequency_cfc": 24,
+          "content": "ContentType.DRAGON",
+          "mask": "RowPass1",
+          "check_core": null,
+          "voltage_type": "vbump"
+        },
+        "sweep_value": 32,
+        "sweep_point_analysis": {
+          "iteration": 0,
+          "sweep_value": 32,
+          "result": "FAIL",
+          "is_failure": true,
+          "is_pass": false
+        }
+      }
+    ],
+    "final_result": "ANALYSIS_COMPLETE",
+    "output_port": 0,
+    "test_folder": null,
+    "summary_file_path": null,
+    "unit_state": {},
+    "failure_patterns": {
+      "Test_Timeout_300s_NA": {
+        "count": 3,
+        "config": {
+          "voltage_ia": 0.1,
+          "voltage_cfc": 0.1,
+          "frequency_ia": 8,
+          "frequency_cfc": 24,
+          "content": "ContentType.DRAGON",
+          "mask": "RowPass1",
+          "check_core": null,
+          "voltage_type": "vbump"
+        },
+        "iterations": [
+          0,
+          0,
+          0
+        ]
+      },
+      "DDR_Training_Fail_NA": {
+        "count": 1,
+        "config": {
+          "voltage_ia": 0.1,
+          "voltage_cfc": 0.1,
+          "frequency_ia": 16,
+          "frequency_cfc": 24,
+          "content": "ContentType.DRAGON",
+          "mask": "RowPass1",
+          "check_core": null,
+          "voltage_type": "vbump"
+        },
+        "iterations": [
+          0
+        ]
+      },
+      "Execution_Error_NA": {
+        "count": 1,
+        "config": {
+          "voltage_ia": 0.1,
+          "voltage_cfc": 0.1,
+          "frequency_ia": 20,
+          "frequency_cfc": 24,
+          "content": "ContentType.DRAGON",
+          "mask": "RowPass1",
+          "check_core": null,
+          "voltage_type": "vbump"
+        },
+        "iterations": [
+          0
+        ]
+      },
+      "Core0_Hang_Detected_NA": {
+        "count": 2,
+        "config": {
+          "voltage_ia": 0.1,
+          "voltage_cfc": 0.1,
+          "frequency_ia": 24,
+          "frequency_cfc": 24,
+          "content": "ContentType.DRAGON",
+          "mask": "RowPass1",
+          "check_core": null,
+          "voltage_type": "vbump"
+        },
+        "iterations": [
+          0,
+          0
+        ]
+      }
+    },
+    "recovery_indicators": [],
+    "sweep_data": {
+      "sweep_type": "frequency",
+      "sweep_domain": "ia",
+      "start_value": 8,
+      "end_value": 30,
+      "step_value": 4,
+      "voltage_type": "ppvc",
+      "sweep_values": []
+    },
+    "voltage_frequency_analysis": {
+      "voltage_dependency": null,
+      "frequency_dependency": null,
+      "combined_sensitivity": null,
+      "voltage_type_used": "ppvc"
+    },
+    "sweep_analysis": {
+      "sweep_type": "frequency",
+      "sweep_domain": "ia",
+      "voltage_type": "ppvc",
+      "total_points": 7,
+      "failure_points": 7,
+      "pass_points": 0,
+      "failure_values": [
+        8,
+        12,
+        16,
+        20,
+        24,
+        28,
+        32
+      ],
+      "pass_values": [],
+      "sensitivity_analysis": {
+        "pattern": "no_sensitivity",
+        "description": "Unit not sensitive to frequency ia (ppvc) - fails across entire range (no recovery condition)",
+        "recommendation": "Unit fails across entire tested frequency range - no sensitivity threshold found",
+        "voltage_type_context": "ppvc",
+        "failure_mode": "complete_failure_no_recovery"
+      }
+    },
+    "characterization_results": {
+      "total_points": 14,
+      "failing_points": [
+        {
+          "iteration": 1,
+          "status": "FAIL",
+          "config": {
+            "volt_IA": 0.1,
+            "volt_CFC": 0.1,
+            "freq_ia": 32,
+            "freq_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null
+          },
+          "sweep_value": 1
+        },
+        {
+          "iteration": 2,
+          "status": "FAIL",
+          "config": {
+            "volt_IA": 0.1,
+            "volt_CFC": 0.1,
+            "freq_ia": 32,
+            "freq_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null
+          },
+          "sweep_value": 2
+        },
+        {
+          "iteration": 3,
+          "status": "FAIL",
+          "config": {
+            "volt_IA": 0.1,
+            "volt_CFC": 0.1,
+            "freq_ia": 32,
+            "freq_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null
+          },
+          "sweep_value": 3
+        },
+        {
+          "iteration": 4,
+          "status": "FAIL",
+          "config": {
+            "volt_IA": 0.1,
+            "volt_CFC": 0.1,
+            "freq_ia": 32,
+            "freq_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null
+          },
+          "sweep_value": 4
+        },
+        {
+          "iteration": 5,
+          "status": "FAIL",
+          "config": {
+            "volt_IA": 0.1,
+            "volt_CFC": 0.1,
+            "freq_ia": 32,
+            "freq_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null
+          },
+          "sweep_value": 5
+        },
+        {
+          "iteration": 6,
+          "status": "FAIL",
+          "config": {
+            "volt_IA": 0.1,
+            "volt_CFC": 0.1,
+            "freq_ia": 32,
+            "freq_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null
+          },
+          "sweep_value": 6
+        },
+        {
+          "iteration": 7,
+          "status": "FAIL",
+          "config": {
+            "volt_IA": 0.1,
+            "volt_CFC": 0.1,
+            "freq_ia": 32,
+            "freq_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null
+          },
+          "sweep_value": 7
+        },
+        {
+          "iteration": 8,
+          "status": "FAIL",
+          "config": {
+            "volt_IA": 0.1,
+            "volt_CFC": 0.1,
+            "freq_ia": 32,
+            "freq_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null
+          },
+          "sweep_value": 8
+        },
+        {
+          "iteration": 9,
+          "status": "FAIL",
+          "config": {
+            "volt_IA": 0.1,
+            "volt_CFC": 0.1,
+            "freq_ia": 32,
+            "freq_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null
+          },
+          "sweep_value": 9
+        },
+        {
+          "iteration": 10,
+          "status": "FAIL",
+          "config": {
+            "volt_IA": 0.1,
+            "volt_CFC": 0.1,
+            "freq_ia": 32,
+            "freq_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null
+          },
+          "sweep_value": 10
+        },
+        {
+          "iteration": 11,
+          "status": "FAIL",
+          "config": {
+            "volt_IA": 0.1,
+            "volt_CFC": 0.1,
+            "freq_ia": 32,
+            "freq_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null
+          },
+          "sweep_value": 11
+        },
+        {
+          "iteration": 12,
+          "status": "FAIL",
+          "config": {
+            "volt_IA": 0.1,
+            "volt_CFC": 0.1,
+            "freq_ia": 32,
+            "freq_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null
+          },
+          "sweep_value": 12
+        },
+        {
+          "iteration": 13,
+          "status": "FAIL",
+          "config": {
+            "volt_IA": 0.1,
+            "volt_CFC": 0.1,
+            "freq_ia": 32,
+            "freq_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null
+          },
+          "sweep_value": 13
+        },
+        {
+          "iteration": 14,
+          "status": "FAIL",
+          "config": {
+            "volt_IA": 0.1,
+            "volt_CFC": 0.1,
+            "freq_ia": 32,
+            "freq_cfc": 24,
+            "content": "ContentType.DRAGON",
+            "mask": "RowPass1",
+            "check_core": null
+          },
+          "sweep_value": 14
+        }
+      ],
+      "passing_points": [],
+      "other_points": [],
+      "fail_rate": 1.0,
+      "pass_rate": 0.0,
+      "other_rate": 0.0,
+      "reproduction_quality": "excellent_characterization",
+      "failure_characterization": {
+        "status": "characterized",
+        "failure_count": 14,
+        "failure_values": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14
+        ],
+        "failure_range": [
+          1,
+          14
+        ],
+        "failure_span": 13,
+        "characterization_summary": "Unit fails across Frequency IA range 1 to 14 (span: 13)"
+      },
+      "inherited_from_node": "Unknown",
+      "test_execution_type": "Sweep"
+    },
+    "comprehensive_analysis": {
+      "flow_execution_summary": {
+        "start_time": "2025-10-05 07:37:16.911924",
+        "end_time": null,
+        "total_nodes_executed": 9,
+        "recovery_conditions": [],
+        "failure_conditions": [
+          {
+            "node_name": "ExtendedDragon",
+            "config": {
+              "voltage_ia": null,
+              "voltage_cfc": null,
+              "frequency_ia": null,
+              "frequency_cfc": null,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null,
+              "voltage_type": "vbump"
+            },
+            "failure_patterns": {
+              "VR_Fault_Detected_NA": {
+                "count": 1,
+                "config": {
+                  "voltage_ia": null,
+                  "voltage_cfc": null,
+                  "frequency_ia": null,
+                  "frequency_cfc": null,
+                  "content": "ContentType.DRAGON",
+                  "mask": "RowPass1",
+                  "check_core": null,
+                  "voltage_type": "vbump"
+                },
+                "iterations": [
+                  0
+                ]
+              },
+              "Test_Timeout_300s_NA": {
+                "count": 1,
+                "config": {
+                  "voltage_ia": null,
+                  "voltage_cfc": null,
+                  "frequency_ia": null,
+                  "frequency_cfc": null,
+                  "content": "ContentType.DRAGON",
+                  "mask": "RowPass1",
+                  "check_core": null,
+                  "voltage_type": "vbump"
+                },
+                "iterations": [
+                  0
+                ]
+              },
+              "Thermal_Shutdown_NA": {
+                "count": 1,
+                "config": {
+                  "voltage_ia": null,
+                  "voltage_cfc": null,
+                  "frequency_ia": null,
+                  "frequency_cfc": null,
+                  "content": "ContentType.DRAGON",
+                  "mask": "RowPass1",
+                  "check_core": null,
+                  "voltage_type": "vbump"
+                },
+                "iterations": [
+                  0
+                ]
+              }
+            }
+          }
+        ],
+        "characterization_data": [],
+        "test_folders": [
+          "C:\\SystemDebug\\Logs\\20251005_073719_T11_Baseline",
+          "C:\\SystemDebug\\Logs\\20251005_073839_T99_PPVC",
+          "C:\\SystemDebug\\Logs\\20251005_074004_T11_Baseline",
+          null,
+          "C:\\SystemDebug\\Logs\\20251005_074053_T11_CFCVoltage",
+          "C:\\SystemDebug\\Logs\\20251005_074222_T11_CFCFrequency",
+          "C:\\SystemDebug\\Logs\\20251005_074319_T11_CoreVoltage",
+          "C:\\SystemDebug\\Logs\\20251005_074425_T11_CoreFrequency",
+          null
+        ],
+        "unit_configurations": [],
+        "sweep_analysis": {
+          "voltage_sweeps": [],
+          "frequency_sweeps": [],
+          "sensitivity_patterns": {
+            "voltage_cfc": [
+              {
+                "node_name": "VoltageCFC",
+                "analysis": {
+                  "sweep_type": "voltage",
+                  "sweep_domain": "cfc",
+                  "voltage_type": "vbump",
+                  "total_points": 8,
+                  "failure_points": 8,
+                  "pass_points": 0,
+                  "failure_values": [
+                    -0.04,
+                    -0.02,
+                    0.0,
+                    0.02,
+                    0.04,
+                    0.06,
+                    0.08,
+                    0.1
+                  ],
+                  "pass_values": [],
+                  "sensitivity_analysis": {
+                    "pattern": "no_sensitivity",
+                    "description": "Unit not sensitive to voltage cfc (vbump) - fails across entire range (no recovery condition)",
+                    "recommendation": "Unit fails across entire tested voltage range - no sensitivity threshold found",
+                    "voltage_type_context": "vbump",
+                    "failure_mode": "complete_failure_no_recovery"
+                  }
+                },
+                "timestamp": "2025-10-05 07:42:19.097255"
+              }
+            ],
+            "frequency_cfc": [
+              {
+                "node_name": "FreqCFC",
+                "analysis": {
+                  "sweep_type": "frequency",
+                  "sweep_domain": "cfc",
+                  "voltage_type": "vbump",
+                  "total_points": 5,
+                  "failure_points": 5,
+                  "pass_points": 0,
+                  "failure_values": [
+                    8,
+                    12,
+                    16,
+                    20,
+                    24
+                  ],
+                  "pass_values": [],
+                  "sensitivity_analysis": {
+                    "pattern": "no_sensitivity",
+                    "description": "Unit not sensitive to frequency cfc (vbump) - fails across entire range (no recovery condition)",
+                    "recommendation": "Unit fails across entire tested frequency range - no sensitivity threshold found",
+                    "voltage_type_context": "vbump",
+                    "failure_mode": "complete_failure_no_recovery"
+                  }
+                },
+                "timestamp": "2025-10-05 07:43:16.612234"
+              }
+            ],
+            "voltage_ia": [
+              {
+                "node_name": "VoltageIA",
+                "analysis": {
+                  "sweep_type": "voltage",
+                  "sweep_domain": "ia",
+                  "voltage_type": "vbump",
+                  "total_points": 6,
+                  "failure_points": 5,
+                  "pass_points": 1,
+                  "failure_values": [
+                    0.0,
+                    0.02,
+                    0.04,
+                    0.08,
+                    0.1
+                  ],
+                  "pass_values": [
+                    0.06
+                  ],
+                  "sensitivity_analysis": {
+                    "pattern": "mixed_sensitivity",
+                    "description": "Unit has mixed sensitivity pattern for voltage ia (vbump)",
+                    "failure_range": [
+                      0.0,
+                      0.1
+                    ],
+                    "pass_range": [
+                      0.06,
+                      0.06
+                    ],
+                    "safe_values": [
+                      0.06
+                    ],
+                    "voltage_type_context": "vbump",
+                    "recommendation": "Avoid failure values, use passing values for recovery (vbump specific to tested domain)"
+                  }
+                },
+                "timestamp": "2025-10-05 07:44:22.617982"
+              }
+            ],
+            "frequency_ia": [
+              {
+                "node_name": "FreqIA",
+                "analysis": {
+                  "sweep_type": "frequency",
+                  "sweep_domain": "ia",
+                  "voltage_type": "ppvc",
+                  "total_points": 7,
+                  "failure_points": 7,
+                  "pass_points": 0,
+                  "failure_values": [
+                    8,
+                    12,
+                    16,
+                    20,
+                    24,
+                    28,
+                    32
+                  ],
+                  "pass_values": [],
+                  "sensitivity_analysis": {
+                    "pattern": "no_sensitivity",
+                    "description": "Unit not sensitive to frequency ia (ppvc) - fails across entire range (no recovery condition)",
+                    "recommendation": "Unit fails across entire tested frequency range - no sensitivity threshold found",
+                    "voltage_type_context": "ppvc",
+                    "failure_mode": "complete_failure_no_recovery"
+                  }
+                },
+                "timestamp": "2025-10-05 07:45:40.714929"
+              },
+              {
+                "node_name": "FreqIA",
+                "analysis": {
+                  "sweep_type": "frequency",
+                  "sweep_domain": "ia",
+                  "voltage_type": "ppvc",
+                  "total_points": 7,
+                  "failure_points": 7,
+                  "pass_points": 0,
+                  "failure_values": [
+                    8,
+                    12,
+                    16,
+                    20,
+                    24,
+                    28,
+                    32
+                  ],
+                  "pass_values": [],
+                  "sensitivity_analysis": {
+                    "pattern": "no_sensitivity",
+                    "description": "Unit not sensitive to frequency ia (ppvc) - fails across entire range (no recovery condition)",
+                    "recommendation": "Unit fails across entire tested frequency range - no sensitivity threshold found",
+                    "voltage_type_context": "ppvc",
+                    "failure_mode": "complete_failure_no_recovery"
+                  }
+                },
+                "timestamp": "2025-10-05 07:45:42.947480"
+              }
+            ]
+          }
+        }
+      },
+      "voltage_frequency_analysis": {
+        "voltage_sensitivity": {
+          "status": "analyzed",
+          "ia_voltage_sensitivity": {
+            "status": "analyzed",
+            "experiments_count": 1,
+            "dominant_pattern": "mixed_sensitivity",
+            "all_patterns": [
+              "mixed_sensitivity"
+            ],
+            "recovery_experiments": 1,
+            "conclusion": "Unit shows inconsistent sensitivity pattern with some recovery points - Recovery conditions found in 1/1 experiments"
+          },
+          "cfc_voltage_sensitivity": {
+            "status": "analyzed",
+            "experiments_count": 1,
+            "dominant_pattern": "no_sensitivity",
+            "all_patterns": [
+              "no_sensitivity"
+            ],
+            "recovery_experiments": 0,
+            "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+          },
+          "overall_voltage_conclusion": "IA voltage: Unit shows inconsistent sensitivity pattern with some recovery points - Recovery conditions found in 1/1 experiments; CFC voltage: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment",
+          "debug_info": {
+            "total_voltage_experiments": 2,
+            "ia_experiments": 1,
+            "cfc_experiments": 1
+          }
+        },
+        "frequency_sensitivity": {
+          "status": "analyzed",
+          "ia_frequency_sensitivity": {
+            "status": "analyzed",
+            "experiments_count": 1,
+            "dominant_pattern": "no_sensitivity",
+            "all_patterns": [
+              "no_sensitivity"
+            ],
+            "recovery_experiments": 0,
+            "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+          },
+          "cfc_frequency_sensitivity": {
+            "status": "analyzed",
+            "experiments_count": 1,
+            "dominant_pattern": "no_sensitivity",
+            "all_patterns": [
+              "no_sensitivity"
+            ],
+            "recovery_experiments": 0,
+            "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+          },
+          "overall_frequency_conclusion": "IA frequency: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment; CFC frequency: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment",
+          "debug_info": {
+            "total_frequency_experiments": 2,
+            "ia_experiments": 1,
+            "cfc_experiments": 1
+          }
+        },
+        "combined_analysis": {
+          "voltage_sensitive": true,
+          "frequency_sensitive": true,
+          "conclusion": "Unit is sensitive to both voltage and frequency"
+        },
+        "debug_info": {
+          "total_experiments_checked": 8,
+          "voltage_experiments_found": 2,
+          "frequency_experiments_found": 2,
+          "voltage_experiment_names": [
+            "VoltageCFC",
+            "VoltageIA"
+          ],
+          "frequency_experiment_names": [
+            "FreqCFC",
+            "FreqIA"
+          ]
+        }
+      },
+      "unit_characterization": {
+        "total_experiments_run": 8,
+        "recovery_conditions_found": 0,
+        "failure_conditions_found": 1,
+        "unit_stability": "unstable",
+        "dominant_failure_patterns": [
+          [
+            "Test_Timeout_300s_NA",
+            13
+          ],
+          [
+            "Execution_Error_NA",
+            9
+          ],
+          [
+            "DDR_Training_Fail_NA",
+            4
+          ]
+        ],
+        "recommended_operating_conditions": {}
+      },
+      "recovery_analysis": {
+        "status": "no_recovery_found"
+      },
+      "failure_analysis": {
+        "status": "failures_analyzed",
+        "total_failure_conditions": 1,
+        "failure_distribution": {
+          "ExtendedDragon": 1
+        },
+        "common_failure_patterns": [
+          [
+            "VR_Fault_Detected_NA",
+            1
+          ],
+          [
+            "Test_Timeout_300s_NA",
+            1
+          ],
+          [
+            "Thermal_Shutdown_NA",
+            1
+          ]
+        ]
+      },
+      "sweep_summary": {
+        "status": "sweep_data_available",
+        "total_sweep_experiments": 4,
+        "voltage_sweeps": 2,
+        "frequency_sweeps": 2,
+        "sweep_insights": [
+          {
+            "node_name": "VoltageCFC",
+            "sweep_type": "voltage",
+            "sweep_domain": "cfc",
+            "sensitivity_pattern": "no_sensitivity",
+            "recommendation": "Unit fails across entire tested voltage range - no sensitivity threshold found"
+          },
+          {
+            "node_name": "FreqCFC",
+            "sweep_type": "frequency",
+            "sweep_domain": "cfc",
+            "sensitivity_pattern": "no_sensitivity",
+            "recommendation": "Unit fails across entire tested frequency range - no sensitivity threshold found"
+          },
+          {
+            "node_name": "VoltageIA",
+            "sweep_type": "voltage",
+            "sweep_domain": "ia",
+            "sensitivity_pattern": "mixed_sensitivity",
+            "recommendation": "Avoid failure values, use passing values for recovery (vbump specific to tested domain)"
+          },
+          {
+            "node_name": "FreqIA",
+            "sweep_type": "frequency",
+            "sweep_domain": "ia",
+            "sensitivity_pattern": "no_sensitivity",
+            "recommendation": "Unit fails across entire tested frequency range - no sensitivity threshold found"
+          }
+        ]
+      },
+      "unit_sensitivity_profile": {
+        "overall_stability": "unstable",
+        "voltage_sensitivity": {
+          "ia_voltage": {
+            "status": "analyzed",
+            "pattern": "mixed_sensitivity",
+            "conclusion": "Unit shows inconsistent sensitivity pattern with some recovery points - Recovery conditions found in 1/1 experiments"
+          },
+          "cfc_voltage": {
+            "status": "analyzed",
+            "pattern": "no_sensitivity",
+            "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+          },
+          "overall_conclusion": "IA voltage: Unit shows inconsistent sensitivity pattern with some recovery points - Recovery conditions found in 1/1 experiments; CFC voltage: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+        },
+        "frequency_sensitivity": {
+          "ia_frequency": {
+            "status": "analyzed",
+            "pattern": "no_sensitivity",
+            "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+          },
+          "cfc_frequency": {
+            "status": "analyzed",
+            "pattern": "no_sensitivity",
+            "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+          },
+          "overall_conclusion": "IA frequency: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment; CFC frequency: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+        },
+        "combined_sensitivity": {
+          "voltage_sensitive": true,
+          "frequency_sensitive": true,
+          "conclusion": "Unit is sensitive to both voltage and frequency"
+        },
+        "dominant_failure_modes": [
+          [
+            "Test_Timeout_300s_NA",
+            13
+          ],
+          [
+            "Execution_Error_NA",
+            9
+          ],
+          [
+            "DDR_Training_Fail_NA",
+            4
+          ]
+        ],
+        "recovery_success_rate": 0
+      },
+      "recommended_next_steps": [
+        {
+          "type": "voltage_characterization",
+          "priority": "medium",
+          "description": "Voltage analysis: Unit is sensitive to both voltage and frequency",
+          "details": {
+            "status": "analyzed",
+            "ia_voltage_sensitivity": {
+              "status": "analyzed",
+              "experiments_count": 1,
+              "dominant_pattern": "mixed_sensitivity",
+              "all_patterns": [
+                "mixed_sensitivity"
+              ],
+              "recovery_experiments": 1,
+              "conclusion": "Unit shows inconsistent sensitivity pattern with some recovery points - Recovery conditions found in 1/1 experiments"
+            },
+            "cfc_voltage_sensitivity": {
+              "status": "analyzed",
+              "experiments_count": 1,
+              "dominant_pattern": "no_sensitivity",
+              "all_patterns": [
+                "no_sensitivity"
+              ],
+              "recovery_experiments": 0,
+              "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+            },
+            "overall_voltage_conclusion": "IA voltage: Unit shows inconsistent sensitivity pattern with some recovery points - Recovery conditions found in 1/1 experiments; CFC voltage: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment",
+            "debug_info": {
+              "total_voltage_experiments": 2,
+              "ia_experiments": 1,
+              "cfc_experiments": 1
+            }
+          }
+        },
+        {
+          "type": "frequency_characterization",
+          "priority": "medium",
+          "description": "Frequency analysis: Unit is sensitive to both voltage and frequency",
+          "details": {
+            "status": "analyzed",
+            "ia_frequency_sensitivity": {
+              "status": "analyzed",
+              "experiments_count": 1,
+              "dominant_pattern": "no_sensitivity",
+              "all_patterns": [
+                "no_sensitivity"
+              ],
+              "recovery_experiments": 0,
+              "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+            },
+            "cfc_frequency_sensitivity": {
+              "status": "analyzed",
+              "experiments_count": 1,
+              "dominant_pattern": "no_sensitivity",
+              "all_patterns": [
+                "no_sensitivity"
+              ],
+              "recovery_experiments": 0,
+              "conclusion": "Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment"
+            },
+            "overall_frequency_conclusion": "IA frequency: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment; CFC frequency: Unit shows no sensitivity - either stable across range or fails completely with no recovery - No recovery conditions found in any experiment",
+            "debug_info": {
+              "total_frequency_experiments": 2,
+              "ia_experiments": 1,
+              "cfc_experiments": 1
+            }
+          }
+        }
+      ]
+    },
+    "smart_experiment_proposals": {
+      "total_proposals": 1,
+      "proposals": [
+        {
+          "type": "2d_characterization",
+          "priority": "medium",
+          "description": "Combined voltage/frequency 2D characterization",
+          "experiment_config": {
+            "Experiment": "Enabled",
+            "Test Mode": "Mesh",
+            "Visual ID": "TestUnitData",
+            "Bucket": "IDIPAR",
+            "COM Port": 11,
+            "IP Address": "192.168.0.2",
+            "TTL Folder": "R:\\Templates\\GNR\\version_2_0\\TTL_DragonMesh",
+            "Scripts File": null,
+            "Pass String": "Test Complete",
+            "Fail String": "Test Failed",
+            "Content": "Dragon",
+            "Test Number": 11,
+            "Test Time": 30,
+            "Reset": true,
+            "Reset on PASS": true,
+            "FastBoot": true,
+            "Core License": "1: SSE/128",
+            "600W Unit": false,
+            "Pseudo Config": true,
+            "Configuration (Mask)": "FirstPass",
+            "Boot Breakpoint": null,
+            "Disable 2 Cores": null,
+            "Check Core": 7,
+            "Voltage Type": "ppvc",
+            "Voltage IA": null,
+            "Voltage CFC": null,
+            "Frequency IA": null,
+            "Frequency CFC": null,
+            "Linux Pre Command": null,
+            "Linux Post Command": null,
+            "Startup Linux": null,
+            "Linux Path": null,
+            "Linux Content Wait Time": null,
+            "Linux Content Line 0": null,
+            "Linux Content Line 1": null,
+            "Dragon Pre Command": null,
+            "Dragon Post Command": null,
+            "Startup Dragon": "startup_efi.nsh",
+            "ULX Path": "FS1:\\EFI\\ulx",
+            "ULX CPU": "GNR_B0",
+            "Product Chop": "GNR",
+            "VVAR0": "0x4C4B40",
+            "VVAR1": 80064000,
+            "VVAR2": "0x1000000",
+            "VVAR3": "0x4000000",
+            "VVAR_EXTRA": null,
+            "Dragon Content Path": "FS1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\",
+            "Dragon Content Line": null,
+            "Stop on Fail": true,
+            "Merlin Name": "MerlinX.efi",
+            "Merlin Drive": "FS1:",
+            "Merlin Path": "FS1:\\EFI\\Version8.15\\BinFiles\\Release",
+            "Post Process": null,
+            "Linux Pass String": null,
+            "Linux Fail String": null,
+            "Linux Content Line 2": null,
+            "Linux Content Line 3": null,
+            "Linux Content Line 4": null,
+            "Linux Content Line 5": null,
+            "Test Name": "2D_Voltage_Frequency_Characterization",
+            "Test Type": "Shmoo",
+            "ShmooFile": "C:\\SystemDebug\\Shmoos\\VoltageFrequencyShmoo.json",
+            "ShmooLabel": "VOLT_FREQ_CHAR"
+          },
+          "rationale": "Unit shows sensitivity to both voltage and frequency"
+        }
+      ],
+      "recommended_sequence": [
+        {
+          "sequence_number": 1,
+          "proposal": {
+            "type": "2d_characterization",
+            "priority": "medium",
+            "description": "Combined voltage/frequency 2D characterization",
+            "experiment_config": {
+              "Experiment": "Enabled",
+              "Test Mode": "Mesh",
+              "Visual ID": "TestUnitData",
+              "Bucket": "IDIPAR",
+              "COM Port": 11,
+              "IP Address": "192.168.0.2",
+              "TTL Folder": "R:\\Templates\\GNR\\version_2_0\\TTL_DragonMesh",
+              "Scripts File": null,
+              "Pass String": "Test Complete",
+              "Fail String": "Test Failed",
+              "Content": "Dragon",
+              "Test Number": 11,
+              "Test Time": 30,
+              "Reset": true,
+              "Reset on PASS": true,
+              "FastBoot": true,
+              "Core License": "1: SSE/128",
+              "600W Unit": false,
+              "Pseudo Config": true,
+              "Configuration (Mask)": "FirstPass",
+              "Boot Breakpoint": null,
+              "Disable 2 Cores": null,
+              "Check Core": 7,
+              "Voltage Type": "ppvc",
+              "Voltage IA": null,
+              "Voltage CFC": null,
+              "Frequency IA": null,
+              "Frequency CFC": null,
+              "Linux Pre Command": null,
+              "Linux Post Command": null,
+              "Startup Linux": null,
+              "Linux Path": null,
+              "Linux Content Wait Time": null,
+              "Linux Content Line 0": null,
+              "Linux Content Line 1": null,
+              "Dragon Pre Command": null,
+              "Dragon Post Command": null,
+              "Startup Dragon": "startup_efi.nsh",
+              "ULX Path": "FS1:\\EFI\\ulx",
+              "ULX CPU": "GNR_B0",
+              "Product Chop": "GNR",
+              "VVAR0": "0x4C4B40",
+              "VVAR1": 80064000,
+              "VVAR2": "0x1000000",
+              "VVAR3": "0x4000000",
+              "VVAR_EXTRA": null,
+              "Dragon Content Path": "FS1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\",
+              "Dragon Content Line": null,
+              "Stop on Fail": true,
+              "Merlin Name": "MerlinX.efi",
+              "Merlin Drive": "FS1:",
+              "Merlin Path": "FS1:\\EFI\\Version8.15\\BinFiles\\Release",
+              "Post Process": null,
+              "Linux Pass String": null,
+              "Linux Fail String": null,
+              "Linux Content Line 2": null,
+              "Linux Content Line 3": null,
+              "Linux Content Line 4": null,
+              "Linux Content Line 5": null,
+              "Test Name": "2D_Voltage_Frequency_Characterization",
+              "Test Type": "Shmoo",
+              "ShmooFile": "C:\\SystemDebug\\Shmoos\\VoltageFrequencyShmoo.json",
+              "ShmooLabel": "VOLT_FREQ_CHAR"
+            },
+            "rationale": "Unit shows sensitivity to both voltage and frequency"
+          },
+          "estimated_duration": 30
+        }
+      ]
+    },
+    "summary_report_path": null
+  },
+  "flow_summary": {
+    "start_time": "2025-10-05 07:37:16.911924",
+    "end_time": null,
+    "total_nodes_executed": 9,
+    "recovery_conditions": [],
+    "failure_conditions": [
+      {
+        "node_name": "ExtendedDragon",
+        "config": {
+          "voltage_ia": null,
+          "voltage_cfc": null,
+          "frequency_ia": null,
+          "frequency_cfc": null,
+          "content": "ContentType.DRAGON",
+          "mask": "RowPass1",
+          "check_core": null,
+          "voltage_type": "vbump"
+        },
+        "failure_patterns": {
+          "VR_Fault_Detected_NA": {
+            "count": 1,
+            "config": {
+              "voltage_ia": null,
+              "voltage_cfc": null,
+              "frequency_ia": null,
+              "frequency_cfc": null,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null,
+              "voltage_type": "vbump"
+            },
+            "iterations": [
+              0
+            ]
+          },
+          "Test_Timeout_300s_NA": {
+            "count": 1,
+            "config": {
+              "voltage_ia": null,
+              "voltage_cfc": null,
+              "frequency_ia": null,
+              "frequency_cfc": null,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null,
+              "voltage_type": "vbump"
+            },
+            "iterations": [
+              0
+            ]
+          },
+          "Thermal_Shutdown_NA": {
+            "count": 1,
+            "config": {
+              "voltage_ia": null,
+              "voltage_cfc": null,
+              "frequency_ia": null,
+              "frequency_cfc": null,
+              "content": "ContentType.DRAGON",
+              "mask": "RowPass1",
+              "check_core": null,
+              "voltage_type": "vbump"
+            },
+            "iterations": [
+              0
+            ]
+          }
+        }
+      }
+    ],
+    "characterization_data": [],
+    "test_folders": [
+      "C:\\SystemDebug\\Logs\\20251005_073719_T11_Baseline",
+      "C:\\SystemDebug\\Logs\\20251005_073839_T99_PPVC",
+      "C:\\SystemDebug\\Logs\\20251005_074004_T11_Baseline",
+      null,
+      "C:\\SystemDebug\\Logs\\20251005_074053_T11_CFCVoltage",
+      "C:\\SystemDebug\\Logs\\20251005_074222_T11_CFCFrequency",
+      "C:\\SystemDebug\\Logs\\20251005_074319_T11_CoreVoltage",
+      "C:\\SystemDebug\\Logs\\20251005_074425_T11_CoreFrequency",
+      null
+    ],
+    "unit_configurations": [],
+    "sweep_analysis": {
+      "voltage_sweeps": [],
+      "frequency_sweeps": [],
+      "sensitivity_patterns": {
+        "voltage_cfc": [
+          {
+            "node_name": "VoltageCFC",
+            "analysis": {
+              "sweep_type": "voltage",
+              "sweep_domain": "cfc",
+              "voltage_type": "vbump",
+              "total_points": 8,
+              "failure_points": 8,
+              "pass_points": 0,
+              "failure_values": [
+                -0.04,
+                -0.02,
+                0.0,
+                0.02,
+                0.04,
+                0.06,
+                0.08,
+                0.1
+              ],
+              "pass_values": [],
+              "sensitivity_analysis": {
+                "pattern": "no_sensitivity",
+                "description": "Unit not sensitive to voltage cfc (vbump) - fails across entire range (no recovery condition)",
+                "recommendation": "Unit fails across entire tested voltage range - no sensitivity threshold found",
+                "voltage_type_context": "vbump",
+                "failure_mode": "complete_failure_no_recovery"
+              }
+            },
+            "timestamp": "2025-10-05 07:42:19.097255"
+          }
+        ],
+        "frequency_cfc": [
+          {
+            "node_name": "FreqCFC",
+            "analysis": {
+              "sweep_type": "frequency",
+              "sweep_domain": "cfc",
+              "voltage_type": "vbump",
+              "total_points": 5,
+              "failure_points": 5,
+              "pass_points": 0,
+              "failure_values": [
+                8,
+                12,
+                16,
+                20,
+                24
+              ],
+              "pass_values": [],
+              "sensitivity_analysis": {
+                "pattern": "no_sensitivity",
+                "description": "Unit not sensitive to frequency cfc (vbump) - fails across entire range (no recovery condition)",
+                "recommendation": "Unit fails across entire tested frequency range - no sensitivity threshold found",
+                "voltage_type_context": "vbump",
+                "failure_mode": "complete_failure_no_recovery"
+              }
+            },
+            "timestamp": "2025-10-05 07:43:16.612234"
+          }
+        ],
+        "voltage_ia": [
+          {
+            "node_name": "VoltageIA",
+            "analysis": {
+              "sweep_type": "voltage",
+              "sweep_domain": "ia",
+              "voltage_type": "vbump",
+              "total_points": 6,
+              "failure_points": 5,
+              "pass_points": 1,
+              "failure_values": [
+                0.0,
+                0.02,
+                0.04,
+                0.08,
+                0.1
+              ],
+              "pass_values": [
+                0.06
+              ],
+              "sensitivity_analysis": {
+                "pattern": "mixed_sensitivity",
+                "description": "Unit has mixed sensitivity pattern for voltage ia (vbump)",
+                "failure_range": [
+                  0.0,
+                  0.1
+                ],
+                "pass_range": [
+                  0.06,
+                  0.06
+                ],
+                "safe_values": [
+                  0.06
+                ],
+                "voltage_type_context": "vbump",
+                "recommendation": "Avoid failure values, use passing values for recovery (vbump specific to tested domain)"
+              }
+            },
+            "timestamp": "2025-10-05 07:44:22.617982"
+          }
+        ],
+        "frequency_ia": [
+          {
+            "node_name": "FreqIA",
+            "analysis": {
+              "sweep_type": "frequency",
+              "sweep_domain": "ia",
+              "voltage_type": "ppvc",
+              "total_points": 7,
+              "failure_points": 7,
+              "pass_points": 0,
+              "failure_values": [
+                8,
+                12,
+                16,
+                20,
+                24,
+                28,
+                32
+              ],
+              "pass_values": [],
+              "sensitivity_analysis": {
+                "pattern": "no_sensitivity",
+                "description": "Unit not sensitive to frequency ia (ppvc) - fails across entire range (no recovery condition)",
+                "recommendation": "Unit fails across entire tested frequency range - no sensitivity threshold found",
+                "voltage_type_context": "ppvc",
+                "failure_mode": "complete_failure_no_recovery"
+              }
+            },
+            "timestamp": "2025-10-05 07:45:40.714929"
+          },
+          {
+            "node_name": "FreqIA",
+            "analysis": {
+              "sweep_type": "frequency",
+              "sweep_domain": "ia",
+              "voltage_type": "ppvc",
+              "total_points": 7,
+              "failure_points": 7,
+              "pass_points": 0,
+              "failure_values": [
+                8,
+                12,
+                16,
+                20,
+                24,
+                28,
+                32
+              ],
+              "pass_values": [],
+              "sensitivity_analysis": {
+                "pattern": "no_sensitivity",
+                "description": "Unit not sensitive to frequency ia (ppvc) - fails across entire range (no recovery condition)",
+                "recommendation": "Unit fails across entire tested frequency range - no sensitivity threshold found",
+                "voltage_type_context": "ppvc",
+                "failure_mode": "complete_failure_no_recovery"
+              }
+            },
+            "timestamp": "2025-10-05 07:45:42.947480"
+          }
+        ]
+      }
+    }
+  }
+}
