@@ -13,7 +13,7 @@ sv.initialize()
 product_functions = None
 
 # Product Data Collection needed to init variables on script --
-PRODUCT_CONFIG = sv.socket0.target_info["segment"].upper()
+PRODUCT_CONFIG = sv.socket0.target_info["device_name"].upper()
 PRODUCT_CHOP = sv.socket0.target_info["chop"].upper()
 PRODUCT_VARIANT = sv.socket0.target_info["variant"].upper()
 
@@ -50,6 +50,13 @@ Physical2apicIDAssignmentOrder10x5 = CONFIG['PHY2APICID']
 phys2colrow = CONFIG['PHY2COLROW']
 skip_cores_10x5 =CONFIG['SKIPPHYSICAL']
 
+# DMR SPECIFIC CONFIGURATIONS
+
+MODS_PER_CBB = CORETYPES[PRODUCT_CONFIG]['mods_per_cbb']
+MODS_PER_COMPUTE = CORETYPES[PRODUCT_CONFIG]['mods_per_compute']
+MODS_ACTIVE_PER_CBB = CORETYPES[PRODUCT_CONFIG]['active_per_cbb']
+MAX_CBBS = CORETYPES[PRODUCT_CONFIG]['max_cbbs']
+MAX_IMHS = CORETYPES[PRODUCT_CONFIG]['max_imhs']
 
 # Product Fuses Init
 FUSES = _configs.init_product_fuses()

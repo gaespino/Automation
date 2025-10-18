@@ -276,6 +276,7 @@ def check_MCA(sheet, mca_path, mca_debug_path, debug_mca_log, mca_report_path, d
 	"""
 	productip = core_ip[product]
 	mcadata = {'TestName':[],	'TestValue':[]}
+	pysvdecode = {'cha':False, 'ubox':False, 'punit':False, 'pm':False, 'llc':False}
 
 	log(mca_path)
 	try:
@@ -284,6 +285,13 @@ def check_MCA(sheet, mca_path, mca_debug_path, debug_mca_log, mca_report_path, d
 		if 'GNR' in product: mcadata, pysvdecode = mca_dump_gnr()
 		elif 'CWF' in product: mcadata, pysvdecode = mca_dump_cwf()
 
+		print("MCA READ SUCCESFULLY")
+
+	except:
+		print("MCA COULD NOT BE READ")
+		return
+	
+	try:
 		if pysvdecode['cha']:
 			print("Decoding CHA MCA...")
 			cha.Cha().show_mca_status()
@@ -302,11 +310,11 @@ def check_MCA(sheet, mca_path, mca_debug_path, debug_mca_log, mca_report_path, d
 
 		
 	# zip the logs		
-		print("MCA READ SUCCESFULLY")
+		print("MCA DECODE SUCCESFUL")
 
 	except:
-		print("MCA COULD NOT BE READ")
-		return
+		print("MCA DECODE FAILED")
+		# If decoding failed, we can log the error or take appropriate action
 	nolog()
 
 	if DRGDUMP_ENABLED and dr_dump:

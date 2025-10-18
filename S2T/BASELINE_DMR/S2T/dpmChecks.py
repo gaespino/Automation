@@ -1369,8 +1369,8 @@ def qdf_str():
 	qdf = fu.get_qdf_str(socket=sv.socket0, die='compute0')
 	return qdf
 
-def product_str():
-	product = sv.socket0.target_info["segment"].upper()
+def product_str(): # DMR will use device_name
+	product = sv.socket0.target_info["device_name"].upper()
 	return product
 
 def variant_str():

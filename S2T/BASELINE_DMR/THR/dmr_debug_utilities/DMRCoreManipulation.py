@@ -1,3 +1,28 @@
+"""
+Overview:
+This script is designed to facilitate the configuration and booting of systems with specific core and slice masking requirements. 
+It provides tools for manipulating system configurations, executing bootscripts, and verifying fuse settings. The script supports 
+various configurations for different product types and includes options for fast booting and fuse overrides.
+
+Key Features:
+- Core and slice masking for system configuration
+- Bootscripts execution with retry logic
+- Fuse override and verification
+- Support for multiple product types and configurations
+- Detailed logging and error handling
+
+Changelog:
+- Version 1.7 (3/7/2025): DMR Initial Release -- Matches CWF Functionality
+
+"""
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#========================================================================================================#
+#=============== Modules/Libraries Imports =========================================================================#
+#========================================================================================================#
+
 import math
 import namednodes
 import time
@@ -5,19 +30,29 @@ import ipccli
 import sys
 import itpii
 from tabulate import tabulate
-from ipccli import BitData
-from colorama import Fore, Back
-import dpmChecksDMR as dpm
+from colorama import Fore, Back, Style
 import toolext.bootscript.boot as b
 import os
+import importtlib
 
 print ("DMR Core Manipulation")
+
+
+## Custom Modules -- Lets move them first to Dev then back to DMR folder
+
+import users.gaespino.dev.S2T.dpmChecks as dpm # Need to port it to DMR
+import users.gaespino.dev.S2T.ConfigsLoader as LoadConfig ## Need to port it to DMR
+
+importlib.reload(LoadConfig)
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 #========================================================================================================#
 #=================================== IPC AND SV SETUP ===================================================#
 #========================================================================================================#
+
+from namednodes import sv
+from ipccli import BitData
 
 ipc = None
 api = None
@@ -27,11 +62,7 @@ sv = namednodes.sv #shortcut
 sv.initialize()
 
 def _get_global_sv():
-  # Lazy initialize for the sv 'socket' instance
-  # Return
-  # ------
-  # sv: class 'components.ComponentManager'
-  
+  # Lazy initialize for the global SV instance  
   global sv
   if sv is None:
     from namednodes import sv
@@ -58,16 +89,86 @@ itp = itpii.baseaccess()
 ipc = ipccli.baseaccess()
 base = ipccli.baseaccess()
 
+sv_refreshed = True
+verbose = False
+debug = False
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#========================================================================================================#
+#=============== SELECTED PRODUCT INITIALIZATION ========================================================#
+#========================================================================================================#
+
+# Product Data Collection needed to init variables on script --
+PRODUCT_CONFIG = LoadConfig.PRODUCT_CONFIG
+PRODUCT_CHOP  = LoadConfig.PRODUCT_CHOP
+PRODUCT_VARIANT = LoadConfig.PRODUCT_VARIANT
+SELECTED_PRODUCT = LoadConfig.SELECTED_PRODUCT
+
+CONFIG = LoadConfig.CONFIG
+
+# Configuration Variables Init
+ConfigFile = LoadConfig.ConfigFile
+CORESTRING = LoadConfig.CORESTRING
+CORETYPES = LoadConfig.CORETYPES
+CHIPCONFIG = LoadConfig.CHIPCONFIG
+MAXCORESCHIP = LoadConfig.MAXCORESCHIP
+MAXLOGICAL = LoadConfig.MAXLOGICAL
+MAXPHYSICAL = LoadConfig.MAXPHYSICAL
+classLogical2Physical = LoadConfig.classLogical2Physical
+physical2ClassLogical = LoadConfig.physical2ClassLogical
+Physical2apicIDAssignmentOrder10x5 = LoadConfig.Physical2apicIDAssignmentOrder10x5
+phys2colrow = LoadConfig.phys2colrow
+skip_cores_10x5 = LoadConfig.skip_cores_10x5
+
+# DMR Architecture Constants - 
+TOTAL_MODULES_PER_CBB = LoadConfig.MODS_PER_CBB
+TOTAL_MODULES_PER_COMPUTE = LoadConfig.MODS_PER_COMPUTE
+TOTAL_ACTIVE_MODULES_PER_CBB = LoadConfig.MODS_ACTIVE_PER_CBB
+TOTAL_CBBS = LoadConfig.MAX_CBBS
+TOTAL_IMHS = LoadConfig.MAX_IMHS
+
+# Product Fuses Init
+FUSES = LoadConfig.FUSES
+
+DEBUGMASK = LoadConfig.DEBUGMASK
+PSEUDOCONDFIGS = LoadConfig.PSEUDOCONDFIGS
+BURINFUSES = LoadConfig.BURINFUSES
+FUSE_INSTANCE = LoadConfig.FUSE_INSTANCE
+CFC_RATIO_CURVES = LoadConfig.CFC_RATIO_CURVES
+CFC_VOLTAGE_CURVES = LoadConfig.CFC_VOLTAGE_CURVES
+IA_RATIO_CURVES = LoadConfig.IA_RATIO_CURVES
+IA_RATIO_CONFIG = LoadConfig.IA_RATIO_CONFIG
+IA_VOLTAGE_CURVES = LoadConfig.IA_VOLTAGE_CURVES
+FUSES_600W_COMP = LoadConfig.FUSES_600W_COMP
+FUSES_600W_IO = LoadConfig.FUSES_600W_IO
+HIDIS_COMP = LoadConfig.HIDIS_COMP
+HTDIS_IO = LoadConfig.HTDIS_IO
+VP2INTERSECT = LoadConfig.VP2INTERSECT
+
+# Framework Variables Init
+FRAMEWORKVARS = LoadConfig.FRAMEWORKVARS
+LICENSE_DICT = LoadConfig.LICENSE_DICT
+LICENSE_S2T_MENU = LoadConfig.LICENSE_S2T_MENU
+LICENSE_LEVELS = LoadConfig.LICENSE_LEVELS
+SPECIAL_QDF = LoadConfig.SPECIAL_QDF
+VALIDCLASS = LoadConfig.VALIDCLASS
+CUSTOMS = LoadConfig.CUSTOMS
+VALIDROWS = LoadConfig.VALIDROWS
+VALIDCOLS = LoadConfig.VALIDCOLS
+BOOTSCRIPT_DATA = LoadConfig.BOOTSCRIPT_DATA
+
+# Framework Features Init
+FRAMEWORK_FEATURES = LoadConfig.FRAMEWORK_FEATURES
+
+# Product Specific Functions Load
+pf = LoadConfig.LoadFunctions()
+
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 #========================================================================================================#
 #=============== CONSTANTS AND GLOBAL VARIABLES =========================================================#
 #========================================================================================================#
-
-# CWF Architecture Constants
-DMR_TOTAL_MODULES_PER_CBB = 32
-DMR_TOTAL_MODULES_PER_COMPUTE = 8
-DMR_TOTAL_ACTIVE_MODULES_PER_CBB = 32
 
 #DMR globals
 global_ia_fw_p1=None
@@ -115,31 +216,1728 @@ global_fixed_io_freq=None
 global_avx_mode=None
 global_dry_run=False
 global_boot_extra=""
+
+# Including Voltages
+global_fixed_core_volt=None
+global_fixed_cfc_volt=None
+global_fixed_hdc_volt=None
+global_fixed_cfcio_volt=None
+global_fixed_ddrd_volt=None
+global_fixed_ddra_volt=None
+global_vbumps_configuration=None
+global_u600w = None
 _boot_string=""
 
+# Boot Breaks option
 AFTER_MRC_POST = 0xbf000000
-# EFI_POST = 0x57000000
+#EFI_POST = 0x57000000
+#EFI_POST = 0xef0000ff
 
-EFI_POST = 0x7f000000
+EFI_POST = 0x57000000
+LINUX_POST = 0x58000000
+BOOTSCRIPT_RETRY_TIMES = 3
+BOOTSCRIPT_RETRY_DELAY = 60
+MRC_POSTCODE_WT = 30
+EFI_POSTCODE_WT = 60
+MRC_POSTCODE_CHECK_COUNT = 5
+EFI_POSTCODE_CHECK_COUNT = 10
+
+# Boot Breaks option
+BOOT_STOP_POSTCODE = 0x0
+BOOT_POSTCODE_WT = 30
+BOOT_POSTCODE_CHECK_COUNT = 10
+
+
+def reset_globals():
+	'''
+	Resets global variables used in _boot and _fastboot
+	'''
+	global global_boot_stop_after_mrc
+	# global global_ht_dis
+	global global_acode_dis
+	global global_fixed_core_freq
+	global global_fixed_mesh_freq
+	global global_fixed_io_freq
+	global global_avx_mode
+	global global_dry_run
+	global_boot_stop_after_mrc=None
+	# global_ht_dis=None
+	global_acode_dis=None
+	global_fixed_core_freq=None
+	global_fixed_mesh_freq=None
+	global_fixed_io_freq=None
+	global_avx_mode=None
+	global_dry_run=False
+	print("Global variables reset.")
+
+
 
 #---------------------------------------
 
-classLogical2Physical = {0:0,1:1,2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9,10:10,11:11,12:12,13:13,14:14,15:15,16:16,17:17,18:18,19:19,20:20,21:21,22:22,23:23,24:24,25:25,26:26,27:27,28:28,29:29,30:30,31:31}
-physical2ClassLogical = {value: key for key, value in classLogical2Physical.items()}
-phys2colrow= {0: [0, 0], 1: [1, 0], 2: [2, 0], 3: [3, 0], 4: [0, 1], 5: [1, 1], 6: [2, 1], 7: [3, 1], 8: [0, 2], 9: [1, 2], 10: [2, 2], 11: [3, 2], 12: [0, 3], 13: [1, 3], 14: [2, 3], 15: [3, 3], 16: [0, 4], 17: [1, 4], 18: [2, 4], 19: [3, 4], 20: [0, 5], 21: [1, 5], 22: [2, 5], 23: [3, 5], 24: [0, 6], 25: [1, 6], 26: [2, 6], 27: [3, 6], 28: [0, 7], 29: [1, 7], 30: [2, 7], 31: [3, 7]}
-skip_physical_modules = []
+#classLogical2Physical = {0:0,1:1,2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9,10:10,11:11,12:12,13:13,14:14,15:15,16:16,17:17,18:18,19:19,20:20,21:21,22:22,23:23,24:24,25:25,26:26,27:27,28:28,29:29,30:30,31:31}
+#physical2ClassLogical = {value: key for key, value in classLogical2Physical.items()}
+#phys2colrow= {0: [0, 0], 1: [1, 0], 2: [2, 0], 3: [3, 0], 4: [0, 1], 5: [1, 1], 6: [2, 1], 7: [3, 1], 8: [0, 2], 9: [1, 2], 10: [2, 2], 11: [3, 2], 12: [0, 3], 13: [1, 3], 14: [2, 3], 15: [3, 3], 16: [0, 4], 17: [1, 4], 18: [2, 4], 19: [3, 4], 20: [0, 5], 21: [1, 5], 22: [2, 5], 23: [3, 5], 24: [0, 6], 25: [1, 6], 26: [2, 6], 27: [3, 6], 28: [0, 7], 29: [1, 7], 30: [2, 7], 31: [3, 7]}
+#skip_physical_modules = []
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#========================================================================================================#
+#=============== MAIN CODE STARTS HERE ==================================================================#
+#========================================================================================================#
+
+
+#========================================================================================================#
+#=============== System to Tester Class and Scripts =====================================================#
+#========================================================================================================#
+
+class System2Tester():
+
+	def __init__(self, target, masks = None, coremask=None, slicemask=None, boot = True, ht_dis = False, dis_1CPM = None, dis_2CPM = None, fresh_state = True, readFuse = False, clusterCheck = True , fastboot = True, ppvc_fuses = None, execution_state = None):
+		
+		# Python SV Variables
+		from namednodes import sv
+		#sv = _get_global_sv()
+		ipc = ipccli.baseaccess() #_get_global_ipc()
+
+		# Framework Cancel Flag -- Checks Cancel orders during execution
+		self.execution_state = execution_state
+				
+		# Check for Status of PythonSV
+
+		svStatus()
+		
+		## Class Variables initialization
+		self.target = target
+		self.coremask = coremask
+		self.slicemask = slicemask
+		self.boot = boot
+		self.ht_dis = ht_dis
+		self.dis_1CPM = dis_1CPM
+		self.dis_2CPM = dis_2CPM
+		self.fresh_state = fresh_state
+		self.read_Fuse = False
+		self.readFuse = readFuse
+		self.sv = sv #_get_global_sv()
+		self.ipc = ipc #_get_global_ipc()
+		self.clusterCheck = clusterCheck
+		
+		# DMR Specific Variables
+		self.cbbs = sv.socket0.cbbs
+		self.imhs = sv.socket0.imhs
+		
+		self.instances = sv.socket0.computes.instance
+		self.sktnum = [0]
+		self.die = PRODUCT_CONFIG
+		self.BootFuses = dpm.FuseFileConfigs
+		self.Fastboot = fastboot
+		self.fuse_str = []
+		self.fuse_str_imh = []
+		self.fuse_str_cbb = []
+		## Added split fuse to apply PPVC
+		self.fuse_str_cbb_0 = []
+		self.fuse_str_cbb_1 = []
+		self.fuse_str_cbb_2 = []
+		self.fuse_str_cbb_3 = []
+		self.fuse_str_imh_0 = []
+		self.fuse_str_imh_1 = []
+		self.fuse_2CPM = dpm.fuses_dis_2CPM(dis_2CPM, bsformat = (not fastboot)) if dis_2CPM != None else []
+		self.fuse_1CPM = dpm.fuses_dis_1CPM(dis_1CPM, bsformat = (not fastboot)) if dis_1CPM != None else []
+		
+		self.ppvc_fuses = ppvc_fuses
+		## Option to bring preconfigured Mask
+		if masks == None: self.masks = dpm.fuses(rdFuses = self.readFuse, sktnum =self.sktnum, printFuse=False)
+		else: self.masks = masks
+
+		# Debug Mode -- User can enable/disable debug mode during execution
+		self.debug = False
+
+#=============== DEBUG MODE SET / RESET ==================================================================#
+
+	def set_debug_mode(self) -> None:
+		self.debug = True
+
+	def disable_debug_mode(self) -> None:
+		self.debug = False
+
+#=============== CONFIGURATION CHECKS ==================================================================#
+
+	def check_for_start_fresh(self) -> None:
+		if self.fresh_state: reset_globals()
+
+	def check_product_validity(self) -> bool:
+		if (self.die not in CORETYPES.keys()):
+			print (f"sorry.  This method still needs updating for {self.die}.  ")
+			return False
+
+		return True
+
+#=============== STRUCTURE GENERATION ==================================================================#
+
+	def generate_base_dict(self) -> dict[str, int]:
+		base_value = 0xffffffff
+		cbb_base_dict = {cbb.name: base_value for cbb in self.cbbs}
+		
+		return cbb_base_dict
+
+	def generate_module_mask(self) -> tuple[int, int]:
+		target_cbb = int(self.target/TOTAL_MODULES_PER_CBB) # Target CBB based on logical module
+		modulemask = ~(1 << (self.target % TOTAL_MODULES_PER_CBB)) & ((1 << TOTAL_MODULES_PER_CBB) - 1)
+		
+		print("\n"+"-"*62)
+		print("| A single module will be enabled for each available cbb |")
+		print("-"*62+"\n")
+		
+		return target_cbb, modulemask
+
+	def generate_mesh_masking(self, masks: dict) -> tuple[dict, dict]:
+		modules = {}
+		llcs = {}
+
+		_moduleMasks= {cbb.name: masks[f'ia_{cbb.name}'] for cbb in self.cbbs}
+		_llcMasks= {cbb.name: masks[f'llc_{cbb.name}'] for cbb in self.cbbs}
+
+		for cbb_name in masks.keys():
+			# Checking if str or int for modulemask / llcmask
+			if isinstance(_moduleMasks[cbb_name], str):
+				_moduleMasks[cbb_name] = int(_moduleMasks[cbb_name], 16)
+
+			if isinstance(_llcMasks[cbb_name], str):
+				_llcMasks[cbb_name] = int(_llcMasks[cbb_name], 16)
+
+			modules[cbb_name] =  _moduleMasks[cbb_name]
+			llcs[cbb_name] =  _llcMasks[cbb_name]
+
+			print  (f"\n{cbb_name.upper()}: module disabled mask: {hex(modules[cbb_name])}") 
+			print  (f"{cbb_name.upper()}: llc disabled mask:  {hex(llcs[cbb_name])}") 
+		
+		return modules, llcs
+
+	def generate_first_enabled_mask(self, masks: dict, cbb_name: str) -> int:
+		combineMask = masks[f'llc_{cbb_name}'] | masks[f'ia_{cbb_name}']
+		binMask = bin(combineMask)
+		first_zero = binMask[::-1].find('0')
+		disMask = ~(1 << (first_zero)) & ((1 << TOTAL_MODULES_PER_CBB)-1) 
+
+		return disMask
+
+	def convert_cbb_mask_to_compute_mask(self, cbb_masks: dict) -> dict:
+		cbbs = self.cbbs
+		compute_masks = {}
+		for cbb in cbbs:
+			cbb_name = cbb.name
+			cbb_computes = cbb.computes
+			compute_masks[cbb_name] = {}
+			for compute in cbb_computes:
+				compute_name = compute.name
+				computeN = compute.target_info.instance
+				shift_amount = computeN * TOTAL_MODULES_PER_COMPUTE
+				compute_masks[cbb_name][f'ia_{compute_name}'] = (cbb_masks[f'ia_{cbb_name}'] >> shift_amount) & 0xFF
+				compute_masks[cbb_name][f'llc_{compute_name}'] = (cbb_masks[f'llc_{cbb_name}'] >> shift_amount) & 0xFF
+
+		return compute_masks
+
+	def convert_compute_mask_to_cbb_mask(self, compute_masks: dict) -> tuple[dict, dict]:
+		cbbs = self.cbbs
+		
+		_moduleMasks = {}
+		_llcMasks = {}
+
+		for cbb in cbbs:
+			cbb_name = cbb.name
+			cbb_computes = cbb.computes
+			new_ia_cbb_mask = 0
+			new_llc_cbb_mask = 0
+			for compute in cbb_computes:
+				computeN = int(compute.target_info.instance)
+				compute_name = compute.name
+				compute_ia_mask = compute_masks[cbb_name][f'ia_{compute_name}']
+				new_ia_cbb_mask |= (compute_ia_mask << (computeN * TOTAL_MODULES_PER_COMPUTE))
+				compute_llc_mask = compute_masks[cbb_name][f'llc_{compute_name}']
+				new_llc_cbb_mask |= (compute_llc_mask << (computeN * TOTAL_MODULES_PER_COMPUTE))
+			_moduleMasks[f'{cbb_name}'] = new_ia_cbb_mask
+			_llcMasks[f'{cbb_name}'] = new_llc_cbb_mask
+		return _moduleMasks, _llcMasks
+
+	def get_compute_config(self) -> tuple[list, str]:
+		
+		return self.cbbs, f'x{len(self.cbbs)}'
+
+	def assign_values_to_regs(self, list_regs: list[str], new_value: int) -> list[str]:
+		regs_with_values = []
+		
+		for reg_string in list_regs:
+			regs_with_values += [f'{reg_string}=' + '0x%x' % new_value]
+
+		return regs_with_values
+
+#=============== MAIN SYSTEM 2 TESTER FUNCTIONS =========================================================#
+	
+	# Sets up system to run with 1 enabled module per cbb
+	def setModule(self) -> None:
+		'''
+		Sets up system to run with 1 enabled module per cbb.
+
+		Inputs:
+			boot: (Boolean, Default=True) Will call bootscript with new setting
+			fastboot: (Boolean, Default=False) Will call bootscript with faster setting
+			load_fuses: (Boolean, Default=True) Calls fuse load for dpm.fuses
+			resetGlobals: (Boolean, Default=False) Resets globals for bootscript call
+		'''
+		## Local variables -- Just defining them for shorter lines and usage
+
+		cbbs = self.cbbs
+		masks = self.masks
+
+		# Check Product Validity
+		if not self.check_product_validity(): return
+
+		# Check Fresh State
+		self.check_for_start_fresh()
+		
+		# Building arrays based on system structure
+		_moduleMasks = self.generate_base_dict() # Module mask filled with 1 for every compute
+		_llcMasks= self.generate_base_dict() # LLC mask filled with 1 for every compute
+
+		target_cbb, modulemask = self.generate_module_mask()
+
+		for cbb in cbbs: # For each compute
+			cbb_name = cbb.name
+			cbbN = cbb.target_info.instance
+			
+			if int(cbbN) == target_cbb:
+				_moduleMasks[cbb_name] = modulemask | masks[f'ia_{cbb_name}']
+				_llcMasks[cbb_name] = masks[f'llc_{cbb_name}']
+			else:
+				disMask = self.generate_first_enabled_mask(masks=masks, cbb_name=cbb_name)
+				_moduleMasks[cbb_name] = disMask | masks[f'ia_{cbb_name}']
+				_llcMasks[cbb_name] = masks[f'llc_{cbb_name}']
+
+		for cbb_name in cbbs.name:
+			# Print masks
+			print  (f"\n{cbb_name.upper()}: module disabled mask: {hex(_moduleMasks[cbb_name])}") 
+			print  (f"{cbb_name.upper()}: llc disabled mask:  {hex(_llcMasks[cbb_name])}") 
+
+		# Setting the Class masks
+		self.coremask = _moduleMasks
+		self.slicemask = _llcMasks
+				
+		if self.boot and not debug:
+			self._call_boot(boot_postcode=False,stop_after_mrc=False, pm_enable_no_vf=False)
+		else:
+			print("Debug Mode - No Boot Performed")
+
+	## Enables/Disables each compute based on selected target
+	def setCompute(self) -> None:
+		'''
+		Selects which computes to enable/disable. Based on Selected Target
+		'''
+		## Local variables -- Just defining them for shorter lines and usage
+		
+		targetComputes = self.target
+		cbbs = self.cbbs
+		masks = self.masks		
+
+		# Check Product Validity
+		if not self.check_product_validity(): return
+
+		# Check Fresh State
+		self.check_for_start_fresh()
+
+		## Checking if multiple instances are selected -- If single, convert to list
+		if not isinstance(targetComputes,list):
+			#print (f"Single Compute Requested for: {targetTiles}")
+			targetComputeList = [targetComputes]
+		else:		
+			targetComputeList = targetComputes
+
+		masks_per_compute =  self.convert_cbb_mask_to_compute_mask(masks)
+		new_masks_per_compute = {}
+
+		print("\n"+"-"*62)
+		print("| Compute(s) selection requested for each available cbb |")
+		print("-"*62+"\n")
+
+		
+		for cbb in cbbs: # For each cbb
+			cbb_name = cbb.name
+			cbb_computes = cbb.computes.name
+			new_masks_per_compute[cbb_name] = {}
+
+			for compute_name in cbb_computes:
+				if compute_name in targetComputeList: # Compute remains enabled
+					print(f"\n{compute_name.upper()} enabled for {cbb_name}, mantaining original Masks")
+					new_masks_per_compute[cbb_name][f'ia_{compute_name}'] = masks_per_compute[cbb_name][f'ia_{compute_name}']
+					new_masks_per_compute[cbb_name][f'llc_{compute_name}'] = masks_per_compute[cbb_name][f'llc_{compute_name}']
+				else:
+					print(f"\n{compute_name.upper()} disabled for {cbb_name}, updating Masks")
+					new_masks_per_compute[cbb_name][f'ia_{compute_name}'] = 0xFF
+					new_masks_per_compute[cbb_name][f'llc_{compute_name}'] = masks_per_compute[cbb_name][f'llc_{compute_name}']
+		
+		_moduleMasks, _llcMasks = self.convert_compute_mask_to_cbb_mask(new_masks_per_compute)		
+
+		for cbb_name in cbbs:
+			# Print masks
+			print  (f"\n{cbb_name.upper()}: module disables mask: {hex(_moduleMasks[f'{cbb_name}'])}") 
+			print  (f"{cbb_name.upper()}: llc disables mask:  {hex(_llcMasks[f'{cbb_name}'])}") 
+
+		# Setting the Class masks
+		self.coremask = _moduleMasks
+		self.slicemask = _llcMasks
+				
+		if self.boot and not debug:
+			self._call_boot(boot_postcode=False,stop_after_mrc=False, pm_enable_no_vf=False)
+		else:
+			print("Debug Mode - No Boot Performed")
+			
+	## Needs at least one core enabled per COMPUTE, we are limited here, as WA we are leaving the selected compute alive plus the first full slice on the other COMPUTES.
+	def setTile(self, boot_postcode=False,stop_after_mrc=False, pm_enable_no_vf=False):
+		'''
+		Will disable all cores but targetTile / Target CBB
+		targetTiles: disables all tiles but targetTiles.  Can be single tile or list of tiles
+		ht_dis : True/(False)
+		boot: (True)/False Will call bootscript with new settings
+		coresliceMask: Override with desired coreslicemask.  Default: None
+		'''
+		## Variables Init
+		targetTiles = self.target
+		cbbs = self.cbbs
+		masks = self.masks
+
+		# Check Product Validity
+		if not self.check_product_validity(): return
+
+		# Check Fresh State
+		self.check_for_start_fresh()
+		
+		
+		# Building arrays based on system structure
+		_moduleMasks = self.generate_base_dict() # Module mask filled with 1 for every compute
+		_llcMasks= self.generate_base_dict() # LLC mask filled with 1 for every compute
+
+		## Read Mask enable for this part, no need for fuse ram need in Slice mode as we already read those at the beggining
+		#masks = dpm.fuses(system = die, rdFuses = readFuse, sktnum =[0])
+		
+		## Checking if multiple instances are selected
+
+		if not isinstance(targetTiles,list):
+			#print (f"Single Compute Requested for: {targetTiles}")
+			targetTileList = [targetTiles]
+		else:
+			
+			targetTileList = targetTiles	
+			
+		print("\n"+"-"*62)
+		print("| CBB(s) selection requested for availables cbb |")
+		print("-"*62+"\n")
+		
+		target_cbb = targetTileList
+
+		#coremask = ~(1 << (targetLogicalCore - (60 * target_compute))) & ((1 << 60) - 1)
+
+		for cbb in cbbs:
+			cbb_name = cbb.name
+			cbbN = cbb.target_info.instance
+
+			if cbb not in target_cbb:
+				disMask = self.generate_first_enabled_mask(masks=masks, cbb_name=cbb_name)
+
+				print(f"\n\t{cbb_name.upper()} not selected, enabling only the first available slice")
+				_moduleMasks[cbb_name] = disMask |  masks[f'llc_{cbb_name}']
+				_llcMasks[cbb_name] = disMask |  masks[f'llc_{cbb_name}']
+			
+			## If compute is not being disabled keep original Mask
+			else:
+				print(f"\n\t{cbb_name.upper()} selected, mantaining original Masks")
+				_moduleMasks[cbb_name] = masks[f'llc_{cbb_name}']
+				_llcMasks[cbb_name] = masks[f'llc_{cbb_name}']
+
+
+		for cbb_name in cbbs.name:
+			# Print masks
+			print  (f"\n{cbb_name.upper()}: module disabled mask: {hex(_moduleMasks[cbb_name])}") 
+			print  (f"{cbb_name.upper()}: llc disabled mask:  {hex(_llcMasks[cbb_name])}") 
+
+		# Setting the Class masks
+		self.coremask = _moduleMasks
+		self.slicemask = _llcMasks
+
+		if self.boot and not debug:
+			self._call_boot(boot_postcode=boot_postcode,stop_after_mrc=stop_after_mrc, pm_enable_no_vf=pm_enable_no_vf)
+		else:
+			print("Debug Mode - No Boot Performed")
+
+	## Mesh Mode: Applies Class mask configurations or some predfined Custom Masking for Debug Experiments
+	def setmesh(self, CustomConfig = [], boot_postcode=False, stop_after_mrc=False, pm_enable_no_vf=False, lsb = False, extMasks = None):
+		'''
+		Will disable all cores but targetTile
+		targetTiles: disables all tiles but targetTiles.  Can be single tile or list of tiles
+		ht_dis : True/(False)
+		boot: (True)/False Will call bootscript with new settings
+		coresliceMask: Override with desired coreslicemask.  Default: None
+
+		'''
+		## Variables Init
+		sv = self.sv
+		targetConfig = self.target
+		boot = self.boot
+		ht_dis = self.ht_dis
+		dis_2CPM = self.dis_2CPM
+		fresh_state = self.fresh_state
+		cbbs = self.cbbs
+		die = self.die
+		
+		readFuse = self.readFuse
+		clusterCheck = self.clusterCheck
+
+		if extMasks != None:
+			masks = {k:int(v,16) for k, v in extMasks.items()}
+		else:
+			masks = self.masks
+
+		# Check Product Validity
+		if not self.check_product_validity(): return
+
+		# Check Fresh State
+		self.check_for_start_fresh()
+	
+		# Call DPMChecks Mesh script for mask change, we are not booting here
+		core_count, llc_count, Masks_test = dpm.pseudo_bs(ClassMask = targetConfig, Custom = CustomConfig, boot = False, use_core = False, htdis = ht_dis, dis_2CPM = dis_2CPM, fuse_read = readFuse, s2t = True, masks = masks, clusterCheck = clusterCheck, lsb = lsb, skip_init = True)
+
+		# Below dicts are only for converting of variables str to int
+		
+		print(f'\nSetting new Masks for {targetConfig} configuration:\n')
+
+		modules, llcs = self.generate_mesh_masking(Masks_test[targetConfig])
+
+		# Setting the Class masks in script arrays
+		self.coremask = modules
+		self.slicemask = llcs
+
+		if self.boot and not debug:
+			self._call_boot(boot_postcode=boot_postcode,stop_after_mrc=stop_after_mrc, pm_enable_no_vf=pm_enable_no_vf)
+		else:
+			print("Debug Mode - No Boot Performed")
+
+	## Full Chip Mode: The script passes current System Masking or an External provided Mask 
+	def setfc(self, extMasks = None, boot_postcode=False, stop_after_mrc=False, pm_enable_no_vf=False):
+		'''
+		Will Boot Unit with full chip configuration, extMasks option to input a custom masking for slice defeature
+
+		'''
+
+		# Check Product Validity
+		if not self.check_product_validity(): return
+
+		# Check Fresh State
+		self.check_for_start_fresh()
+
+		# Building arrays based on system structure
+		if extMasks != None:
+			
+			#_moduleMasks= {cbb.name: extMasks[f'ia_{cbb.name}'] for cbb in cbbs}
+			#_llcMasks= {cbb.name: extMasks[f'llc_{cbb.name}'] for cbb in cbbs}
+
+			print(f'\nSetting New Mask Based on External Masks Configuration:\n')
+			modules, llcs = self.generate_mesh_masking(masks=extMasks)
+							
+			# Setting the Class masks in script arrays
+			self.coremask = modules
+			self.slicemask = llcs
+
+		if self.boot and not debug:
+			self._call_boot(boot_postcode=boot_postcode,stop_after_mrc=stop_after_mrc, pm_enable_no_vf=pm_enable_no_vf)
+		else:
+			print("Debug Mode - No Boot Performed")
+
+	## Wrapper to call boot or fastboot depending on class variable self.Fastboot
+	def _call_boot(self, boot_postcode=False, stop_after_mrc=False, fixed_core_freq = None, fixed_mesh_freq=None, fixed_io_freq=None, avx_mode = None, acode_dis=None, vp2intersect_en=True, ia_p0=None, ia_turbo=None, ia_vf=None, ia_p1=None, ia_pn=None, ia_pm=None, cfc_p0=None, cfc_p1=None, cfc_pn=None, cfc_pm=None, io_p0=None, io_p1=None, io_pn=None, io_pm=None, pm_enable_no_vf=False, u600w=None):
+		'''
+		Wrapper to call boot or fastboot depending on class variable self.Fastboot
+		'''
+		if self.Fastboot:
+			self._fastboot(boot_postcode=boot_postcode, stop_after_mrc=stop_after_mrc, fixed_core_freq=fixed_core_freq, fixed_mesh_freq=fixed_mesh_freq, fixed_io_freq=fixed_io_freq, avx_mode=avx_mode, acode_dis=acode_dis, vp2intersect_en=vp2intersect_en, ia_p0=ia_p0, ia_turbo=ia_turbo, ia_vf=ia_vf, ia_p1=ia_p1, ia_pn=ia_pn, ia_pm=ia_pm, cfc_p0=cfc_p0, cfc_p1=cfc_p1, cfc_pn=cfc_pn, cfc_pm=cfc_pm, io_p0=io_p0, io_p1=io_p1, io_pn=io_pn, io_pm=io_pm, pm_enable_no_vf=pm_enable_no_vf, u600w=u600w)
+		else:
+			self._doboot(boot_postcode=boot_postcode, stop_after_mrc=stop_after_mrc, fixed_core_freq=fixed_core_freq, fixed_mesh_freq=fixed_mesh_freq, fixed_io_freq=fixed_io_freq, avx_mode=avx_mode, acode_dis=acode_dis, vp2intersect_en=vp2intersect_en, ia_p0=ia_p0, ia_turbo=ia_turbo, ia_vf=ia_vf, ia_p1=ia_p1, ia_pn=ia_pn, ia_pm=ia_pm, cfc_p0=cfc_p0, cfc_p1=cfc_p1, cfc_pn=cfc_pn, cfc_pm=cfc_pm, io_p0=io_p0, io_p1=io_p1, io_pn=io_pn, io_pm=io_pm, pm_enable_no_vf=pm_enable_no_vf, u600w=u600w)
+
+
+	## Boots the unit using the bootscript with fuse_strings.
+	def _doboot(self, masks=None, modulemask=None, llcmask=None, stop_after_mrc=False, fixed_core_freq = None, fixed_mesh_freq=None, avx_mode = None, acode_dis=None, vp2intersect_en=True, pm_enable_no_vf=False, ia_fw_p1=None, ia_fw_pn=None, ia_fw_pm=None, ia_fw_pboot=None, ia_fw_pturbo=None, ia_vf_curves=None, ia_imh_p1=None, ia_imh_pn=None, ia_imh_pm=None, ia_imh_pturbo=None, cfc_fw_p0=None, cfc_fw_p1=None, cfc_fw_pm=None, cfc_cbb_p0=None, cfc_cbb_p1=None, cfc_cbb_pm=None, cfc_io_p0=None, cfc_io_p1=None, cfc_io_pm=None, cfc_mem_p0=None, cfc_mem_p1=None, cfc_mem_pm=None):
+		'''
+		Calls bootscript, if modulemask and llcmask is not set, then both llc_slice_disable and ia_core_disable get masks value
+
+		Inputs:
+			masks: (Dictionary, Default=None) module and LLC masks.
+			modulemask: (Dictionary, Default=None) override module mask.
+			llcmask: (Dictionary, Default=None) override LLC mask.
+			stop_after_mrc: (Boolean, Default=False) If set, will stop after MRC is complete
+			fixed_core_freq: (Boolean, Default=None) if set, set core P0,P1,Pn and pmin 
+			fixed_mesh_freq: (Boolean, Default=None) if set, set mesh P0,P1,Pn and pmin
+			fixed_io_freq: (Boolean, Default=None) if set, set io P0,P1,Pn and pmin
+			avx_mode: (String, Default=None)  Set AVX mode
+			acode_dis: (Boolean, Default=None) Disable acode 
+			vp2intersect_en: (Boolean, Default=None) If set, will enable VPINTERSECT instruction ( needed for some Dragon Content )
+			ia_p0: (Int, Default=None) CORE P0
+			ia_p1: (Int, Default=None) CORE P1
+			ia_pn: (Int, Default=None) CORE Pn
+			ia_pm: (Int, Default=None) CORE Pm
+			cfc_p0: (Int, Default=None) CFC P0
+			cfc_p1: (Int, Default=None) CFC P1
+			cfc_pn: (Int, Default=None) CFC Pn
+			cfc_pm: (Int, Default=None) CFC Pm
+			io_p0: (Int, Default=None) IO P0
+			io_p1: (Int, Default=None) IO P1
+			io_pn: (Int, Default=None) IO Pn
+			io_pm: (Int, Default=None) IO Pm
+			pm_enable_no_vf: (Boolean, Default=False) if True, will use fuse file pm_enable_no_vf.cfg to configure fuses (cfc/ia ratios and ia volt=1V) as tester	
+	'''
+
+		## Core and LLC slice disable masks we are going to move to a dict with all the values, this dict is going to change depending on the type of system we use
+		# GNR has different flavours and topologies
+		# On this version we have X3 and X2, code is left with some spaces for the rest of them.
+		global _boot_string
+		sv = self.sv #_get_global_sv()
+		ipc = self.ipc
+		die = self.die
+		masks = self.masks
+		ht_dis = self.ht_dis
+		dis_2CPM = self.dis_2CPM
+		coreslicemask= self.coremask
+		slicemask = self.slicemask
+		
+		product_bs = BOOTSCRIPT_DATA
+				
+						
+		# Retrieve local path
+		parent_dir = os.path.dirname(os.path.realpath(__file__))
+		fuses_dir = os.path.join(parent_dir, 'Fuse')
+		
+		
+		b_extra = global_boot_extra
+		_fuse_str = []
+		_fuse_str_cbb = []
+		_fuse_str_cbb_0 = []
+		_fuse_str_cbb_1 = []
+		_fuse_str_cbb_2 = []
+		_fuse_str_cbb_3 = []
+		_fuse_str_imh = []
+		_fuse_str_imh_0 = []
+		_fuse_str_imh_1 = []
+		
+		_fuse_str_io = []
+		_fuse_files = []
+		_fuse_files_cbb = []
+		_fuse_files_imh = []
+		_llc = []
+		_ia = []
+
+		htdis_comp = HIDIS_COMP # Based on Product
+		htdis_io = HTDIS_IO # Based on Product
+		vp2i_en_comp = VP2INTERSECT['bs'] # Based on Product
+		U600W_comp = FUSES_600W_COMP # Based on Product
+		W600W_io = FUSES_600W_IO # Based on Product
+		
+		if ht_dis == None and global_ht_dis !=None: ht_dis = global_ht_dis
+		#if dis_2CPM == None and global_2CPM_dis !=None: dis_2CPM = global_2CPM_dis
+		if u600w == None and global_u600w !=None: u600w = global_u600w
+		if acode_dis == None and global_acode_dis !=None: acode_dis = global_acode_dis
+		if global_boot_stop_after_mrc: stop_after_mrc = True
+		if global_boot_postcode: boot_postcode = True
+		if avx_mode == None and global_avx_mode !=None: avx_mode = global_avx_mode
+		if fixed_core_freq == None and global_fixed_core_freq !=None: fixed_core_freq = global_fixed_core_freq
+		if ia_fw_p1 == None and global_ia_fw_p1 !=None: ia_fw_p1 = global_ia_fw_p1
+		if ia_fw_pn == None and global_ia_fw_pn !=None: ia_fw_pn = global_ia_fw_pn
+		if ia_fw_pm == None and global_ia_fw_pm !=None: ia_fw_pm = global_ia_fw_pm
+		if ia_fw_pboot == None and global_ia_fw_pboot !=None: ia_fw_pboot = global_ia_fw_pboot
+		if ia_fw_pturbo == None and global_ia_fw_pturbo !=None: ia_fw_pturbo = global_ia_fw_pturbo
+		if ia_vf_curves == None and global_ia_vf_curves !=None: ia_vf_curves = global_ia_vf_curves
+
+		if ia_imh_p1 == None and global_ia_imh_p1 !=None: ia_imh_p1 = global_ia_imh_p1
+		if ia_imh_pn == None and global_ia_imh_pn !=None: ia_imh_pn = global_ia_imh_pn
+		if ia_imh_pm == None and global_ia_imh_pm !=None: ia_imh_pm = global_ia_imh_pm
+		if ia_imh_pturbo == None and global_ia_imh_pturbo !=None: ia_imh_pturbo = global_ia_imh_pturbo
+
+		if fixed_mesh_freq == None and global_fixed_mesh_freq !=None: fixed_mesh_freq = global_fixed_mesh_freq
+		if cfc_fw_p0 == None and global_cfc_fw_p0 !=None: cfc_fw_p0 = global_cfc_fw_p0
+		if cfc_fw_p1 == None and global_cfc_fw_p1 !=None: cfc_fw_p1 = global_cfc_fw_p1
+		if cfc_fw_pm == None and global_cfc_fw_pm  !=None: cfc_fw_pm = global_cfc_fw_pm
+		if cfc_cbb_p0 == None and global_cfc_cbb_p0 !=None: cfc_cbb_p0 = global_cfc_cbb_p0
+		if cfc_cbb_p1 == None and global_cfc_cbb_p1 !=None: cfc_cbb_p0 = global_cfc_cbb_p1
+		if cfc_cbb_pm == None and global_cfc_cbb_pm !=None: cfc_cbb_p0 = global_cfc_cbb_pm
+
+		# if fixed_io_freq == None and global_fixed_io_freq !=None: fixed_io_freq = global_fixed_io_freq
+		# if io_p0 == None and global_io_p0 !=None: io_p0 = global_io_p0
+		if cfc_io_p0 == None and global_cfc_io_p0 !=None: cfc_io_p0 = global_cfc_io_p0
+		if cfc_io_p1 == None and global_cfc_io_p1 !=None: cfc_io_p1 = global_cfc_io_p1
+		if cfc_io_pm == None and global_cfc_io_pm !=None: cfc_io_pm = global_cfc_io_pm
+		if cfc_mem_p0 == None and global_cfc_mem_p0 !=None: cfc_mem_p0 = global_cfc_mem_p0
+		if cfc_mem_p1 == None and global_cfc_mem_p1 !=None: cfc_mem_p1 = global_cfc_mem_p1
+		if cfc_mem_pm == None and global_cfc_mem_pm !=None: cfc_mem_pm = global_cfc_mem_pm
+
+		if (fixed_core_freq != None):	
+			ia_fw_p1 = fixed_core_freq
+			ia_fw_pn = fixed_core_freq
+			ia_fw_pm = fixed_core_freq
+			ia_fw_pboot = fixed_core_freq
+			ia_fw_pturbo = fixed_core_freq
+			#ia_vf_curves = fixed_core_freq # We dont Modify VF curves
+
+			ia_imh_p1 = fixed_core_freq
+			ia_imh_pn = fixed_core_freq
+			ia_imh_pm = fixed_core_freq
+			ia_imh_pturbo = fixed_core_freq
+
+		if (fixed_mesh_freq != None):
+			cfc_fw_p0 = fixed_mesh_freq
+			cfc_fw_p1 = fixed_mesh_freq
+			cfc_fw_pm = fixed_mesh_freq
+
+			cfc_cbb_p0 = fixed_mesh_freq
+			cfc_cbb_p1 = fixed_mesh_freq
+			cfc_cbb_pm = fixed_mesh_freq
+
+			cfc_io_p0 = fixed_mesh_freq
+			cfc_io_p1 = fixed_mesh_freq
+			cfc_io_pm = fixed_mesh_freq
+
+			cfc_mem_p0 = fixed_mesh_freq
+			cfc_mem_p1 = fixed_mesh_freq
+			cfc_mem_pm = fixed_mesh_freq
+
+
+		print('\nUsing the following configuration for unit boot: ')
+		# if ht_dis: print('\tHyper Threading disabled')
+		if acode_dis: print('\tAcode disabled')
+		if stop_after_mrc: print('\tStop after MRC')
+		print(f'\tConfigured License Mode: {avx_mode}')
+		print(f'\tCore Frequencies:')
+		print(f'\t\tIA p1: {ia_fw_p1}')
+		print(f'\t\tIA pn: {ia_fw_pn}')
+		print(f'\t\tIA pm: {ia_fw_pm}')
+		print(f'\t\tIA fw boot: {ia_fw_pboot}')
+		print(f'\t\tIA fw turbo: {ia_fw_pturbo}')
+		print(f'\t\tIA fw vf curves: {ia_vf_curves}')
+		print(f'\t\tIA imh p1: {ia_imh_p1}')
+		print(f'\t\tIA imh pn: {ia_imh_pn}')
+		print(f'\t\tIA imh pm: {ia_imh_pm}')
+		print(f'\t\tIA imh turbo: {ia_imh_pturbo}')
+		print(f'\tCompute Mesh Frequencies:')
+		print(f'\t\tCFC MESH fw p0: {cfc_fw_p0}')
+		print(f'\t\tCFC MESH fw p1: {cfc_fw_p1}')
+		print(f'\t\tCFC MESH fw pn: {cfc_fw_pm}')
+		print(f'\t\tCFC MESH cbb p0: {cfc_cbb_p0}')
+		print(f'\t\tCFC MESH cbb p1: {cfc_cbb_p1}')
+		print(f'\t\tCFC MESH cbb pn: {cfc_cbb_pm}')
+		print(f'\t\tCFC MESH io p0: {cfc_io_p0}')
+		print(f'\t\tCFC MESH io p1: {cfc_io_p1}')
+		print(f'\t\tCFC MESH io pn: {cfc_io_pm}')
+		print(f'\t\tCFC MESH mem p0: {cfc_mem_p0}')
+		print(f'\t\tCFC MESH mem p1: {cfc_mem_p1}')
+		print(f'\t\tCFC MESH mem pn: {cfc_mem_pm}')
+		
+
+		try:
+			temp = sv.sockets.imhs.fuses.hwrs_top_late.ip_disable_fuses_dword6_core_disable.get_value()[0] 
+		except:
+			itp.forcereconfig()
+			itp.unlock()
+			sv.refresh()
+		
+		if (pm_enable_no_vf == True): 
+			_fuse_files_compute=[f'{fuses_dir}\\pm_enable_no_vf_computes.cfg']
+			_fuse_files_io = [f'{fuses_dir}\\pm_enable_no_vf_ios.cfg'] 
+
+
+		if (stop_after_mrc): b_extra+=', gotil=\"phase6_cpu_reset_break\"'
+		
+		
+		if cfc_fw_p0: _fuse_str_cbb += assign_values_to_regs(bootFuses['CFC']['fwFreq']['p0'], cfc_fw_p0)
+		if cfc_fw_p1: _fuse_str_cbb += assign_values_to_regs(bootFuses['CFC']['fwFreq']['p1'], cfc_fw_p1)
+		if cfc_fw_pm: _fuse_str_cbb += assign_values_to_regs(bootFuses['CFC']['fwFreq']['min'], cfc_fw_pm)
+
+		if cfc_cbb_p0: _fuse_str_imh += assign_values_to_regs(bootFuses['CFC']['cbbFreq']['p0'], cfc_cbb_p0)
+		if cfc_cbb_p1: _fuse_str_imh += assign_values_to_regs(bootFuses['CFC']['cbbFreq']['p1'], cfc_cbb_p1)
+		if cfc_cbb_pm: _fuse_str_imh += assign_values_to_regs(bootFuses['CFC']['cbbFreq']['min'], cfc_cbb_pm)
+
+		if cfc_io_p0: _fuse_str_imh += assign_values_to_regs(bootFuses['CFC']['ioFreq']['p0'], cfc_io_p0)
+		if cfc_io_p1: _fuse_str_imh += assign_values_to_regs(bootFuses['CFC']['ioFreq']['p1'], cfc_io_p1)
+		if cfc_io_pm: _fuse_str_imh += assign_values_to_regs(bootFuses['CFC']['ioFreq']['min'], cfc_io_pm)
+
+		if cfc_mem_p0: _fuse_str_imh += assign_values_to_regs(bootFuses['CFC']['memFreq']['p0'], cfc_mem_p0)
+		if cfc_mem_p1: _fuse_str_imh += assign_values_to_regs(bootFuses['CFC']['memFreq']['p1'], cfc_mem_p1)
+		if cfc_mem_pm: _fuse_str_imh += assign_values_to_regs(bootFuses['CFC']['memFreq']['min'], cfc_mem_pm)
+
+		if ia_fw_p1: _fuse_str_cbb += assign_values_to_regs(bootFuses['IA']['fwFreq']['p1'], ia_fw_p1)
+		if ia_fw_pn: _fuse_str_cbb += assign_values_to_regs(bootFuses['IA']['fwFreq']['pn'], ia_fw_pn)
+		if ia_fw_pm: _fuse_str_cbb += assign_values_to_regs(bootFuses['IA']['fwFreq']['min'], ia_fw_pm)
+		if ia_fw_pboot: _fuse_str_cbb += assign_values_to_regs(bootFuses['IA']['fwFreq']['boot'], ia_fw_pboot)
+		if ia_fw_pturbo: _fuse_str_cbb += assign_values_to_regs(bootFuses['IA']['fwFreq']['turbo'], ia_fw_pturbo)
+		if ia_vf_curves: _fuse_str_cbb += assign_values_to_regs(bootFuses['IA']['fwFreq']['vf_curves'], ia_vf_curves)
+			
+		if ia_imh_p1: _fuse_str_imh += assign_values_to_regs(bootFuses['IA']['imhFreq']['p1'], ia_imh_p1)
+		if ia_imh_pn: _fuse_str_imh += assign_values_to_regs(bootFuses['IA']['imhFreq']['pn'], ia_imh_pn)
+		if ia_imh_pm: _fuse_str_imh += assign_values_to_regs(bootFuses['IA']['imhFreq']['min'], ia_imh_pm)
+		if ia_imh_pturbo: _fuse_str_imh += assign_values_to_regs(bootFuses['IA']['imhFreq']['turbo'], ia_imh_pturbo)
+
+		if (avx_mode != None):
+			if (avx_mode) in range (0,8):
+				int_mode = avx_mode
+			elif avx_mode == "128":
+				int_mode = 1        
+			elif avx_mode == "256":
+				int_mode = 3
+			elif avx_mode == "512":
+				int_mode=5
+			elif avx_mode == "TMUL":
+				int_mode=7
+			else:
+				raise ValueError("Invalid AVX Mode")
+			ia_min_lic = bootFuses['IA_license']['cbb']['min']
+			ia_max_lic = bootFuses['IA_license']['cbb']['max']
+			# ia_def_lic = IA_license['default']
+			# _fuse_str += [f'{ia_min_lic}=0x%x' % int_mode,f'{ia_def_lic}=0x%x' % int_mode]
+			_fuse_str_cbb += [f'{ia_min_lic}=0x%x' % int_mode]
+			_fuse_str_cbb += [f'{ia_max_lic}=0x%x' % int_mode]
+		# print(f'fuse_str {_fuse_str_compute}')
+
+		if _fuse_str_cbb:
+			updated_fuse_str_cbb = [value.replace("sv.sockets.cbbs.base.", "") for value in _fuse_str_cbb]
+			_fuse_str_cbb = updated_fuse_str_cbb
+
+		if _fuse_str_imh:
+			updated_fuse_str_imh = [value.replace("sv.sockets.imhs.", "") for value in _fuse_str_imh]
+			_fuse_str_imh = updated_fuse_str_imh
+
+		# _modulemask ={}
+		# _llcmask = {}
+		
+		# for key, value in masks.items():
+		# 	newkey = f'cbb{key[-1]}'
+		# 	if key.startswith('ia_'):
+		# 		_modulemask[newkey] = value
+		# 	if key.startswith('llc_'):
+		# 		_llcmask[newkey] = value
+		
+		if (modulemask == None): 
+			_boot_disable_ia = ''
+		else:
+			for key, value in modulemask.items():
+				_ia +=  [('"cbb_base%s":%s')  % (key[-1],hex(value))]
+				_boot_disable_ia = ','.join(_ia)
+
+		if (llcmask == None): 
+			_boot_disable_llc = ''
+		else:
+			for key, value in llcmask.items():
+				_llc +=  [('"cbb_base%s":%s')  % (key[-1],hex(value))]
+			_boot_disable_llc = ','.join(_llc)
+
+		FastBoot = False
+		if FastBoot:
+			bootopt = 'bs.fast_boot'
+			bootcont = 'bs.cont'
+		else:
+			bootopt = 'b.go'
+			bootcont = 'b.cont'
+
+		# _boot_string = ('%s(fused_unit=True, enable_strap_checks=False,compute_config="%s",enable_pm=True,segment="%s" %s, %s, %s fuse_str_compute = %s,fuse_str_io = %s, fuse_files_compute=[%s], fuse_files_io=[%s],AXON_UPLOAD_ENABLED = False)') % (bootopt, product[die]['compute_config'], product[die]['segment'], b_extra, _boot_disable_ia, _boot_disable_llc,_fuse_str_compute,_fuse_str_io,_fuse_files_compute, _fuse_files_io)
+		_boot_string = ('%s(fused_unit=False, pwrgoodmethod="usb", compute_config="%s", ia_core_disable={%s}, llc_slice_disable={%s}, fuse_str={"cbb_base":%s, "imh":%s})') % (bootopt, product[die]['compute_config'], _boot_disable_ia, _boot_disable_llc, _fuse_str_cbb, _fuse_str_imh)
+
+		print("*"*20)
+		if FastBoot: print('import users.THR.PythonScripts.thr.GnrBootscriptOverrider as bs') # CHECK THIS FOR IMPLEMENTATION
+		else:	print("import toolext.bootscript.boot as b")
+		print (_boot_string)
+		print("***********************************v********************************************")
+		if global_dry_run == False:
+			eval(_boot_string)
+			#print("********************************************************************************")
+			#print (_boot_string)
+			#print("********************************************************************************")
+			if (stop_after_mrc):
+				# sv.socket0.io0.uncore.ubox.ncdecs.biosscratchpad6_cfg=AFTER_MRC_POST
+				sv.socket0.imh0.ubox.ncdecs.biosscratchpad_mem[6]=AFTER_MRC_POST
+				print("***********************************v********************************************")
+				print(f"sv.socket0.io0.uncore.ubox.ncdecs.biosscratchpad6_cfg={AFTER_MRC_POST}")
+				print ("%s(curr_state='phase6_cpu_reset_break')" % bootcont)
+				print("***********************************v********************************************")
+				if FastBoot: bs.cont(curr_state='phase6_cpu_reset_break')
+				else:	b.cont(curr_state='phase6_cpu_reset_break')
+				_wait_for_post(AFTER_MRC_POST)
+			else:
+				_wait_for_post(EFI_POST, sleeptime=120)
+			sv_refreshed = False
+
+
+	## Boots the unit using the bootscript with fuse_strings.
+	def _doboot(self, boot_postcode=False, stop_after_mrc=False, fixed_core_freq = None, fixed_mesh_freq=None, fixed_io_freq=None, avx_mode = None, acode_dis=None, vp2intersect_en=True, ia_p0=None, ia_turbo=None, ia_vf=None, ia_p1=None, ia_pn=None, ia_pm=None, cfc_p0=None, cfc_p1=None, cfc_pn=None, cfc_pm=None, io_p0=None, io_p1=None, io_pn=None, io_pm=None, pm_enable_no_vf=False, u600w=None):
+		'''
+		calls bootscript
+		if coreslicemask and slicemask is not set, then both llc_slice_disable and ia_core_disable get coreslice mask
+		ht_dis: Disable HT or not
+		slicemask: override llc_slice_disable
+		stop_after_mrc:  If set, will stop after MRC is complete
+		fixed_core_freq : if set, set core P0,P1,Pn and pmin 
+		fixed_mesh_freq : if set, set mesh P0,P1,Pn and pmin
+		fixed_io_freq : if set, set mesh P0,P1,Pn and pmin
+		pm_enable_no_vf : if True, will use fuse file pm_enable_no_vf.cfg to configure fuses (cfc/ia ratios and ia volt=1V) as tester	
+		avx_mode:  Set AVX mode
+		vptintersect_en: If set, will enable VPINTERSECT instruction ( needed for some Dragon Content )
+		ia_p0:CORE P0 
+		ia_p1:CORE P1
+		ia_pn:CORE Pn
+		ia_pm:CORE Pm
+		cfc_p0:CFC P0
+		cfc_p1:CFC P1
+		cfc_pn:CFC Pn
+		cfc_pm:CFC Pm
+	'''
+		## Core and LLC slice disable masks we are going to move to a dict with all the values, this dict is going to change depending on the type of system we use
+		# GNR has different flavours and topologies
+		# On this version we have X3 and X2, code is left with some spaces for the rest of them.
+		global _boot_string
+		sv = self.sv #_get_global_sv()
+		ipc = self.ipc
+		die = self.die
+		masks = self.masks
+		ht_dis = self.ht_dis
+		dis_2CPM = self.dis_2CPM
+		coreslicemask= self.coremask
+		slicemask = self.slicemask
+		
+		product_bs = BOOTSCRIPT_DATA
+				
+		# Retrieve local path
+		parent_dir = os.path.dirname(os.path.realpath(__file__))
+		fuses_dir = os.path.join(parent_dir, 'Fuse')
+		
+		
+		b_extra = global_boot_extra
+		_fuse_str = []
+		_fuse_str_compute = []
+		_fuse_str_compute_0 = []
+		_fuse_str_compute_1 = []
+		_fuse_str_compute_2 = []
+		_fuse_str_io = []
+		_fuse_str_io_0 = []
+		_fuse_str_io_1 = []
+		_fuse_files = []
+		_fuse_files_compute = []
+		_fuse_files_io = []
+		_llc = []
+		_ia = []
+
+		htdis_comp = HIDIS_COMP # No HT dis in Atomcore
+		htdis_io = HTDIS_IO # No HT dis in Atomcore
+		vp2i_en_comp = VP2INTERSECT['bs'] #['scf_gnr_maxi_coretile_c0_r1.core_core_fuse_misc_vp2intersect_dis=0x0']
+		U600W_comp = FUSES_600W_COMP # Nothing defined for HiPower required units
+		W600W_io = FUSES_600W_IO # Nothing defined for HiPower required units
+		
+		
+		
+
+		if ht_dis == None and global_ht_dis !=None: ht_dis = global_ht_dis
+		#if dis_2CPM == None and global_2CPM_dis !=None: dis_2CPM = global_2CPM_dis
+		if u600w == None and global_u600w !=None: u600w = global_u600w
+		if acode_dis == None and global_acode_dis !=None: acode_dis = global_acode_dis
+		if global_boot_stop_after_mrc: stop_after_mrc = True
+		if global_boot_postcode: boot_postcode = True
+		if avx_mode == None and global_avx_mode !=None: avx_mode = global_avx_mode
+		if fixed_core_freq == None and global_fixed_core_freq !=None: fixed_core_freq = global_fixed_core_freq
+		if ia_p0 == None and global_ia_p0 !=None: ia_p0 = global_ia_p0
+		## Turbo and limit conditions for IA Frequency
+		if ia_turbo == None and global_ia_turbo !=None: ia_turbo = global_ia_turbo
+		if ia_vf == None and global_ia_vf !=None: ia_vf = global_ia_vf
+		##
+		if ia_p1 == None and global_ia_p1 !=None: ia_p1 = global_ia_p1
+		if ia_pn == None and global_ia_pn !=None: ia_pn = global_ia_pn
+		if ia_pm == None and global_ia_pm !=None: ia_pm = global_ia_pm
+		if fixed_mesh_freq == None and global_fixed_mesh_freq !=None: fixed_mesh_freq = global_fixed_mesh_freq
+		if cfc_p0 == None and global_cfc_p0 !=None: cfc_p0 = global_cfc_p0
+		if cfc_p1 == None and global_cfc_p1 !=None: cfc_p1 = global_cfc_p1
+		if cfc_pn == None and global_cfc_pn !=None: cfc_pn = global_cfc_pn
+		if cfc_pm == None and global_cfc_pm !=None: cfc_pm = global_cfc_pm
+		if fixed_io_freq == None and global_fixed_io_freq !=None: fixed_io_freq = global_fixed_io_freq
+		if io_p0 == None and global_io_p0 !=None: io_p0 = global_io_p0
+		if io_p1 == None and global_io_p1 !=None: io_p1 = global_io_p1
+		if io_pn == None and global_io_pn !=None: io_pn = global_io_pn
+		if io_pm == None and global_io_pm !=None: io_pm = global_io_pm
+
+		if (fixed_core_freq != None):
+			ia_p0 = fixed_core_freq
+			ia_p1 = fixed_core_freq
+			ia_pn = fixed_core_freq
+			ia_pm = fixed_core_freq
+		if (fixed_mesh_freq != None):
+			cfc_p0 = fixed_mesh_freq
+			cfc_p1 = fixed_mesh_freq
+			cfc_pn = fixed_mesh_freq
+			cfc_pm = fixed_mesh_freq
+		if (fixed_mesh_freq != None):
+			io_p0 = fixed_io_freq
+			io_p1 = fixed_io_freq
+			io_pn = fixed_io_freq
+			io_pm = fixed_io_freq
+
+		## Cores per Module disable Fuses (Atom)
+		dis_2CPM_comp = self.fuse_2CPM
+		dis_2CPM_value = f'{dis_2CPM:#x}' if isinstance(dis_2CPM,int) else dis_2CPM
+		print('\nUsing the following configuration for unit boot: ')
+		if ht_dis: print('\tHyper Threading disabled')
+		if dis_2CPM != None: print(f'\tRunning with 2 Cores per Module Configuration : {dis_2CPM_value}')
+		if acode_dis: print('\tAcode disabled')
+		if stop_after_mrc: print('\tStop after MRC')
+		if boot_postcode: print('\tBoot Will be stopped at Break')
+
+		print(f'\tConfigured License Mode: {avx_mode}')
+		print(f'\tCore Frequencies:')
+		print(f'\t\tIA P0: {ia_p0}')
+		print(f'\t\tIA P1: {ia_p1}')
+		print(f'\t\tIA PN: {ia_pn}')
+		print(f'\t\tIA MIN: {ia_pm}')
+		print(f'\t\tIA TURBO: {ia_turbo}')
+		print(f'\t\tIA VF: {ia_vf}')
+
+		print(f'\tCompute Mesh Frequencies:')
+		print(f'\t\tCFC MESH P0: {cfc_p0}')
+		print(f'\t\tCFC MESH P1: {cfc_p1}')
+		print(f'\t\tCFC MESH PN: {cfc_pn}')
+		print(f'\t\tCFC MESH MIN: {cfc_pm}')
+		print(f'\tIO Mesh Frequencies:')
+		print(f'\t\tCFC IO P0: {io_p0}')
+		print(f'\t\tCFC IO P1: {io_p1}')
+		print(f'\t\tCFC IO PN: {io_pn}')
+		print(f'\t\tCFC IO MIN: {io_pm}')
+
+		#Voltages
+		fixed_core_volt = global_fixed_core_volt
+		fixed_cfc_volt = global_fixed_cfc_volt
+		fixed_hdc_volt = global_fixed_hdc_volt
+		fixed_cfcio_volt = global_fixed_cfcio_volt
+		fixed_ddrd_volt = global_fixed_ddrd_volt
+		fixed_ddra_volt = global_fixed_ddra_volt
+		vbumps_config = global_vbumps_configuration
+
+		voltageWord = 'vBump' if vbumps_config else 'Volt'
+		print(f'\tVoltage Bumps Configurations:' if vbumps_config else f'\tFixed Voltage Configurations:')
+		print(f'\t\tCore {voltageWord}: {fixed_core_volt}{"V" if fixed_core_volt != None else ""}')
+		print(f'\t\tCFC Compute {voltageWord}: {fixed_cfc_volt}{"V" if fixed_cfc_volt != None else ""}')
+		print(f'\t\tHDC Compute {voltageWord}: {fixed_hdc_volt}{"V" if fixed_hdc_volt != None else ""}')
+		print(f'\t\tCFC IO {voltageWord}: {fixed_cfcio_volt}{"V" if fixed_cfcio_volt != None else ""}')		
+		print(f'\t\tDDRD {voltageWord}: {fixed_ddrd_volt}{"V" if fixed_ddrd_volt != None else ""}')	
+		#print(f'\t\tDDRA {voltageWord}: {fixed_ddra_volt}{"V" if fixed_ddra_volt != None else ""}')	
+		#try:
+		#	temp = sv.socket0.compute0.fuses.hwrs_top_rom.ip_disable_fuses_dword6_core_disable ## Need to change this
+		#except:
+		#	itp.forcereconfig()
+		#	itp.unlock()
+		#	sv.refresh()
+		
+		##PM enable no vf not enabled yet, do not use... WIP
+		if (pm_enable_no_vf == True): 
+			_fuse_files_compute=[f'{fuses_dir}\\pm_enable_no_vf_computes.cfg'] ## Fix the file for GNR
+			_fuse_files_io = [f'{fuses_dir}\\pm_enable_no_vf_ios.cfg'] ## Fix the file for GNR
+
+
+		if (stop_after_mrc or boot_postcode): b_extra+=', gotil=\"phase6_cpu_reset_break\"'
+		
+		#masks = dpm.fuses(system = die, rdFuses = False, sktnum =[0])
+
+
+		_coreslicemask ={}
+		_slicemask = {}
+		print(coreslicemask)
+		print(slicemask)
+		for key, value in masks.items():
+			newkey = f'compute{key[-1]}'
+			if key.startswith('ia_compute_'):
+				_coreslicemask[newkey] = value
+			if key.startswith('llc_compute_'):
+				_slicemask[newkey] = value
+		
+		
+		if (coreslicemask == None): 
+			#coreslicemask = _coreslicemask
+			_boot_disable_ia = ''
+		else:
+			for key, value in coreslicemask.items():
+					_ia +=  [('ia_core_disable_compute_%s = %s')  % (key[-1],hex(value))]
+
+			_boot_disable_ia = ','.join(_ia) + ','
+			
+
+			#coreslicemask = {value: {die:None} for value in product[die]}
+
+			#coreslicemask = int(sv.socket0.pcudata.fused_ia_core_disable_1) << 32 | int(sv.socket0.pcudata.fused_ia_core_disable_0) # double check this works
+
+		if (slicemask == None): 
+			#slicemask = coreslicemask
+			_boot_disable_llc = ''
+		else:
+			for key, value in slicemask.items():
+				_llc +=  [('llc_slice_disable_compute_%s = %s')  % (key[-1],hex(value))]
+			_boot_disable_llc = ','.join(_llc) + ','
+
+		if (ht_dis): 
+			_fuse_str_compute+=htdis_comp
+			_fuse_str_io+=htdis_io
+
+		if (dis_2CPM != None): 
+			_fuse_str_compute+=dis_2CPM_comp
+
+		if (u600w): 
+			_fuse_str_compute+=U600W_comp
+			_fuse_str_io+=W600W_io
+
+		#if (acode_dis): _fuse_str+=['pcu.pcode_acp_enable=0x0'] # Not used for GNR we can't disable acode
+		
+		if (vp2intersect_en): 
+			#_fuse_str+=[ 'cfs_core_c0_r2.core_core_fuse_misc_vp2intersect_dis=0x0', 'cfs_core_c0_r4.core_core_fuse_misc_vp2intersect_dis=0x0', 'cfs_core_c0_r5.core_core_fuse_misc_vp2intersect_dis=0x0', 'cfs_core_c1_r2.core_core_fuse_misc_vp2intersect_dis=0x0', 'cfs_core_c1_r3.core_core_fuse_misc_vp2intersect_dis=0x0', 'cfs_core_c1_r4.core_core_fuse_misc_vp2intersect_dis=0x0', 'cfs_core_c1_r5.core_core_fuse_misc_vp2intersect_dis=0x0', 'cfs_core_c2_r2.core_core_fuse_misc_vp2intersect_dis=0x0', 'cfs_core_c2_r3.core_core_fuse_misc_vp2intersect_dis=0x0', 'cfs_core_c2_r4.core_core_fuse_misc_vp2intersect_dis=0x0', 'cfs_core_c2_r5.core_core_fuse_misc_vp2intersect_dis=0x0', 'cfs_core_c3_r2.core_core_fuse_misc_vp2intersect_dis=0x0', 'cfs_core_c3_r3.core_core_fuse_misc_vp2intersect_dis=0x0', 'cfs_core_c3_r4.core_core_fuse_misc_vp2intersect_dis=0x0']
+			_fuse_str_compute += vp2i_en_comp
+
+		# Are we including the IO ratios?? 
+
+		curves = IA_RATIO_CURVES 
+		
+		# Enumarate all the variables needed for power curves	
+		ppfs = IA_RATIO_CONFIG['ppfs']#[0,1,2,3,4]
+		idxs = IA_RATIO_CONFIG['idxs']#[0,1,2,3,4,5]
+		ratios = IA_RATIO_CONFIG['ratios']#[0,1,2,3,4,5,6,7]
+		vfidx =  IA_RATIO_CONFIG['vfidx']#[0,1,2,3]
+		vfpnt =  IA_RATIO_CONFIG['vfpnt']#[0,1,2,3,4,5]
+
+		# IA P0 frequencies flat
+		if (ia_p0 != None): 
+			_fuse_str_compute += ['pcu.pcode_ia_p0_ratio=0x%x' % ia_p0]
+			#ia_turbo = ia_p0 ## Will have it disabled for now, need to check if needed, maybe add a new switch
+			#ia_vf = ia_p0 ## Setting VF curves same as ratio for IA
+		# IA P0 Turbo Limits
+		# Limit fuses (RATIO)
+		if ia_turbo != None:
+			for curve in curves['limits']:
+				for pp in ppfs:
+					for idx in idxs:
+						for ratio in ratios:
+							turbo_string = curve
+										
+							#for _search in search_string:
+							turbo_string = turbo_string.replace(f'##profile##',str(pp))
+							turbo_string = turbo_string.replace(f'##idx##',str(idx))
+							turbo_string = turbo_string.replace(f'##ratio##',str(ratio))
+							#print(turbo_string)
+							_fuse_str_compute += [f'pcu.{turbo_string}=' + '0x%x' % ia_turbo]
+
+		if ia_vf != None:
+			for curve in curves['vf_curve']:
+				for vfid in vfidx:
+					for pnt in vfpnt:
+						vf_string = curve
+										
+						#for _search in search_string:
+						vf_string = vf_string.replace(f'##idx##',str(vfid))
+						vf_string = vf_string.replace(f'##point##',str(pnt))
+						#print(vf_string)
+						_fuse_str_compute += [f'pcu.{vf_string}=' + '0x%x' % ia_vf]
+
+		# IA P1 frequencies flat
+		if (ia_p1 != None): 
+			for curve in curves['p1']:
+				for pp in ppfs:
+					p1_string = curve
+					p1_string = p1_string.replace(f'##profile##',str(pp))
+					_fuse_str_compute += [f'pcu.{p1_string}=' + '0x%x' % ia_p1]
+
+		# IA PN frequencies flat
+
+		if (ia_pn != None): 
+			_fuse_str_compute += ['pcu.pcode_ia_pn_ratio=0x%x' % ia_pn]
+		if (ia_pm != None): 
+			_fuse_str_compute += ['pcu.pcode_ia_min_ratio=0x%x' % ia_pm]
+		
+		## CFC is modifying IOs as well, can we make them separate?
+		if (cfc_p0 != None): 
+			_fuse_str_compute += ['pcu.pcode_sst_pp_0_cfc_p0_ratio=0x%x' % cfc_p0]
+		if (cfc_p1 != None): 
+			_fuse_str_compute += ['pcu.pcode_sst_pp_0_cfc_p1_ratio=0x%x' % cfc_p1]
+		if (cfc_pn != None): 
+			_fuse_str_compute += ['pcu.pcode_cfc_pn_ratio=0x%x' % cfc_pn]
+		if (cfc_pm != None): 
+			_fuse_str_compute += ['pcu.pcode_cfc_min_ratio=0x%x' % cfc_pm]
+		
+		## CFC is modifying IOs as well, can we make them separate?
+		if (io_p0 != None): 
+			_fuse_str_io += ['punit_iosf_sb.pcode_sst_pp_0_cfc_p0_ratio=0x%x' % io_p0]
+		if (io_p1 != None): 
+			_fuse_str_io += ['punit_iosf_sb.pcode_sst_pp_0_cfc_p1_ratio=0x%x' % io_p1]
+		if (io_pn != None): 
+			_fuse_str_io += ['punit_iosf_sb.pcode_cfc_pn_ratio=0x%x' % io_pn]
+		if (io_pm != None): 
+			_fuse_str_io += ['punit_iosf_sb.pcode_cfc_min_ratio=0x%x' % io_pm]   
+
+		if (avx_mode != None):
+			#print(avx_mode)
+			if (avx_mode) in range (0,8):
+				int_mode = avx_mode
+			elif avx_mode == "128":
+				int_mode = 1        
+			elif avx_mode == "256":
+				int_mode = 3
+			elif avx_mode == "512":
+				int_mode=5
+			elif avx_mode == "TMUL":
+				int_mode=7
+			else:
+				raise ValueError(f"Invalid AVX Mode",avx_mode)
+			_fuse_str_compute += ['pcu.pcode_iccp_min_license=0x%x' % int_mode,'pcu.pcode_iccp_default=0x%x' % int_mode]
+
+		FastBoot = False
+		if FastBoot:
+			bootopt = 'bs.fast_boot'
+			bootcont = 'bs.cont'
+		else:
+			bootopt = 'b.go'
+			bootcont = 'b.cont'
+
+
+		## Add PPVC Data if configured
+		if self.ppvc_fuses:
+			ppvc_fuses = self.ppvc_fuses
+			for comp in self.computes:
+				if 'compute0' in comp.lower(): _fuse_str_compute_0 += ppvc_fuses['compute0']
+				if 'compute1' in comp.lower(): _fuse_str_compute_1 += ppvc_fuses['compute1']
+				if 'compute2' in comp.lower(): _fuse_str_compute_2 += ppvc_fuses['compute2']
+			for iodie in self.ios:
+				if 'io0' in iodie.lower(): _fuse_str += ppvc_fuses['io0']
+				if 'io1' in iodie.lower(): _fuse_str += ppvc_fuses['io1']
+
+		
+		_fuse_str_compute_0 += _fuse_str_compute
+		_fuse_str_compute_1 += _fuse_str_compute
+		_fuse_str_compute_2 += _fuse_str_compute
+		_fuse_str_io_0 += _fuse_str_io
+		_fuse_str_io_1 += _fuse_str_io
+		
+		## Adds additional fuses to properly boot the unit in GNRSP
+		if die == 'GNRSP':
+			print(Fore.CYAN + "GNRSP System Configuration")
+		
+		## Adding the fuse_str to the Class variable here before the Masks addition this variable is for checking purposes only, Masking will be checked with the CoresEnabled script
+		self.fuse_str_io = _fuse_str_io
+		self.fuse_str_io_0 = _fuse_str_io_0
+		self.fuse_str_io_1 = _fuse_str_io_1
+		self.fuse_str_compute = _fuse_str_compute
+		self.fuse_str_compute_0 = _fuse_str_compute_0
+		self.fuse_str_compute_1 = _fuse_str_compute_1
+		self.fuse_str_compute_2 = _fuse_str_compute_2
+
+		# Building a new splitted fuse string for the bootscript
+		fuse_string = ''
+		computeNumber = len(self.computes)
+		ioNumber = 2
+		if computeNumber >= 1:
+			fuse_string = fuse_string + f'fuse_str_compute_0 = {_fuse_str_compute_0},'
+		if computeNumber >= 2:
+			fuse_string = fuse_string + f'fuse_str_compute_1 = {_fuse_str_compute_1},'			
+		if computeNumber >= 3:
+			fuse_string = fuse_string + f'fuse_str_compute_2 = {_fuse_str_compute_2},'
+
+		if ioNumber >= 1:
+			fuse_string = fuse_string + f'fuse_str_io_0 = {_fuse_str_io_0},'
+		if ioNumber >= 2:
+			fuse_string = fuse_string + f'fuse_str_io_1 = {_fuse_str_io_1},'
+	
+
+		_boot_string = gen_product_bootstring(bootopt, product_bs[die]['compute_config'], product_bs[die]['segment'], b_extra, _boot_disable_ia, _boot_disable_llc, fuse_string,_fuse_files_compute, _fuse_files_io)
+		if check_user_cancel():
+			return
+		print(Fore.CYAN+ '\n' + "+"*90)
+		#if FastBoot: print('import users.THR.PythonScripts.thr.GnrBootscriptOverrider as bs')
+		#else:	print("import toolext.bootscript.boot as b")
+		print(Fore.CYAN + "import toolext.bootscript.boot as b")
+		print(Fore.CYAN + _boot_string)
+		print(Fore.CYAN + "+"*90 + '\n')
+		
+		## Might remove this if condition, and run code inside only there is no need for this condition global_dry condition
+		if global_dry_run == False:
+			# ADded below only for checking some configs, can be removed later
+			Test = False
+			if Test: 
+				print("Testing, not booting for now")
+				return
+
+			print(Fore.YELLOW + "********************************************v********************************************")
+			print(Fore.YELLOW + "***************************   Starting Unit using Bootscript   **************************")
+			print(Fore.YELLOW + "********************************************v********************************************")			
+
+
+			bsPASS = self.bsRetry(boot_postcode=boot_postcode, stop_after_mrc=stop_after_mrc, bootcont=bootcont, sv=sv, ipc=ipc, boot_string=_boot_string ,n=BOOTSCRIPT_RETRY_TIMES,delay=BOOTSCRIPT_RETRY_DELAY) #Changed this to retry bootscript eval(_boot_string)
+			if not bsPASS: 
+				raise ValueError("!!!FAIL --  Max number of bootscript retries reached, fails occurred during unit boot, please check your configuration and try again.")
+			elif bsPASS == 'Cancel':
+				raise InterruptedError('Boot Interrupted by user')
+
+			sv_refreshed = False
+
+	## Fastboot option to boot the unit using itp.resettarget, works with SLICE MODE only
+	def _fastboot(self, boot_postcode = False, stop_after_mrc=False, fixed_core_freq = None, fixed_mesh_freq=None, fixed_io_freq=None, avx_mode = None, acode_dis=None, vp2intersect_en=True, ia_p0=None, ia_turbo=None, ia_vf=None, ia_p1=None, ia_pn=None, ia_pm=None, cfc_p0=None, cfc_p1=None, cfc_pn=None, cfc_pm=None, io_p0=None, io_p1=None, io_pn=None, io_pm=None, pm_enable_no_vf=False):
+		'''
+		calls bootscript
+		if coreslicemask and slicemask is not set, then both llc_slice_disable and ia_core_disable get coreslice mask
+		ht_dis: Disable HT or not
+		slicemask: override llc_slice_disable
+		stop_after_mrc:  If set, will stop after MRC is complete
+		fixed_core_freq : if set, set core P0,P1,Pn and pmin 
+		fixed_mesh_freq : if set, set mesh P0,P1,Pn and pmin
+		fixed_io_freq : if set, set mesh P0,P1,Pn and pmin
+		pm_enable_no_vf : if True, will use fuse file pm_enable_no_vf.cfg to configure fuses (cfc/ia ratios and ia volt=1V) as tester	
+		avx_mode:  Set AVX mode
+		vptintersect_en: If set, will enable VPINTERSECT instruction ( needed for some Dragon Content )
+		ia_p0:CORE P0 
+		ia_p1:CORE P1
+		ia_pn:CORE Pn
+		ia_pm:CORE Pm
+		cfc_p0:CFC P0
+		cfc_p1:CFC P1
+		cfc_pn:CFC Pn
+		cfc_pm:CFC Pm
+	'''
+		## Core and LLC slice disable masks we are going to move to a dict with all the values, this dict is going to change depending on the type of system we use
+		# GNR has different flavours and topologies
+		# On this version we have X3 and X2, code is left with some spaces for the rest of them.
+		global _boot_string
+		sv = self.sv #_get_global_sv()
+		ipc = self.ipc
+		die = self.die
+		masks = self.masks
+		ht_dis = self.ht_dis
+		dis_2CPM = self.dis_2CPM
+		coreslicemask= self.coremask
+		slicemask = self.slicemask
+		BootFuses = self.BootFuses
+		
+		# Retrieve local path
+		parent_dir = os.path.dirname(os.path.realpath(__file__))
+		fuses_dir = os.path.join(parent_dir, 'Fuse')
+		
+		
+		b_extra = global_boot_extra
+		_fuse_str = []
+		_fuse_str_compute = []
+		_fuse_str_io = []
+		_fuse_files = []
+		_fuse_files_compute = []
+		_fuse_files_io = []
+		_llc = []
+		_ia = []
+
+
+		## Declare all the fuse arrays to be used
+		htdis_comp = BootFuses['ht']['compHT']['htdis']#['scf_gnr_maxi_coretile_c0_r1.core_core_fuse_misc_fused_ht_dis=0x1', 'pcu.capid_capid0_ht_dis_fuse=0x1','fuses.pcu.pcode_lp_disable=0x2','pcu.capid_capid0_max_lp_en=0x1']
+		htdis_io = BootFuses['ht']['ioHT']['htdis']#['punit_iosf_sb.soc_capid_capid0_max_lp_en=0x1','punit_iosf_sb.soc_capid_capid0_ht_dis_fuse=0x1']
+		
+		## Need to include in configFile, will move later
+		vp2i_en_comp = VP2INTERSECT['fast']#['sv.socket0.computes.fuses.scf_gnr_maxi_coretile_c0_r1.core_core_fuse_misc_vp2intersect_dis=0x0']
+		
+		##Frequency fuses
+		CFC_freq_fuses = BootFuses['CFC']['compFreq']
+		CFCIO_freq_fuses = BootFuses['CFC']['ioFreq']
+		IA_freq_fuses = BootFuses['IA']['compFreq']
+		IA_license = BootFuses['IA_license']['compute']
+
+		if ht_dis == None and global_ht_dis !=None: ht_dis = global_ht_dis
+		#if dis_2CPM == None and global_2CPM_dis !=None: dis_2CPM = global_2CPM_dis
+		if acode_dis == None and global_acode_dis !=None: acode_dis = global_acode_dis
+		if global_boot_stop_after_mrc: stop_after_mrc = True
+		if global_boot_postcode: boot_postcode = True
+		
+		if avx_mode == None and global_avx_mode !=None: avx_mode = global_avx_mode
+		if fixed_core_freq == None and global_fixed_core_freq !=None: fixed_core_freq = global_fixed_core_freq
+		if ia_p0 == None and global_ia_p0 !=None: ia_p0 = global_ia_p0
+		## Turbo and limit conditions for IA Frequency
+		if ia_turbo == None and global_ia_turbo !=None: ia_turbo = global_ia_turbo
+		if ia_vf == None and global_ia_vf !=None: ia_vf = global_ia_vf
+		##
+		if ia_p1 == None and global_ia_p1 !=None: ia_p1 = global_ia_p1
+		if ia_pn == None and global_ia_pn !=None: ia_pn = global_ia_pn
+		if ia_pm == None and global_ia_pm !=None: ia_pm = global_ia_pm
+		if fixed_mesh_freq == None and global_fixed_mesh_freq !=None: fixed_mesh_freq = global_fixed_mesh_freq
+		if cfc_p0 == None and global_cfc_p0 !=None: cfc_p0 = global_cfc_p0
+		if cfc_p1 == None and global_cfc_p1 !=None: cfc_p1 = global_cfc_p1
+		if cfc_pn == None and global_cfc_pn !=None: cfc_pn = global_cfc_pn
+		if cfc_pm == None and global_cfc_pm !=None: cfc_pm = global_cfc_pm
+		if fixed_io_freq == None and global_fixed_io_freq !=None: fixed_io_freq = global_fixed_io_freq
+		if io_p0 == None and global_io_p0 !=None: io_p0 = global_io_p0
+		if io_p1 == None and global_io_p1 !=None: io_p1 = global_io_p1
+		if io_pn == None and global_io_pn !=None: io_pn = global_io_pn
+		if io_pm == None and global_io_pm !=None: io_pm = global_io_pm
+
+		## Cores per Module disable Fuses (Atom)
+		dis_2CPM_comp = self.fuse_2CPM
+		dis_2CPM_value = f'{dis_2CPM:#x}' if isinstance(dis_2CPM,int) else dis_2CPM
+
+		if (fixed_core_freq != None):
+			ia_p0 = fixed_core_freq
+			ia_p1 = fixed_core_freq
+			ia_pn = fixed_core_freq
+			ia_pm = fixed_core_freq
+
+		if (fixed_mesh_freq != None):
+			cfc_p0 = fixed_mesh_freq
+			cfc_p1 = fixed_mesh_freq
+			cfc_pn = fixed_mesh_freq
+			cfc_pm = fixed_mesh_freq
+		if (fixed_mesh_freq != None):
+			io_p0 = fixed_io_freq
+			io_p1 = fixed_io_freq
+			io_pn = fixed_io_freq
+			io_pm = fixed_io_freq
+
+		print('\nUsing the following configuration for unit boot: ')
+		if ht_dis: print('\tHyper Threading disabled')
+		if dis_2CPM != None: print(f'\tRunning with 2 Cores per Module Configuration: {dis_2CPM_value}')
+		if acode_dis: print('\tAcode disabled')
+		if stop_after_mrc: print('\tStop after MRC')
+		if boot_postcode: print('\tBoot Will be stopped at Break')
+		print(f'\tConfigured License Mode: {avx_mode}')
+		print(f'\tCore Frequencies:')
+		print(f'\t\tIA P0: {ia_p0}')
+		print(f'\t\tIA P1: {ia_p1}')
+		print(f'\t\tIA PN: {ia_pn}')
+		print(f'\t\tIA MIN: {ia_pm}')
+		print(f'\t\tIA TURBO: {ia_turbo}')
+		print(f'\t\tIA VF: {ia_vf}')
+		print(f'\tCompute Mesh Frequencies:')
+		print(f'\t\tCFC MESH P0: {cfc_p0}')
+		print(f'\t\tCFC MESH P1: {cfc_p1}')
+		print(f'\t\tCFC MESH PN: {cfc_pn}')
+		print(f'\t\tCFC MESH MIN: {cfc_pm}')
+		print(f'\tIO Mesh Frequencies:')
+		print(f'\t\tCFC IO P0: {io_p0}')
+		print(f'\t\tCFC IO P1: {io_p1}')
+		print(f'\t\tCFC IO PN: {io_pn}')
+		print(f'\t\tCFC IO MIN: {io_pm}')
+		
+		#Voltages
+		fixed_core_volt = global_fixed_core_volt
+		fixed_cfc_volt = global_fixed_cfc_volt
+		fixed_hdc_volt = global_fixed_hdc_volt
+		fixed_cfcio_volt = global_fixed_cfcio_volt
+		fixed_ddrd_volt = global_fixed_ddrd_volt
+		fixed_ddra_volt = global_fixed_ddra_volt
+		vbumps_config = global_vbumps_configuration
+
+		voltageWord = 'vBump' if vbumps_config else 'Volt'
+		print(f'\tVoltage Bumps Configurations:' if vbumps_config else f'\tFixed Voltage Configurations:')
+		print(f'\t\tCore {voltageWord}: {fixed_core_volt}{"V" if fixed_core_volt != None else ""}')
+		print(f'\t\tCFC Compute {voltageWord}: {fixed_cfc_volt}{"V" if fixed_cfc_volt != None else ""}')
+		print(f'\t\tHDC Compute {voltageWord}: {fixed_hdc_volt}{"V" if fixed_hdc_volt != None else ""}')
+		print(f'\t\tCFC IO {voltageWord}: {fixed_cfcio_volt}{"V" if fixed_cfcio_volt != None else ""}')		
+		print(f'\t\tDDRD {voltageWord}: {fixed_ddrd_volt}{"V" if fixed_ddrd_volt != None else ""}')	
+		#print(f'\t\tDDRA {voltageWord}: {fixed_ddra_volt}{"V" if fixed_ddra_volt != None else ""}')	
+		#try:
+		#try:
+		#	temp = sv.socket0.compute0.fuses.hwrs_top_rom.ip_disable_fuses_dword6_core_disable ## Need to change this
+		#except:
+		#	itp.forcereconfig()
+		#	itp.unlock()
+		#	sv.refresh()
+		
+		##PM enable no vf not enabled yet, do not use... WIP
+		#if (pm_enable_no_vf == True): 
+		#	_fuse_files_compute=[f'{fuses_dir}\\pm_enable_no_vf_computes.cfg'] ## Fix the file for GNR
+		#	_fuse_files_io = [f'{fuses_dir}\\pm_enable_no_vf_ios.cfg'] ## Fix the file for GNR
+
+
+		#if (stop_after_mrc): b_extra+=', gotil=\"phase6_cpu_reset_break\"'
+		
+		#masks = dpm.fuses(system = die, rdFuses = False, sktnum =[0])
+
+
+		_coreslicemask ={}
+		_slicemask = {}
+		
+		for key, value in masks.items():
+			newkey = f'compute{key[-1]}'
+			if key.startswith('ia_compute_'):
+				_coreslicemask[newkey] = value
+			if key.startswith('llc_compute_'):
+				_slicemask[newkey] = value
+		
+		
+		if (coreslicemask == None): 
+			coreslicemask = _coreslicemask
+
+		if (ht_dis): 
+			_fuse_str+= htdis_comp
+			_fuse_str+= htdis_io
+
+		if (dis_2CPM != None): 
+			_fuse_str+=dis_2CPM_comp
+
+		if (vp2intersect_en): 
+			_fuse_str += vp2i_en_comp
+
+		## Defining new values for IA Frequencies
+		# IA P0 frequencies flat
+		if (ia_p0 != None): 
+			for fuse in IA_freq_fuses['p0']:
+				_fuse_str += [fuse + '=0x%x' % ia_p0]
+		if (ia_turbo != None): 
+			for fuse in IA_freq_fuses['limits']:
+				_fuse_str += [fuse + '=0x%x' % ia_turbo]
+		if (ia_vf != None): 
+			for fuse in IA_freq_fuses['vf_curves']:
+				_fuse_str += [fuse + '=0x%x' % ia_vf]							
+		# IA P1 frequencies flat
+		if (ia_p1 != None): 
+			for fuse in IA_freq_fuses['p1']:
+				_fuse_str += [fuse + '=0x%x' % ia_p1]
+	
+		# IA PN frequencies flat
+		if (ia_pn != None): 
+			for fuse in IA_freq_fuses['pn']:
+				_fuse_str += [fuse + '=0x%x' % ia_pn]
+
+		# IA MIN frequencies flat
+		if (ia_pm != None): 
+			for fuse in IA_freq_fuses['min']:
+				_fuse_str += [fuse + '=0x%x' % ia_pm]
+
+		## Defining new values for MESH CFC Frequencies
+		# MESH CFC P0 frequencies flat
+		if (cfc_p0 != None): 
+			for fuse in CFC_freq_fuses['p0']:
+				_fuse_str += [fuse + '=0x%x' % cfc_p0]
+			
+		# MESH CFC P1 frequencies flat
+		if (cfc_p1 != None): 
+			for fuse in CFC_freq_fuses['p1']:
+				_fuse_str += [fuse + '=0x%x' % cfc_p1]
+	
+		# MESH CFC PN frequencies flat
+		if (cfc_pn != None): 
+			for fuse in CFC_freq_fuses['pn']:
+				_fuse_str += [fuse + '=0x%x' % cfc_pn]
+
+		# MESH CFC MIN frequencies flat
+		if (cfc_pm != None): 
+			for fuse in CFC_freq_fuses['min']:
+				_fuse_str += [fuse + '=0x%x' % cfc_pm]
+
+		## Defining new values for IO CFC Frequencies
+		# CFCIO P0 frequencies flat
+		if (io_p0 != None): 
+			for fuse in CFCIO_freq_fuses['p0']:
+				_fuse_str += [fuse + '=0x%x' % io_p0]
+			
+		# CFCIO P1 frequencies flat
+		if (io_p1 != None): 
+			for fuse in CFCIO_freq_fuses['p1']:
+				_fuse_str += [fuse + '=0x%x' % io_p1]
+	
+		# CFCIO PN frequencies flat
+		if (io_pn != None): 
+			for fuse in CFCIO_freq_fuses['pn']:
+				_fuse_str += [fuse + '=0x%x' % io_pn]
+
+		# CFCIO MIN frequencies flat
+		if (io_pm != None): 
+			for fuse in CFCIO_freq_fuses['min']:
+				_fuse_str += [fuse + '=0x%x' % io_pm]
+
+		if (avx_mode != None):
+			if (avx_mode) in range (0,8):
+				int_mode = avx_mode
+			elif avx_mode == "128":
+				int_mode = 1        
+			elif avx_mode == "256":
+				int_mode = 3
+			elif avx_mode == "512":
+				int_mode=5
+			elif avx_mode == "TMUL":
+				int_mode=7
+			else:
+				raise ValueError("Invalid AVX Mode")
+			ia_min_lic = IA_license['min']
+			ia_def_lic = IA_license['default']
+			_fuse_str += [f'{ia_min_lic}=0x%x' % int_mode,f'{ia_def_lic}=0x%x' % int_mode]
+
+		## Add PPVC Data if configured
+		if self.ppvc_fuses:
+			ppvc_fuses = self.ppvc_fuses
+			for comp in self.computes:
+				if 'compute0' in comp.lower(): _fuse_str += ppvc_fuses['compute0']
+				if 'compute1' in comp.lower(): _fuse_str += ppvc_fuses['compute1']
+				if 'compute2' in comp.lower(): _fuse_str += ppvc_fuses['compute2']
+			for iodie in self.ios:
+				if 'io0' in iodie.lower(): _fuse_str += ppvc_fuses['io0']
+				if 'io1' in iodie.lower(): _fuse_str += ppvc_fuses['io1']
+
+		## Adding the fuse_str to the Class variable here before the Masks addition this variable is for checking purposes only
+		self.fuse_str = _fuse_str
+
+		## Continue adding the Core/llc Masks
+		if (self.slicemask != None): 
+			#slicemask = coreslicemask
+			_fuse_str+= mask_fuse_llc_array(self.slicemask)
+
+		if (self.coremask != None): 
+			_fuse_str+= mask_fuse_core_array(self.coremask)
+
+		if check_user_cancel():
+			return
+		
+		print(Fore.YELLOW + "********************************************v********************************************")
+		print(Fore.YELLOW +  f"{'>'*3}   Using FastBoot with itp.resettarget() and ram flush ")
+
+		
+		if global_dry_run == False:
+			if (stop_after_mrc):
+				print(f'Setting biosscratchpad6_cfg for desired PostCode = {AFTER_MRC_POST}')
+				sv.socket0.io0.uncore.ubox.ncdecs.biosscratchpad6_cfg=AFTER_MRC_POST
+
+			if (boot_postcode):
+				print(f'Setting biosscratchpad6_cfg for desired PostCode = {BOOT_STOP_POSTCODE}')
+				sv.socket0.io0.uncore.ubox.ncdecs.biosscratchpad6_cfg=BOOT_STOP_POSTCODE
+			
+			print(Fore.YELLOW + "********************************************v********************************************")
+			print(Fore.YELLOW + "***********************   Starting Unit Fast Boot Fuse Override   ***********************")
+			print(Fore.YELLOW + "********************************************v********************************************")			
+
+			fuse_cmd_override_reset(fuse_cmd_array=_fuse_str, s2t=True, execution_state=self.execution_state)
+
+			if (stop_after_mrc):
+
+				_wait_for_post(AFTER_MRC_POST, sleeptime=MRC_POSTCODE_WT, timeout = MRC_POSTCODE_CHECK_COUNT, execution_state=self.execution_state)
+			if (boot_postcode):
+
+				_wait_for_post(BOOT_STOP_POSTCODE, sleeptime=BOOT_POSTCODE_WT, timeout = BOOT_POSTCODE_CHECK_COUNT, additional_postcode=LINUX_POST, execution_state=self.execution_state)
+						
+			else:
+				_wait_for_post(EFI_POST, sleeptime=EFI_POSTCODE_WT, timeout = EFI_POSTCODE_CHECK_COUNT, additional_postcode=LINUX_POST, execution_state=self.execution_state)
+			sv_refreshed = False
+
+	## Boot checking for s2t
+	def fuse_checks(self):
+		product_variant = PRODUCT_VARIANT
+		#svStatus()
+		dpm.fuseRAM(refresh=True)
+		skipinit = True
+		if self.Fastboot:
+			print(Fore.LIGHTCYAN_EX + "***********************************v********************************************")
+			print(Fore.LIGHTCYAN_EX + f"{'>'*3} Checking fuse application after boot")
+			
+			if self.fuse_str: fuse_cmd_override_check(self.fuse_str, showresults = False,skip_init= skipinit, bsFuses = None)
+		
+		else:
+			print(Fore.LIGHTCYAN_EX + "***********************************v********************************************")
+			print(Fore.LIGHTCYAN_EX + f"{'>'*3} Checking fuse application after boot")
+			if self.fuse_str_compute_0: 
+				print(f"{'>'*3} Checking fuses for Compute0 ---")
+				fuse_cmd_override_check(self.fuse_str_compute_0, showresults = False, skip_init= skipinit, bsFuses = 'compute0')
+				#skipinit = True
+			if self.fuse_str_compute_1: 
+				print(Fore.LIGHTCYAN_EX + f"{'>'*3} Checking fuses for Compute1 ---")
+				fuse_cmd_override_check(self.fuse_str_compute_1, showresults = False, skip_init= skipinit, bsFuses = 'compute1')
+				#skipinit = True
+			if self.fuse_str_compute_2 and product_variant == 'AP': 
+				print(Fore.LIGHTCYAN_EX + f"{'>'*3} Checking fuses for Compute2 ---")
+				fuse_cmd_override_check(self.fuse_str_compute_2, showresults = False, skip_init= skipinit, bsFuses = 'compute2')
+				#skipinit = True
+			if self.fuse_str_io_0: 
+				print(Fore.LIGHTCYAN_EX + f"{'>'*3} Checking fuses for io0 ---")
+				fuse_cmd_override_check(self.fuse_str_io_0, showresults = False, skip_init= skipinit, bsFuses = 'io0')
+			if self.fuse_str_io_1: 
+				print(Fore.LIGHTCYAN_EX + f"{'>'*3} Checking fuses for io1 ---")
+				fuse_cmd_override_check(self.fuse_str_io_1, showresults = False, skip_init= skipinit, bsFuses = 'io1')
+
+	## Logic for bootscript retry
+	def bsRetry(self,boot_postcode, stop_after_mrc, bootcont, sv, ipc, boot_string, n, delay = 60):
+		attempt = 0
+		_boot_string = boot_string
+
+		while attempt < n:
+			print(Fore.BLACK + Back.LIGHTGREEN_EX + f"Performing Bootstript Attempt {attempt + 1}" + Back.RESET + Fore.RESET )
+			try:
+				# Attempt to evaluate _boot_string
+				eval(_boot_string)
+				self.bsCheck(boot_postcode, stop_after_mrc, bootcont, sv, ipc)
+				print(Fore.BLACK + Back.LIGHTGREEN_EX +"Boot string executed successfully..." + Back.RESET + Fore.RESET)
+				return True
+			except KeyboardInterrupt:
+				print(Back.RED + "Boot interrupted by user. Exiting..."+ Back.RESET )
+				return 'Cancel'				
+			except InterruptedError:
+				print(Back.RED + "Boot interrupted by user. Exiting..."+ Back.RESET )
+				return 'Cancel'	
+			except SyntaxError as se:
+				print(f"Syntax error occurred: {se}")
+				
+			except Exception as e:
+				print(Back.RED + f"Attempt {attempt + 1} failed: {e}"+ Back.RESET )
+				print(Fore.LIGHTGREEN_EX + Back.YELLOW +"Performing power cycle..." + Back.RESET+ Fore.RESET)
+				if 'RSP 11 - Multicast Mixed stats' in str(e):
+					print(Back.RED + f"Performing IPC Reconnect.. Trying to fix RSP 11 issue"+ Back.RESET )
+					dpm.powercycle()#time.sleep(120)
+					time.sleep(120)#ipc.reconnect()
+					
+					if check_user_cancel(self.execution_state):
+						return
+					svStatus(checkipc=True, checksvcores=False, refresh=False, reconnect=False)
+
+				if attempt <= n-1: 
+					dpm.powercycle()
+					time.sleep(delay)  # Wait for a few seconds before retrying
+
+			attempt += 1
+
+		print("Failed to execute boot string after", n, "attempts.")
+		return False    		
+
+	def bsCheck(self, boot_postcode, stop_after_mrc, bootcont, sv, ipc):
+
+		if (stop_after_mrc):
+			sv.socket0.io0.uncore.ubox.ncdecs.biosscratchpad6_cfg=AFTER_MRC_POST
+			print("***********************************v********************************************")
+			print(f"sv.socket0.io0.uncore.ubox.ncdecs.biosscratchpad6_cfg={AFTER_MRC_POST:#x}")
+			print ("%s(curr_state='phase6_cpu_reset_break')" % bootcont)
+			print("***********************************v********************************************")
+			ipc.go()
+			#if FastBoot: ipc.go()#bs.cont(curr_state='phase6_cpu_reset_break')
+			#else:	ipc.go() #b.cont(curr_state='phase6_cpu_reset_break')
+			_wait_for_post(AFTER_MRC_POST, sleeptime=MRC_POSTCODE_WT, timeout = MRC_POSTCODE_CHECK_COUNT, execution_state=self.execution_state)
+			#else:_wait_for_post(BOOT_STOP_POSTCODE, sleeptime=BOOT_POSTCODE_WT, timeout = BOOT_POSTCODE_CHECK_COUNT, additional_postcode=LINUX_POST)
+		elif (boot_postcode):
+			sv.socket0.io0.uncore.ubox.ncdecs.biosscratchpad6_cfg=BOOT_STOP_POSTCODE
+			print("***********************************v********************************************")
+			print(f"sv.socket0.io0.uncore.ubox.ncdecs.biosscratchpad6_cfg={BOOT_STOP_POSTCODE:#x}")
+			print ("%s(curr_state='phase6_cpu_reset_break')" % bootcont)
+			print("***********************************v********************************************")
+			ipc.go()
+			#if FastBoot: ipc.go()#bs.cont(curr_state='phase6_cpu_reset_break')
+			#else:	ipc.go() #b.cont(curr_state='phase6_cpu_reset_break')
+			#if stop_after_mrc: _wait_for_post(AFTER_MRC_POST, sleeptime=MRC_POSTCODE_WT, timeout = MRC_POSTCODE_CHECK_COUNT)
+			_wait_for_post(BOOT_STOP_POSTCODE, sleeptime=BOOT_POSTCODE_WT, timeout = BOOT_POSTCODE_CHECK_COUNT, additional_postcode=LINUX_POST, execution_state=self.execution_state)
+
+		else:
+			_wait_for_post(EFI_POST, sleeptime=EFI_POSTCODE_WT, timeout = EFI_POSTCODE_CHECK_COUNT, additional_postcode=LINUX_POST, execution_state=self.execution_state)
+
 
 #========================================================================================================#
 #=============== DEBUG SCRIPTS ==========================================================================#
 #========================================================================================================#
 
-def svStatus(checkipc = True, checksvcores = True, refresh = False):
+def svStatus(checkipc = True, checksvcores = True, refresh = False, reconnect = False):
 	ipc = ipccli.baseaccess()
 	SysStatus = []
 	ipcBad = False
 	svBad = False
-
-
+	svcoredara = None
+	ipcthreads = None
+	
+	if reconnect:
+		print(Fore.RED + f'{">"*3} IPC reconnect command requested... '+ Fore.WHITE)
+		ipc.reconnect()
+		
 	# Forcefully rerefsh sv and reconfig ipc, this is used mostly after boot that sv is not properly updated but no error is shown.
 	if refresh:
 		print(Fore.RED + f'{">"*3} IPC and SV data refresh requested... '+ Fore.WHITE)
@@ -197,29 +1995,6 @@ def svStatus(checkipc = True, checksvcores = True, refresh = False):
 	if (sv.sockets and ipc.isunlocked()):
 		print(Fore.LIGHTGREEN_EX + f'{">"*3} SV is unlocked with updated nodes, ready to use '+ Fore.WHITE)
 	
-
-def reset_globals():
-	'''
-	Resets global variables used in _boot and _fastboot
-	'''
-	global global_boot_stop_after_mrc
-	# global global_ht_dis
-	global global_acode_dis
-	global global_fixed_core_freq
-	global global_fixed_mesh_freq
-	global global_fixed_io_freq
-	global global_avx_mode
-	global global_dry_run
-	global_boot_stop_after_mrc=None
-	# global_ht_dis=None
-	global_acode_dis=None
-	global_fixed_core_freq=None
-	global_fixed_mesh_freq=None
-	global_fixed_io_freq=None
-	global_avx_mode=None
-	global_dry_run=False
-	print("Global variables reset.")
-
 
 # def setCBB(boot = True, fastboot = False, load_fuses = True, resetGlobals = False):
 # 	'''
@@ -371,183 +2146,6 @@ def reset_globals():
 # 			_fastboot(stop_after_mrc=stop_after_mrc, pm_enable_no_vf=pm_enable_no_vf)
 # 		else:
 # 			_doboot(masks=masks, modulemask=modules, llcmask=llcs, stop_after_mrc=stop_after_mrc, pm_enable_no_vf=pm_enable_no_vf)
-
-def setModule(stop_after_mrc=False, pm_enable_no_vf=False, boot = True, fastboot = False, load_fuses = True, resetGlobals = False):
-	'''
-	Sets up system to run with 1 enabled module per compute.
-	
-	Inputs:
-		boot: (Boolean, Default=True) Will call bootscript with new setting
-		fastboot: (Boolean, Default=False) Will call bootscript with faster setting
-		load_fuses: (Boolean, Default=True) Calls fuse load for dpm.fuses
-		resetGlobals: (Boolean, Default=False) Resets globals for bootscript call
-	'''
-
-	# Variables Init
-	sv = _get_global_sv()
-	die = sv.socket0.target_info["device_name"] # Get Die name
-	cbbs = sv.socket0.cbbs.name # Get compute names array	
-
-	if (not die.startswith("DMR")):
-		print (f"Sorry. This method is not available for {die}.")
-		return
-	
-	if resetGlobals: reset_globals()
-	
-	# Building arrays based on system structure
-	_moduleMasks= {cbb: 0xffffffff for cbb in cbbs} # Module mask filled with 1 for every compute
-	_llcMasks= {cbb: 0xffffffff for cbb in cbbs} # LLC mask filled with 1 for every compute
-	masks = dpm.fuses(rdFuses = load_fuses, sktnum =[0]) # Read module and LLC masks from fuses
-
-	print("\n"+"-"*62)
-	print("| A single module will be enabled for each available cbb |")
-	print("-"*62+"\n")
-	for cbb in sv.socket0.cbbs: # For each compute
-		cbb_name = cbb.name
-		cbbN = cbb.target_info.instance
-		accepted_input = False
-		while(not accepted_input): # Keep asking for input, if an invalid value was given
-			target_module = int(input(f"Please input # enabled physical module for {cbb_name}: ")) # Ask for Input
-			if(target_module < DMR_TOTAL_MODULES_PER_CBB*int(cbbN) or target_module >= DMR_TOTAL_MODULES_PER_CBB*(int(cbbN) + 1)): # Module not present in CWF
-				print(f"\nTARGET MODULE {target_module} IS NOT AVAILABLE IN DMR! \nTry again.")
-			else:
-				new_cbbMask = ~(1 << (target_module % DMR_TOTAL_MODULES_PER_CBB)) & ((1 << DMR_TOTAL_MODULES_PER_CBB) - 1) # Mask filled with 1 except the desired target physical module
-				_moduleMasks[cbb_name] = new_cbbMask | masks[f'ia_{cbb_name}'] # Combine calculated modulemask and the mask given by dpm.fuses
-				_llcMasks[cbb_name] = masks[f'llc_{cbb_name}'] # Assign LLC mask given by dpm.fuses (stays the same, this script does not modify LLCs)
-				accepted_input = True
-
-	for cbb_name in cbbs:
-		# Print masks
-		print  (f"\n{cbb_name}: module disables mask: {hex(_moduleMasks[cbb_name])}") 
-		print  (f"{cbb_name}: llc disables mask:  {hex(_llcMasks[cbb_name])}") 
-	
-	if boot:
-		if fastboot:
-			_fastboot(masks=masks, modulemask=_moduleMasks, stop_after_mrc=stop_after_mrc, pm_enable_no_vf=pm_enable_no_vf, fixed_core_freq=0x8, fixed_mesh_freq=0x8)
-		else:
-			_doboot(masks=masks, modulemask=_moduleMasks, stop_after_mrc=stop_after_mrc, pm_enable_no_vf=pm_enable_no_vf, fixed_core_freq=0x8, fixed_mesh_freq=0x8)
-
-def convert_cbb_mask_to_compute_mask(cbb_masks):
-	sv = _get_global_sv() # Get sv
-	cbbs = sv.socket0.cbbs.name
-	computes = sv.socket0.cbb0.computes
-
-	compute_masks = {}
-	for cbb_name in cbbs:
-		compute_masks[cbb_name] = {}
-		for compute in computes:
-			compute_name = compute.name
-			computeN = compute.target_info.instance
-			shift_amount = computeN * DMR_TOTAL_MODULES_PER_COMPUTE
-			compute_masks[cbb_name][f'ia_{compute_name}'] = (cbb_masks[f'ia_{cbb_name}'] >> shift_amount) & 0xFF
-			compute_masks[cbb_name][f'llc_{compute_name}'] = (cbb_masks[f'llc_{cbb_name}'] >> shift_amount) & 0xFF
-
-	return compute_masks
-
-
-def convert_compute_mask_to_cbb_mask(compute_masks):
-	sv = _get_global_sv() # Get sv
-	cbbs = sv.socket0.cbbs.name
-	computes = sv.socket0.cbb0.computes
-	
-	_moduleMasks = {}
-	_llcMasks = {}
-
-	for cbb_name in cbbs:
-		new_ia_cbb_mask = 0
-		new_llc_cbb_mask = 0
-		for compute in computes:
-			computeN = int(compute.target_info.instance)
-			compute_name = compute.name
-			compute_ia_mask = compute_masks[cbb_name][f'ia_{compute_name}']
-			new_ia_cbb_mask |= (compute_ia_mask << (computeN * DMR_TOTAL_MODULES_PER_COMPUTE))
-			compute_llc_mask = compute_masks[cbb_name][f'llc_{compute_name}']
-			new_llc_cbb_mask |= (compute_llc_mask << (computeN * DMR_TOTAL_MODULES_PER_COMPUTE))
-		_moduleMasks[f'{cbb_name}'] = new_ia_cbb_mask
-		_llcMasks[f'{cbb_name}'] = new_llc_cbb_mask
-	return _moduleMasks, _llcMasks
-
-
-def setCompute(stop_after_mrc=False, pm_enable_no_vf=False, boot=True, fastboot = False, resetGlobals=False, load_fuses=True):
-	'''
-	Prompts to enable/disable each compute. If a compute is to be disabled, input which module remains enabled.
-
-	Inputs:
-		stop_after_mrc: (Boolean, Default=False) Input used in _boot and _fastboot. Flag to stop after mrc.
-		pm_enable_no_vf: (Boolean, Default=False) Input used in _boot and _fastboot. pm enable.
-		boot: (Boolean, Default=True) Will call bootscript with new setting
-		fastboot: (Boolean, Default=False) Will call bootscript with faster setting
-		load_fuses: (Boolean, Default=True) Calls fuse load for dpm.fuses
-		resetGlobals: (Boolean, Default=False) Resets globals for bootscript call
-	'''
-	sv = _get_global_sv() # Get sv
-	die = sv.socket0.target_info["device_name"] # Get Die name
-	# computes = sv.socket0.cbb0.computes.name # Get compute names array
-
-	if (not die.startswith("DMR")):
-		print (f"Sorry.  This method is not available for {die}.")
-		return
-	
-	if resetGlobals: reset_globals()
-	
-	masks = dpm.fuses(rdFuses = load_fuses, sktnum =[0]) # Read module and LLC masks from fuses
-	masks_per_compute = convert_cbb_mask_to_compute_mask(masks)
-	new_masks_per_compute = {}
-
-	print("\n"+"-"*61)
-	print("| Select which computes will be enabled or disabled         |")
-	print("| A single module will be enabled for each disabled compute |")
-	print("-"*61+"")
-
-	cbbs = sv.socket0.cbbs.name
-	for cbb_name in cbbs: # For each cbb
-		accepted_input = False
-		while(not accepted_input): # Loop until a valid input is given
-			computes = sv.socket0.cbb0.computes.name
-			new_masks_per_compute[cbb_name] = {}
-			for compute_name in computes:
-				disable_compute = input(f"\nDisable {compute_name} for {cbb_name}? Y/[N]: ").upper()
-				if(disable_compute == "N" or disable_compute == ""): # Compute remains enabled
-					print(f"\t{compute_name.upper()} enabled, mantaining original Masks")
-					new_masks_per_compute[cbb_name][f'ia_{compute_name}'] = masks_per_compute[cbb_name][f'ia_{compute_name}'] # Masks read from fuses
-					new_masks_per_compute[cbb_name][f'llc_{compute_name}'] = masks_per_compute[cbb_name][f'llc_{compute_name}'] # LLC Masks read from fuses
-			
-				elif(disable_compute == "Y"): # Disable compute
-					print(f"\t{compute_name.upper()} will be disabled.")
-					new_masks_per_compute[cbb_name][f'ia_{compute_name}'] = 0xFF # Masks read from fuses
-					new_masks_per_compute[cbb_name][f'llc_{compute_name}'] = masks_per_compute[cbb_name][f'llc_{compute_name}'] # LLC Masks read from fuses
-
-				accepted_input = True
-
-	
-	_moduleMasks, _llcMasks = convert_compute_mask_to_cbb_mask(new_masks_per_compute)		
-
-	for cbb_name in cbbs:
-		# Print masks
-		print  (f"\n{cbb_name}: module disables mask: {hex(_moduleMasks[f'{cbb_name}'])}") 
-		print  (f"{cbb_name}: llc disables mask:  {hex(_llcMasks[f'{cbb_name}'])}") 
-	
-
-	if boot:
-		if fastboot:
-			_fastboot(masks=masks, modulemask=_moduleMasks, stop_after_mrc=stop_after_mrc, pm_enable_no_vf=pm_enable_no_vf, fixed_core_freq=0x8, fixed_mesh_freq=0x8)
-		else:
-			_doboot(masks=masks, modulemask=_moduleMasks, stop_after_mrc=stop_after_mrc, pm_enable_no_vf=pm_enable_no_vf, fixed_core_freq=0x8, fixed_mesh_freq=0x8)
-
-
-def get_compute_config():
-	sv = _get_global_sv()
-	cbbs = sv.socket0.cbbs.name 
-
-	return cbbs, f'x{len(cbbs)}'
-
-def assign_values_to_regs(list_regs, new_value):
-	regs_with_values = []
-	
-	for reg_string in list_regs:
-		regs_with_values += [f'{reg_string}=' + '0x%x' % new_value]
-
-	return regs_with_values
 
 
 ## Boots the unit using the bootscript with fuse_strings.
@@ -1536,7 +3134,7 @@ def modulesEnabled(moduleslicemask=None, logical=False, skip = False, print_modu
 def read_biospost(): 
 	'''
 	reads register
-		sv.socket0.io0.uncore.ubox.ncdecs.biosnonstickyscratchpad7_cfg
+		sv.socket0.imh0.ubox.ncdecs.biosnonstickyscratchpad_mem[7]
 	'''
 	# print ("POST = 0x%x" % sv.socket0.io0.uncore.ubox.ncdecs.biosnonstickyscratchpad7_cfg) # Read current postcode
 	print ("POST = %x" % sv.socket0.imh0.ubox.ncdecs.biosnonstickyscratchpad_mem[7])
@@ -1880,10 +3478,6 @@ def _enable_bits(n_bits):
 	''' 
 	bitmask = (1 << n_bits) - 1
 	return bitmask
-
-#========================================================================================================#
-#=============== System to Tester Class and Scripts =====================================================#
-#========================================================================================================#
 
 class System2Tester():
 

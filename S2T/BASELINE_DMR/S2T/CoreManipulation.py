@@ -37,7 +37,7 @@ import os
 from tabulate import tabulate
 
 
-## Custom Modules
+## Custom Modulesimport
 
 import toolext.bootscript.boot as b
 import users.gaespino.dev.S2T.dpmChecks as dpm
@@ -668,7 +668,7 @@ class System2Tester():
 		U600W_comp = FUSES_600W_COMP # Nothing defined for HiPower required units
 		W600W_io = FUSES_600W_IO # Nothing defined for HiPower required units
 		
-		
+
 		
 
 		if ht_dis == None and global_ht_dis !=None: ht_dis = global_ht_dis
