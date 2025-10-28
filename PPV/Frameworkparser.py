@@ -57,7 +57,7 @@ class LogFileParser:
 						elif self.content_type == 'imunch':
 							result = self.parse_linux_log(log_content)
 						elif self.content_type == 'tsl':
-							result = self.parse_linux_log(log_content)
+							result = self.parse_tsl_log(log_content)
 						elif self.content_type == 'python':
 							result = self.parse_python_log(log_content)
 						elif self.content_type == 'other':
@@ -185,6 +185,52 @@ class LogFileParser:
 
 		return list(fail_results)
 
+	def parse_tsl_log(self, log_content):
+		lines = log_content.splitlines()
+		fail_results = set()
+
+		# Check for fail conditions
+		for line in lines:
+			if any((skip_string in line) if self.casesens else (skip_string.lower() in line.lower()) for skip_string in self.skip_strings):
+				continue
+
+			for search_string in self.fail_strings:
+				if (search_string in line) if self.casesens else (search_string.lower() in line.lower()):
+					# Extract the failing test information
+					parts = line.strip(search_string)
+					if len(parts) > 2:
+						fail_results.add(f"{parts}")
+					else:
+						fail_results.add("FAIL")
+
+		# If no fail conditions are found, check for pass conditions
+		if not fail_results:
+			for line in reversed(lines):
+				if any((skip_string in line) if self.casesens else (skip_string.lower() in line.lower()) for skip_string in self.skip_strings):
+					continue
+
+				for search_string in self.pass_strings:
+					if (search_string in line) if self.casesens else (search_string.lower() in line.lower()):
+						fail_results.add("PASS")
+						break
+
+				else:
+					for search_string in self.check_strings: # empty for TSL
+						if (search_string in line) if self.casesens else (search_string.lower() in line.lower()):
+							fail_results.add("_CHECK_MCA")
+							break
+					else:
+						for search_string in self.hang_strings:
+							if (search_string in line) if self.casesens else (search_string.lower() in line.lower()):
+								obj_file = self.extract_obj_from_line(line)
+								fail_results.add(obj_file.replace('.obj', '') + '_HANG' if obj_file else "HANG")
+								break
+
+				if "PASS" in fail_results or "_CHECK_MCA" in fail_results or any(obj.endswith('_HANG') for obj in fail_results):
+					break
+
+		return list(fail_results)
+	
 	def parse_python_log(self, log_content):
 		lines = log_content.splitlines()
 		fail_results = set()
@@ -466,7 +512,7 @@ def parse_zip_files(zip_file_path, content, pass_array = [], fail_array = [], sk
 		  		'fail': ['exit: fail', "test_result: failed", "failed", "Result=FAILED"], 'hang': [], 'check': []}
 	
 	tsl_rules = {	'pass': ['exit: pass'], 
-		  		'fail': ['exit: fail', "not ok"], 'hang': [], 'check': []}
+		  		'fail': ['exit: fail', "not ok"], 'hang': ['.obj'], 'check': []}
 	
 	sandstone_rules = {	'pass': ['exit: pass'], 
 		  		'fail': ['exit: fail', "not ok"], 'hang': [], 'check': []}

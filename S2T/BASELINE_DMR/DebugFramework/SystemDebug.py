@@ -130,9 +130,9 @@ from ExecutionHandler.Configurations import (DragonConfiguration, LinuxConfigura
 ULX_CPU_DICT = {'GNR': 'GNR_B0',
 		   'CWF': 'CWF -gsv'}
 
-print(s2t.SELECTED_PRODUCT)
+print(s2t.config.SELECTED_PRODUCT)
 class ContentValues(Enum):
-	PRODUCT = s2t.SELECTED_PRODUCT
+	PRODUCT = s2t.config.SELECTED_PRODUCT
 	ULX_CPU = ULX_CPU_DICT[PRODUCT]
 
 #########################################################
@@ -2800,7 +2800,7 @@ class Framework:
 			logger.log('\nData Upload Process:', 1)
 			logger.log('=' * 30, 1)
 			WW = str(dpm.getWW())
-			product = s2t.SELECTED_PRODUCT
+			product = s2t.config.SELECTED_PRODUCT
 			
 			datahandler = fh.TestUpload(
 				folder=tfolder,

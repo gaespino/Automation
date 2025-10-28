@@ -54,9 +54,9 @@ import importlib
 
 # iMPORT OF SELECTED PRODUCT CONFIGURATION
 try:
-	import users.gaespino.dev.S2T.ConfigsLoader as LoadConfig
-	SELECTED_PRODUCT = LoadConfig.SELECTED_PRODUCT
-	PRODUCT_CONFIG = LoadConfig.PRODUCT_CONFIG
+	from users.gaespino.dev.S2T.ConfigsLoader import config
+	SELECTED_PRODUCT = config.SELECTED_PRODUCT
+	PRODUCT_CONFIG = config.PRODUCT_CONFIG
 except:
 	SELECTED_PRODUCT = None 
 	PRODUCT_CONFIG = None

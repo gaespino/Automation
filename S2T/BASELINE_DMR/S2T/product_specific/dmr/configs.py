@@ -159,8 +159,8 @@ class configurations:
 		product = self.product
 		
 		## System 2 Tester and bootscript Initialization data 
-		bootscript_data = {	'CWFAP':{'segment':'CWFXDCC','config':['compute0', 'compute1', 'compute2'], 'compute_config':'x3',},
-								'CWFSP':{'segment':'CWFHDCC','config':['compute0', 'compute1'], 'compute_config':'x2',}}
+		bootscript_data = {	'DMR_CLTAP':{'segment':'CWFXDCC','config':['cbb0', 'cbb1', 'cbb2', 'cbb3'], 'compute_config':'x4',},
+								'DMR_CLTSP':{'segment':'CWFHDCC','config':['cbb0'], 'compute_config':'x1',}}
 
 		# Licence Configuration CWF
 		core_license_dict = {'IA':1,'SSE':1,}
@@ -172,13 +172,13 @@ class configurations:
 
 		# Mesh Configurations CWF
 		ate_masks = 	{
-							'CWFAP':{1:'FirstPass', 2:'SecondPass',3:'ThirdPass', 4:'RowPass1',5:'RowPass2',6:'RowPass3'},
-							'CWFSP':{1:'FirstPass(FullChip)'}
+							'DMR_CLTAP':{1:'FirstPass', 2:'SecondPass',3:'ThirdPass', 4:'RowPass1',5:'RowPass2',6:'RowPass3'},
+							'DMR_CLTSP':{1:'FirstPass(FullChip)'}
 							}
-		masks_AP = [v for k,v in ate_masks['CWFAP'].items()]
-		masks_SP = [v for k,v in ate_masks['CWFSP'].items()]
+		masks_AP = [v for k,v in ate_masks['DMR_CLTAP'].items()]
+		masks_SP = [v for k,v in ate_masks['DMR_CLTSP'].items()]
 
-		ValidClass = {'CWFAP':masks_AP,'CWFSP':masks_SP}
+		ValidClass = {'DMR_CLTAP':masks_AP,'DMR_CLTSP':masks_SP}
 
 		ValidRows = ['ROW5','ROW6','ROW7']
 		ValidCols = ['COL1','COL2','COL3','COL4','COL5','COL6','COL7','COL8']

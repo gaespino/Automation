@@ -10,7 +10,7 @@ import colorama
 from colorama import Fore, Style, Back
 from dataclasses import dataclass
 
-CONFIG_PRODUCT = 'CWF'
+CONFIG_PRODUCT = 'DMR'
 
 print (f"Loading Functions for {CONFIG_PRODUCT} || REV 0.1")
 
@@ -44,17 +44,18 @@ class functions:
 		return ClassMask_sys
 
 	@staticmethod
-	def core_apic_id(core, compute_index, sv, id0, id1):
-		cores = sv.socket0.get_by_path(f'compute{compute_index}').cpu.get_by_path(f'module{core}').cores
-		morethan_2_cpm = len(cores) >= 2
+	def core_apic_id(phys_module, cbb_index, compute_index, sv, id0, id1):
+
+		cores = sv.socket0.get_by_path(f'cbb{cbb_index}').get_by_path(f'compute{compute_index}').get_by_path(f'module{phys_module}').cores
+		morethan_1_cpm = len(cores) >= 2
 
 		#core = physical2ClassLogical[core % MAXLOGICAL] + (compute_index)*MAXLOGICAL
-		id0 = cores[0].thread0.pic_cr_pic_extended_local_apic_id
-		if morethan_2_cpm: id1 =  cores[-1].thread0.pic_cr_pic_extended_local_apic_id
+		id0 = cores[0].thread0.ml3_cr_pic_extended_local_apic_id
+		if morethan_1_cpm: id1 =  cores[-1].thread0.ml3_cr_pic_extended_local_apic_id
 		if id1 == None: print (Fore.RED + "\nLess than 2 Cores per module check on the unit, please check your configuration if this is not intended\n" + Fore.RESET )
 		
 		return id0, id1
-
+	
 	@staticmethod
 	def read_dr_registers(sv, ipc, logger, mcadata, table):
 
@@ -63,20 +64,20 @@ class functions:
 		## DRs reg --> .x86_cr_dr0.get_value()
 		sv.sockets.computes.cpu.modules.setaccess('crb')
 		with ipc.device_locker():
-			threads = sv.socket0.computes.cpu.modules.cores
+			threads = sv.socket0.cbbs.computes.modules.cores
 			drs = [['MODULE','THREAD','APIC IDs', 'DR0','DR1','DR2','DR3']]
 			
 			for thread in threads:
 				_CORE = thread.parent.name.upper()
 				_THREAD = thread.name.upper()
-				_APIC_ID = thread.thread0.pic_cr_pic_extended_local_apic_id.get_value()
+				_APIC_ID = thread.thread0.ml3_cr_pic_extended_local_apic_id.get_value()
 				_DR0 = thread.thread0.x86_cr_dr0.get_value()
 				_DR1 = thread.thread0.x86_cr_dr1.get_value()
 				_DR2 = thread.thread0.x86_cr_dr2.get_value()
 				_DR3 = thread.thread0.x86_cr_dr3.get_value()
 			
 				if mcadata:
-					mcadata['TestName'].append("%s" % thread.thread0.pic_cr_pic_extended_local_apic_id.path)
+					mcadata['TestName'].append("%s" % thread.thread0.ml3_cr_pic_extended_local_apic_id.path)
 					mcadata['TestValue'].append("0x%x" % _APIC_ID)
 					mcadata['TestName'].append("%s" % thread.thread0.x86_cr_dr0.path)
 					mcadata['TestValue'].append("0x%x" % _DR0)
@@ -100,15 +101,15 @@ class functions:
 		banner_text = rf'''
 
 ==========================================================================================================
-    _______      _______   ______  _____________________  ___   ___     _________________________________ 
-   / ___/ / __  / / ___/  / ___| \/ / ___/_  __/ ____/  |/  /  |__ \   /_  __/ ____/ ___/_  __/ ____/ __ \
-  / /  / /_/ /_/ / /__    \__ \ \  /\__ \ / / / __/ / /|_/ /   __/ /    / / / __/  \__ \ / / / __/ / /_/ /
- / /__/   __    / ___/   ___/ / / /___/ // / / /___/ /  / /   / __/    / / / /___ ___/ // / / /___/ _, _/ 
-/____/___/ /___/_/      /____/ /_//____//_/ /_____/_/  /_/   /____/   /_/ /_____//____//_/ /_____/_/ |_|  
+    ____  __  _______     _______  ____________  ___   ___     _________________________________ 
+   / __ \/  |/  / __ \   / ___/\ \/ / ___/_  __/ ____/  |/  /  |__ \   /_  __/ ____/ ___/_  __/ ____/ __ \
+  / / / / /|_/ / /_/ /   \__ \  \  /\__ \ / / / __/ / /|_/ /   __/ /    / / / __/  \__ \ / / / __/ / /_/ /
+ / /_/ / /  / / _, _/   ___/ /  / /___/ // / / /___/ /  / /   / __/    / / / /___ ___/ // / / /___/ _, _/ 
+/_____/_/  /_/_/ |_|   /____/  /_//____//_/ /_____/_/  /_/   /____/   /_/ /_____//____//_/ /_____/_/ |_|  
 																																																			
 ===========================================================================================================
 
--- System 2 Tester CWF version {revision}
+-- System 2 Tester DMR version {revision}
 -- Release: {date}
 -- For any issues please contact: {engineer}
 

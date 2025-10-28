@@ -90,7 +90,7 @@ debug = False
 import users.gaespino.dev.S2T.CoreManipulation as scm
 import users.gaespino.dev.S2T.GetTesterCurves as stc
 import users.gaespino.dev.S2T.dpmChecks as dpm
-import users.gaespino.dev.S2T.ConfigsLoader as LoadConfig
+from users.gaespino.dev.S2T.ConfigsLoader import config
 
 ## UI Calls
 import users.gaespino.dev.S2T.UI.System2TesterUI as UI
@@ -100,90 +100,35 @@ try:
 	import users.THR.PythonScripts.thr.GNRCoreDebugUtils as CoreDebugUtils 
 except:
 	import users.THR.PythonScripts.thr.CWFCoreDebugUtils as CoreDebugUtils 
+
 ## Reload of all imported scripts
 importlib.reload(scm)
 importlib.reload(CoreDebugUtils)
 importlib.reload(stc)
 importlib.reload(dpm)
 importlib.reload(UI)
-importlib.reload(LoadConfig)
+config.reload()
 
 bullets = '>>>'
 s2tflow = None
 
-# Product Data Collection needed to init variables on script --
-PRODUCT_CONFIG = LoadConfig.PRODUCT_CONFIG
-PRODUCT_CHOP  = LoadConfig.PRODUCT_CHOP
-PRODUCT_VARIANT = LoadConfig.PRODUCT_VARIANT
-SELECTED_PRODUCT = LoadConfig.SELECTED_PRODUCT
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-CONFIG = LoadConfig.CONFIG
+#========================================================================================================#
+#=============== DIRECT CONFIG ACCESS (No redundant declarations) =======================================#
+#========================================================================================================#
 
-# Configuration Variables Init
-ConfigFile = LoadConfig.ConfigFile
-CORESTRING = LoadConfig.CORESTRING
-CORETYPES = LoadConfig.CORETYPES
-CHIPCONFIG = LoadConfig.CHIPCONFIG
-MAXCORESCHIP = LoadConfig.MAXCORESCHIP
-MAXLOGICAL = LoadConfig.MAXLOGICAL
-MAXPHYSICAL = LoadConfig.MAXPHYSICAL
-classLogical2Physical = LoadConfig.classLogical2Physical
-physical2ClassLogical = LoadConfig.physical2ClassLogical
-Physical2apicIDAssignmentOrder10x5 = LoadConfig.Physical2apicIDAssignmentOrder10x5
-phys2colrow = LoadConfig.phys2colrow
-skip_cores_10x5 = LoadConfig.skip_cores_10x5
-
-# Product Fuses Init
-FUSES = LoadConfig.FUSES
-
-DEBUGMASK = LoadConfig.DEBUGMASK
-PSEUDOCONDFIGS = LoadConfig.PSEUDOCONDFIGS
-BURINFUSES = LoadConfig.BURINFUSES
-FUSE_INSTANCE = LoadConfig.FUSE_INSTANCE
-CFC_RATIO_CURVES = LoadConfig.CFC_RATIO_CURVES
-CFC_VOLTAGE_CURVES = LoadConfig.CFC_VOLTAGE_CURVES
-IA_RATIO_CURVES = LoadConfig.IA_RATIO_CURVES
-IA_RATIO_CONFIG = LoadConfig.IA_RATIO_CONFIG
-IA_VOLTAGE_CURVES = LoadConfig.IA_VOLTAGE_CURVES
-FUSES_600W_COMP = LoadConfig.FUSES_600W_COMP
-FUSES_600W_IO = LoadConfig.FUSES_600W_IO
-HIDIS_COMP = LoadConfig.HIDIS_COMP
-HTDIS_IO = LoadConfig.HTDIS_IO
-VP2INTERSECT = LoadConfig.VP2INTERSECT
-
-# Framework Variables Init
-FRAMEWORKVARS = LoadConfig.FRAMEWORKVARS
-LICENSE_DICT = LoadConfig.LICENSE_DICT
-LICENSE_S2T_MENU = LoadConfig.LICENSE_S2T_MENU
-LICENSE_LEVELS = LoadConfig.LICENSE_LEVELS
-SPECIAL_QDF = LoadConfig.SPECIAL_QDF
-VALIDCLASS = LoadConfig.VALIDCLASS
-CUSTOMS = LoadConfig.CUSTOMS
-VALIDROWS = LoadConfig.VALIDROWS
-VALIDCOLS = LoadConfig.VALIDCOLS
-BOOTSCRIPT_DATA = LoadConfig.BOOTSCRIPT_DATA
-ATE_MASKS = LoadConfig.ATE_MASKS
-ATE_CONFIG = LoadConfig.ATE_CONFIG
-DIS2CPM_MENU = LoadConfig.DIS2CPM_MENU
-DIS2CPM_DICT = LoadConfig.DIS2CPM_DICT
-RIGHT_HEMISPHERE = LoadConfig.RIGHT_HEMISPHERE
-LEFT_HEMISPHERE = LoadConfig.LEFT_HEMISPHERE
-
-# Framework Features Init
-FRAMEWORK_FEATURES = LoadConfig.FRAMEWORK_FEATURES
-
-# Registers Load
-reg = LoadConfig.LoadRegisters()
-
-# Product Specific Functions Load
-pf = LoadConfig.LoadFunctions()
+# All configuration data accessible via config.ATTRIBUTE (single source of truth from ConfigsLoader.py)
+# Use config.get_functions() and config.get_registers() locally where needed
 
 ## Change Banner display based on product -- fixed for now
+pf = config.get_functions()
+reg = config.get_registers()
 pf.display_banner(revision, date, engineer)
 
 ## Initializes Menus based on type of product used
 def init_menus(product):
-	if CORETYPES[product]['core'] == 'atomcore':
+	if config.CORETYPES[product]['core'] == 'atomcore':
 		menustring = 'Module'
 	else:
 		menustring = 'Core'
@@ -253,7 +198,7 @@ def setupSystemAsTester(debug = False):
 
 def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_mesh = None, Reset = False, Mask = None, pseudo = False, dis_2CPM = None, GUI = True, fastboot = True, corelic = None, volttype='vbump', debug= False, boot_postcode = False, extMask = None, u600w=None, execution_state=None):
 	s2tTest = S2TFlow(debug=debug)
-	product = SELECTED_PRODUCT
+	product = config.SELECTED_PRODUCT
 	qdf = dpm.qdf_str()
 	
 	# Framework cancellation check enable
@@ -320,7 +265,7 @@ def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_m
 	s2tTest.extMasks = extMask  # Dict with system Masks to be used as base
 	s2tTest.u600w = u600w
 
-	customs = {'LeftSide':RIGHT_HEMISPHERE,'RightSide':LEFT_HEMISPHERE}
+	customs = {'LeftSide':config.RIGHT_HEMISPHERE,'RightSide':config.LEFT_HEMISPHERE}
 	computes = s2tTest.computes #['compute0', 'compute1', 'compute2']
 
 	# Set quickconfig variables
@@ -389,7 +334,7 @@ def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_m
 
 def SliceQuickTest(Target_core = None, core_freq = None, mesh_freq = None, vbump_core = None, vbump_mesh = None, Reset = False, pseudo = False, dis_2CPM = None, GUI = True, fastboot = True, corelic = None,  volttype = 'fixed', debug= False, boot_postcode = False, u600w=None, execution_state=None):
 	s2tTest = S2TFlow(debug=debug)
-	product = SELECTED_PRODUCT
+	product = config.SELECTED_PRODUCT
 	qdf = dpm.qdf_str()
 
 	# Framework cancellation check enable
@@ -582,7 +527,7 @@ class S2TFlow():
 		## Script Flow
 		self.mode = None
 		self.external = False
-		self.product = PRODUCT_CONFIG
+		self.product = config.PRODUCT_CONFIG
 		## Testing and debug Variable
 		self.debug = debug
 		## Common Settings
@@ -647,8 +592,8 @@ class S2TFlow():
 		self.targetLogicalCore = targetLogicalCore
 
 		# Init Menus and disable checks product specific features
-		self.__FRAMEWORK_FEATURES = FRAMEWORK_FEATURES
-		self.__FRAMEWORKVARS = FRAMEWORK_FEATURES
+		self.__FRAMEWORK_FEATURES = config.FRAMEWORK_FEATURES
+		self.__FRAMEWORKVARS = config.FRAMEWORK_FEATURES
 		self.specific_product_features()
 	
 	# This will check based on product to disable S2T features, not all products require the same features, implemented to keep code structure
@@ -668,18 +613,18 @@ class S2TFlow():
 			if FEATURE['enabled'] == False:
 				FEATURE_VALUE = getattr(self, F)				
 				if FEATURE_VALUE != FEATURE['disabled_value']:
-					print(f'\t> Feature: {F} not enabled for this product ({SELECTED_PRODUCT}).')
+					print(f'\t> Feature: {F} not enabled for this product ({config.SELECTED_PRODUCT}).')
 					setattr(self, F, FEATURE['disabled_value'])
 		print(f'{"+"*80}\n')
 
 	def specific_product_features(self):
 		
-		_exit_condition(self.product, CORETYPES.keys(), f"\n{bullets} Product not available, select a valid product...\n")
+		_exit_condition(self.product, config.CORETYPES.keys(), f"\n{bullets} Product not available, select a valid product...\n")
 		
 		# Will move this configuration to a config json file to avoid product specifics 
 		self.Menus, self.coremenustring = init_menus(self.product)
 		self.computes = sv.socket0.computes.name
-		self.core_type = CORETYPES[self.product]['core']
+		self.core_type = config.CORETYPES[self.product]['core']
 		
 		## Specific HDC condition atomcore is located at L2
 		if self.core_type == 'atomcore': 
@@ -690,18 +635,18 @@ class S2TFlow():
 		self.features_check()
 
 		# Populate internal variables based on product selected
-		self.license_dict = LICENSE_S2T_MENU
-		self.core_license_dict = LICENSE_DICT
-		self.core_license_levels = LICENSE_LEVELS
-		self.qdf600 = SPECIAL_QDF
-		self.ate_masks = ATE_MASKS[PRODUCT_CONFIG.upper()]
-		self.customs = CUSTOMS
-		self.ate_config_main = ATE_CONFIG['main']
-		self.ate_config_product = ATE_CONFIG[PRODUCT_CONFIG.upper()]
-		self.left_hemispthere = LEFT_HEMISPHERE
-		self.right_hemispthere = RIGHT_HEMISPHERE
-		self.validclass = VALIDCLASS[PRODUCT_CONFIG.upper()]
-		self.dis2cpm_dict = DIS2CPM_DICT
+		self.license_dict = config.LICENSE_S2T_MENU
+		self.core_license_dict = config.LICENSE_DICT
+		self.core_license_levels = config.LICENSE_LEVELS
+		self.qdf600 = config.SPECIAL_QDF
+		self.ate_masks = config.ATE_MASKS[config.PRODUCT_CONFIG.upper()]
+		self.customs = config.CUSTOMS
+		self.ate_config_main = config.ATE_CONFIG['main']
+		self.ate_config_product = config.ATE_CONFIG[config.PRODUCT_CONFIG.upper()]
+		self.left_hemispthere = config.LEFT_HEMISPHERE
+		self.right_hemispthere = config.RIGHT_HEMISPHERE
+		self.validclass = config.VALIDCLASS[config.PRODUCT_CONFIG.upper()]
+		self.dis2cpm_dict = config.DIS2CPM_DICT
 
 	# Prints Menus from a dictionary, each key should be of the format l# or line# to be used
 	def print_menu(self, menu):
@@ -1555,7 +1500,7 @@ class S2TFlow():
 			if self.cr_array_start!=0xffff:
 				print ("\t> CR_ARRAY_START = %d" % self.cr_array_start)
 				print ("\t> CR_ARRAY_END = %d" % self.cr_array_end)
-			print("Rerun this config without prompt: s2t.Configs(), default save path: C:\Temp\System2TesterRun.json")
+			print(r"Rerun this config without prompt: s2t.Configs(), default save path: C:\Temp\System2TesterRun.json")
 			print(f"Configuration File located at {self.defaultSave}")
 			# Removing it for now
 			#print("Build this configuration without prompt using: s2tconfig = s2t.S2TFlow(targetLogicalCore=%d, use_ate_freq=False, core_freq=%d, mesh_freq=%d, license_level=%d, dcf_ratio=%d, mesh_cfc_volt = %d, mesh_hdc_volt = %d, io_cfc_volt = %d, ddrd_volt = %d, core_volt = %d,)"  % (self.targetLogicalCore, self.core_freq, self.mesh_freq, self.license_level, self.dcf_ratio, self.mesh_cfc_volt, self.mesh_hdc_volt, self.io_cfc_volt, self.ddrd_volt, self.core_volt))
@@ -2002,7 +1947,7 @@ class S2TFlow():
 			if self.cr_array_start!=0xffff:
 				print ("\t> CR_ARRAY_START = %d" % self.cr_array_start)
 				print ("\t> CR_ARRAY_END = %d" % self.cr_array_end)
-			print("Rerun this config without prompt: s2t.Configs(), default save path: C:\Temp\System2TesterRun.json")
+			print(r"Rerun this config without prompt: s2t.Configs(), default save path: C:\Temp\System2TesterRun.json")
 			print(f"Configuration File located at {self.defaultSave}")
 			#print("Rerun this config without prompt: s2t.setupSliceMode(targetLogicalCore=%d, use_ate_freq=False, core_freq=%d, mesh_freq=%d, license_level=%d, dcf_ratio=%d)"  % (targetLogicalCore, core_freq, mesh_freq, license_level, dcf_ratio))
 		
@@ -2351,7 +2296,7 @@ def set_tester(
 	 skip_wbinvd -- skip WBINVD
 	"""
 	crarray = None
-	product = SELECTED_PRODUCT
+	product = config.SELECTED_PRODUCT
 	dcf_allowed = ['GNR']
 	lic_allowed = ['GNR']
 	pstates_allowed = ['GNR']

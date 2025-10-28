@@ -44,7 +44,7 @@ def test_s2t_functions_directly(product: str = "GNR"):
             print(f"   ⚠ dpmChecks import failed: {e}")
             
         try:
-            import ConfigsLoader as cl
+            from ConfigsLoader import config
             print("   ✓ ConfigsLoader imported successfully")
         except Exception as e:
             print(f"   ⚠ ConfigsLoader import failed: {e}")
@@ -86,9 +86,9 @@ def test_s2t_functions_directly(product: str = "GNR"):
         print("\n5. Testing configuration loading...")
         try:
             # Test config loading (should work with real JSON files)
-            print(f"   ✓ Selected product: {cl.SELECTED_PRODUCT}")
-            print(f"   ✓ Product config: {cl.PRODUCT_CONFIG}")
-            print(f"   ✓ Product variant: {cl.PRODUCT_VARIANT}")
+            print(f"   ✓ Selected product: {config.SELECTED_PRODUCT}")
+            print(f"   ✓ Product config: {config.PRODUCT_CONFIG}")
+            print(f"   ✓ Product variant: {config.PRODUCT_VARIANT}")
         except Exception as e:
             print(f"   ⚠ Configuration loading failed: {e}")
         

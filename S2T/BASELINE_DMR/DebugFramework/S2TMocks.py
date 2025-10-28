@@ -291,7 +291,7 @@ def test_s2t_functions(product: str = "GNR"):
         # Import S2T modules (they should work with mocks)
         import S2T.CoreManipulation as cm
         import S2T.dpmChecks as dpm
-        import S2T.ConfigsLoader as cl
+        from S2T.ConfigsLoader import config
         
         print("   ✓ S2T modules imported successfully")
         
@@ -329,9 +329,9 @@ def test_s2t_functions(product: str = "GNR"):
         print("\n5. Testing configuration loading...")
         try:
             # Test config loading (should work with real JSON files)
-            print(f"   ✓ Selected product: {cl.SELECTED_PRODUCT}")
-            print(f"   ✓ Product config: {cl.PRODUCT_CONFIG}")
-            print(f"   ✓ Product variant: {cl.PRODUCT_VARIANT}")
+            print(f"   ✓ Selected product: {config.SELECTED_PRODUCT}")
+            print(f"   ✓ Product config: {config.PRODUCT_CONFIG}")
+            print(f"   ✓ Product variant: {config.PRODUCT_VARIANT}")
         except Exception as e:
             print(f"   ⚠ Configuration loading failed: {e}")
         
