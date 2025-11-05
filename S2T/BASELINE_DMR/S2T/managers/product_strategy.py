@@ -176,6 +176,11 @@ class ProductStrategy(ABC):
 	def supports_2cpm(self) -> bool:
 		"""Check if product supports 2CPM disable."""
 		pass
+
+	@abstractmethod
+	def supports_1cpm(self) -> bool:
+		"""Check if product supports 1CPM disable."""
+		pass
 	
 	@abstractmethod
 	def get_bootscript_config(self) -> Dict[str, Any]:
@@ -218,6 +223,25 @@ class ProductStrategy(ABC):
 		
 		Returns:
 			Dictionary with voltage config structure for each domain
+		"""
+		pass
+	
+	@abstractmethod
+	def get_voltage_ips(self) -> Dict[str, bool]:
+		"""
+		Get which voltage IPs are used by this product.
+		
+		Returns:
+			Dictionary indicating which voltage IPs are used:
+			{
+				'core_volt': True/False,
+				'mesh_cfc_volt': True/False,  # CFC voltage per domain
+				'mesh_hdc_volt': True/False,  # HDC voltage per domain
+				'core_mlc_volt': True/False,  # MLC voltage (DMR-specific)
+				'io_cfc_volt': True/False,     # IO CFC voltage
+				'ddrd_volt': True/False,       # DDRD voltage
+				'ddra_volt': True/False        # DDRA voltage
+			}
 		"""
 		pass
 	
@@ -338,5 +362,6 @@ class ProductStrategy(ABC):
 				'supports_600w': self.supports_600w_config(),
 				'supports_ht': self.supports_hyperthreading(),
 				'supports_2cpm': self.supports_2cpm(),
+				'supports_1cpm': self.supports_1cpm(),
 			}
 		}

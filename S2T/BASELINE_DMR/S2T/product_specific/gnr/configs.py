@@ -198,14 +198,17 @@ class configurations:
 		dis2cpm_menu = 	{	
 							'main':{
 									'l1':('\t> 1. Not available for this product'),
-									#'l2':('\t> 2. Disable LOW Cores (0x3): Core0 and Core1'),
-									#'l3':('\t> 3. Disable (0x9): Core0 and Core3'),
-									#'l4':('\t> 4. Disable (0xa): Core1 and Core3'),
-									#'l5':('\t> 5. Disable (0x5): Core1 and Core2'),
 									'maxrng': 2},
 							}
 		dis2cpm_dict = {1:None}
 
+		dis1cpm_menu = 	{	
+							'main':{
+									'l1':('\t> 1. Not available for this product'),
+									'maxrng': 2},
+							}
+		
+		dis1cpm_dict = {1:None}
 
 		FrameworkVars = { 
 							'core_license_dict' : 	core_license_dict,
@@ -213,6 +216,8 @@ class configurations:
 							'core_license_levels' : core_license_levels,
 							'dis2cpm_menu': dis2cpm_menu,
 							'dis2cpm_dict': dis2cpm_dict,
+							'dis1cpm_menu': dis1cpm_menu,
+							'dis1cpm_dict': dis1cpm_dict,
 							'qdf600' : qdf600,
 							'ate_config' : ate_config,
 							'ate_masks' : ate_masks,
@@ -251,6 +256,7 @@ class configurations:
 								'dis_acode':			{'default':False,'enabled':True,'disabled_value':False,},
 								'dis_ht':				{'default':None,'enabled':True,'disabled_value':False,},
 								'dis_2CPM':				{'default':None,'enabled':False,'disabled_value':None,},
+								'dis_1CPM':				{'default':None,'enabled':False,'disabled_value':None,},
 								'postBootS2T':			{'default':True,'enabled':True,'disabled_value':True,},
 								'clusterCheck':			{'default':None,'enabled':True,'disabled_value':None,},
 								'lsb':					{'default':False,'enabled':True,'disabled_value':False,},

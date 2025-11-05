@@ -40,10 +40,14 @@ class VoltageManager:
 		self.menus = menus
 		self.features = features
 		
+		# Get voltage IPs supported by this product
+		self.voltage_ips = self.strategy.get_voltage_ips()
+		
 		# Voltage configuration state
 		self.core_volt: Optional[float] = None
-		self.mesh_cfc_volt: Optional[Dict[str, float]] = None
-		self.mesh_hdc_volt: Optional[Dict[str, float]] = None
+		self.mesh_cfc_volt: Optional[Dict[str, Optional[float]]] = None
+		self.mesh_hdc_volt: Optional[Dict[str, Optional[float]]] = None if self.voltage_ips['mesh_hdc_volt'] else None
+		self.core_mlc_volt: Optional[float] = None if self.voltage_ips['core_mlc_volt'] else None
 		self.io_cfc_volt: Optional[float] = None
 		self.ddrd_volt: Optional[float] = None
 		self.ddra_volt: Optional[float] = None
@@ -61,6 +65,9 @@ class VoltageManager:
 		self.safevolts_PKG: List = []
 		self.safevolts_CDIE: List = []
 		self.voltstable: str = ""
+		
+		print(f">>> VoltageManager initialized for {self.strategy.get_product_name()}")
+		print(f">>> Supported voltage IPs: {[k for k, v in self.voltage_ips.items() if v]}")
 		
 	def init_voltage_tables(self, mode: str = 'mesh', safe_volts_pkg: Dict = None, safe_volts_cdie: Dict = None):
 		"""
@@ -231,13 +238,26 @@ class VoltageManager:
 			
 			# Prompt for core voltage
 			self.core_volt = self._prompt_float_voltage(
-				f"--> Enter {core_string} Voltage: ",
 				self.menus.get('CoreVolt', 'Set Core Voltage?'),
+				f"--> Enter {core_string} Voltage: ",
 				input_func
 			)
+			# Prompt for core MLC voltage
+			if self.voltage_ips.get('core_mlc_volt', False):
+				self.core_mlc_volt = self._prompt_float_voltage(
+					self.menus.get('MLCVolt', 'Set Core MLC Voltage?'),
+					f"--> Enter {core_string} MLC Voltage: ",
+					input_func
+				)
+
 		else:
 			self.core_volt = qvbumps_core
 		
+			# MLC should track core voltage for DMR (independent of HDC)
+			if self.voltage_ips.get('core_mlc_volt', False) and self.core_volt is not None:
+				self.core_mlc_volt = self.core_volt
+				print(f'--> Setting MLC Voltage to match Core: {self.core_mlc_volt}')
+			
 		# Configure uncore voltages (CFC/HDC)
 		self.configure_uncore_voltages(fixed=True, external=external, 
 									   qvbumps_mesh=None, input_func=input_func)
@@ -245,13 +265,13 @@ class VoltageManager:
 		if not external:
 			# IO and DDR voltages
 			self.io_cfc_volt = self._prompt_float_voltage(
-				"--> Enter CFC IO DIE Voltage: ",
 				self.menus.get('CFCIOVolt', 'Set IO CFC Voltage?'),
+				"--> Enter CFC IO DIE Voltage: ",
 				input_func
 			)
 			self.ddrd_volt = self._prompt_float_voltage(
-				"--> Enter DDRD Voltage: ",
 				self.menus.get('DDRDVolt', 'Set DDRD Voltage?'),
+				"--> Enter DDRD Voltage: ",
 				input_func
 			)
 		
@@ -288,14 +308,29 @@ class VoltageManager:
 			
 			# Prompt for core vbump
 			core_vbump = self._prompt_float_voltage(
-				f"--> Enter {core_string} vBump: ",
 				self.menus.get('CoreBump', 'Set Core vBump?'),
+				f"--> Enter {core_string} vBump: ",
 				input_func
 			)
 			self.core_volt = self.check_vbumps(core_vbump, input_func)
+
+			# Prompt for core MLC vbump
+			if self.voltage_ips.get('core_mlc_volt', False):
+				core_mlc_vbump = self._prompt_float_voltage(
+					self.menus.get('MLCBump', 'Set Core MLC vBump?'),
+					f"--> Enter {core_string} MLC vBump: ",
+					input_func
+				)
+				self.core_mlc_volt = self.check_vbumps(core_mlc_vbump, input_func)
+			
 		else:
 			self.core_volt = qvbumps_core
 		
+			# MLC should track core voltage for DMR (independent of HDC)
+			if self.voltage_ips.get('core_mlc_volt', False) and self.core_volt is not None:
+				self.core_mlc_volt = self.core_volt
+				print(f'--> Setting MLC Voltage to match Core: {self.core_mlc_volt}')
+			
 		# Configure uncore voltage bumps
 		self.configure_uncore_voltages(vbumps=True, external=external,
 									   qvbumps_mesh=qvbumps_mesh, input_func=input_func)
@@ -303,15 +338,15 @@ class VoltageManager:
 		if not external:
 			# IO and DDR vbumps
 			io_vbump = self._prompt_float_voltage(
-				"--> Enter CFC IO DIE vBump: ",
 				self.menus.get('CFCIOBump', 'Set IO CFC vBump?'),
+				"--> Enter CFC IO DIE vBump: ",
 				input_func
 			)
 			self.io_cfc_volt = self.check_vbumps(io_vbump, input_func)
 			
 			ddrd_vbump = self._prompt_float_voltage(
-				"--> Enter DDRD vBump: ",
 				self.menus.get('DDRDBump', 'Set DDRD vBump?'),
+				"--> Enter DDRD vBump: ",
 				input_func
 			)
 			self.ddrd_volt = self.check_vbumps(ddrd_vbump, input_func)
@@ -321,6 +356,7 @@ class VoltageManager:
 			'core': self.core_volt,
 			'cfc_die': self.mesh_cfc_volt,
 			'hdc_die': self.mesh_hdc_volt,
+			'mlc_die': self.core_mlc_volt,
 			'cfc_io': self.io_cfc_volt,
 			'ddrd': self.ddrd_volt,
 			'ddra': self.ddra_volt
@@ -371,13 +407,13 @@ class VoltageManager:
 		if uncore_mode == 1:
 			if fixed:
 				cfc_value = self._prompt_float_voltage(
-					"--> Enter CFC Voltage: ",
 					self.menus.get('CFCVolt', 'Set CFC Voltage?'),
+					"--> Enter CFC Voltage: ",
 					input_func
 				)
 				hdc_value = self._prompt_float_voltage(
-					"--> Enter HDC Voltage: ",
 					self.menus.get('HDCVolt', 'Set HDC Voltage?'),
+					"--> Enter HDC Voltage: ",
 					input_func
 				)
 				for domain in domains:
@@ -386,13 +422,13 @@ class VoltageManager:
 			
 			if vbumps:
 				cfc_vbump = self._prompt_float_voltage(
-					"--> Enter CFC vBump: ",
 					self.menus.get('CFCBump', 'Set CFC vBump?'),
+					"--> Enter CFC vBump: ",
 					input_func
 				)
 				hdc_vbump = self._prompt_float_voltage(
-					"--> Enter HDC vBump: ",
 					self.menus.get('HDCBump', 'Set HDC vBump?'),
+					"--> Enter HDC vBump: ",
 					input_func
 				)
 				cfc_value = self.check_vbumps(cfc_vbump, input_func)
@@ -416,13 +452,13 @@ class VoltageManager:
 					)
 					
 					self.mesh_cfc_volt[domain] = self._prompt_float_voltage(
-						f"--> Enter CFC {domain_display} Voltage: ",
 						cfc_prompt,
+						f"--> Enter CFC {domain_display} Voltage: ",
 						input_func
 					)
 					self.mesh_hdc_volt[domain] = self._prompt_float_voltage(
-						f"--> Enter HDC {domain_display} Voltage: ",
 						hdc_prompt,
+						f"--> Enter HDC {domain_display} Voltage: ",
 						input_func
 					)
 				
@@ -435,13 +471,13 @@ class VoltageManager:
 					)
 					
 					cfc_vbump = self._prompt_float_voltage(
-						f"--> Enter CFC {domain_display} vBump: ",
 						cfc_prompt,
+						f"--> Enter CFC {domain_display} vBump: ",
 						input_func
 					)
 					hdc_vbump = self._prompt_float_voltage(
-						f"--> Enter HDC {domain_display} vBump: ",
 						hdc_prompt,
+						f"--> Enter HDC {domain_display} vBump: ",
 						input_func
 					)
 					
@@ -478,17 +514,337 @@ class VoltageManager:
 		
 		return uncore
 	
-	def _prompt_float_voltage(self, prompt: str, menu_str: str, input_func: Callable) -> Optional[float]:
-		"""Helper to prompt for float voltage value."""
+	def _prompt_float_voltage(self, menu_str: str, prompt: str, input_func: Callable, default_yorn: str = 'N') -> Optional[float]:
+		"""Helper to prompt for float voltage value following _yorn_float pattern."""
 		if input_func is None:
 			return None
 		
+		yorn = ""
+		response = None
 		print(f"\n{menu_str}")
+		
+		# Ask Y/N first
+		while "N" not in yorn and "Y" not in yorn:
+			yorn = input_func(f'Y / N (enter for [{default_yorn}]): ').upper()
+			if yorn == "":
+				yorn = default_yorn
+		
+		# If Y, then prompt for value
+		if yorn == "Y":
+			try:
+				value = input_func(f"\n{prompt}")
+				response = float(value) if value else None
+			except (ValueError, TypeError):
+				response = None
+		
+		return response
+	
+	# ========================================================================
+	# ATE Voltage Configuration with DFF Data
+	# ========================================================================
+	
+	def configure_ate_voltage_slice(self, 
+									 VID: str, 
+									 ate_freq: int,
+									 target_core: int,
+									 license_dict: Dict,
+									 license_levels: List,
+									 stc_module,
+									 input_func: Callable,
+									 core_string: str = "CORE") -> bool:
+		"""
+		Configure voltage for slice mode using ATE/DFF data.
+		
+		Args:
+			VID: Visual ID for DFF database lookup
+			ate_freq: Selected ATE frequency (1-7)
+			target_core: Target physical core
+			license_dict: Dictionary mapping license names to values
+			license_levels: List of valid license level names
+			stc_module: GetTesterCurves module for DFF access
+			input_func: Function for user input
+			core_string: Display string for core ('CORE' or 'MODULE')
+			
+		Returns:
+			True if configuration successful, False otherwise
+		"""
+		domains = self.strategy.get_voltage_domains()
+		vdata = None
+		vdata_l2 = None
+		hdc_at_core = self.strategy.has_hdc_at_core()
+		
+		# Attempt to collect DFF data
 		try:
-			value = input_func(prompt)
-			return float(value) if value else None
-		except (ValueError, TypeError):
-			return None
+			vdata = stc_module.get_voltages_core(visual=VID, core=target_core, 
+												 ate_freq=f'F{ate_freq}', hot=True)
+			
+			# For atomcore (CWF), HDC is at L2 level
+			if hdc_at_core:
+				vdata_l2 = stc_module.get_voltages_uncore(visual=VID, 
+														  ate_freq=f'F{ate_freq}', hot=True)
+			
+			voltlic = None
+			
+			# License selection loop
+			while voltlic not in license_levels:
+				if not vdata:
+					break
+				voltlic = str(input_func(f"Select License from {license_levels} :"))
+				if voltlic not in license_levels:
+					print(f'--> Selected License Value not valid, use: {license_levels}')
+				else:
+					print(f'--> Setting {core_string} License to: {license_dict[voltlic]}')
+			
+			# Filter core voltage from DFF data
+			if vdata and voltlic:
+				self.core_volt = stc_module.filter_core_voltage(data=vdata, lic=voltlic, 
+																core=target_core, 
+																ate_freq=f'F{ate_freq}')
+			
+			# Handle HDC voltage for atomcore (CWF) - HDC at L2 level
+			if hdc_at_core and vdata_l2 and self.voltage_ips['mesh_hdc_volt']:
+				for c in domains:
+					hdc_val = stc_module.filter_uncore_voltage(data=vdata_l2, ip='HDC', 
+															   die=c.upper(), 
+															   ate_freq=f'F{ate_freq}')
+					if hdc_val is not None and self.mesh_hdc_volt is not None:
+						self.mesh_hdc_volt[c] = hdc_val
+			
+			# Handle MLC voltage for DMR - MLC tracks core voltage (independent of HDC)
+			if self.voltage_ips.get('core_mlc_volt', False):
+				# MLC voltage should match core voltage for DMR
+				if self.core_volt is not None:
+					self.core_mlc_volt = self.core_volt
+					print(f'--> Setting MLC Voltage to match Core: {self.core_mlc_volt}')
+		
+		except Exception as e:
+			print(f'!!! Failed collecting DFF Data for {VID}, enter value manually or use system default')
+			print(f'Exception -- {e}')
+			
+			# Manual fallback for core voltage
+			self.core_volt = self._prompt_float_voltage(
+				self.menus.get('CoreVolt', 'Set Core Voltage?'),
+				f"--> Enter {core_string} Voltage: ",
+				input_func
+			)
+			
+			# MLC should track core voltage for DMR (independent of HDC)
+			if self.voltage_ips.get('core_mlc_volt', False) and self.core_volt is not None:
+				self.core_mlc_volt = self.core_volt
+				print(f'--> Setting MLC Voltage to match Core: {self.core_mlc_volt}')
+			
+			# Manual fallback for HDC if needed (CWF with HDC at L2)
+			if hdc_at_core and self.voltage_ips['mesh_hdc_volt'] and self.mesh_hdc_volt is not None:
+				for c in domains:
+					hdc_val = self._prompt_float_voltage(
+						self.menus.get('HDCVolt', '').replace('Uncore HDC Voltage', 
+															   f'{c.upper()} Uncore HDC Voltage'),
+						f"--> Enter HDC {c.upper()} voltage: ",
+						input_func
+					)
+					if hdc_val is not None:
+						self.mesh_hdc_volt[c] = hdc_val
+		
+		# Handle empty DFF data
+		if vdata is None or not vdata:
+			print(f'!!! Empty DFF Data for {VID}, check if data is at your site, enter value manually or use system default')
+			
+			self.core_volt = self._prompt_float_voltage(
+				self.menus.get('CoreVolt', 'Set Core Voltage?'),
+				f"--> Enter {core_string} Voltage: ",
+				input_func
+			)
+			
+			# MLC should track core voltage for DMR (independent of HDC)
+			if self.voltage_ips.get('core_mlc_volt', False) and self.core_volt is not None:
+				self.core_mlc_volt = self.core_volt
+				print(f'--> Setting MLC Voltage to match Core: {self.core_mlc_volt}')
+			
+			# HDC manual entry for CWF with HDC at L2
+			if hdc_at_core and self.voltage_ips['mesh_hdc_volt'] and self.mesh_hdc_volt is not None:
+				for c in domains:
+					hdc_val = self._prompt_float_voltage(
+						self.menus.get('HDCVolt', '').replace('Uncore HDC Voltage', 
+															   f'{c.upper()} Uncore HDC Voltage'),
+						f"--> Enter HDC {c.upper()} voltage: ",
+						input_func
+					)
+					if hdc_val is not None:
+						self.mesh_hdc_volt[c] = hdc_val
+		
+		# Set safe voltages for other domains
+		if self.mesh_cfc_volt is None:
+			self.mesh_cfc_volt = {}
+		for c in domains:
+			if c not in self.mesh_cfc_volt or self.mesh_cfc_volt[c] is None:
+				self.mesh_cfc_volt[c] = stc_module.All_Safe_RST_CDIE['VCFC_CDIE_RST']
+		
+		# Set HDC safe voltages for bigcore (GNR/DMR)
+		if not hdc_at_core and self.voltage_ips['mesh_hdc_volt']:
+			if self.mesh_hdc_volt is None:
+				self.mesh_hdc_volt = {}
+			for c in domains:
+				if c not in self.mesh_hdc_volt or self.mesh_hdc_volt[c] is None:
+					self.mesh_hdc_volt[c] = stc_module.All_Safe_RST_CDIE['VHDC_RST']
+		
+		# Set other safe voltages
+		if self.ddrd_volt is None:
+			self.ddrd_volt = stc_module.All_Safe_RST_CDIE['VDDRD_RST']
+		if self.ddra_volt is None:
+			self.ddra_volt = stc_module.All_Safe_RST_CDIE['VDDRA_RST']
+		
+		# Display voltage configuration
+		print(f'\n>>> Using Safe Voltages for CFC:{self.mesh_cfc_volt}')
+		if self.voltage_ips['mesh_hdc_volt'] and self.mesh_hdc_volt:
+			print(f'>>> Using ATE MESH HDC Voltage --- {self.mesh_hdc_volt}')
+		if self.io_cfc_volt:
+			print(f'>>> CFC_IO: {self.io_cfc_volt}')
+		if self.ddrd_volt:
+			print(f'>>> DDRD: {self.ddrd_volt}')
+		print(f'>>> Setting {core_string} Voltage to {self.core_volt if self.core_volt != None else "System Value"}')
+		
+		self.use_ate_volt = True
+		return True
+	
+	def configure_ate_voltage_mesh(self,
+								   VID: str,
+								   ate_freq: int,
+								   stc_module,
+								   input_func: Callable,
+								   core_string: str = "CORE") -> bool:
+		"""
+		Configure voltage for mesh mode using ATE/DFF data.
+		
+		Args:
+			VID: Visual ID for DFF database lookup
+			ate_freq: Selected ATE frequency (1-4 for mesh)
+			stc_module: GetTesterCurves module for DFF access
+			input_func: Function for user input
+			core_string: Display string for core ('CORE' or 'MODULE')
+			
+		Returns:
+			True if configuration successful, False otherwise
+		"""
+		domains = self.strategy.get_voltage_domains()
+		vdata = None
+		hdc_at_core = self.strategy.has_hdc_at_core()
+		
+		try:
+			vdata = stc_module.get_voltages_uncore(visual=VID, ate_freq=f'F{ate_freq}', hot=True)
+			
+			# Filter CFC voltage for all domains
+			if self.mesh_cfc_volt is None:
+				self.mesh_cfc_volt = {}
+			for c in domains:
+				cfc_val = stc_module.filter_uncore_voltage(data=vdata, ip='CFC', 
+														   die=c.upper(), 
+														   ate_freq=f'F{ate_freq}')
+				if cfc_val is not None:
+					self.mesh_cfc_volt[c] = cfc_val
+			
+			# Filter HDC voltage for bigcore architectures (GNR, DMR)
+			if not hdc_at_core and self.voltage_ips['mesh_hdc_volt']:
+				if self.mesh_hdc_volt is None:
+					self.mesh_hdc_volt = {}
+				for c in domains:
+					hdc_val = stc_module.filter_uncore_voltage(data=vdata, ip='HDC', 
+															   die=c.upper(), 
+															   ate_freq=f'F{ate_freq}')
+					if hdc_val is not None:
+						self.mesh_hdc_volt[c] = hdc_val
+		
+		except Exception as e:
+			print(f'!!! Failed collecting DFF Data for {VID}, enter value manually or use system default')
+			print(f'Exception -- {e}')
+			
+			# Manual fallback
+			if self.mesh_cfc_volt is None:
+				self.mesh_cfc_volt = {}
+			for c in domains:
+				cfc_val = self._prompt_float_voltage(
+					self.menus.get('CFCVolt', '').replace('Uncore CFC Voltage', 
+														   f'{c.upper()} Uncore CFC Voltage'),
+					f"--> Enter CFC {c.upper()} voltage: ",
+					input_func
+				)
+				if cfc_val is not None:
+					self.mesh_cfc_volt[c] = cfc_val
+				
+				if not hdc_at_core and self.voltage_ips['mesh_hdc_volt']:
+					if self.mesh_hdc_volt is None:
+						self.mesh_hdc_volt = {}
+					hdc_val = self._prompt_float_voltage(
+						self.menus.get('HDCVolt', '').replace('Uncore HDC Voltage', 
+															   f'{c.upper()} Uncore HDC Voltage'),
+						f"--> Enter HDC {c.upper()} voltage: ",
+						input_func
+					)
+					if hdc_val is not None:
+						self.mesh_hdc_volt[c] = hdc_val
+		
+		# Handle empty DFF data
+		if vdata is None or not vdata:
+			print(f'!!! Empty DFF Data for {VID}, check if data is at your site, enter value manually or use system default')
+			
+			if self.mesh_cfc_volt is None:
+				self.mesh_cfc_volt = {}
+			for c in domains:
+				cfc_val = self._prompt_float_voltage(
+					self.menus.get('CFCVolt', '').replace('Uncore CFC Voltage', 
+														   f'{c.upper()} Uncore CFC Voltage'),
+					f"--> Enter CFC {c.upper()} voltage: ",
+					input_func
+				)
+				if cfc_val is not None:
+					self.mesh_cfc_volt[c] = cfc_val
+				
+				if not hdc_at_core and self.voltage_ips['mesh_hdc_volt']:
+					if self.mesh_hdc_volt is None:
+						self.mesh_hdc_volt = {}
+					hdc_val = self._prompt_float_voltage(
+						self.menus.get('HDCVolt', '').replace('Uncore HDC Voltage', 
+															   f'{c.upper()} Uncore HDC Voltage'),
+						f"--> Enter HDC {c.upper()} voltage: ",
+						input_func
+					)
+					if hdc_val is not None:
+						self.mesh_hdc_volt[c] = hdc_val
+		
+		# Set safe voltages for core and other domains
+		if self.core_volt is None:
+			self.core_volt = stc_module.All_Safe_RST_PKG['VCORE_RST']
+		
+		# MLC should track core voltage for DMR (independent of HDC, applies to both DFF and safe voltages)
+		if self.voltage_ips.get('core_mlc_volt', False) and self.core_volt is not None:
+			self.core_mlc_volt = self.core_volt
+			print(f'--> Setting MLC Voltage to match Core: {self.core_mlc_volt}')
+		
+		# For CWF atomcore, HDC is at L2/core level - use safe value
+		if hdc_at_core and self.voltage_ips.get('mesh_hdc_volt', False):
+			self.mesh_hdc_volt = stc_module.All_Safe_RST_PKG.get('VHDC_RST')
+		
+		if self.io_cfc_volt is None:
+			self.io_cfc_volt = stc_module.All_Safe_RST_PKG['VCFC_IO_RST']
+		if self.ddrd_volt is None:
+			self.ddrd_volt = stc_module.All_Safe_RST_PKG['VDDRD_RST']
+		if self.ddra_volt is None:
+			self.ddra_volt = stc_module.All_Safe_RST_PKG['VDDRA_RST']
+		
+		# Display voltage configuration
+		core_type = self.strategy.get_core_type()
+		if core_type == 'bigcore':
+			print(f'\n>>> Using ATE Safe Voltages --- {core_string.upper()}:{self.core_volt}, CFC_IO: {self.io_cfc_volt}, DDRD: {self.ddrd_volt}')
+			print(f'>>> Using ATE MESH CFC Voltage --- {self.mesh_cfc_volt}')
+			if self.voltage_ips.get('mesh_hdc_volt', False) and self.mesh_hdc_volt:
+				print(f'>>> Using ATE MESH HDC Voltage --- {self.mesh_hdc_volt}')
+			if self.voltage_ips.get('core_mlc_volt', False) and self.core_mlc_volt:
+				print(f'>>> Using ATE CORE MLC Voltage --- {self.core_mlc_volt}')
+		else:  # atomcore (CWF)
+			print(f'\n>>> Using ATE Safe Voltages --- {core_string.upper()}:{self.core_volt}, HDC(L2):{self.mesh_hdc_volt}, CFC_IO: {self.io_cfc_volt}, DDRD: {self.ddrd_volt}')
+			print(f'>>> Using ATE MESH CFC Voltage --- {self.mesh_cfc_volt}')
+		
+		self.use_ate_volt = True
+		return True
 	
 	def get_voltage_dict(self) -> Dict[str, Any]:
 		"""
@@ -497,8 +853,9 @@ class VoltageManager:
 		Returns:
 			Dictionary with all voltage settings
 		"""
-		return {
+		volt_dict = {
 			'core_volt': self.core_volt,
+			'core_mlc_volt': self.core_mlc_volt,
 			'mesh_cfc_volt': self.mesh_cfc_volt,
 			'mesh_hdc_volt': self.mesh_hdc_volt,
 			'io_cfc_volt': self.io_cfc_volt,
@@ -510,6 +867,8 @@ class VoltageManager:
 			'ppvc_fuses': self.ppvc_fuses,
 			'volt_config': self.volt_config
 		}
+
+		return volt_dict
 	
 	def set_from_dict(self, volt_dict: Dict[str, Any]):
 		"""
@@ -520,7 +879,13 @@ class VoltageManager:
 		"""
 		self.core_volt = volt_dict.get('core_volt')
 		self.mesh_cfc_volt = volt_dict.get('mesh_cfc_volt')
-		self.mesh_hdc_volt = volt_dict.get('mesh_hdc_volt')
+		
+		# Restore mesh_hdc_volt only if product supports it
+		if self.voltage_ips['mesh_hdc_volt']:
+			self.mesh_hdc_volt = volt_dict.get('mesh_hdc_volt')
+		else:
+			self.mesh_hdc_volt = None  # DMR/CWF don't use mesh_hdc_volt
+		
 		self.io_cfc_volt = volt_dict.get('io_cfc_volt')
 		self.ddrd_volt = volt_dict.get('ddrd_volt')
 		self.ddra_volt = volt_dict.get('ddra_volt')
@@ -529,3 +894,9 @@ class VoltageManager:
 		self.vbumps_volt = volt_dict.get('vbumps_volt', False)
 		self.ppvc_fuses = volt_dict.get('ppvc_fuses', False)
 		self.volt_config = volt_dict.get('volt_config', [])
+		
+		# Restore core_mlc_volt if product supports it
+		if self.voltage_ips['core_mlc_volt']:
+			self.core_mlc_volt = volt_dict.get('core_mlc_volt')
+		else:
+			self.core_mlc_volt = None  # GNR/CWF don't use core_mlc_volt

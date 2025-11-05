@@ -5,8 +5,29 @@ import colorama
 from tabulate import tabulate
 from colorama import Fore, Style, Back
 from openpyxl import Workbook
-from openpyxl.styles import PatternFill, Font
+from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.worksheet.table import Table, TableStyleInfo
+import re
+import sys
+
+# Import ExcelReportBuilder for flexible Excel generation
+from ExcelReportBuilder import ExcelReportBuilder, SheetConfig
+
+# Import dragon_bucketing module for VVAR decoding
+sys.path.append(os.path.join(os.path.dirname(__file__), 'Decoder'))
+try:
+	import dragon_bucketing
+except ImportError:
+	print("Warning: dragon_bucketing module not found. VVAR decoding will be skipped.")
+	dragon_bucketing = None
+
+# Import FrameworkAnalyzer for ExperimentSummary generation
+try:
+	from FrameworkAnalyzer import ExperimentSummaryAnalyzer, create_experiment_summary
+except ImportError:
+	print("Warning: FrameworkAnalyzer module not found. ExperimentSummary generation will be skipped.")
+	ExperimentSummaryAnalyzer = None
+	create_experiment_summary = None
 
 
 class LogFileParser:
@@ -46,7 +67,16 @@ class LogFileParser:
 			for log_file in zip_ref.namelist():
 				if log_file.endswith('.log') and self.exclusion_string not in log_file:
 					with zip_ref.open(log_file) as log_file_ref:
-						log_content = log_file_ref.read().decode('utf-8')
+						# Try UTF-8 first, then fall back to latin-1 (which accepts all byte values)
+						try:
+							log_content = log_file_ref.read().decode('utf-8')
+						except UnicodeDecodeError:
+							try:
+								log_content = log_file_ref.read().decode('latin-1')
+							except:
+								# If all else fails, use UTF-8 with error replacement
+								log_file_ref.seek(0)  # Reset file pointer
+								log_content = log_file_ref.read().decode('utf-8', errors='replace')
 						# Use the content type to determine which parsing method to call
 						if self.content_type == 'efi':
 							result = self.parse_efi_log(log_content)
@@ -438,7 +468,7 @@ def parse_log_files(log_dict):
 					test_info['Experiment'] = tdata_parts[1]
 					test_info['PostCode'] = tdata_parts[3]
 					test_info['Result'] = tdata_parts[2]
-					test_info['Content Status'] = tdata_parts[4]
+					test_info['Content Status'] = tdata_parts[4].strip()  # Strip whitespace/tabs
 					test_info['Test File'] = f'{tdata_parts[0].strip("tdata_")}_{tdata_parts[1]}.log'
 
 
@@ -670,11 +700,55 @@ def create_file_dict(df, file_type, test_types=None, content_types=None, comment
 	
 	return file_dict
 
+def extract_date_time_from_folder(folder_name):
+	"""
+	Extract date and time from folder name pattern: YYYYMMDD_HHMMSS_Tx_ExperimentName
+	Example: 20250821_163602_T1_BaseRepro_Loops
+	Returns: tuple (date_str, time_str) formatted as ('YYYY-MM-DD', 'HH:MM:SS')
+	"""
+	import re
+	# Pattern to extract date and time from folder name
+	pattern = r'^(\d{8})_(\d{6})_'
+	match = re.match(pattern, folder_name)
+	
+	if match:
+		date_part = match.group(1)  # YYYYMMDD
+		time_part = match.group(2)  # HHMMSS
+		
+		# Format date as YYYY-MM-DD
+		date_formatted = f"{date_part[0:4]}-{date_part[4:6]}-{date_part[6:8]}"
+		
+		# Format time as HH:MM:SS
+		time_formatted = f"{time_part[0:2]}:{time_part[2:4]}:{time_part[4:6]}"
+		
+		return date_formatted, time_formatted
+	
+	return '', ''
+
 def create_summary_df(test_df):
 	summary_data = []
+	
+	# Sort test_df by Date and Folder to get consistent ordering
+	# This ensures experiments are numbered in chronological order
+	test_df_sorted = test_df.sort_values(by=['Date', 'Folder'], ignore_index=True)
+	
+	# Build experiment_index_map based on sorted date order
 	experiment_index_map = {}  # Map to store index values for each experiment
+	folder_date_map = {}  # Map folders to their dates for sorting
+	
+	# First pass: collect unique folders with their dates in sorted order
+	for _, row in test_df_sorted.iterrows():
+		folder = row['Folder']
+		date = row.get('Date', '')
+		if folder not in folder_date_map:
+			folder_date_map[folder] = date
+	
+	# Sort folders by date and assign consistent indices
+	sorted_folders = sorted(folder_date_map.keys(), key=lambda f: (folder_date_map[f], f))
+	for idx, folder in enumerate(sorted_folders, start=1):
+		experiment_index_map[folder] = idx
 
-	for _, row in test_df.iterrows():
+	for _, row in test_df_sorted.iterrows():
 		# Extract values from the current row
 		# If line experiment is Invalid skip it
 		exptype = row['Type']
@@ -701,9 +775,11 @@ def create_summary_df(test_df):
 		content_results = row['Content Status']
 		mca_status = row.get('MCA Status', '')  # Get MCA Status from test_df
 	
-		# Assign an index to the experiment if not already assigned
-		if folder not in experiment_index_map:
-			experiment_index_map[folder] = len(experiment_index_map)
+		# Use the pre-assigned index from date-sorted map
+		exp_index = experiment_index_map[folder]
+		
+		# Extract Date and Time from folder name
+		date_formatted, time_formatted = extract_date_time_from_folder(folder)
 
 		# Construct Defeature String
 		Exclude_array = ['None', 'False', None, False]
@@ -713,23 +789,65 @@ def create_summary_df(test_df):
 		
 		used_content = f'{run_content_framework}::{run_content_detail}' if run_content_detail != run_content_framework else run_content_framework
 
-		CFC_Values_V = format_voltage(mesh_voltage, voltage_set_to.upper(), Exclude_array) 
-		CFC_Values_F = format_frequency(mesh_freq, Exclude_array) 
-		IA_Values_V = format_voltage(core_voltage, voltage_set_to.upper(), Exclude_array)
-		IA_Values_F = format_frequency(core_freq, Exclude_array)
+		# Build defeature parts list
+		defeature_parts = []
 		
-		HTDIS = f'HTDIS::{ht_disabled.upper()} - ' if ht_disabled not in Exclude_array else ''
-		DisableModules = f'DISMOD::{dis_cores.upper()} - ' if dis_cores not in Exclude_array else ''
-		Fuses600w = f'600W::{fuses_applied.upper()} - ' if fuses_applied not in Exclude_array else ''
-
-		CFC_String = f'CFC{CFC_Values_V}{CFC_Values_F} - ' if any([CFC_Values_V, CFC_Values_F]) else ''
-		IA_String = f'IA{IA_Values_V}{IA_Values_F} - ' if any([IA_Values_V, IA_Values_F]) else ''
-
-		DefeatureString = CFC_String + IA_String  + HTDIS + DisableModules +  Fuses600w
+		# Core License
+		core_license = row['Core License']
+		if core_license not in Exclude_array:
+			defeature_parts.append(f'CoreLicense::{core_license}')
+		
+		# Check if PPVC mode
+		is_ppvc = voltage_set_to not in Exclude_array and str(voltage_set_to).upper() == 'PPVC'
+		
+		# Voltage set to (vbump) - only add if not default values (Vnom, VBUMP) or if PPVC
+		if voltage_set_to not in Exclude_array:
+			voltage_upper = str(voltage_set_to).upper()
+			if voltage_upper not in ['VNOM', 'NOM', 'VBUMP']:
+				defeature_parts.append(f'VBump::{voltage_upper}')
+		
+		# IA (Core) settings - skip voltage if PPVC mode
+		ia_parts = []
+		if core_freq not in Exclude_array:
+			ia_parts.append(f'F{core_freq}')
+		if not is_ppvc and core_voltage not in Exclude_array:
+			float_voltage = float(core_voltage)
+			formatted_voltage = f'({core_voltage})' if float_voltage < 0 else core_voltage
+			ia_parts.append(f'V{formatted_voltage}')
+		if ia_parts:
+			defeature_parts.append(f'IA::{",".join(ia_parts)}')
+		
+		# CFC (Mesh) settings - skip voltage if PPVC mode
+		cfc_parts = []
+		if mesh_freq not in Exclude_array:
+			cfc_parts.append(f'F{mesh_freq}')
+		if not is_ppvc and mesh_voltage not in Exclude_array:
+			float_voltage = float(mesh_voltage)
+			formatted_voltage = f'({mesh_voltage})' if float_voltage < 0 else mesh_voltage
+			cfc_parts.append(f'V{formatted_voltage}')
+		if cfc_parts:
+			defeature_parts.append(f'CFC::{",".join(cfc_parts)}')
+		
+		# HT Disabled
+		if ht_disabled not in Exclude_array:
+			defeature_parts.append(f'HTDIS::{ht_disabled.upper()}')
+		
+		# Disabled Modules/Cores
+		if dis_cores not in Exclude_array:
+			defeature_parts.append(f'DISMOD::{dis_cores.upper()}')
+		
+		# 600W Fuses
+		if fuses_applied not in Exclude_array:
+			defeature_parts.append(f'600W::{fuses_applied.upper()}')
+		
+		# Join all parts with " | " separator
+		DefeatureString = ' | '.join(defeature_parts)
 
 		# Append the row data to the summary list
 		summary_data.append({
-			'#': experiment_index_map[folder],  # Use the mapped index
+			'#': exp_index,  # Use the date-sorted index
+			'Date': date_formatted,  # Formatted date from folder name
+			'Time': time_formatted,  # Formatted time from folder name
 			'Experiment': experiment,
 			'Type': exptype,
 			'PostCode': postcode,
@@ -743,7 +861,28 @@ def create_summary_df(test_df):
 		})
 
 	summary_df = pd.DataFrame(summary_data)
-	return summary_df
+	
+	# Also add experiment numbers, Date/Time, and Used Content to test_df_sorted for consistency
+	test_df_sorted['#'] = test_df_sorted['Folder'].map(experiment_index_map)
+	
+	# Extract Date and Time from folder names and add to test_df_sorted
+	date_time_data = test_df_sorted['Folder'].apply(lambda f: pd.Series(extract_date_time_from_folder(f), index=['Date_Formatted', 'Time_Formatted']))
+	test_df_sorted['Date_Formatted'] = date_time_data['Date_Formatted']
+	test_df_sorted['Time_Formatted'] = date_time_data['Time_Formatted']
+	
+	# Calculate and add Used Content to test_df_sorted (same logic as summary)
+	def calculate_used_content(row):
+		Exclude_array = ['None', 'False', None, False]
+		running_content = row.get('Running Content', '')
+		content_detail = row.get('Content Detail', '')
+		run_content_framework = running_content if running_content not in Exclude_array else ''
+		run_content_detail = content_detail if content_detail not in Exclude_array else ''
+		return f'{run_content_framework}::{run_content_detail}' if run_content_detail != run_content_framework else run_content_framework
+	
+	test_df_sorted['Used Content'] = test_df_sorted.apply(calculate_used_content, axis=1)
+	
+	# Return the summary_df, the updated test_df with # and Used Content columns, and the experiment_index_map
+	return summary_df, test_df_sorted, experiment_index_map
 
 def format_voltage(value, volt_type, exclude_array):
 	
@@ -765,197 +904,29 @@ def format_frequency(value, exclude_array):
 	
 	return return_value
 
-def save_to_excel(initial_df, test_df, summary_df, fail_info_df=None, unique_fails_df=None, unique_mcas_df=None, filename='output.xlsx'):
+def save_to_excel(initial_df, test_df, summary_df, fail_info_df=None, unique_fails_df=None, unique_mcas_df=None, 
+                  vvar_df=None, core_data_df=None, experiment_summary_df=None, overview_df=None, filename='output.xlsx'):
+	"""
+	Save DataFrames to Excel with formatting.
+	Now uses ExcelReportBuilder class for better maintainability.
 	
-	def color_cell(df_data, cell, column_name = "Result", c1 = 'FAIL', fill_1 = 'FFC7CE', font_1 = '9C0006', c2 = 'PASS', fill_2 = 'C6EFCE', font_2 = '006100'):
-			
-			if df_data.columns[c_idx-1] == column_name:
-				if value == c1:
-					cell.fill = PatternFill(start_color=fill_1, end_color=fill_1, fill_type='solid')
-					cell.font = Font(color=font_1)
-				elif value == c2:
-					cell.fill = PatternFill(start_color=fill_2, end_color=fill_2, fill_type='solid')
-					cell.font = Font(color=font_2)
-
-	# Create a workbook and add worksheets
-	wb = Workbook()
-	ws_data = wb.active
-	ws_data.title = 'FrameworkData'  # Renamed to 'Data'
-	ws_experiment_report = wb.create_sheet(title='ExperimentReport')
-
-
-	# Build Table Styles
-	style_data = TableStyleInfo(name="TableStyleLight8", showFirstColumn=False,
-						   showLastColumn=False, showRowStripes=False, showColumnStripes=False)
-
-	style_report = TableStyleInfo(name="TableStyleDark8", showFirstColumn=False,
-						   showLastColumn=False, showRowStripes=False, showColumnStripes=False)
+	For custom sheet order or styling, use ExcelReportBuilder directly:
+		from ExcelReportBuilder import ExcelReportBuilder, SheetConfig
+		
+		# Define custom configuration
+		configs = [
+			SheetConfig('MySheet', 'my_df', 'MyTable', 'TableStyleLight1'),
+			# ... more configs
+		]
+		
+		builder = ExcelReportBuilder(sheet_configs=configs)
+		builder.build({'my_df': my_dataframe}, 'output.xlsx')
+	"""
 	
-	style_file = TableStyleInfo(name="TableStyleLight1", showFirstColumn=False,
-						   showLastColumn=False, showRowStripes=False, showColumnStripes=False)
-
-	style_fails = TableStyleInfo(name="TableStyleLight9", showFirstColumn=False,
-								 showLastColumn=False, showRowStripes=False, showColumnStripes=False)
-
-	style_mcas = TableStyleInfo(name="TableStyleLight10", showFirstColumn=False,
-								showLastColumn=False, showRowStripes=False, showColumnStripes=False)
-
-	# Write test_df to the Data sheet
-	for r_idx, row in enumerate(test_df.itertuples(), start=1):
-		for c_idx, value in enumerate(row[1:], start=1):
-			cell = ws_data.cell(row=r_idx+1, column=c_idx, value=value)  # Start from row 2 for headers
-			if test_df.columns[c_idx-1] == 'Result':
-				if value == 'FAIL':
-					cell.fill = PatternFill(start_color='FFC7CE', end_color='FFC7CE', fill_type='solid')
-					cell.font = Font(color='9C0006')
-				elif value == 'PASS':
-					cell.fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid')
-					cell.font = Font(color='006100')
-
-	# Add headers to the Data sheet
-	for c_idx, header in enumerate(test_df.columns, start=1):
-		ws_data.cell(row=1, column=c_idx, value=header)
-
-	# Adjust column widths in the Data sheet
-	for column in ws_data.columns:
-		max_length = max(len(str(cell.value)) for cell in column)
-		adjusted_width = max_length + 2  # Add some padding
-		ws_data.column_dimensions[column[0].column_letter].width = adjusted_width
-
-	# Create a table in the Data sheet
-	data_table = Table(displayName='FrameworkData', ref=f"A1:{ws_data.cell(row=len(test_df)+1, column=len(test_df.columns)).coordinate}")
-	data_table.tableStyleInfo = style_data
-	ws_data.add_table(data_table)
-
-	# Write summary_df to the ExperimentReport sheet
-	for r_idx, row in enumerate(summary_df.itertuples(), start=1):
-		for c_idx, value in enumerate(row[1:], start=1):
-			cell = ws_experiment_report.cell(row=r_idx+1, column=c_idx, value=value)  # Start from row 2 for headers
-			
-			color_cell(df_data=summary_df, cell=cell, column_name='Status')
-			color_cell(df_data=summary_df, cell=cell, column_name='Content Results')
-			color_cell(df_data=summary_df, cell=cell, column_name='MCAs', c1='YES', c2='NO')
-			#if summary_df.columns[c_idx-1] == 'Status':
-			#	if value == 'FAIL':
-			#		cell.fill = PatternFill(start_color='FFC7CE', end_color='FFC7CE', fill_type='solid')
-			#		cell.font = Font(color='9C0006')
-			#	elif value == 'PASS':
-			#		cell.fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid')
-			#		cell.font = Font(color='006100')
-
-		#for c_idx, value in enumerate(row[1:], start=1):
-		#	ws_experiment_report.cell(row=r_idx+1, column=c_idx, value=value)  # Start from row 2 for headers
-
-	# Add headers to the ExperimentReport sheet
-	for c_idx, header in enumerate(summary_df.columns, start=1):
-		ws_experiment_report.cell(row=1, column=c_idx, value=header)
-
-	# Adjust column widths in the ExperimentReport sheet
-	for column in ws_experiment_report.columns:
-		max_length = max(len(str(cell.value)) for cell in column)
-		adjusted_width = max_length + 2
-		ws_experiment_report.column_dimensions[column[0].column_letter].width = adjusted_width
-
-	# Create a table in the ExperimentReport sheet
-	experiment_report_table = Table(displayName='FrameworkSummary', ref=f"A1:{ws_experiment_report.cell(row=len(summary_df)+1, column=len(summary_df.columns)).coordinate}")
-	experiment_report_table.tableStyleInfo = style_report
-	ws_experiment_report.add_table(experiment_report_table)
-
-	# Write fail_info_df to the FrameworkFails sheet if not empty or None
-	if fail_info_df is not None and not fail_info_df.empty:
-		
-		ws_framework_fails = wb.create_sheet(title='FrameworkFails')
-		
-		for r_idx, row in enumerate(fail_info_df.itertuples(), start=1):
-			for c_idx, value in enumerate(row[1:], start=1):
-				ws_framework_fails.cell(row=r_idx+1, column=c_idx, value=value)  # Start from row 2 for headers
-
-		# Add headers to the FrameworkFails sheet
-		for c_idx, header in enumerate(fail_info_df.columns, start=1):
-			ws_framework_fails.cell(row=1, column=c_idx, value=header)
-
-		# Adjust column widths in the FrameworkFails sheet
-		for column in ws_framework_fails.columns:
-			max_length = max(len(str(cell.value)) for cell in column)
-			adjusted_width = max_length + 2
-			ws_framework_fails.column_dimensions[column[0].column_letter].width = adjusted_width
-
-		# Create a table in the FrameworkFails sheet
-		framework_fails_table = Table(displayName='FrameworkFails', ref=f"A1:{ws_framework_fails.cell(row=len(fail_info_df)+1, column=len(fail_info_df.columns)).coordinate}")
-		framework_fails_table.tableStyleInfo = style_fails
-		ws_framework_fails.add_table(framework_fails_table)
-
-		# Write unique_fails_df to the UniqueFails sheet if not empty or None
-		if unique_fails_df is not None and not unique_fails_df.empty:
-			unique_fails_df = unique_fails_df.sort_values(by='Fail_Count', ascending=False)
-
-			ws_unique_fails = wb.create_sheet(title='UniqueFails')
-			for r_idx, row in enumerate(unique_fails_df.itertuples(), start=1):
-				for c_idx, value in enumerate(row[1:], start=1):
-					ws_unique_fails.cell(row=r_idx+1, column=c_idx, value=value)  # Start from row 2 for headers
-
-			# Add headers to the UniqueFails sheet
-			for c_idx, header in enumerate(unique_fails_df.columns, start=1):
-				ws_unique_fails.cell(row=1, column=c_idx, value=header)
-
-			# Adjust column widths in the UniqueFails sheet
-			for column in ws_unique_fails.columns:
-				max_length = max(len(str(cell.value)) for cell in column)
-				adjusted_width = max_length + 2
-				ws_unique_fails.column_dimensions[column[0].column_letter].width = adjusted_width
-
-			# Create a table in the UniqueFails sheet
-			unique_fails_table = Table(displayName='UniqueFails', ref=f"A1:{ws_unique_fails.cell(row=len(unique_fails_df)+1, column=len(unique_fails_df.columns)).coordinate}")
-			unique_fails_table.tableStyleInfo = style_fails
-			ws_unique_fails.add_table(unique_fails_table)
-
-			# Write unique_mcas_df next to the UniqueFails table
-			if unique_mcas_df is not None and not unique_mcas_df.empty:
-				unique_mcas_df = unique_mcas_df.sort_values(by='Fail_Count', ascending=False)
-
-				for r_idx, row in enumerate(unique_mcas_df.itertuples(), start=1):
-					for c_idx, value in enumerate(row[1:], start=1):
-						ws_unique_fails.cell(row=r_idx+1, column=c_idx+len(unique_fails_df.columns)+2, value=value)
-
-				# Add headers for the unique_mcas_df
-				for c_idx, header in enumerate(unique_mcas_df.columns, start=1):
-					ws_unique_fails.cell(row=1, column=c_idx+len(unique_fails_df.columns)+2, value=header)
-
-				# Adjust column widths for the unique_mcas_df
-				for column in ws_unique_fails.iter_cols(min_col=len(unique_fails_df.columns)+3, max_col=len(unique_fails_df.columns)+2+len(unique_mcas_df.columns)):
-					max_length = max(len(str(cell.value)) for cell in column)
-					adjusted_width = max_length + 2
-					ws_unique_fails.column_dimensions[column[0].column_letter].width = adjusted_width
-
-				# Create a table for the unique_mcas_df
-				unique_mcas_table = Table(displayName='UniqueMCAs', ref=f"{ws_unique_fails.cell(row=1, column=len(unique_fails_df.columns)+3).coordinate}:{ws_unique_fails.cell(row=len(unique_mcas_df)+1, column=len(unique_fails_df.columns)+2+len(unique_mcas_df.columns)).coordinate}")
-				unique_mcas_table.tableStyleInfo = style_mcas
-				ws_unique_fails.add_table(unique_mcas_table)
-
-	# Create Framework Files Tab
-	ws_framework_files = wb.create_sheet(title='FrameworkFiles')		
-	# Write initial_df to the Framework Files sheet
-	for r_idx, row in enumerate(initial_df.itertuples(), start=1):
-		for c_idx, value in enumerate(row[1:], start=1):
-			ws_framework_files.cell(row=r_idx+1, column=c_idx, value=value)  # Start from row 2 for headers
-
-	# Add headers to the Framework Files sheet
-	for c_idx, header in enumerate(initial_df.columns, start=1):
-		ws_framework_files.cell(row=1, column=c_idx, value=header)
-
-	# Adjust column widths in the Framework Files sheet
-	for column in ws_framework_files.columns:
-		max_length = max(len(str(cell.value)) for cell in column)
-		adjusted_width = max_length + 2
-		ws_framework_files.column_dimensions[column[0].column_letter].width = adjusted_width
-
-	# Create a table in the Framework Files sheet
-	framework_files_table = Table(displayName='FrameworkFiles', ref=f"A1:{ws_framework_files.cell(row=len(initial_df)+1, column=len(initial_df.columns)).coordinate}")
-	framework_files_table.tableStyleInfo = style_file
-	ws_framework_files.add_table(framework_files_table)
-
-	# Save the workbook
-	wb.save(filename)
+	# Use ExcelReportBuilder (overview_df passed directly from caller)
+	from ExcelReportBuilder import save_to_excel as excel_save
+	excel_save(initial_df, test_df, summary_df, fail_info_df, unique_fails_df, unique_mcas_df,
+	           vvar_df, core_data_df, experiment_summary_df, overview_df, filename=filename)
 
 def add_framework_fails_tab(save_path, zip_results):
 	with pd.ExcelWriter(save_path, mode='a', engine='openpyxl') as writer:
@@ -999,8 +970,8 @@ def update_content_results(base_df, fail_info_df):
 		fail_data = fail_info_df[(fail_info_df['Log File'] == test_file) & (fail_info_df['Experiment'] == folder)]
 		if not fail_data.empty:
 			fails = fail_data['Log Fails'].tolist()
-			fails_list = fails[0].split(",")
-			base_df.at[idx, 'Content Status'] = (', '.join(fails_list[:2]) + '...') if len(fails_list) > 2 else ','.join(fails_list)
+			fails_list = [f.strip() for f in fails[0].split(",")]  # Strip each failure item
+			base_df.at[idx, 'Content Status'] = (', '.join(fails_list[:2]) + '...') if len(fails_list) > 2 else ', '.join(fails_list)
 	return base_df
 
 def update_mca_results(test_df, fail_info_df, mca_df):
@@ -1035,6 +1006,1331 @@ def check_mca_presence(fail_info_df, mca_df):
 def array_merge(array1, array2, unique = True):
 	new_array = list(set(array1 + array2)) if unique else array1 + array2
 	return new_array
+
+
+# ============================================================================
+# DEBUGFRAMEWORKLOGGER PARSER CLASS - Handles DR, Voltage, and Metadata parsing
+# ============================================================================
+
+class DebugFrameworkLoggerParser:
+	"""
+	Parses DebugFrameworkLogger.log files to extract DR data, Voltage data, and Metadata.
+	"""
+	
+	def __init__(self, log_dict, product='GNR'):
+		self.log_dict = log_dict
+		self.product = product
+		self._dr_df = None
+		self._voltage_df = None
+		self._metadata_df = None
+		self._parsed = False
+	
+	def _parse_if_needed(self):
+		"""Parse all data if not already parsed - Direct parser without external dependencies"""
+		if self._parsed:
+			return
+		
+		all_dr = []
+		all_voltage = []
+		all_metadata = []
+		
+		for experiment, log_info in self.log_dict.items():
+			log_path = log_info['path']
+			
+			# Find DebugFrameworkLogger.log in the same directory
+			log_dir = os.path.dirname(log_path)
+			debug_log_path = os.path.join(log_dir, 'DebugFrameworkLogger.log')
+			
+			if not os.path.exists(debug_log_path):
+				continue
+			
+			try:
+				with open(debug_log_path, 'r', encoding='utf-8', errors='ignore') as f:
+					current_iteration = None
+					
+					for line in f:
+						# Parse iteration number from multiple sources
+						# Priority 1: "Running Loop iteration: X/Y" marker (appears before voltage data)
+						if 'Running Loop iteration:' in line:
+							match = re.search(r'Running Loop iteration:\s*(\d+)/\d+', line)
+							if match:
+								current_iteration = int(match.group(1))
+						
+						# Priority 2: "Performing test iteration X with" marker (also appears before voltage data)
+						elif 'Performing test iteration' in line:
+							match = re.search(r'Performing test iteration (\d+) with', line)
+							if match:
+								current_iteration = int(match.group(1))
+						
+						# Priority 3: tdata lines (appears after test completes)
+						# Format: tdata_1::MeshAVX2_Twiddle_FirstPass_ia_f32_cfc_f18::FAIL::0xef0000ff::DL32-Twiddle-3Y-0F100385_HANG
+						if 'tdata_' in line:
+							match = re.search(r'tdata_(\d+)', line)
+							if match:
+								tdata_iteration = int(match.group(1))
+								# Only update if we haven't set it from Loop/Performing marker
+								# or if tdata number matches current_iteration
+								if current_iteration is None or tdata_iteration == current_iteration:
+									current_iteration = tdata_iteration
+								
+								# Extract failing seed from tdata line (5th field after ::)
+								# Format: tdata_1::TestName::STATUS::Scratchpad::FailingSeed
+								tdata_match = re.search(r'tdata_\d+::[^:]+::[^:]+::[^:]+::(.+?)(?:_FAIL|_HANG|_PASS|$)', line)
+								if tdata_match:
+									failing_seed = tdata_match.group(1).strip()
+									# Remove common suffixes
+									failing_seed = failing_seed.replace('_FAIL', '').replace('_HANG', '').replace('_PASS', '')
+									
+									# Store metadata
+									all_metadata.append({
+										'Experiment': experiment,
+										'Iteration': tdata_iteration,
+										'Failing_Seed': failing_seed,
+										'Log_File': f"{tdata_iteration}_{experiment}.log"
+									})
+						
+						# Parse DR data
+						# Format: dr_data_CORE141_THREAD1_APIC_[32b] 0x00000101_DR0_0x600d600d_DR1_0x40d_DR2_0x0_DR3_0xcddc
+						if 'dr_data_CORE' in line:
+							match = re.search(
+								r'dr_data_CORE(\d+)_THREAD(\d+)_APIC_\[32b\]\s+(0x[0-9a-fA-F]+)_DR0_(0x[0-9a-fA-F]+)_DR1_(0x[0-9a-fA-F]+)_DR2_(0x[0-9a-fA-F]+)_DR3_(0x[0-9a-fA-F]+)',
+								line
+							)
+							if match:
+								core = int(match.group(1))
+								thread = int(match.group(2))
+								apic_id = match.group(3)
+								dr0 = match.group(4).upper()  # Normalize to uppercase
+								dr1 = match.group(5).upper()  # Normalize to uppercase
+								dr2 = match.group(6).upper()  # Normalize to uppercase
+								dr3 = match.group(7).upper()  # Normalize to uppercase
+								
+								all_dr.append({
+									'Experiment': experiment,
+									'Iteration': current_iteration,
+									'Core_Module': core,
+									'Thread': thread,
+									'APIC_ID': apic_id,
+									'DR0': dr0,
+									'DR1': dr1,
+									'DR2': dr2,
+									'DR3': dr3
+								})
+						
+						# Parse voltage data - Handle both GNR and CWF formats
+						# GNR Format: phys_core = 141, IA Ratio = 0x16, IA Volt = 0.682500, IALicense= 0x1, current_dcf_ratio = 0
+						# CWF Format: PHYmodule = 141, LLmodule = 123, IA Ratio = 22, IA Volt = 0.682500
+						
+						if ('phys_core' in line or 'PHYmodule' in line) and 'IA Ratio' in line and 'IA Volt' in line:
+							core = None
+							ratio = None
+							voltage = None
+							license_val = None
+							
+							# Try GNR format first (phys_core with hex ratio and license)
+							match_gnr = re.search(
+								r'phys_core\s*=\s*(\d+),\s*IA Ratio\s*=\s*(0x[0-9a-fA-F]+),\s*IA Volt\s*=\s*([\d.]+)(?:,\s*IALicense\s*=\s*(0x[0-9a-fA-F]+))?',
+								line
+							)
+							if match_gnr:
+								core = int(match_gnr.group(1))
+								ratio_hex = match_gnr.group(2)
+								voltage = float(match_gnr.group(3))
+								ratio = int(ratio_hex, 16)  # Convert hex to decimal
+								if match_gnr.group(4):
+									license_val = match_gnr.group(4)  # Keep as hex string
+							else:
+								# Try CWF format (PHYmodule with decimal ratio)
+								match_cwf = re.search(
+									r'PHYmodule\s*=\s*(\d+),\s*LLmodule\s*=\s*(\d+),\s*IA Ratio\s*=\s*(\d+),\s*IA Volt\s*=\s*([\d.]+)',
+									line
+								)
+								if match_cwf:
+									core = int(match_cwf.group(1))  # Use physical module
+									ratio = int(match_cwf.group(3))  # Already decimal
+									voltage = float(match_cwf.group(4))
+							
+							# Add to results if we successfully parsed
+							if core is not None and ratio is not None and voltage is not None:
+								all_voltage.append({
+									'Experiment': experiment,
+									'Iteration': current_iteration,
+									'Core_Module': core,
+									'Voltage': voltage,
+									'Ratio': ratio,
+									'License': license_val if license_val else ''
+								})
+			
+			except Exception as e:
+				print(f"Warning: Could not parse DebugFrameworkLogger for {experiment}: {e}")
+				continue
+		
+		self._dr_df = pd.DataFrame(all_dr) if all_dr else pd.DataFrame()
+		self._voltage_df = pd.DataFrame(all_voltage) if all_voltage else pd.DataFrame()
+		self._metadata_df = pd.DataFrame(all_metadata) if all_metadata else pd.DataFrame()
+		self._parsed = True
+	
+	def parse_dr_data(self):
+		"""Parse and return DR data DataFrame"""
+		self._parse_if_needed()
+		return self._dr_df
+	
+	def parse_core_voltage_data(self):
+		"""Parse and return voltage data DataFrame"""
+		self._parse_if_needed()
+		return self._voltage_df
+	
+	def parse_experiment_metadata(self):
+		"""Parse and return metadata DataFrame"""
+		self._parse_if_needed()
+		return self._metadata_df
+	
+	def parse_all(self):
+		"""Parse all DebugFrameworkLogger files and return DR, voltage, and metadata DataFrames"""
+		self._parse_if_needed()
+		return self._dr_df, self._voltage_df, self._metadata_df
+
+
+# ============================================================================
+# VVAR PARSER CLASS - Handles all VVAR parsing with clean architecture
+# ============================================================================
+
+class VVARParser:
+	"""
+	Handles VVAR parsing from ZIP files and DebugFrameworkLogger DR data.
+	Uses composition to avoid deep nesting and improve maintainability.
+	"""
+	
+	def __init__(self, product='GNR', vvar_filter=None, skip_array=None):
+		self.product = product
+		self.vvar_filter = vvar_filter or ['0x600D600D']
+		self.skip_array = skip_array or []
+		self.dragon_bucketing = dragon_bucketing
+	
+	def parse_from_zip(self, zip_path_dict, test_df, dr_df=None, metadata_df=None, experiment_index_map=None):
+		"""Main entry point for parsing VVARs from ZIP files
+		
+		Args:
+			zip_path_dict: Dictionary of ZIP file paths
+			test_df: Test DataFrame with experiment information (must include # column)
+			dr_df: DR data DataFrame
+			metadata_df: Metadata DataFrame  
+			experiment_index_map: Map of folder names to experiment numbers (for consistent numbering)
+		"""
+		all_results = []
+		
+		for experiment, zip_info in zip_path_dict.items():
+			log_results = self._parse_experiment_logs(
+				experiment, zip_info, test_df, dr_df, experiment_index_map
+			)
+			all_results.extend(log_results)
+		
+		# Add DR data enhancement (pass zip_path_dict to extract failing seeds)
+		dr_results = self._enhance_with_dr_data(test_df, dr_df, metadata_df, all_results, experiment_index_map, zip_path_dict)
+		all_results.extend(dr_results)
+		
+		return self._create_dataframe(all_results)
+	
+	def _parse_experiment_logs(self, experiment, zip_info, test_df, dr_df, experiment_index_map):
+		"""Parse VVAR data from log files in a ZIP"""
+		results = []
+		zip_path = zip_info['path']
+		content_info = zip_info['content']
+		
+		# Get experiment # and clean name from test_df
+		exp_tests = test_df[test_df['Folder'] == experiment]
+		if exp_tests.empty:
+			return results
+		
+		# Use first test row to get experiment info
+		first_test = exp_tests.iloc[0]
+		exp_num = first_test.get('#', 1)
+		exp_name = first_test.get('Experiment', experiment)
+		
+		# Create global APIC-to-VVAR mappings for all iterations in this experiment
+		apic_mappings_cache = {}
+		if dr_df is not None and not dr_df.empty:
+			for test_num in exp_tests['Test Number'].unique():
+				iteration = self._extract_iteration_from_test_number(test_num, 0)
+				if iteration is not None:
+					apic_mappings_cache[iteration] = self._create_global_apic_vvar_mapping(dr_df, experiment, iteration)
+		
+		with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+			for log_file in zip_ref.namelist():
+				if not log_file.endswith('.log') or 'pysv' in log_file:
+					continue
+				
+				log_content = zip_ref.open(log_file).read().decode('utf-8', errors='ignore')
+				vvar_data = self._extract_vvars_from_log(log_content)
+				
+				if not vvar_data or self._should_skip_seed(vvar_data['failing_seed']):
+					continue
+				
+			# Get test iteration number from log filename
+			test_num = self._extract_test_number_from_filename(log_file)
+			iteration = self._extract_iteration_from_test_number(test_num, 0) if test_num else None
+			
+			# Get "Used Content" from test_df for this specific iteration
+			# Build the proper test number format (e.g., 'tdata_2')
+			test_num_str = f'tdata_{test_num}' if test_num else None
+			test_row = exp_tests[exp_tests['Test Number'] == test_num_str] if test_num_str else exp_tests.head(1)
+			if not test_row.empty:
+				used_content = test_row.iloc[0].get('Used Content', content_info)
+			else:
+				used_content = content_info				# Get global APIC mapping for this iteration
+				apic_to_vvar_map = apic_mappings_cache.get(iteration, None) if iteration is not None else None
+				
+				# Deduplicate VVARs by value within this log file (iteration)
+				# Multiple cores may have the same VVAR value - we want only ONE row per unique VVAR
+				# Use case-insensitive comparison (0xA4000000 == 0xa4000000)
+				unique_vvars = {}
+				for vvar in vvar_data['vvars']:
+					vvar_value = vvar['Value']
+					vvar_value_upper = vvar_value.upper()  # Normalize to uppercase for comparison
+					if vvar_value_upper not in unique_vvars:
+						# Store first occurrence with original case
+						unique_vvars[vvar_value_upper] = vvar
+				
+				# Process each unique VVAR value (one row per unique VVAR per iteration)
+				for vvar in unique_vvars.values():
+					row_data = self._create_vvar_row(
+						experiment, exp_name, used_content, log_file,
+						vvar_data['failing_seed'], vvar, exp_num,
+						test_df, dr_df, test_num, apic_to_vvar_map
+					)
+					results.append(row_data)
+		
+		return results
+	
+	def _extract_vvars_from_log(self, log_content):
+		"""Extract VVAR values and failing seed from log content"""
+		lines = log_content.splitlines()
+		vvar_list = []
+		failing_seed = None
+		in_vvar_section = False
+		
+		seed_pattern = r'Running\s+FS\d+:\\.*\\([\w-]+\.obj)'
+		vvar_pattern = r'<Vvar\s+Number="(0x[0-9A-Fa-f]+)"\s+Value="(0x[0-9A-Fa-f]+)"\s*/>'
+		
+		for line in lines:
+			seed_match = re.search(seed_pattern, line)
+			if seed_match:
+				failing_seed = seed_match.group(1).replace('.obj', '')
+			
+			if '<Vvars>' in line:
+				in_vvar_section = True
+				continue
+			if '</Vvars>' in line:
+				in_vvar_section = False
+				continue
+			
+			if in_vvar_section:
+				vvar_match = re.search(vvar_pattern, line)
+				if vvar_match:
+					vvar_num = vvar_match.group(1)
+					vvar_val = vvar_match.group(2)
+					
+					# Convert VVAR number to int for range check
+					vvar_num_int = int(vvar_num, 16)
+					
+					# Only include VVARs in the core range (0xC to 0x32B)
+					# Skip configuration VVARs (0x0-0xB) and any VVARs above 0x32B
+					if vvar_num_int < 0xC or vvar_num_int > 0x32B:
+						continue
+					
+					# Skip filtered VVAR values (e.g., 0x600D600D)
+					if vvar_val.upper() not in [v.upper() for v in self.vvar_filter]:
+						vvar_list.append({'Number': vvar_num, 'Value': vvar_val})
+		
+		return {'failing_seed': failing_seed, 'vvars': vvar_list}
+	
+	def _extract_test_number_from_filename(self, filename):
+		"""Extract iteration number from log filename (e.g., '11_FirstPass_...' -> 11)"""
+		match = re.match(r'(\d+)_', filename)
+		return int(match.group(1)) if match else None
+	
+	def _should_skip_seed(self, failing_seed):
+		"""Check if seed should be skipped based on skip_array"""
+		if not failing_seed:
+			return True
+		return any(skip_str and skip_str.strip() in failing_seed for skip_str in self.skip_array)
+	
+	def _decode_vvar(self, vvar_value, seed_name=''):
+		"""Decode VVAR using dragon_bucketing"""
+		if not self.dragon_bucketing:
+			return "Decode unavailable"
+		
+		try:
+			bucket = self.dragon_bucketing.bucket(
+				vvar=vvar_value,
+				product=self.product,
+				seed_name=seed_name,
+				is_os=False
+			)
+			return f"{bucket.main} | {bucket.sub}"
+		except Exception as e:
+			return f"Decode Error: {str(e)}"
+	
+	def _create_vvar_row(self, folder, exp_name, content, log_file, failing_seed, 
+	                     vvar, exp_num, test_df, dr_df, test_num, apic_to_vvar_map=None):
+		"""Create a row of VVAR data with core columns
+		
+		Args:
+			folder: Folder name (e.g., '20251103_090627_T1_MeshAVX2_Twiddle')
+			exp_name: Clean experiment name (e.g., 'MeshAVX2_Twiddle_FirstPass_ia_f32_cfc_f18')
+			content: Content type
+			log_file: Log file name
+			failing_seed: Failing seed
+			vvar: VVAR dictionary with 'Number' and 'Value'
+			exp_num: Experiment number from test_df
+			test_df: Test DataFrame
+			dr_df: DR DataFrame
+			test_num: Test iteration number
+			apic_to_vvar_map: Global APIC-to-VVAR mapping (optional)
+		"""
+		vvar_value = vvar['Value']
+		vvar_number = vvar.get('Number', None)  # Extract VVAR number if available
+		
+		# Normalize VVAR value to uppercase for consistency (0xa4000000 -> 0xA4000000)
+		vvar_value_normalized = vvar_value.upper() if isinstance(vvar_value, str) else vvar_value
+		
+		decode_result = self._decode_vvar(vvar_value, failing_seed)
+		
+		# Extract Date and Time from folder name
+		date_formatted, time_formatted = extract_date_time_from_folder(folder)
+		
+		# Build notes documenting data source
+		notes = 'Data from individual log file'
+		
+		row_data = {
+			'#': exp_num,
+			'Date': date_formatted,
+			'Time': time_formatted,
+			'Experiment': exp_name,
+			'Content': content,
+			'Log_File': os.path.basename(log_file),
+			'Data_Origin': 'VVAR_Log',
+			'Failing_Seed': failing_seed,
+			'VVAR': vvar_value_normalized,  # Use normalized uppercase version
+			'Decode': decode_result,
+			'Notes': notes
+		}
+		
+		# Add core columns if DR data available (pass global mapping)
+		if dr_df is not None and not dr_df.empty and test_num is not None:
+			# Always calculate VVAR numbers based on global APIC ordering
+			core_columns, core_list = self._build_core_columns(
+				dr_df, folder, test_num, vvar_value, vvar_number=None, apic_to_vvar_map=apic_to_vvar_map
+			)
+			row_data.update(core_columns)
+			row_data['CoreList'] = core_list
+		else:
+			row_data['CoreList'] = ''
+		
+		return row_data
+	
+	def _build_core_columns(self, dr_df, experiment, iteration, vvar_value, vvar_number=None, apic_to_vvar_map=None):
+		"""Build per-core VVAR columns from DR data with VVAR number calculated by APIC ordering
+		
+		VVAR number assignment logic:
+		1. If apic_to_vvar_map is provided (global mapping), use it directly
+		2. Otherwise, collect APIC IDs only for this VVAR value and create local mapping
+		
+		Global mapping (preferred):
+		- Created once per experiment/iteration across ALL VVAR values
+		- Ensures sequential numbering across all compute dies (0xC, 0xD, 0xE...)
+		- APIC 0x0 (Compute0) -> 0xC, APIC 0x80 (Compute1) -> 0x5C (continues sequentially)
+		
+		Local mapping (fallback):
+		- Created per VVAR value (old behavior)
+		- Only used if apic_to_vvar_map is not provided
+		
+		This handles APIC ID offsets across compute dies:
+		- Compute0 (cores 0-59): APIC starts at 0x0
+		- Compute1 (cores 60-119): APIC starts at 0x80 (GNR) or 0x100 (CWF)
+		- Compute2 (cores 120-179): APIC starts at 0x100 (GNR) or 0x200 (CWF)
+		"""
+		# Normalize VVAR value to uppercase for case-insensitive comparison
+		vvar_value_upper = vvar_value.upper() if isinstance(vvar_value, str) else vvar_value
+		
+		# Filter DR data for this specific experiment and iteration
+		# Use case-insensitive VVAR comparison
+		exp_dr_data = dr_df[
+			(dr_df['Experiment'] == experiment) & 
+			(dr_df['Iteration'] == iteration) &
+			(dr_df['DR0'].str.upper() == vvar_value_upper)
+		].copy()
+		
+		if exp_dr_data.empty:
+			return {}, ''
+		
+		# If no global mapping provided, create local mapping (fallback to old behavior)
+		if apic_to_vvar_map is None:
+			# Step 1: Collect all unique APIC IDs and sort them
+			# This handles compute die offsets automatically
+			all_apic_ids = []
+			for _, row in exp_dr_data.iterrows():
+				apic_id = row['APIC_ID']
+				apic_int = apic_id if isinstance(apic_id, int) else int(str(apic_id), 16 if '0x' in str(apic_id) else 10)
+				if apic_int not in all_apic_ids:
+					all_apic_ids.append(apic_int)
+			
+			# Sort APIC IDs from lowest to highest
+			all_apic_ids.sort()
+			
+			# Step 2: Create APIC ID to VVAR number mapping
+			# VVAR numbers start at 0xC and increment sequentially
+			apic_to_vvar_map = {}
+			for idx, apic_id in enumerate(all_apic_ids):
+				vvar_num = 0xC + idx  # Start at 0xC (12 decimal), increment by sorted position
+				apic_to_vvar_map[apic_id] = vvar_num
+		
+		# Step 3: Build core columns with proper VVAR numbers
+		core_columns = {}
+		cores_with_vvar = []
+		
+		# Group by core
+		for core_num in sorted(exp_dr_data['Core_Module'].unique()):
+			core_dr = exp_dr_data[exp_dr_data['Core_Module'] == core_num]
+			
+			# Deduplicate by (APIC_ID, Thread)
+			seen_threads = set()
+			threads = []
+			
+			for _, dr_row in core_dr.iterrows():
+				apic_id = dr_row['APIC_ID']
+				thread_num = dr_row.get('Thread', 0)
+				
+				# Convert APIC ID to integer
+				apic_int = apic_id if isinstance(apic_id, int) else int(str(apic_id), 16 if '0x' in str(apic_id) else 10)
+				key = (apic_int, thread_num)
+				
+				if key not in seen_threads:
+					seen_threads.add(key)
+					apic_hex = f"0x{apic_int:X}"
+					
+					# Determine VVAR number: use from log if available, otherwise use calculated mapping
+					if vvar_number:
+						# Use VVAR number from log file
+						vvar_num_hex = vvar_number
+					else:
+						# Use VVAR number from APIC ordering mapping
+						vvar_num = apic_to_vvar_map.get(apic_int, 0xC)
+						vvar_num_hex = f"0x{vvar_num:X}"
+					
+					threads.append(f"TH:{thread_num}_APIC:{apic_hex}_VVAR_N:{vvar_num_hex}")
+			
+			if threads:
+				core_columns[f'CORE{core_num}'] = " | ".join(threads) if len(threads) > 1 else threads[0]
+				cores_with_vvar.append(core_num)
+		
+		core_list = ', '.join(map(str, sorted(cores_with_vvar)))
+		return core_columns, core_list
+	
+	def _create_global_apic_vvar_mapping(self, dr_df, experiment, iteration):
+		"""Create global APIC-to-VVAR mapping for entire experiment/iteration
+		
+		This creates a single mapping across ALL VVAR values in an experiment/iteration,
+		ensuring VVAR numbers are assigned sequentially across all compute dies.
+		
+		Example:
+		- APIC 0x0 (Compute0) -> VVAR 0xC
+		- APIC 0x2 (Compute0) -> VVAR 0xD
+		- ...
+		- APIC 0x4E (Compute0, CORE57) -> VVAR 0x5A
+		- APIC 0x4F (Compute0, CORE57) -> VVAR 0x5B
+		- APIC 0x80 (Compute1, CORE62) -> VVAR 0x5C (continues sequentially, NOT 0x8C)
+		- APIC 0x81 (Compute1, CORE62) -> VVAR 0x5D
+		
+		Args:
+			dr_df: DR DataFrame
+			experiment: Experiment folder name
+			iteration: Iteration number
+			
+		Returns:
+			dict: Mapping from APIC ID (int) to VVAR number (int)
+		"""
+		# Filter DR data for this experiment and iteration (all VVAR values)
+		exp_dr_data = dr_df[
+			(dr_df['Experiment'] == experiment) & 
+			(dr_df['Iteration'] == iteration)
+		].copy()
+		
+		if exp_dr_data.empty:
+			return {}
+		
+		# Collect all unique APIC IDs across ALL VVAR values
+		all_apic_ids = set()
+		for _, row in exp_dr_data.iterrows():
+			apic_id = row['APIC_ID']
+			apic_int = apic_id if isinstance(apic_id, int) else int(str(apic_id), 16 if '0x' in str(apic_id) else 10)
+			all_apic_ids.add(apic_int)
+		
+		# Sort APIC IDs globally (handles compute die offsets)
+		sorted_apic_ids = sorted(all_apic_ids)
+		
+		# Create global mapping: VVAR numbers start at 0xC and increment sequentially
+		apic_to_vvar_map = {}
+		for idx, apic_id in enumerate(sorted_apic_ids):
+			vvar_num = 0xC + idx  # Start at 0xC, increment globally across all compute dies
+			apic_to_vvar_map[apic_id] = vvar_num
+		
+		return apic_to_vvar_map
+	
+	def _enhance_with_dr_data(self, test_df, dr_df, metadata_df, existing_results, experiment_index_map, zip_path_dict):
+		"""Add VVAR entries from DebugFrameworkLogger DR data with deduplication
+		
+		This method creates one row per unique VVAR value, comparing with log file data
+		and documenting the data source and any conflicts.
+		
+		Args:
+			test_df: Test DataFrame
+			dr_df: DR DataFrame
+			metadata_df: Metadata DataFrame
+			existing_results: Already parsed VVAR results from log files
+			experiment_index_map: Map of folder names to experiment numbers
+			zip_path_dict: Dictionary of ZIP file paths for extracting failing seeds
+		"""
+		if dr_df is None or dr_df.empty or test_df.empty:
+			return []
+		
+		# Build a map of existing VVAR data from log files for comparison
+		# Key: (experiment_name, iteration, vvar_value) -> log_result_dict
+		log_vvar_map = {}
+		for row in existing_results:
+			exp_name = row.get('Experiment', '')
+			# Extract iteration from log_file (e.g., "1_ExperimentName.log" -> 1)
+			log_file = row.get('Log_File', '')
+			if log_file and '_' in log_file:
+				try:
+					iteration = int(log_file.split('_')[0])
+				except (ValueError, IndexError):
+					iteration = None
+			else:
+				iteration = None
+			
+			vvar_value = row.get('VVAR', '')
+			if exp_name and vvar_value and iteration is not None:
+				# Normalize to uppercase for case-insensitive comparison
+				vvar_value_key = vvar_value.upper() if isinstance(vvar_value, str) else vvar_value
+				log_vvar_map[(exp_name, iteration, vvar_value_key)] = row
+		
+		dr_results = []
+		
+		# Track which experiment/iteration combinations we've processed to create global mappings
+		apic_mappings_cache = {}
+		
+		for test_idx, test_row in test_df.iterrows():
+			folder = test_row.get('Folder', '')
+			exp_name = test_row.get('Experiment', folder)
+			exp_num = test_row.get('#', test_idx + 1)
+			content = test_row.get('Used Content', test_row.get('Running Content', ''))
+			
+			# Extract numeric iteration from Test Number
+			iteration = self._extract_iteration_from_test_number(test_row.get('Test Number', ''), test_idx)
+			
+			# Get DR data for this iteration
+			exp_dr = dr_df[
+				(dr_df['Experiment'] == folder) & 
+				(dr_df['Iteration'] == iteration) &
+				(dr_df['DR0'] != '0x0')
+			]
+			
+			if exp_dr.empty:
+				continue
+			
+			# Create global APIC-to-VVAR mapping once per experiment/iteration
+			mapping_key = (folder, iteration)
+			if mapping_key not in apic_mappings_cache:
+				apic_mappings_cache[mapping_key] = self._create_global_apic_vvar_mapping(dr_df, folder, iteration)
+			apic_to_vvar_map = apic_mappings_cache[mapping_key]
+			
+			# Get failing seed from metadata (DebugFrameworkLogger tdata) or ZIP log file
+			# Try metadata first (tdata lines), then fall back to ZIP log file
+			log_file_from_meta, failing_seed = self._get_metadata_for_iteration(metadata_df, folder, iteration)
+			if not failing_seed:
+				# Fallback to extracting from ZIP log file
+				failing_seed = self._get_failing_seed_from_dr(folder, iteration, zip_path_dict)
+			
+			# Use log_file from metadata, or construct it
+			if log_file_from_meta and log_file_from_meta != 'Unknown':
+				log_file = log_file_from_meta
+			else:
+				log_file = f"{iteration}_{exp_name}.log" if iteration is not None else 'Unknown'
+			
+			# DEDUPLICATION: Group by unique DR0 (VVAR) values
+			# For each unique VVAR value, create ONE row with all core data
+			for dr0_value, dr0_group in exp_dr.groupby('DR0'):
+				# Normalize DR0 value for case-insensitive comparison
+				dr0_value_normalized = dr0_value.upper() if isinstance(dr0_value, str) else dr0_value
+				
+				# Check if this VVAR already exists in log file data
+				log_key = (exp_name, iteration, dr0_value_normalized)
+				
+				if log_key in log_vvar_map:
+					# VVAR exists in log file - skip creating DR_Data row since log data takes priority
+					# The log file already has this VVAR with potentially more accurate data
+					continue
+				
+				# Create DR_Data row for this unique VVAR value
+				row_data = self._create_dr_row(
+					exp_num, exp_name, content, log_file, failing_seed,
+					dr0_value, dr0_group, iteration, folder, apic_to_vvar_map
+				)
+				dr_results.append(row_data)
+		
+		return dr_results
+	
+	def _get_failing_seed_from_dr(self, folder, iteration, zip_path_dict):
+		"""Get failing seed from log file in ZIP for specific iteration
+		
+		Args:
+			folder: Experiment folder name (e.g., '20251103_090627_T1_MeshAVX2_Twiddle')
+			iteration: Iteration number to find failing seed for
+			zip_path_dict: Dictionary of ZIP file paths
+			
+		Returns:
+			Failing seed string or empty string if not found
+		"""
+		# Get the ZIP file for this experiment
+		if folder not in zip_path_dict:
+			return ''
+		
+		zip_path = zip_path_dict[folder]['path']
+		
+		if not os.path.exists(zip_path):
+			return ''
+		
+		# Construct the expected log file name based on iteration
+		# Log files are typically named like: "1_ExperimentName.log", "2_ExperimentName.log", etc.
+		log_filename_pattern = f"{iteration}_"
+		
+		try:
+			with zipfile.ZipFile(zip_path, 'r') as zip_file:
+				# Find the log file for this iteration
+				log_files = [f for f in zip_file.namelist() if f.endswith('.log') and log_filename_pattern in f]
+				
+				if not log_files:
+					return ''
+				
+				# Read the first matching log file
+				log_file = log_files[0]
+				with zip_file.open(log_file) as f:
+					log_content = f.read().decode('utf-8', errors='ignore')
+					
+					# Extract failing seed using the same pattern as _parse_vvar_data
+					seed_pattern = r'Running\s+FS\d+:\\.*\\([\w-]+\.obj)'
+					seed_match = re.search(seed_pattern, log_content)
+					
+					if seed_match:
+						failing_seed = seed_match.group(1).replace('.obj', '')
+						return failing_seed
+		
+		except Exception as e:
+			# Silently handle errors (ZIP might be corrupted, file might not exist, etc.)
+			pass
+		
+		return ''
+	
+	def _extract_iteration_from_test_number(self, test_num_raw, fallback_idx):
+		"""Extract numeric iteration from Test Number (e.g., 'tdata_1' -> 1)"""
+		if isinstance(test_num_raw, str) and 'tdata_' in test_num_raw:
+			try:
+				return int(test_num_raw.split('_')[1])
+			except (IndexError, ValueError):
+				return fallback_idx + 1
+		elif isinstance(test_num_raw, int):
+			return test_num_raw
+		return fallback_idx + 1
+	
+	def _get_metadata_for_iteration(self, metadata_df, experiment, iteration):
+		"""Get log file and failing seed from metadata"""
+		if metadata_df is None or metadata_df.empty:
+			return 'Unknown', ''
+		
+		iter_metadata = metadata_df[
+			(metadata_df['Experiment'] == experiment) & 
+			(metadata_df['Iteration'] == iteration)
+		]
+		
+		if iter_metadata.empty:
+			return 'Unknown', ''
+		
+		log_file = iter_metadata.iloc[0].get('Log_File', 'Unknown')
+		failing_seed_raw = iter_metadata.iloc[0].get('Failing_Seed', '')
+		
+		# Clean failing seed: remove _FAIL, _HANG suffixes
+		failing_seed = failing_seed_raw
+		if isinstance(failing_seed_raw, str):
+			failing_seed = failing_seed_raw.replace('_FAIL', '').replace('_HANG', '')
+		
+		return log_file, failing_seed
+	
+	def _create_dr_row(self, exp_num, exp_name, content, log_file, failing_seed, dr0_value, dr0_group, iteration, folder, apic_to_vvar_map=None):
+		"""Create a row from DR data
+		
+		Args:
+			exp_num: Experiment number
+			exp_name: Clean experiment name
+			content: Content type
+			log_file: Log file name
+			failing_seed: Failing seed
+			dr0_value: DR0 value (VVAR value)
+			dr0_group: Group of DR rows for this DR0 value
+			iteration: Iteration number
+			folder: Folder name for Date/Time extraction
+			apic_to_vvar_map: Global APIC-to-VVAR mapping (optional)
+		"""
+		decode_result = self._decode_vvar(dr0_value)
+		
+		# Normalize VVAR value to uppercase for consistency
+		dr0_value_normalized = dr0_value.upper() if isinstance(dr0_value, str) else dr0_value
+		
+		# Extract Date and Time from folder name
+		date_formatted, time_formatted = extract_date_time_from_folder(folder)
+		
+		# Build notes documenting data source
+		notes = 'Data from DebugFrameworkLogger (no log file VVAR found)'
+		
+		row_data = {
+			'#': exp_num,
+			'Date': date_formatted,
+			'Time': time_formatted,
+			'Experiment': exp_name,
+			'Content': content,
+			'Log_File': log_file,
+			'Data_Origin': 'DR_Data',
+			'Failing_Seed': failing_seed,
+			'VVAR': dr0_value_normalized,  # Use normalized uppercase version
+			'Decode': decode_result,
+			'Notes': notes
+		}
+		
+		# Add core columns (pass global mapping for correct VVAR numbering)
+		core_columns, core_list = self._build_dr_core_columns(dr0_value, dr0_group, apic_to_vvar_map)
+		row_data.update(core_columns)
+		row_data['CoreList'] = core_list
+		
+		return row_data
+	
+	def _build_dr_core_columns(self, dr0_value, dr0_group, apic_to_vvar_map=None):
+		"""Build core columns from DR data group - Use global VVAR number mapping
+		
+		Args:
+			dr0_value: DR0 value (VVAR value)
+			dr0_group: Group of DR rows for this DR0 value
+			apic_to_vvar_map: Global APIC-to-VVAR mapping (if None, uses old local calculation)
+		"""
+		core_columns = {}
+		cores_with_vvar = []
+		
+		for core_num in sorted(dr0_group['Core_Module'].unique()):
+			core_dr = dr0_group[dr0_group['Core_Module'] == core_num]
+			
+			# Deduplicate threads
+			seen_threads = set()
+			threads = []
+			
+			for _, dr_row in core_dr.iterrows():
+				apic_id = dr_row['APIC_ID']
+				thread_num = dr_row.get('Thread', 0)
+				key = (apic_id, thread_num)
+				
+				if key not in seen_threads:
+					seen_threads.add(key)
+					apic_hex = f"0x{apic_id:X}" if isinstance(apic_id, int) else str(apic_id)
+					
+					# Ensure apic_id is an integer
+					apic_int = apic_id if isinstance(apic_id, int) else int(str(apic_id), 16 if '0x' in str(apic_id) else 10)
+					
+					# Use global mapping if provided, otherwise fall back to old calculation
+					if apic_to_vvar_map and apic_int in apic_to_vvar_map:
+						# Use global VVAR number (correct: sequential across all compute dies)
+						calculated_vvar_num = apic_to_vvar_map[apic_int]
+					else:
+						# Fall back to old calculation: VVAR number = 0xC + APIC ID (INCORRECT for multi-die)
+						calculated_vvar_num = 0xC + apic_int
+					
+					vvar_num_hex = f"0x{calculated_vvar_num:X}"
+					
+					threads.append(f"TH:{thread_num}_APIC:{apic_hex}_VVAR_N:{vvar_num_hex}")
+			
+			if threads:
+				core_columns[f'CORE{core_num}'] = " | ".join(threads) if len(threads) > 1 else threads[0]
+				cores_with_vvar.append(core_num)
+		
+		core_list = ', '.join(map(str, sorted(cores_with_vvar)))
+		return core_columns, core_list
+	
+	def _create_dataframe(self, results):
+		"""Convert results list to DataFrame with proper column ordering"""
+		if not results:
+			return pd.DataFrame()
+		
+		df = pd.DataFrame(results)
+		
+		# Define column order (including Date, Time, and Notes)
+		base_cols = ['#', 'Date', 'Time', 'Experiment', 'Content', 'Log_File', 'Data_Origin', 
+		             'Failing_Seed', 'VVAR', 'Decode', 'Notes', 'CoreList']
+		
+		# Find all CORE columns
+		core_cols = sorted([col for col in df.columns if col.startswith('CORE')],
+		                   key=lambda x: int(x.replace('CORE', '')))
+		
+		# Reorder columns
+		ordered_cols = base_cols + core_cols
+		final_cols = [col for col in ordered_cols if col in df.columns]
+		
+		return df[final_cols]
+
+
+# ============================================================================
+# CORE DATA REPORT CLASS - Handles CoreData report generation
+# ============================================================================
+
+class CoreDataReportGenerator:
+	"""
+	Generates CoreData report combining voltage, DR, VVAR, and MCA data.
+	Uses iteration-aware matching to properly separate test iterations.
+	"""
+	
+	def __init__(self, product='GNR'):
+		self.product = product
+		self.dragon_bucketing = dragon_bucketing
+	
+	def generate(self, voltage_df, dr_df, vvar_df, mca_df, test_df, metadata_df=None):
+		"""Main entry point for generating CoreData report"""
+		if test_df.empty:
+			return pd.DataFrame()
+		
+		results = []
+		
+		for test_idx, test_row in test_df.iterrows():
+			test_results = self._process_test_iteration(
+				test_row, test_idx, voltage_df, dr_df, vvar_df, mca_df, metadata_df
+			)
+			results.extend(test_results)
+		
+		if not results:
+			return pd.DataFrame()
+		
+		return pd.DataFrame(results)
+	
+	def _process_test_iteration(self, test_row, test_idx, voltage_df, dr_df, vvar_df, mca_df, metadata_df):
+		"""Process a single test iteration"""
+		folder = test_row.get('Folder', '')  # Folder name with timestamp
+		experiment = test_row.get('Experiment', folder)  # Clean experiment name
+		iteration = self._extract_iteration(test_row.get('Test Number', ''), test_idx)
+		exp_type = test_row.get('Type', '')
+		content = test_row.get('Used Content', test_row.get('Running Content', ''))
+		row_num = test_row.get('#', test_idx + 1)  # Experiment number from test_df
+		
+		# Extract Date and Time from folder name
+		date_formatted, time_formatted = extract_date_time_from_folder(folder)
+		
+		# Construct log_file name using iteration and clean experiment name
+		log_file = f"{iteration}_{experiment}.log" if iteration is not None else f"{experiment}.log"
+		
+		# Get failing_content from test_df for Linux, otherwise from metadata
+		content_detail = test_row.get('Content Detail', '')
+		is_linux = 'linux' in content.lower() or 'linux' in content_detail.lower()
+		
+		if is_linux:
+			# For Linux content, get from ExperimentReport (test_df)
+			failing_content = test_row.get('Content Status', '')
+		else:
+			# For non-Linux content, get failing_seed from metadata
+			_, failing_content = self._get_metadata(metadata_df, folder, iteration)
+		
+		# Get iteration-specific data (use folder for matching against raw data)
+		iter_voltage = self._filter_by_iteration(voltage_df, folder, iteration)
+		iter_dr = self._filter_by_iteration(dr_df, folder, iteration)
+		iter_vvar = self._filter_by_experiment(vvar_df, experiment)  # vvar_df has clean experiment name
+		iter_mca = self._filter_by_experiment(mca_df, folder)  # mca_df has folder name (from excel_path_dict keys)
+		
+		
+		# Build defeature string
+		defeature = self._build_defeature_string(test_row)
+		
+		# Collect results
+		results = []
+		
+		# If we have voltage data, create rows for each core
+		if not iter_voltage.empty:
+			results.extend(self._create_voltage_rows(
+				row_num, experiment, content, log_file, exp_type, defeature,
+				iter_voltage, iter_dr, iter_vvar, iter_mca, failing_content,
+				date_formatted, time_formatted
+			))
+		# Else if we have DR/VVAR/MCA data, create rows for those
+		elif not iter_dr.empty or not iter_vvar.empty or not iter_mca.empty:
+			results.append(self._create_summary_row(
+				row_num, experiment, content, log_file, exp_type, defeature,
+				iter_dr, iter_vvar, iter_mca, failing_content,
+				date_formatted, time_formatted
+			))
+		
+		return results
+	
+	def _extract_iteration(self, test_num_raw, fallback_idx):
+		"""Extract numeric iteration from Test Number"""
+		if isinstance(test_num_raw, str) and 'tdata_' in test_num_raw:
+			try:
+				return int(test_num_raw.split('_')[1])
+			except (IndexError, ValueError):
+				return fallback_idx + 1
+		elif isinstance(test_num_raw, int):
+			return test_num_raw
+		return fallback_idx + 1
+	
+	def _get_metadata(self, metadata_df, experiment, iteration):
+		"""Get metadata for iteration"""
+		if metadata_df is None or metadata_df.empty:
+			return '', ''
+		
+		iter_metadata = metadata_df[
+			(metadata_df['Experiment'] == experiment) & 
+			(metadata_df['Iteration'] == iteration)
+		]
+		
+		if iter_metadata.empty:
+			return '', ''
+		
+		log_file = iter_metadata.iloc[0].get('Log_File', '')
+		failing_seed = iter_metadata.iloc[0].get('Failing_Seed', '')
+		
+		return log_file, failing_seed
+	
+	def _filter_by_iteration(self, df, experiment, iteration):
+		"""Filter DataFrame by experiment and iteration"""
+		if df is None or df.empty:
+			return pd.DataFrame()
+		return df[(df['Experiment'] == experiment) & (df['Iteration'] == iteration)].copy()
+	
+	def _filter_by_experiment(self, df, experiment):
+		"""Filter DataFrame by experiment only"""
+		if df is None or df.empty:
+			return pd.DataFrame()
+		return df[df['Experiment'] == experiment].copy()
+	
+	def _build_defeature_string(self, test_row):
+		"""Build defeature string from test row"""
+		parts = []
+		exclude = ['None', 'False', None, False, '', 'nan']
+		
+		# Core License
+		core_license = test_row.get('Core License', '')
+		if core_license not in exclude and str(core_license).lower() != 'nan':
+			parts.append(f'CoreLicense::{core_license}')
+		
+		# Check if PPVC mode
+		voltage_set = test_row.get('Voltage set to', '')
+		is_ppvc = (voltage_set not in exclude and 
+		           str(voltage_set).lower() != 'nan' and 
+		           str(voltage_set).upper() == 'PPVC')
+		
+		# Voltage set to (vbump) - only add if not default values (Vnom, VBUMP) or if PPVC
+		if voltage_set not in exclude and str(voltage_set).lower() != 'nan':
+			voltage_upper = str(voltage_set).upper()
+			if voltage_upper not in ['VNOM', 'NOM', 'VBUMP']:
+				parts.append(f'VBump::{voltage_upper}')
+		
+		# IA (Core) settings - skip voltage if PPVC mode
+		ia_parts = []
+		core_freq = test_row.get('Core Freq', '')
+		if core_freq not in exclude and str(core_freq).lower() != 'nan':
+			ia_parts.append(f'F{core_freq}')
+		
+		if not is_ppvc:
+			core_voltage = test_row.get('Core Voltage', '')
+			if core_voltage not in exclude and str(core_voltage).lower() != 'nan':
+				try:
+					float_voltage = float(core_voltage)
+					formatted_voltage = f'({core_voltage})' if float_voltage < 0 else core_voltage
+					ia_parts.append(f'V{formatted_voltage}')
+				except (ValueError, TypeError):
+					ia_parts.append(f'V{core_voltage}')
+		
+		if ia_parts:
+			parts.append(f'IA::{",".join(ia_parts)}')
+		
+		# CFC (Mesh) settings - skip voltage if PPVC mode
+		cfc_parts = []
+		mesh_freq = test_row.get('Mesh Freq', '')
+		if mesh_freq not in exclude and str(mesh_freq).lower() != 'nan':
+			cfc_parts.append(f'F{mesh_freq}')
+		
+		if not is_ppvc:
+			mesh_voltage = test_row.get('Mesh Voltage', '')
+			if mesh_voltage not in exclude and str(mesh_voltage).lower() != 'nan':
+				try:
+					float_voltage = float(mesh_voltage)
+					formatted_voltage = f'({mesh_voltage})' if float_voltage < 0 else mesh_voltage
+					cfc_parts.append(f'V{formatted_voltage}')
+				except (ValueError, TypeError):
+					cfc_parts.append(f'V{mesh_voltage}')
+		
+		if cfc_parts:
+			parts.append(f'CFC::{",".join(cfc_parts)}')
+		
+		# HT Disabled
+		ht_disabled = test_row.get('HT Disabled (BigCore)', '')
+		if ht_disabled not in exclude and str(ht_disabled).lower() != 'nan':
+			parts.append(f'HTDIS::{ht_disabled.upper()}')
+		
+		# Disabled Modules/Cores
+		dis_cores = test_row.get('Dis 2 Cores (Atomcore)', '')
+		if dis_cores not in exclude and str(dis_cores).lower() != 'nan':
+			parts.append(f'DISMOD::{dis_cores.upper()}')
+		
+		# 600W Fuses
+		fuses_applied = test_row.get('Unit 600w Fuses Applied', '')
+		if fuses_applied not in exclude and str(fuses_applied).lower() != 'nan':
+			parts.append(f'600W::{fuses_applied.upper()}')
+		
+		return ' | '.join(parts) if parts else ''
+	
+	def _create_voltage_rows(self, row_num, experiment, content, log_file, exp_type, defeature,
+	                         voltage_df, dr_df, vvar_df, mca_df, failing_content,
+	                         date_formatted, time_formatted):
+		"""Create rows for each core with voltage data"""
+		results = []
+		
+		# Extract unique license values from voltage data
+		license_values = self._get_license_from_voltage(voltage_df)
+		
+		# Group voltage data by core
+		for core_num in sorted(voltage_df['Core_Module'].unique()):
+			core_voltage = voltage_df[voltage_df['Core_Module'] == core_num]
+			
+			# Get voltage statistics
+			hi_volt = core_voltage['Voltage'].max()
+			lo_volt = core_voltage['Voltage'].min()
+			hi_ratio = core_voltage['Ratio'].max()
+			lo_ratio = core_voltage['Ratio'].min()
+			
+			# Get unique VVAR values for this core
+			vvar_values = self._get_unique_vvars_for_core(vvar_df, core_num)
+			decode = self._decode_vvar(vvar_values) if vvar_values else ''
+			
+			# Get MCA for this core
+			mca = self._get_mca_for_core(mca_df, core_num)
+			
+			# Build notes
+			notes = ''
+			if not vvar_values:
+				notes = 'No VVAR data found for this core'
+			
+			results.append({
+				'#': row_num,
+				'Date': date_formatted,
+				'Time': time_formatted,
+				'Experiment': experiment,
+				'Content': content,
+				'Log_File': log_file,
+				'Failing_Content': failing_content,
+				'Defeature': defeature,
+				'Core_Module': f'CORE{core_num}' if self.product == 'GNR' else f'MODULE{core_num}',
+				'HI_Ratio': f'0x{int(hi_ratio):X}' if pd.notna(hi_ratio) else '',
+				'Lo_Ratio': f'0x{int(lo_ratio):X}' if pd.notna(lo_ratio) else '',
+				'HI_Volt': f'{hi_volt:.6f}' if pd.notna(hi_volt) else '',
+				'Lo_Volt': f'{lo_volt:.6f}' if pd.notna(lo_volt) else '',
+				'License': license_values,
+				'VVAR': vvar_values,  # Add VVAR column with unique values
+				'MCA': mca,
+				'Notes': notes
+			})
+		
+		return results
+	
+	def _create_summary_row(self, row_num, experiment, content, log_file, exp_type, defeature,
+	                        dr_df, vvar_df, mca_df, failing_content,
+	                        date_formatted, time_formatted):
+		"""Create summary row when no voltage data available"""
+		# Get first available VVAR
+		vvar_info = vvar_df.iloc[0]['VVAR'] if not vvar_df.empty and 'VVAR' in vvar_df.columns else ''
+		decode = self._decode_vvar(vvar_info) if vvar_info else ''
+		
+		# Get first available MCA - use correct column name
+		mca = mca_df.iloc[0]['Failed MCA'] if not mca_df.empty and 'Failed MCA' in mca_df.columns else ''
+		
+		notes = 'No voltage/ratio data available for this iteration'
+		
+		return {
+			'#': row_num,
+			'Date': date_formatted,
+			'Time': time_formatted,
+			'Experiment': experiment,
+			'Content': content,
+			'Log_File': log_file,
+			'Failing_Content': failing_content,
+			'Defeature': defeature,
+			'Core_Module': 'No Core Data',
+			'HI_Ratio': '',
+			'Lo_Ratio': '',
+			'HI_Volt': '',
+			'Lo_Volt': '',
+			'License': '',
+			'VVAR': vvar_info,  # Add VVAR column
+			'MCA': mca,
+			'Notes': notes
+		}
+	
+	def _get_license_from_voltage(self, voltage_df):
+		"""Extract unique license values from voltage data"""
+		if voltage_df.empty or 'License' not in voltage_df.columns:
+			return ''
+		
+		# Get unique non-empty license values
+		licenses = voltage_df['License'].dropna().unique()
+		licenses = [lic for lic in licenses if lic and lic != '']
+		
+		if not licenses:
+			return ''
+		
+		# Return comma-separated list of unique licenses
+		return ', '.join(sorted(set(licenses)))
+	
+	def _get_unique_vvars_for_core(self, vvar_df, core_num):
+		"""Get unique VVAR VALUES (not numbers) for specific core
+		
+		VVAR VALUE is the actual register value (DR0) like 0x600D600D, 0xA4000000
+		VVAR NUMBER is the index 0xC, 0xD, etc. (stored in CORE column metadata)
+		
+		For CoreData report, we need VVAR VALUES from the main VVAR column.
+		"""
+		if vvar_df.empty:
+			return ''
+		
+		unique_vvars = set()
+		core_col = f'CORE{core_num}'
+		
+		# Get VVAR VALUES from main VVAR column for this core
+		if 'VVAR' in vvar_df.columns and core_col in vvar_df.columns:
+			for _, row in vvar_df.iterrows():
+				# Check if this core has data in the CORE column
+				core_data = row.get(core_col, '')
+				if pd.isna(core_data) or core_data == '':
+					continue
+				
+				# Get the VVAR VALUE from the main VVAR column (this is DR0 or log file VVAR)
+				vvar_val = row.get('VVAR', '')
+				if vvar_val and pd.notna(vvar_val) and vvar_val != '':
+					unique_vvars.add(str(vvar_val).upper())  # Normalize to uppercase
+		
+		if not unique_vvars:
+			return ''
+		
+		# Return comma-separated unique values (sorted for consistency)
+		return ', '.join(sorted(unique_vvars))
+	
+	def _get_vvar_for_core(self, vvar_df, core_num):
+		"""Get VVAR value for specific core"""
+		if vvar_df.empty:
+			return ''
+		
+		core_col = f'CORE{core_num}'
+		if core_col in vvar_df.columns:
+			core_vvars = vvar_df[vvar_df[core_col].notna()][core_col].tolist()
+			if core_vvars:
+				return core_vvars[0] if len(core_vvars) == 1 else '; '.join(core_vvars)
+		
+		# Fallback to VVAR column
+		if 'VVAR' in vvar_df.columns:
+			return vvar_df.iloc[0]['VVAR']
+		
+		return ''
+	
+	def _get_mca_for_core(self, mca_df, core_num):
+		"""Get MCA data for specific core with uniqueness"""
+		if mca_df.empty or 'Failed MCA' not in mca_df.columns:
+			return ''
+		
+		core_mcas = []
+		search_word = 'CORE' if self.product == 'GNR' else 'MODULE'
+		
+		for _, mca_row in mca_df.iterrows():
+			failed_mca = mca_row['Failed MCA']
+			if pd.isna(failed_mca) or failed_mca == '':
+				continue
+			
+			# Check if this MCA is for this core
+			# MCA format: "CDIE{compute}::CORE{num}::ErrorType::MCACOD" (GNR)
+			# MCA format: "CDIE{compute}::MODULE{num}::ErrorType::MCACOD" (CWF)
+			# Check for exact pattern first: ::{search_word}{core_num}::
+			if f'::{search_word}{core_num}::' in str(failed_mca).upper():
+				# Add only if not already in list (ensure uniqueness)
+				if failed_mca not in core_mcas:
+					core_mcas.append(failed_mca)
+			# Fallback: check for CORE{num} or MODULE{num} anywhere in string
+			elif f'{search_word}{core_num}' in str(failed_mca).upper():
+				if failed_mca not in core_mcas:
+					core_mcas.append(failed_mca)
+		
+		return '; '.join(core_mcas) if core_mcas else ''
+	
+	def _decode_vvar(self, vvar_value):
+		"""Decode VVAR using dragon_bucketing"""
+		if not vvar_value or not self.dragon_bucketing:
+			return ''
+		
+		try:
+			bucket = self.dragon_bucketing.bucket(
+				vvar=vvar_value,
+				product=self.product,
+				seed_name='',
+				is_os=False
+			)
+			return f"{bucket.main} | {bucket.sub}"
+		except Exception:
+			return ''
+
+
+# ============================================================================
+# PUBLIC API FUNCTIONS - Maintain backward compatibility
+# ============================================================================
+
+def parse_vvars_from_zip(zip_path_dict, test_df, product='GNR', vvar_filter=None, 
+                          skip_array=None, dr_df=None, metadata_df=None, experiment_index_map=None):
+	"""
+	Parse VVAR data from ZIP files and DebugFrameworkLogger DR data.
+	
+	Args:
+		zip_path_dict: Dictionary of ZIP file paths
+		test_df: Test DataFrame with experiment information (must have # and Experiment columns)
+		product: Product name for dragon_bucketing (default: 'GNR')
+		vvar_filter: List of VVAR values to ignore
+		skip_array: List of strings to skip
+		dr_df: DataFrame with DR data
+		metadata_df: Experiment metadata with Iteration, Log_File and Failing_Seed
+		experiment_index_map: Map of folder names to experiment numbers (optional)
+	
+	Returns:
+		DataFrame with VVAR data
+	"""
+	parser = VVARParser(product=product, vvar_filter=vvar_filter, skip_array=skip_array)
+	return parser.parse_from_zip(zip_path_dict, test_df, dr_df, metadata_df, experiment_index_map)
+
+
+def create_core_data_report(voltage_df, dr_df, vvar_df, mca_df, test_df, metadata_df=None, product='GNR'):
+	"""
+	Create CoreData report combining voltage, DR, VVAR, and MCA data.
+	
+	Args:
+		voltage_df: Voltage data with Iteration column
+		dr_df: DR data with Iteration column
+		vvar_df: VVAR data from zip files
+		mca_df: MCA data
+		test_df: Test configuration data
+		metadata_df: Experiment metadata
+		product: Product type (GNR or CWF)
+	
+	Returns:
+		DataFrame with CoreData report
+	"""
+	generator = CoreDataReportGenerator(product=product)
+	return generator.generate(voltage_df, dr_df, vvar_df, mca_df, test_df, metadata_df)
+
 
 def test():
 	

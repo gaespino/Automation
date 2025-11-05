@@ -84,7 +84,7 @@ class FrequencyManager:
 	def configure_ate_frequency(self, 
 								mode: str = 'mesh',
 								core_string: str = 'Core',
-								input_func: Callable = None) -> bool:
+								ate_freq: int = 1) -> bool:
 		"""
 		Configure frequencies using ATE method.
 		
@@ -96,48 +96,11 @@ class FrequencyManager:
 		Returns:
 			True if ATE frequency was configured, False otherwise
 		"""
-		if not self.use_ate_freq or not self.features.get('use_ate_freq', {}).get('enabled', True):
-			return False
-		
-		if input_func is None:
-			return False
-		
-		# Prompt user if they want to use ATE frequency
-		print(f"\n{'*' * 80}")
-		if mode == 'slice':
-			print(f"> Want to set {core_string} Frequency via ATE frequency method?: i.e. {self.ATE_CORE_FREQ}?")
-		else:
-			print(f"> Want to set UnCore Frequency via ATE frequency method?: i.e. {self.ATE_MESH_FREQ}?")
-		
-		yorn = ""
-		while "N" not in yorn and "Y" not in yorn:
-			yorn = input_func('--> Y / N (enter for [Y]): ').upper()
-			if yorn == "":
-				yorn = "Y"
-		
-		if yorn != "Y":
-			self.use_ate_freq = False
-			return False
-		
-		# Display frequency tables
-		self.display_ate_frequencies(mode=mode, core_string=core_string)
-		
-		# Get frequency selection
-		freq_range = self._get_frequency_range(mode)
-		ate_freq = self._prompt_ate_frequency(freq_range, mode, core_string, input_func)
-		
-		if ate_freq is None:
-			return False
-		
-		# Handle multi-frequency configurations (F5, F6, F7...)
-		if ate_freq > 4:
-			self.flowid = self._prompt_flowid(input_func)
-		
 		# Get ratios based on mode
 		if mode == 'slice':
 			self.core_freq, self.mesh_freq, self.io_freq = self.stc.get_ratios_core(ate_freq, self.flowid)
 		else:
-			self.mesh_freq, self.io_freq, self.core_freq = self.stc.get_ratios_mesh(ate_freq, self.flowid)
+			self.mesh_freq, self.io_freq, self.core_freq = self.stc.get_ratios_uncore(ate_freq, self.flowid)
 		
 		print(f"\n{'*' * 80}")
 		print(f"> FLOWID {self.flowid} ate_freq F{ate_freq}")
@@ -236,26 +199,30 @@ class FrequencyManager:
 		
 		return configured
 	
-	def _prompt_int_frequency(self, menu_str: str, prompt: str, input_func: Callable) -> Optional[int]:
-		"""Helper to prompt for integer frequency value."""
+	def _prompt_int_frequency(self, menu_str: str, prompt: str, input_func: Callable, default_yorn: str = 'N') -> Optional[int]:
+		"""Helper to prompt for integer frequency value following _yorn_int pattern."""
+		if input_func is None:
+			return None
+		
+		yorn = ""
+		response = None
 		print(f"\n{menu_str}")
 		
-		# Prompt for yes/no first
-		yorn = ""
+		# Ask Y/N first
 		while "N" not in yorn and "Y" not in yorn:
-			yorn = input_func('--> Y / N (enter for [Y]): ').upper()
+			yorn = input_func(f'Y / N (enter for [{default_yorn}]): ').upper()
 			if yorn == "":
-				yorn = "Y"
+				yorn = default_yorn
 		
-		if yorn != "Y":
-			return None
+		# If Y, then prompt for value
+		if yorn == "Y":
+			try:
+				value = input_func(f"\n{prompt}")
+				response = int(value) if value else None
+			except (ValueError, TypeError):
+				response = None
 		
-		# Get frequency value
-		try:
-			value = input_func(prompt)
-			return int(value) if value else None
-		except (ValueError, TypeError):
-			return None
+		return response
 	
 	def validate_frequency(self, freq: Optional[int], freq_type: str, max_val: int = None) -> bool:
 		"""
@@ -332,7 +299,7 @@ class FrequencyManager:
 		if mode == 'slice':
 			return self.stc.get_ratios_core(ate_freq, flowid)
 		else:
-			return self.stc.get_ratios_mesh(ate_freq, flowid)
+			return self.stc.get_ratios_uncore(ate_freq, flowid)
 	
 	def set_frequencies(self, core: Optional[int] = None, 
 						mesh: Optional[int] = None, 
@@ -351,3 +318,24 @@ class FrequencyManager:
 			self.mesh_freq = mesh
 		if io is not None:
 			self.io_freq = io
+	
+	def configure_from_user_input(self, core: Optional[int] = None,
+								   mesh: Optional[int] = None,
+								   io: Optional[int] = None):
+		"""
+		Configure frequency values from user input.
+		This method updates the frequency manager with values obtained from user prompts.
+		
+		Args:
+			core: Core frequency value from user input
+			mesh: Mesh/CFC frequency value from user input
+			io: IO frequency value from user input
+		"""
+		if core is not None:
+			self.core_freq = core
+		if mesh is not None:
+			self.mesh_freq = mesh
+		if io is not None:
+			self.io_freq = io
+	
+

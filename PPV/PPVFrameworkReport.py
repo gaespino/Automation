@@ -11,6 +11,11 @@ class FrameworkReportBuilder:
 	def __init__(self, root):
 		self.root = root
 		self.root.title("Framework Report Builder")
+		
+		# Enable full-screen resizing
+		self.root.state('zoomed')  # Maximize window on Windows
+		self.root.rowconfigure(0, weight=1)
+		self.root.columnconfigure(0, weight=1)
 
 		self.initial_df = None
 		self.type_entries = {}
@@ -33,100 +38,163 @@ class FrameworkReportBuilder:
 		self.python_content = ["Python"]
 
 	def setup_ui(self):
-		tk.Label(self.root, text="Product:").grid(row=0, column=0, padx=5, pady=5)
+		# Create main container with two columns
+		main_container = tk.Frame(self.root)
+		main_container.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+		main_container.rowconfigure(1, weight=1)
+		main_container.columnconfigure(0, weight=3)  # Left side (experiments) - 75% width
+		main_container.columnconfigure(1, weight=1)  # Right side (data management) - 25% width
+		
+		# ==================== LEFT PANEL: Selection and Experiments ====================
+		left_panel = tk.Frame(main_container)
+		left_panel.grid(row=0, column=0, rowspan=2, sticky="nsew", padx=(0, 5))
+		left_panel.rowconfigure(1, weight=1)  # Make experiments section expandable
+		left_panel.columnconfigure(0, weight=1)
+		
+		# Top section: Product, Visual ID, Save location
+		top_frame = tk.LabelFrame(left_panel, text="Data Source & Output", padx=10, pady=10)
+		top_frame.grid(row=0, column=0, sticky="ew", pady=(0, 5))
+		
+		tk.Label(top_frame, text="Product:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
 		self.product_var = tk.StringVar(value='')
-		self.product_combobox = ttk.Combobox(self.root, textvariable=self.product_var, values=self.products)
+		self.product_combobox = ttk.Combobox(top_frame, textvariable=self.product_var, values=self.products, width=20)
 		self.product_combobox.grid(row=0, column=1, padx=5, pady=5, sticky='w')
 		self.product_combobox.bind("<<ComboboxSelected>>", self.update_visuals_combobox)
 
-		tk.Label(self.root, text="Visual ID:").grid(row=1, column=0, padx=5, pady=5)
+		tk.Label(top_frame, text="Visual ID:").grid(row=1, column=0, padx=5, pady=5, sticky='w')
 		self.visuals_var = tk.StringVar(value='')
-		self.visuals_combobox = ttk.Combobox(self.root, textvariable=self.visuals_var, values=self.folders)
+		self.visuals_combobox = ttk.Combobox(top_frame, textvariable=self.visuals_var, values=self.folders, width=20)
 		self.visuals_combobox.grid(row=1, column=1, padx=5, pady=5, sticky='w')
 
-		#tk.Label(self.root, text="Selected Folder:").grid(row=0, column=0, padx=5, pady=5)
-		#self.folder_entry = tk.Entry(self.root, width=160)
-		#self.folder_entry.grid(row=0, column=1, padx=5, pady=5)
-		#tk.Button(self.root, text=" Source Folder ", command=self.browse_folder).grid(row=0, column=2, padx=5, pady=5, sticky="ew")
+		tk.Label(top_frame, text="Save Folder:").grid(row=2, column=0, padx=5, pady=5, sticky='w')
+		self.save_entry = tk.Entry(top_frame, width=80)
+		self.save_entry.grid(row=2, column=1, padx=5, pady=5, sticky='ew')
+		tk.Button(top_frame, text="Browse", command=self.browse_save_location).grid(row=2, column=2, padx=5, pady=5)
+		
+		top_frame.columnconfigure(1, weight=1)
 
-		tk.Label(self.root, text="Save Folder:").grid(row=2, column=0, padx=5, pady=5)
-		self.save_entry = tk.Entry(self.root, width=160)
-		self.save_entry.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
-		tk.Button(self.root, text=" Save Folder ", command=self.browse_save_location).grid(row=2, column=2, padx=5, pady=5, sticky="ew")
+		# Middle section: Experiments list with scrollbar - EXPANDABLE to fill available space
+		exp_frame = tk.LabelFrame(left_panel, text="Experiments Configuration", padx=5, pady=5)
+		exp_frame.grid(row=1, column=0, sticky="nsew", pady=5)
+		exp_frame.rowconfigure(0, weight=1)
+		exp_frame.columnconfigure(0, weight=1)
+		
+		self.scroll_frame = tk.Frame(exp_frame)
+		self.scroll_frame.grid(row=0, column=0, sticky="nsew")
+		self.scroll_frame.rowconfigure(0, weight=1)
+		self.scroll_frame.columnconfigure(0, weight=1)
 
-		# Create a frame with a border for checkboxes and entries
-		self.options_frame = tk.Frame(self.root, borderwidth=2, relief="groove")
-		self.options_frame.grid(row=3, column=0, columnspan=3, padx=5, pady=5, sticky="ew")
-
-		# Add checkboxes for additional options
-		self.merge_summary_var = tk.BooleanVar(value=True)
-		self.generate_report_var = tk.BooleanVar(value=True)
-		self.check_mca_data_var = tk.BooleanVar(value=False)
-
-		self.merge_summary_check = tk.Checkbutton(self.options_frame, text="Merge Summary Files", variable=self.merge_summary_var, command=self.toggle_merge_entry)
-		self.merge_summary_check.grid(row=0, columnspan=2, column=0, padx=5, pady=5, sticky="w")
-		self.add_tooltip(self.merge_summary_check, "If selected, will merge all Excel files found.")
-
-		self.generate_report_check = tk.Checkbutton(self.options_frame, text="Generate Report", variable=self.generate_report_var, command=self.toggle_report_entry)
-		self.generate_report_check.grid(row=0, columnspan=2, column=2, padx=5, pady=5, sticky="w")
-		self.add_tooltip(self.generate_report_check, "If selected, will create the summary report file as well.")
-
-		self.check_mca_data_check = tk.Checkbutton(self.options_frame, text="Check Logging Data", variable=self.check_mca_data_var, command=self.toggle_logging_entry)
-		self.check_mca_data_check.grid(row=0, columnspan=2, column=4, padx=5, pady=5, sticky="w")
-		self.add_tooltip(self.check_mca_data_check, "Will look inside .zip file individual experiment logging to collect additional data")
-
-		# Add entries for file names below each checkbox
-		tk.Label(self.options_frame, text="Merge Tag:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
-		self.merge_file_entry = tk.Entry(self.options_frame, width=40)
-		self.merge_file_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
-		self.merge_file_entry.insert(0, "")
-		self.merge_file_entry.config(state="normal")
-		self.add_tooltip(self.merge_file_entry, "Tag to be added to generated Framework merge file.")
-
-		tk.Label(self.options_frame, text="Report Tag:").grid(row=1, column=2, padx=5, pady=5, sticky="w")
-		self.report_file_entry = tk.Entry(self.options_frame, width=40)
-		self.report_file_entry.grid(row=1, column=3, padx=5, pady=5, sticky="w")
-		self.report_file_entry.insert(0, "")
-		self.report_file_entry.config(state="normal")
-		self.add_tooltip(self.report_file_entry, "Tag to be added to generated Framework report file.")
-
-		tk.Label(self.options_frame, text="Skip Strings:").grid(row=1, column=4, padx=5, pady=5, sticky="w")
-		self.logging_entry = tk.Entry(self.options_frame, width=40)
-		self.logging_entry.grid(row=1, column=5, padx=5, pady=5, sticky="w")
-		self.logging_entry.insert(0, "")
-		self.logging_entry.config(state="disabled")
-		self.add_tooltip(self.logging_entry, "Strings to be skipped during FAIL search inside individual logs. Comma split for multiple strings")
-
-		# Buttons for Inside Parsed data box control
-		tk.Button(self.root, text=" Parse Data ", command=self.parse_experiments).grid(row=4, column=0, padx=5, pady=5)
-		self.select_all_button = tk.Button(self.root, text=" Select All ", command=self.select_all, state="disabled")
-		self.select_all_button.grid(row=4, column=1, padx=5, pady=5)
-		self.remove_all_button = tk.Button(self.root, text=" Remove All ", command=self.remove_all, state="disabled")
-		self.remove_all_button.grid(row=4, column=2, padx=5, pady=5)
-
-
-		# Create a frame for the experiment and type entries with a scrollbar
-		self.scroll_frame = tk.Frame(self.root, borderwidth=1, relief="solid")
-		self.scroll_frame.grid(row=5, column=0, columnspan=3, padx=5, pady=5, sticky="nsew")
-
-		self.canvas = tk.Canvas(self.scroll_frame, width=1200, height=500)  # Increased width to fit custom entry
-		self.scrollbar = tk.Scrollbar(self.scroll_frame, orient="vertical", command=self.canvas.yview)
+		self.canvas = tk.Canvas(self.scroll_frame)
+		self.scrollbar_v = tk.Scrollbar(self.scroll_frame, orient="vertical", command=self.canvas.yview)
+		self.scrollbar_h = tk.Scrollbar(self.scroll_frame, orient="horizontal", command=self.canvas.xview)
 		self.experiment_frame = tk.Frame(self.canvas)
 
 		self.experiment_frame.bind(
 			"<Configure>",
-			lambda e: self.canvas.configure(
-				scrollregion=self.canvas.bbox("all")
-			)
+			lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 		)
 
 		self.canvas.create_window((0, 0), window=self.experiment_frame, anchor="nw")
-		self.canvas.configure(yscrollcommand=self.scrollbar.set)
+		self.canvas.configure(yscrollcommand=self.scrollbar_v.set, xscrollcommand=self.scrollbar_h.set)
 
-		self.canvas.pack(side="left", fill="both", expand=True)
-		self.scrollbar.pack(side="right", fill="y")
+		self.canvas.grid(row=0, column=0, sticky="nsew")
+		self.scrollbar_v.grid(row=0, column=1, sticky="ns")
+		self.scrollbar_h.grid(row=1, column=0, sticky="ew")
 
-		tk.Button(self.root, text=" Generate Framework Files ", command=self.create_report).grid(row=6, column=0, columnspan=3, padx=5, pady=5)
+		# Bottom section: Generate button - stays at bottom
+		bottom_frame = tk.Frame(left_panel)
+		bottom_frame.grid(row=2, column=0, sticky="ew", pady=(5, 0))
+		tk.Button(bottom_frame, text=" Generate Framework Files ", command=self.create_report, 
+				 bg="#4CAF50", fg="white", font=("Arial", 10, "bold"), padx=20, pady=10).pack(fill="x")
+
+		# ==================== RIGHT PANEL: Data Management ====================
+		right_panel = tk.LabelFrame(main_container, text="Data Management", padx=10, pady=10)
+		right_panel.grid(row=0, column=1, rowspan=2, sticky="nsew")
+		
+		# Parse Data section
+		parse_section = tk.LabelFrame(right_panel, text="Parse Experiments", padx=10, pady=10)
+		parse_section.pack(fill="x", pady=(0, 10))
+		
+		tk.Button(parse_section, text="Parse Data", command=self.parse_experiments, 
+				 bg="#2196F3", fg="white", font=("Arial", 9, "bold"), pady=5).pack(fill="x", pady=(0, 5))
+		
+		btn_frame = tk.Frame(parse_section)
+		btn_frame.pack(fill="x")
+		self.select_all_button = tk.Button(btn_frame, text="Select All", command=self.select_all, state="disabled")
+		self.select_all_button.pack(side="left", fill="x", expand=True, padx=(0, 2))
+		self.remove_all_button = tk.Button(btn_frame, text="Deselect All", command=self.remove_all, state="disabled")
+		self.remove_all_button.pack(side="right", fill="x", expand=True, padx=(2, 0))
+
+		# Report Options section
+		report_section = tk.LabelFrame(right_panel, text="Report Options", padx=10, pady=10)
+		report_section.pack(fill="x", pady=(0, 10))
+		
+		self.merge_summary_var = tk.BooleanVar(value=True)
+		self.generate_report_var = tk.BooleanVar(value=True)
+		
+		self.merge_summary_check = tk.Checkbutton(report_section, text="Merge Summary Files", 
+												  variable=self.merge_summary_var, command=self.toggle_merge_entry)
+		self.merge_summary_check.pack(anchor='w', pady=2)
+		self.add_tooltip(self.merge_summary_check, "Merge all Excel summary files found")
+
+		tk.Label(report_section, text="Merge Tag:").pack(anchor='w', pady=(5, 0))
+		self.merge_file_entry = tk.Entry(report_section)
+		self.merge_file_entry.pack(fill="x", pady=(0, 5))
+		self.merge_file_entry.insert(0, "")
+		self.add_tooltip(self.merge_file_entry, "Tag to be added to generated Framework merge file")
+
+		self.generate_report_check = tk.Checkbutton(report_section, text="Generate Report", 
+													variable=self.generate_report_var, command=self.toggle_report_entry)
+		self.generate_report_check.pack(anchor='w', pady=2)
+		self.add_tooltip(self.generate_report_check, "Create the summary report file")
+
+		tk.Label(report_section, text="Report Tag:").pack(anchor='w', pady=(5, 0))
+		self.report_file_entry = tk.Entry(report_section)
+		self.report_file_entry.pack(fill="x", pady=(0, 5))
+		self.report_file_entry.insert(0, "")
+		self.add_tooltip(self.report_file_entry, "Tag to be added to generated Framework report file")
+
+		# Data Collection section
+		data_section = tk.LabelFrame(right_panel, text="Data Collection", padx=10, pady=10)
+		data_section.pack(fill="x", pady=(0, 10))
+		
+		self.check_mca_data_var = tk.BooleanVar(value=False)
+		self.check_mca_data_check = tk.Checkbutton(data_section, text="Check Logging Data", 
+												   variable=self.check_mca_data_var, command=self.toggle_logging_entry)
+		self.check_mca_data_check.pack(anchor='w', pady=2)
+		self.add_tooltip(self.check_mca_data_check, "Look inside .zip file individual experiment logging to collect additional data")
+
+		tk.Label(data_section, text="Skip Strings:").pack(anchor='w', pady=(5, 0))
+		self.logging_entry = tk.Entry(data_section, state="disabled")
+		self.logging_entry.pack(fill="x", pady=(0, 10))
+		self.logging_entry.insert(0, "")
+		self.add_tooltip(self.logging_entry, "Strings to be skipped during FAIL search. Comma separated")
+
+		# Advanced sheets section
+		self.generate_dragon_var = tk.BooleanVar(value=True)
+		self.generate_core_var = tk.BooleanVar(value=True)
+		self.generate_summary_tab_var = tk.BooleanVar(value=False)
+		
+		dragon_check = tk.Checkbutton(data_section, text="Generate DragonData Sheet", 
+					  variable=self.generate_dragon_var)
+		dragon_check.pack(anchor='w', pady=2)
+		self.add_tooltip(dragon_check, "Generate DragonData sheet with VVAR analysis (requires Check Logging Data)")
+		
+		core_check = tk.Checkbutton(data_section, text="Generate CoreData Sheet", 
+					  variable=self.generate_core_var)
+		core_check.pack(anchor='w', pady=2)
+		self.add_tooltip(core_check, "Generate CoreData sheet with voltage/VVAR/MCA data (requires Check Logging Data)")
+		
+		summary_check = tk.Checkbutton(data_section, text="Generate Summary Tab", 
+					  variable=self.generate_summary_tab_var)
+		summary_check.pack(anchor='w', pady=2)
+		self.add_tooltip(summary_check, "Generate comprehensive experiment analysis summary (requires Check Logging Data)")
+		
+		self.generate_overview_var = tk.BooleanVar(value=True)
+		overview_check = tk.Checkbutton(data_section, text="Generate Unit Overview", 
+					  variable=self.generate_overview_var)
+		overview_check.pack(anchor='w', pady=2)
+		self.add_tooltip(overview_check, "Generate stakeholder presentation overview as first tab (requires 'Generate Summary Tab' to be enabled)")
 
 	def update_visuals_combobox(self, event):
 		directory_path = os.path.join(self.DATA_SERVER, self.product_var.get())
@@ -229,13 +297,22 @@ class FrameworkReportBuilder:
 		self.include_checks = {}
 		self.custom_entries = {}
 
-		for idx, experiment in enumerate(self.initial_df['Experiment'].unique(), start=1):
+		# Sort experiments by date (extract from folder name format: YYYYMMDD_HHMMSS_...)
+		experiments = self.initial_df['Experiment'].unique()
+		try:
+			# Try to sort by date prefix in folder name
+			sorted_experiments = sorted(experiments, key=lambda x: x.split('_')[0] if '_' in x else x)
+		except:
+			# If sorting fails, use original order
+			sorted_experiments = experiments
+
+		for idx, experiment in enumerate(sorted_experiments, start=1):
 			include_var = tk.BooleanVar(value=config_data.get(experiment, {}).get('Include', True))
 			include_check = tk.Checkbutton(self.experiment_frame, variable=include_var)
 			include_check.grid(row=idx, column=0, padx=5, pady=5)
 			self.include_checks[experiment] = include_var
 
-			tk.Label(self.experiment_frame, text=experiment).grid(row=idx, column=1, padx=5, pady=5)
+			tk.Label(self.experiment_frame, text=experiment).grid(row=idx, column=1, padx=5, pady=5, sticky='w')
 
 			content_var = tk.StringVar(value=config_data.get(experiment, {}).get('Content', ''))
 			content_combobox = ttk.Combobox(self.experiment_frame, textvariable=content_var, values=self.content_types)
@@ -342,6 +419,18 @@ class FrameworkReportBuilder:
 		unique_fails_df = None
 		unique_mcas_df = None
 		mca_df = None
+		vvar_df = None
+		core_data_df = None
+		experiment_summary_df = None
+		dr_df = None
+		voltage_df = None
+		metadata_df = None
+		summary_df = None
+		experiment_index_map = None
+		
+		generate_dragon = self.generate_dragon_var.get()
+		generate_core = self.generate_core_var.get()
+		
 		if validate_loggingdata:
 			zip_path_dict = fpa.create_file_dict(filtered_df, 'ZIP', type_values, content_values)
 			fail_info_df = fpa.check_zip_data(zip_path_dict, skip_array, test_df)
@@ -355,13 +444,92 @@ class FrameworkReportBuilder:
 			# Update test_df with MCA data
 			test_df = fpa.update_mca_results(test_df, fail_info_df, mca_df)
 
-		summary_df = fpa.create_summary_df(test_df)
+			# Parse DebugFrameworkLogger data for DR registers, voltage/ratio data, and metadata
+			# (only if DragonData or CoreData is requested)
+			if generate_dragon or generate_core:
+				try:
+					logger_parser = fpa.DebugFrameworkLoggerParser(log_path_dict, product=selected_product)
+					dr_df = logger_parser.parse_dr_data()
+					voltage_df = logger_parser.parse_core_voltage_data()
+					metadata_df = logger_parser.parse_experiment_metadata()
+				except Exception as e:
+					print(f"Warning: Could not parse DebugFrameworkLogger data: {e}")
+					import traceback
+					traceback.print_exc()
+					dr_df = None
+					voltage_df = None
+					metadata_df = None
 
+			# Create summary and experiment index map (needed for VVAR and CoreData parsing)
+			summary_df, test_df, experiment_index_map = fpa.create_summary_df(test_df)
+
+			# Parse VVAR data only if DragonData sheet is requested
+			if generate_dragon and dr_df is not None and metadata_df is not None:
+				try:
+					vvar_df = fpa.parse_vvars_from_zip(zip_path_dict, test_df, product=selected_product, vvar_filter=['0x600D600D'], skip_array=skip_array, dr_df=dr_df, metadata_df=metadata_df, experiment_index_map=experiment_index_map)
+				except Exception as e:
+					print(f"Warning: Could not parse VVAR data: {e}")
+					import traceback
+					traceback.print_exc()
+					vvar_df = None
+			
+			# Create comprehensive core data report only if CoreData sheet is requested
+			if generate_core and voltage_df is not None:
+				try:
+					core_data_df = fpa.create_core_data_report(voltage_df, dr_df, vvar_df, mca_df, test_df, metadata_df, product=selected_product)
+				except Exception as e:
+					print(f"Warning: Could not create core data report: {e}")
+					import traceback
+					traceback.print_exc()
+					core_data_df = None
+		else:
+			# If not validating logging data, still need to create summary
+			summary_df, test_df, experiment_index_map = fpa.create_summary_df(test_df)
+
+		# Generate experiment summary analysis if requested
+		if validate_loggingdata and self.generate_summary_tab_var.get():
+			try:
+				print(' --> Generating Experiment Summary Analysis...')
+				print(f'     test_df shape: {test_df.shape}, columns: {list(test_df.columns)[:5]}...')
+				analyzer = fpa.ExperimentSummaryAnalyzer(test_df, summary_df, fail_info_df, vvar_df, mca_df, core_data_df)
+				experiment_summary_df = analyzer.analyze_all_experiments()
+				if experiment_summary_df is not None and not experiment_summary_df.empty:
+					print(f' --> Experiment Summary generated successfully: {len(experiment_summary_df)} experiments')
+				else:
+					print(' --> Experiment Summary is empty (no valid experiments found)')
+			except Exception as e:
+				print(f"Warning: Could not generate experiment summary: {e}")
+				import traceback
+				traceback.print_exc()
+				experiment_summary_df = None
+
+		# Generate Unit Overview if requested (requires experiment_summary_df)
+		overview_df = None
+		if self.generate_overview_var.get() and experiment_summary_df is not None:
+			try:
+				print(' --> Generating Unit Overview...')
+				from OverviewAnalyzer import OverviewAnalyzer
+				overview_analyzer = OverviewAnalyzer(test_df, summary_df, experiment_summary_df, fail_info_df)
+				overview_df = overview_analyzer.create_overview()
+				if overview_df is not None and not overview_df.empty:
+					print(f' --> Unit Overview generated successfully: {len(overview_df)} rows')
+				else:
+					print(' --> Unit Overview is empty')
+			except Exception as e:
+				print(f"Warning: Could not generate Unit Overview: {e}")
+				import traceback
+				traceback.print_exc()
+				overview_df = None
+		elif not self.generate_overview_var.get():
+			print(' --> Unit Overview generation skipped (checkbox disabled)')
+		elif experiment_summary_df is None:
+			print(' --> Unit Overview generation skipped (experiment_summary_df is None)')
+			print('     NOTE: Enable "Generate Summary Tab" to generate Overview')
 
 		# Builds the Framework Report
 		if generate_report: 
 			print(' --> Building Framework Report Data File')
-			fpa.save_to_excel(filtered_df, test_df, summary_df, fail_info_df, unique_fails_df, unique_mcas_df, filename=save_path)
+			fpa.save_to_excel(filtered_df, test_df, summary_df, fail_info_df, unique_fails_df, unique_mcas_df, vvar_df, core_data_df, experiment_summary_df, overview_df, filename=save_path)
 		
 		# Builds Merged MCA Data -- Mostly used to check data in Danta for multiple experiments
 		if generate_mergefiles: 

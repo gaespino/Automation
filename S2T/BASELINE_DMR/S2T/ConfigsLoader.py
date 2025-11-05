@@ -13,11 +13,19 @@ sv.initialize()
 product_functions = None
 
 # Product Data Collection needed to init variables on script --
-PRODUCT_CONFIG = sv.socket0.target_info["device_name"].upper()
-PRODUCT_CHOP = sv.socket0.target_info["chop"].upper()
-PRODUCT_VARIANT = sv.socket0.target_info["variant"].upper()
+DEVICE_NAME = sv.socket0.target_info["device_name"].upper()
 
-SELECTED_PRODUCT = PRODUCT_CONFIG.strip(PRODUCT_VARIANT)
+if 'DMR' in DEVICE_NAME:
+	PRODUCT_CONFIG = DEVICE_NAME
+	PRODUCT_CHOP = None
+	PRODUCT_VARIANT = None
+	SELECTED_PRODUCT = PRODUCT_CONFIG.strip('_CLTAP')
+else:
+	PRODUCT_CONFIG = sv.socket0.target_info["segment"].upper()
+	PRODUCT_CHOP = sv.socket0.target_info["chop"].upper()
+	PRODUCT_VARIANT = sv.socket0.target_info["variant"].upper()
+	SELECTED_PRODUCT = PRODUCT_CONFIG.strip(PRODUCT_VARIANT)
+
 ROOT_PATH = os.path.abspath(os.path.dirname(__file__))
 PRODUCT_PATH = os.path.join(ROOT_PATH, 'product_specific', SELECTED_PRODUCT.lower())
 MANAGERS_PATH = os.path.join(ROOT_PATH, 'managers')
@@ -38,6 +46,13 @@ _configs = pe.configurations(SELECTED_PRODUCT)
 
 CONFIG = _configs.init_product_specific()
 
+# This an optional INIT Method for products such as DMR
+
+if PRODUCT_CHOP == None:
+	PRODUCT_CHOP = _configs.get_chop(sv)
+
+if PRODUCT_VARIANT == None:
+	PRODUCT_VARIANT = _configs.get_variant(sv)
 
 class ProductConfiguration:
 	"""
@@ -126,7 +141,9 @@ class ProductConfiguration:
 		self.ATE_MASKS = framework_dict['ate_masks']
 		self.ATE_CONFIG = framework_dict['ate_config']
 		self.DIS2CPM_MENU = framework_dict['dis2cpm_menu']
+		self.DIS1CPM_MENU = framework_dict['dis1cpm_menu']
 		self.DIS2CPM_DICT = framework_dict['dis2cpm_dict']
+		self.DIS1CPM_DICT = framework_dict['dis1cpm_dict']
 		self.RIGHT_HEMISPHERE = framework_dict['righthemisphere']
 		self.LEFT_HEMISPHERE = framework_dict['lefthemisphere']
 		

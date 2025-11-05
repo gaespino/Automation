@@ -100,12 +100,16 @@ class CWFStrategy(ProductStrategy):
 	
 	def supports_hyperthreading(self) -> bool:
 		"""CWF supports HT disable."""
-		return True
+		return False
 	
 	def supports_2cpm(self) -> bool:
 		"""CWF supports 2CPM disable."""
 		return True
-	
+
+	def supports_1cpm(self) -> bool:
+		"""GNR supports 1CPM disable."""
+		return False
+		
 	def get_bootscript_config(self) -> Dict[str, Any]:
 		"""Get CWF bootscript configuration."""
 		product_key = self.config.PRODUCT_CONFIG
@@ -137,6 +141,22 @@ class CWFStrategy(ProductStrategy):
 		"""Initialize voltage config with compute structure."""
 		domains = self.get_voltage_domains()
 		return {domain: [] for domain in domains}
+	
+	def get_voltage_ips(self) -> Dict[str, bool]:
+		"""
+		Get which voltage IPs are used by CWF.
+		CWF uses: core, CFC per compute, HDC at core level (L2), IO CFC, DDRD, DDRA
+		CWF does NOT use: mesh_hdc_volt (HDC at core level), core_mlc_volt (DMR-specific)
+		"""
+		return {
+			'core_volt': True,
+			'mesh_cfc_volt': True,   # Per compute
+			'mesh_hdc_volt': False,  # HDC is at core (L2) level for atomcore
+			'core_mlc_volt': False,  # Not used in CWF
+			'io_cfc_volt': True,
+			'ddrd_volt': True,
+			'ddra_volt': True
+		}
 	
 	# ========================================================================
 	# Validation Methods

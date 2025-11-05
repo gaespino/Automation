@@ -86,8 +86,13 @@ class DMRStrategy(ProductStrategy):
 	# ========================================================================
 	
 	def has_hdc_at_core(self) -> bool:
-		"""DMR bigcore has HDC at uncore level."""
-		return self.get_core_type() == 'atomcore'
+		"""
+		DMR does NOT have HDC at core level.
+		DMR uses MLC at core level instead, which is handled separately via core_mlc_volt.
+		
+		Returns False because DMR doesn't have mesh_hdc_volt (no HDC voltage domain).
+		"""
+		return False  # DMR doesn't have HDC, it has MLC instead
 	
 	def supports_600w_config(self) -> bool:
 		"""DMR does not support 600W configuration."""
@@ -99,8 +104,12 @@ class DMRStrategy(ProductStrategy):
 	
 	def supports_2cpm(self) -> bool:
 		"""DMR supports 2CPM disable."""
-		return True
-	
+		return False
+
+	def supports_1cpm(self) -> bool:
+		"""DMR supports 1CPM enabled."""
+		return False
+		
 	def get_bootscript_config(self) -> Dict[str, Any]:
 		"""Get DMR bootscript configuration."""
 		product_key = self.config.PRODUCT_CONFIG
@@ -146,6 +155,22 @@ class DMRStrategy(ProductStrategy):
 			for i in range(self.product_config['max_imhs']):
 				volt_config[f'io{i}'] = []
 		return volt_config
+	
+	def get_voltage_ips(self) -> Dict[str, bool]:
+		"""
+		Get which voltage IPs are used by DMR.
+		DMR uses: core, CFC per CBB, core MLC, IO CFC, DDRD, DDRA
+		DMR does NOT use: mesh_hdc_volt (only CFC is used for uncore)
+		"""
+		return {
+			'core_volt': True,
+			'mesh_cfc_volt': True,   # Per CBB
+			'mesh_hdc_volt': False,  # DMR does NOT use HDC voltage
+			'core_mlc_volt': True,   # DMR-specific: MLC voltage
+			'io_cfc_volt': True,
+			'ddrd_volt': True,
+			'ddra_volt': True
+		}
 	
 	# ========================================================================
 	# DMR-Specific Methods

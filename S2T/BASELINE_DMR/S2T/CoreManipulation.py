@@ -1595,6 +1595,10 @@ class System2Tester():
 		self.fuse_str_imh_0 = self.booter.fuse_str_imh_0
 		self.fuse_str_imh_1 = self.booter.fuse_str_imh_1
 
+	def fuse_checks(self):
+		use_fastboot = self.Fastboot
+		self.booter.verify_fuses(use_fastboot)
+		
 def gen_product_bootstring(bootopt = '', compute_config = 'X1', b_extra = '', _boot_disable_ia = '', _boot_disable_llc ='',fuse_string ='', fuse_files = '') -> str:
 
 	# Future Releases will call a product_specific function here, 

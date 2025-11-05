@@ -1,9 +1,19 @@
 ## GNR Set Tester Registers
-revision = 1.7
-date = '08/10/2025'
+revision = 2.0
+date = '28/10/2025'
 engineer ='gaespino'
-## Update: 05/02/2025
-#
+##
+## Version: 2.0
+## MAJOR REFACTORING:
+## - Introduced VoltageManager for all voltage operations
+## - Introduced FrequencyManager for all frequency operations  
+## - Introduced ProductStrategy pattern for product-specific logic
+## - Supports GNR, CWF, and DMR products seamlessly
+## - DMR uses CBB structure (cbb0/1/2/3) instead of computes
+## - Cleaner separation of concerns
+## - Easier to extend for new products
+##
+## Based on SetTesterRegs.py v1.7
 # Update: 27/6/2025
 # Version: 1.6
 # Last Update notes: Added the following features:
@@ -101,12 +111,19 @@ try:
 except:
 	import users.THR.PythonScripts.thr.CWFCoreDebugUtils as CoreDebugUtils 
 
+## Import Managers and Strategy
+sys.path.append(os.path.join(os.path.dirname(__file__), 'managers'))
+import voltage_manager as vmgr
+import frequency_manager as fmgr
+
 ## Reload of all imported scripts
 importlib.reload(scm)
 importlib.reload(CoreDebugUtils)
 importlib.reload(stc)
 importlib.reload(dpm)
 importlib.reload(UI)
+importlib.reload(vmgr)
+importlib.reload(fmgr)
 config.reload()
 
 bullets = '>>>'
@@ -124,14 +141,27 @@ s2tflow = None
 ## Change Banner display based on product -- fixed for now
 pf = config.get_functions()
 reg = config.get_registers()
+strategy = config.get_strategy()
+
+VoltageManager = vmgr.VoltageManager
+FrequencyManager = fmgr.FrequencyManager
+
+if strategy is None:
+	raise ValueError("Could not load product strategy. Check product configuration.")
+
 pf.display_banner(revision, date, engineer)
+
+# Set Used product Variable -- Called by Framework
+SELECTED_PRODUCT = config.SELECTED_PRODUCT
+
+#========================================================================================================#
 
 ## Initializes Menus based on type of product used
 def init_menus(product):
-	if config.CORETYPES[product]['core'] == 'atomcore':
-		menustring = 'Module'
-	else:
-		menustring = 'Core'
+	"""Initialize menus using product strategy for proper terminology."""
+	menustring = strategy.get_core_string()
+	domain_name = strategy.get_domain_display_name()
+
 
 	Menus = {'Reset': f'\n{bullets} Reset system before starting S2T flow? Enter for [N]: ',
 			'TargetCore':f'\n{bullets} Enter Target {menustring} (Physical): ',
@@ -146,6 +176,7 @@ def init_menus(product):
 			'MLC': f'\n{bullets} Set MLC ways? Y / N (enter for [N]): ',
 			'HTDIS': f'\n{bullets} Disable Hyper Threading? Y / N (enter for [Y]): ',
 			'DIS2CPM': f'\n{bullets} Disable 2 Cores Per Module? Y / N (enter for [Y]): ',
+			'DIS1CPM': f'\n{bullets} Disable 1 Core Per Module? Y / N (enter for [Y]): ',
 			'CLUSTER': f'\n{bullets} Fix Clustering on new mask? Y / N (enter for [Y]): ',
 			'CLUSTERLSB': f'\n{bullets} Select: Fix disabling lowest slice (Y) / Fix disabling highest slice (N)? (enter for [N]): ',
 			'APICS': f'\n{bullets} FIXUP APIC IDs to match tester? Y / N( enter for [N]): ',
@@ -154,12 +185,14 @@ def init_menus(product):
 			'CoreVolt': f'\n{bullets} Do you want to set {menustring} Voltage Configuration? Y / N ( enter for [N]): ',
 			'CFCVolt': f'\n{bullets} Do you want to set Uncore CFC Voltage Configuration? Y / N ( enter for [N]): ',
 			'HDCVolt': f'\n{bullets} Do you want to set Uncore HDC Voltage Configuration? Y / N ( enter for [N]): ',
+			'MLCVolt': f'\n{bullets} Do you want to set Core MLC Voltage Configuration? Y / N ( enter for [N]): ',
 			'CFCIOVolt': f'\n{bullets} Do you want to set IO CFC Voltage Configuration? Y / N ( enter for [N]): ',
 			'DDRDVolt': f'\n{bullets} Do you want to set DDRD Voltage Configuration? Y / N ( enter for [N]): ',
 			'DDRAVolt': f'\n{bullets} Do you want to set DDRA Voltage Configuration? Y / N ( enter for [N]): ',
 			'CoreBump': f'\n{bullets} Do you want to set {menustring} vBump Configuration? Y / N ( enter for [N]): ',
 			'CFCBump': f'\n{bullets} Do you want to set Uncore CFC vBump Configuration? Y / N ( enter for [N]): ',
 			'HDCBump': f'\n{bullets} Do you want to set Uncore HDC vBump Configuration? Y / N ( enter for [N]): ',
+			'MLCBump': f'\n{bullets} Do you want to set Core MLC vBump Configuration? Y / N ( enter for [N]): ',
 			'CFCIOBump': f'\n{bullets} Do you want to set IO CFC vBump Configuration? Y / N ( enter for [N]): ',
 			'DDRDBump': f'\n{bullets} Do you want to set DDRD vBump Configuration? Y / N ( enter for [N]): ',
 			'DDRABump': f'\n{bullets} Do you want to set DDRA vBump Configuration? Y / N ( enter for [N]): ',
@@ -174,19 +207,25 @@ def init_menus(product):
 ## On screen selection for System to Tester, Initial script run this to start the tool -- Newer version
 def setupSystemAsTester(debug = False):
 	'''
-	Sets up system to be like tester.  
-	Will ask questions on details
+	Sets up system to be like tester using new manager architecture.
+	Will ask questions on details.
 	'''
 	
 	global s2tflow
 	tester_mode = 0
 	s2tflow = S2TFlow(debug=debug)
 
+	print(f"\n{'='*80}")
+	print(f"System 2 Tester - Product Configuration v{revision}")
+	print(f"Product: {strategy.get_product_name()}")
+	print(f"Core Type: {strategy.get_core_type()}")
+	print(f"Domain Type: {strategy.get_domain_display_name()}")
+	print(f"{'='*80}\n")
+
 	print("Select Tester Mode:")
 	print("\t1. SLICE")
 	print("\t2. MESH")
-#	print("\t2. MESH_PM")
-#	print("\t3. MESH_NOPM")
+
 	while tester_mode not in range (1,3): 
 		tester_mode = int(input("Enter 1-2: "))
 
@@ -196,209 +235,145 @@ def setupSystemAsTester(debug = False):
 	if tester_mode == 2:
 		s2tflow.setupMeshMode()
 
-def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_mesh = None, Reset = False, Mask = None, pseudo = False, dis_2CPM = None, GUI = True, fastboot = True, corelic = None, volttype='vbump', debug= False, boot_postcode = False, extMask = None, u600w=None, execution_state=None):
-	s2tTest = S2TFlow(debug=debug)
+def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_mesh = None, 
+				  Reset = False, Mask = None, pseudo = False, dis_2CPM = None, dis_1CPM = None, GUI = True, 
+				  fastboot = True, corelic = None, volttype='vbump', debug= False, 
+				  boot_postcode = False, extMask = None, u600w=None, execution_state=None):
+	"""
+	Quick mesh test using new manager architecture.
+	"""
+	s2tTest = S2TFlow(debug=debug, execution_state=execution_state)
 	product = config.SELECTED_PRODUCT
-	qdf = dpm.qdf_str()
 	
-	# Framework cancellation check enable
-	s2tTest.execution_state = execution_state
-
-	if qdf == 'RVF5' and u600w == None:
-		u600w = True
-		print(' --- Unit QDF is for 600W disabling FastBoot option')
-	else:
-		u600w = False
-	
-
-	if volttype == 'fixed':
-		vtype = 2
-	elif volttype == 'vbump':
-		vtype = 3
-	elif volttype == 'ppvc':
-		vtype = 4
-	else:
-		vtype = 1
-
 	voltage_recipes = ['ppvc']
-
-	## Variables preconfig
-	#s2tTest.targetLogicalCore=None, 
-	#s2tTest.targetTile=None, 
+	vtype = 3 if volttype == 'vbump' else 2 if volttype == 'fixed' else 4 if volttype == 'ppvc' else 1
+	
+	# Set Default Values of non used variables
+	s2tTest.check_bios = False
 	s2tTest.use_ate_freq = False
-	s2tTest.use_ate_volt= False 
-	#s2tTest.flowid=1, 
-	#s2tTest.core_freq=None, 
-	#s2tTest.mesh_freq=None, 
-	#s2tTest.io_freq=None, 
-	s2tTest.license_level=corelic 
+	s2tTest.use_ate_volt= False
 	s2tTest.dcf_ratio=None
-	s2tTest.stop_after_mrc=False 
-	s2tTest.boot_postcode=boot_postcode 
+	s2tTest.stop_after_mrc=False
 	s2tTest.clear_ucode=False
 	s2tTest.halt_pcu=False
 	s2tTest.dis_acode=False 
-	s2tTest.dis_ht = pseudo 
-	s2tTest.dis_2CPM = dis_2CPM
 	s2tTest.postBootS2T=True 
 	s2tTest.clusterCheck = False 
 	s2tTest.lsb = False
 	s2tTest.fix_apic=False
-	#s2tTest.dryrun=False,
-	s2tTest.fastboot = fastboot if u600w == False else False
 	s2tTest.mlcways = False
-	#s2tTest.ppvc_fuses = None,
-	#s2tTest.custom_volt = None, 
-	#s2tTest.vbumps_volt = None, 
-	s2tTest.reset_start = Reset 
-	s2tTest.check_bios = False
-	#s2tTest.mesh_cfc_volt=None, 
-	#s2tTest.mesh_hdc_volt=None, 
-	#s2tTest.io_cfc_volt=None, 
-	#s2tTest.ddrd_volt=None,
-	#s2tTest.ddra_volt=None, 
-	#s2tTest.core_volt=None):
 	s2tTest.reg_select = 1
-	#s2tTest.license_level = None
 	s2tTest.voltselect = 1
-	valid_configs = {v:k for k,v in s2tTest.ate_masks.items()}
-	s2tTest.extMasks = extMask  # Dict with system Masks to be used as base
+
+	# Set other variables based on input
+	s2tTest.reset_start = Reset
+	s2tTest.boot_postcode = boot_postcode
+	s2tTest.license_level = corelic
+	s2tTest.extMasks = extMask
 	s2tTest.u600w = u600w
 
-	customs = {'LeftSide':config.RIGHT_HEMISPHERE,'RightSide':config.LEFT_HEMISPHERE}
-	computes = s2tTest.computes #['compute0', 'compute1', 'compute2']
 
 	# Set quickconfig variables
 	s2tTest.quick()
-	
-	## Option to replace system mask with an edited one
-	#customMask = False
-	
+	s2tTest.qvbumps_core = vbump_core
+	s2tTest.qvbumps_mesh = vbump_mesh
+
 	# Init System
 	s2tTest.mesh_init()
 	
+	# Build valid configs for targetTile logic
+	valid_configs = {v:k for k,v in s2tTest.ate_masks.items()}
+	customs = {'LeftSide': s2tTest.right_hemispthere, 'RightSide': s2tTest.left_hemispthere}
+	# Get domains from strategy (computes for GNR/CWF, cbbs for DMR)
+	domain_names = s2tTest.strategy.get_voltage_domains()
+	
+	# Check for Target Masking - skip configuration menus if provided
+	if Mask == None:
+		s2tTest.targetTile = 4
+	elif Mask in valid_configs.keys():
+		s2tTest.targetTile = 1
+		s2tTest.target = Mask
+		s2tTest.fastboot = False
+
+	elif Mask.lower() in domain_names.keys():
+		s2tTest.targetTile = 2
+		s2tTest.target = Mask.lower()
+		s2tTest.fastboot = False
+
+	elif Mask in customs.keys():
+		s2tTest.targetTile = 3
+		s2tTest.target = 'Custom'
+		s2tTest.custom_list = customs[Mask]
+		s2tTest.fastboot = False
+
+	else:
+		s2tTest.targetTile = 4
+
+	# 1CPM Configuration
+	if dis_1CPM != None:
+		s2tTest.dis_1CPM = dis_1CPM
+
+	# 2CPM Configuration
+	if dis_2CPM != None:
+		s2tTest.dis_2CPM = dis_2CPM
+				
 	## UI Part here
 	if GUI:
 		UI.mesh_ui(s2tTest, product=product)
 	else:
-		# Frequency Conditions
+		# Frequency Conditions using FrequencyManager
 		if core_freq != None:
-			s2tTest.core_freq = core_freq
+			s2tTest.frequency_mgr.set_frequencies(core=core_freq)
 		if mesh_freq != None:
-			s2tTest.mesh_freq = mesh_freq
+			s2tTest.frequency_mgr.set_frequencies(mesh=mesh_freq)
 		
-		## Voltage Conditions 
-		# 1 No Change
-		# 2 Fixed Voltage
-		# 3 Vbumps 
-		# PPVC Fuse recipe (RGB Reduction)
-
+		# Voltage Conditions using VoltageManager
 		if vtype > 1:
 			s2tTest.voltselect = vtype
 		
-		if vbump_core != None and volttype not in voltage_recipes:	
-			s2tTest.qvbumps_core = vbump_core
-		
-		if vbump_mesh != None and volttype not in voltage_recipes:
-			s2tTest.qvbumps_mesh = vbump_mesh
-		
-		# Check for Target Masking
-		if Mask == None:
-			s2tTest.targetTile = 4
-		elif Mask in valid_configs.keys():
-			s2tTest.targetTile = 1
-			s2tTest.target = Mask
-			s2tTest.fastboot = False
-		elif Mask.lower() in computes:
-			s2tTest.targetTile = 2
-			s2tTest.target = Mask.lower() 
-			s2tTest.fastboot = False
-		elif Mask in customs.keys():
-			s2tTest.targetTile = 3
-			s2tTest.target = 'Custom'
-			s2tTest.custom_list = customs[Mask]
-			s2tTest.fastboot = False
-		else:
-			s2tTest.targetTile = 4
+		# Set voltage using manager
+		s2tTest.set_voltage()
 		
 		# Run Mesh
-		#s2tTest.setupMeshMode()
-		# Asks for Voltage changes if not configured during ATE
-		s2tTest.set_voltage()
-
-		# Reboots the unit with Configuration -- In debug the script won't boot, this is mainly to check any core addition to the script
-		if not s2tTest.debug: s2tTest.mesh_run()
-
-		# Save Configuration to Temp Folder
+		if not s2tTest.debug:
+			s2tTest.mesh_run()
+		
+		# Save Configuration
 		s2tTest.save_config(file_path=s2tTest.defaultSave)
 
 def SliceQuickTest(Target_core = None, core_freq = None, mesh_freq = None, vbump_core = None, vbump_mesh = None, Reset = False, pseudo = False, dis_2CPM = None, GUI = True, fastboot = True, corelic = None,  volttype = 'fixed', debug= False, boot_postcode = False, u600w=None, execution_state=None):
-	s2tTest = S2TFlow(debug=debug)
+	"""
+	Quick slice test using new manager architecture.
+	"""
+	s2tTest = S2TFlow(debug=debug, execution_state=execution_state)
 	product = config.SELECTED_PRODUCT
-	qdf = dpm.qdf_str()
-
-	# Framework cancellation check enable
-	s2tTest.execution_state = execution_state
-
-	if qdf == 'RVF5' and u600w == None:
-		u600w = True
-		print(' --- Unit QDF is for 600W disabling FastBoot option')
-	else:
-		u600w = False
 	
-	
-	if volttype == 'fixed':
-		vtype = 2
-	elif volttype == 'vbump':
-		vtype = 3
-	elif volttype == 'ppvc':
-		vtype = 4
-	else:
-		vtype = 1
-
 	voltage_recipes = ['ppvc']
+	vtype = 3 if volttype == 'vbump' else 2 if volttype == 'fixed' else 4 if volttype == 'ppvc' else 1
 
-	## Variables preconfig
-	s2tTest.targetLogicalCore=Target_core 
-	#s2tTest.targetTile=None, 
+	# Set Default Values of non used variables
+	s2tTest.check_bios = False
 	s2tTest.use_ate_freq = False
-	s2tTest.use_ate_volt= False 
-	#s2tTest.flowid=1, 
-	#s2tTest.core_freq=None, 
-	#s2tTest.mesh_freq=None, 
-	#s2tTest.io_freq=None, 
-	s2tTest.license_level=corelic 
+	s2tTest.use_ate_volt= False
 	s2tTest.dcf_ratio=None
-	s2tTest.stop_after_mrc=False 
-	s2tTest.boot_postcode=boot_postcode 
+	s2tTest.stop_after_mrc=False
 	s2tTest.clear_ucode=False
 	s2tTest.halt_pcu=False
 	s2tTest.dis_acode=False 
-	s2tTest.dis_ht = pseudo 
-	s2tTest.dis_2CPM = dis_2CPM
 	s2tTest.postBootS2T=True 
 	s2tTest.clusterCheck = False 
 	s2tTest.lsb = False
 	s2tTest.fix_apic=False
-	#s2tTest.dryrun=False,
-	s2tTest.fastboot = fastboot if u600w == False else False
 	s2tTest.mlcways = False
-	#s2tTest.ppvc_fuses = None,
-	#s2tTest.custom_volt = None, 
-	#s2tTest.vbumps_volt = None, 
-	s2tTest.reset_start = Reset 
-	s2tTest.check_bios = False
-	#s2tTest.mesh_cfc_volt=None, 
-	#s2tTest.mesh_hdc_volt=None, 
-	#s2tTest.io_cfc_volt=None, 
-	#s2tTest.ddrd_volt=None,
-	#s2tTest.ddra_volt=None, 
-	#s2tTest.core_volt=None):
 	s2tTest.reg_select = 1
-	#s2tTest.license_level = None
 	s2tTest.voltselect = 1
-	s2tTest.u600w = u600w
 
+	# Set other variables based on input	
+	s2tTest.reset_start = Reset
+	s2tTest.boot_postcode = boot_postcode
+	s2tTest.targetLogicalCore = Target_core
+	s2tTest.u600w = u600w
+	
 	# Set quickconfig variables
 	s2tTest.quick()
 	
@@ -409,41 +384,28 @@ def SliceQuickTest(Target_core = None, core_freq = None, mesh_freq = None, vbump
 	if GUI:
 		UI.slice_ui(s2tTest, product=product)
 	else:
-		# Frequency Conditions
+		# Frequency Conditions using FrequencyManager
 		if core_freq != None:
-			s2tTest.core_freq = core_freq
+			s2tTest.frequency_mgr.set_frequencies(core=core_freq)
 		if mesh_freq != None:
-			s2tTest.mesh_freq = mesh_freq
+			s2tTest.frequency_mgr.set_frequencies(mesh=mesh_freq)
 		
-		## Voltage Conditions 
-		# 1 No Change
-		# 2 Fixed Voltage
-		# 3 Vbumps 
-		# PPVC Fuse recipe (RGB Reduction)
-
+		# Voltage Conditions using VoltageManager
 		if vtype > 1:
 			s2tTest.voltselect = vtype
 		
-		if vbump_core != None and volttype not in voltage_recipes:	
-			s2tTest.qvbumps_core = vbump_core
-		
-		if vbump_mesh != None and volttype not in voltage_recipes:
-			s2tTest.qvbumps_mesh = vbump_mesh
-		
 		# Check for Target Core
 		if Target_core == None:
-			s2tTest.slice_core()
-
+			s2tTest.slice_core(s2tTest.array, s2tTest.core_dict)
 		
-		# Run Mesh
-		#s2tTest.setupMeshMode()
-		# Asks for Voltage changes if not configured during ATE
+		# Set voltage using manager
 		s2tTest.set_voltage()
-		#print(s2tTest.targetLogicalCore, type(s2tTest.targetLogicalCore))
-		# Reboots the unit with Configuration -- In debug the script won't boot, this is mainly to check any core addition to the script
-		if not s2tTest.debug: s2tTest.slice_run()
-
-		# Save Configuration to Temp Folder
+		
+		# Run Slice
+		if not s2tTest.debug:
+			s2tTest.slice_run()
+		
+		# Save Configuration
 		s2tTest.save_config(file_path=s2tTest.defaultSave)
 
 ## Calls a User Interface to Interact with saved config files
@@ -482,12 +444,12 @@ class FrequencySettings():
 class S2TFlow():
 		
 	def __init__(self, 	debug = False, 
-			  			targetLogicalCore=None, 
-			  			targetTile=None, 
+						  targetLogicalCore=None, 
+						  targetTile=None, 
 						use_ate_freq = True, 
 						use_ate_volt= False, 
 						flowid=1, 
-			  			core_freq=None, 
+						  core_freq=None, 
 						mesh_freq=None, 
 						io_freq=None, 
 						license_level=None, 
@@ -499,6 +461,7 @@ class S2TFlow():
 						dis_acode=False, 
 						dis_ht = None, 
 						dis_2CPM = None, 
+						dis_1CPM = None,
 						postBootS2T=True, 
 						clusterCheck = None, 
 						lsb = False,
@@ -517,6 +480,7 @@ class S2TFlow():
 						ddrd_volt=None,
 						ddra_volt=None, 
 						core_volt=None,
+						core_mlc_volt=None,
 						u600w=None,
 						extMasks=None,
 						execution_state = None):
@@ -524,16 +488,65 @@ class S2TFlow():
 		# Framework Execution Status
 		self.execution_state = execution_state
 
+		# Get product strategy
+		self.strategy = config.get_strategy()
+		if self.strategy is None:
+			raise ValueError("Could not load product strategy")
+		
+		# Product information from strategy
+		self.product = config.PRODUCT_CONFIG
+		self.core_type = self.strategy.get_core_type()
+		self.core_string = self.strategy.get_core_string()
+		self.HDC_AT_CORE = self.strategy.has_hdc_at_core()
+		self.MLC_AT_CORE = self.strategy.has_mlc_at_core()
+
+		# Get voltage domains from strategy (computes or cbbs)
+		self.domains = self.strategy.get_voltage_domains()
+		self.domain_type = self.strategy.get_domain_display_name()
+
+		# Initialize menus with product-specific terminology
+		self.Menus, self.coremenustring = init_menus(self.product)
+											
+		# Initialize Voltage Manager
+		self.voltage_mgr = VoltageManager(
+			product_strategy=self.strategy,
+			dpm_module=dpm,
+			menus=self.Menus,
+			features=config.FRAMEWORK_FEATURES
+		)
+		
+		# Initialize Frequency Manager
+		self.frequency_mgr = FrequencyManager(
+			product_strategy=self.strategy,
+			stc_module=stc,
+			menus=self.Menus,
+			features=config.FRAMEWORK_FEATURES
+		)
+
+		# Defined Voltage and Frequency Settings
+		## Frequency Settings
+		self.flowid = flowid
+		self.core_freq = core_freq
+		self.mesh_freq = mesh_freq
+		self.io_freq = io_freq
+		self.use_ate_freq = use_ate_freq
+		
+		## Voltage Settings
+		self.core_volt = core_volt
+		self.core_mlc_volt = core_mlc_volt
+		self.mesh_cfc_volt = mesh_cfc_volt
+		self.mesh_hdc_volt = mesh_hdc_volt
+		self.io_cfc_volt = io_cfc_volt
+		self.ddrd_volt = ddrd_volt
+		self.ddra_volt = ddra_volt
+		self.use_ate_volt = use_ate_volt
+
 		## Script Flow
 		self.mode = None
 		self.external = False
-		self.product = config.PRODUCT_CONFIG
-		## Testing and debug Variable
 		self.debug = debug
+		
 		## Common Settings
-		self.use_ate_freq = use_ate_freq
-		self.flowid = flowid
-		self.use_ate_volt = use_ate_volt
 		self.dcf_ratio = dcf_ratio
 		self.stop_after_mrc = stop_after_mrc
 		self.boot_postcode = boot_postcode
@@ -550,51 +563,59 @@ class S2TFlow():
 		self.reg_select = None
 		self.defaultSave = r'C:\\Temp\\System2TesterRun.json'
 		self.configfile = None
-		## Frequency Settings
-		self.core_freq = core_freq
-		self.mesh_freq = mesh_freq
-		self.io_freq = io_freq
+		
+		## License level
 		self.license_level = license_level
+		
 		## External Base Masks
 		self.extMasks = extMasks
 
-		## Voltage Settings
-		self.mesh_cfc_volt = mesh_cfc_volt
-		self.mesh_hdc_volt = mesh_hdc_volt
-		self.io_cfc_volt = io_cfc_volt
-		self.ddrd_volt = ddrd_volt
-		self.ddra_volt = ddra_volt
-		self.core_volt = core_volt
+		## Voltage Settings (maintained for compatibility, but delegated to manager)
 		self.ppvc_fuses = ppvc_fuses
 		self.custom_volt = custom_volt
 		self.vbumps_volt = vbumps_volt
-		#self.init_voltage()
-
 		self.voltselect = None
+		
+		# Initialize voltage dictionaries (allow float values)
+		self.cfc_volt = {}  # type: dict[str, float | None]
+		self.hdc_volt = {}  # type: dict[str, float | None]
+		for d in self.domains:
+			self.cfc_volt[d] = None
+			self.hdc_volt[d] = None		
 
 		## Mesh Settings
 		self.targetTile = targetTile
 		self.clusterCheck = clusterCheck
 		self.dis_ht = dis_ht
 		self.dis_2CPM = dis_2CPM
+		self.dis_1CPM = dis_1CPM
 		self.lsb = lsb
 		self.mlcways = mlcways
 
 		self.custom_list = []
 		self.target = ''
 		self.fix_apic = fix_apic
-		self.dryrun= dryrun
+		self.dryrun = dryrun
 
 		self.u600w = u600w
-		self.ATE_CORE_FREQ = [f'F{k}' for k in stc.CORE_FREQ.keys()]
-		self.ATE_MESH_FREQ = [f'F{k}' for k in stc.CFC_FREQ.keys()]
+		self.ATE_CORE_FREQ = self.frequency_mgr.ATE_CORE_FREQ
+		self.ATE_MESH_FREQ = self.frequency_mgr.ATE_MESH_FREQ
+
+		
 		## Slice Settings
 		self.targetLogicalCore = targetLogicalCore
 
-		# Init Menus and disable checks product specific features
+		# Framework Features
 		self.__FRAMEWORK_FEATURES = config.FRAMEWORK_FEATURES
-		self.__FRAMEWORKVARS = config.FRAMEWORK_FEATURES
+		self.__FRAMEWORKVARS = config.FRAMEWORKVARS
 		self.specific_product_features()
+
+		# Initialize Managers with current settings
+		self.init_managers()
+		
+		print(f"\n{bullets} S2TFlow initialized for {self.strategy.get_product_name()}")
+		print(f"{bullets} Using {self.domain_type}s: {', '.join(self.domains)}")
+		print(f"{bullets} Core terminology: {self.core_string}\n")
 	
 	# This will check based on product to disable S2T features, not all products require the same features, implemented to keep code structure
 	# as similar as possible to facilitaate future updates of S2T, enabled for GNR and CWF 
@@ -618,23 +639,15 @@ class S2TFlow():
 		print(f'{"+"*80}\n')
 
 	def specific_product_features(self):
+		"""Initialize product-specific features using strategy."""
+
+		_exit_condition(self.product, config.CORETYPES.keys(), 
+					   f"\n{bullets} Product not available, select a valid product...\n")
 		
-		_exit_condition(self.product, config.CORETYPES.keys(), f"\n{bullets} Product not available, select a valid product...\n")
-		
-		# Will move this configuration to a config json file to avoid product specifics 
-		self.Menus, self.coremenustring = init_menus(self.product)
-		self.computes = sv.socket0.computes.name
-		self.core_type = config.CORETYPES[self.product]['core']
-		
-		## Specific HDC condition atomcore is located at L2
-		if self.core_type == 'atomcore': 
-			self.HDC_AT_CORE = True
-		else: 
-			self.HDC_AT_CORE = False
 		# Check for each Feature Status
 		self.features_check()
-
-		# Populate internal variables based on product selected
+		
+				# Populate internal variables based on product selected
 		self.license_dict = config.LICENSE_S2T_MENU
 		self.core_license_dict = config.LICENSE_DICT
 		self.core_license_levels = config.LICENSE_LEVELS
@@ -647,6 +660,7 @@ class S2TFlow():
 		self.right_hemispthere = config.RIGHT_HEMISPHERE
 		self.validclass = config.VALIDCLASS[config.PRODUCT_CONFIG.upper()]
 		self.dis2cpm_dict = config.DIS2CPM_DICT
+		self.dis1cpm_dict = config.DIS1CPM_DICT
 
 	# Prints Menus from a dictionary, each key should be of the format l# or line# to be used
 	def print_menu(self, menu):
@@ -659,8 +673,40 @@ class S2TFlow():
 		self.qvbumps_core = None
 		self.qvbumps_mesh = None
 		self.external = True
+
+	def init_managers(self):
+		"""Initialize voltage and frequency managers."""
+
+		# Pass initial frequency values to manager
+		self.frequency_mgr.core_freq = self.core_freq
+		self.frequency_mgr.mesh_freq = self.mesh_freq
+		self.frequency_mgr.io_freq = self.io_freq
+		self.frequency_mgr.use_ate_freq = self.use_ate_freq
+		self.frequency_mgr.flowid = self.flowid
 		
-	## Initialization flow checks for BIOS and ColdReset if required
+		# Pass initial voltage values to manager
+		self.voltage_mgr.core_volt = self.core_volt
+		self.voltage_mgr.mesh_cfc_volt = self.mesh_cfc_volt if self.mesh_cfc_volt else {d: None for d in self.domains}
+		
+		# mesh_hdc_volt: only initialize if product supports it
+		if self.voltage_mgr.voltage_ips['mesh_hdc_volt']:
+			self.voltage_mgr.mesh_hdc_volt = self.mesh_hdc_volt if self.mesh_hdc_volt else {d: None for d in self.domains}
+		else:
+			self.voltage_mgr.mesh_hdc_volt = None  # DMR/CWF don't use mesh_hdc_volt
+		
+		# core_mlc_volt: only initialize if product supports it (DMR only)
+		if self.voltage_mgr.voltage_ips['core_mlc_volt']:
+			self.voltage_mgr.core_mlc_volt = None  # Will be set via voltage configuration
+		
+		self.voltage_mgr.io_cfc_volt = self.io_cfc_volt
+		self.voltage_mgr.ddrd_volt = self.ddrd_volt
+		self.voltage_mgr.ddra_volt = self.ddra_volt
+		self.voltage_mgr.use_ate_volt = self.use_ate_volt
+
+	#========================================================================================================#
+	#=============== INITIALIZATION AND FLOW CONTROL =======================================================#
+	#========================================================================================================#
+			
 	def init_flow(self):
 		
 		if self.check_bios == None and self.__FRAMEWORK_FEATURES['check_bios']['enabled']:
@@ -698,80 +744,122 @@ class S2TFlow():
 	def powercycle(self):
 
 		if not self.u600w: 
-			dpm.powercycle(ports=[1])
+			dpm.powercycle(ports=[1,2])
 		else: 
-			#dpm.powercycle(ports=[1])
 			dpm.reset_600w()
 			time.sleep(scm.EFI_POSTCODE_WT)
-			#dpm.reset_600w()
-		# Wait time to start reading PythonSV again
+
 		time.sleep(scm.EFI_POSTCODE_WT)
-		scm._wait_for_post(scm.EFI_POST, sleeptime=scm.EFI_POSTCODE_WT, additional_postcode=scm.LINUX_POST, execution_state = self.execution_state)
+		scm._wait_for_post(scm.EFI_POST, sleeptime=scm.EFI_POSTCODE_WT, 
+						   additional_postcode=scm.LINUX_POST, execution_state=self.execution_state)
 		
 		if scm.check_user_cancel(self.execution_state):
 			return True
 		
 		scm.svStatus(refresh=True)
 
-	def init_voltage(self, mode = 'mesh'):
-		#self.safevolts = [['Domain', 'Value']]
-		self.safevolts_PKG = [['Domain', 'Value']]
-		self.safevolts_CDIE = [['Domain', 'Value']]
+	def ate_data(self, mode='mesh'):
+		"""Display ATE frequency configuration data"""
+		self.frequency_mgr.display_ate_frequencies(mode=mode, core_string=self.core_string)
+
+	#========================================================================================================#
+	#=============== VOLTAGE CONFIGURATION USING VOLTAGEMANAGER ============================================#
+	#========================================================================================================#
+
+	def set_voltage(self):
+		"""
+		Configure voltage using VoltageManager.
+		Handles all voltage options: ATE, fixed, vbumps, PPVC.
+		"""
+				
+		# Configure voltage
+		configured = self.voltage_mgr.configure_voltage(
+			use_ate_volt=self.use_ate_volt,
+			external=self.external,
+			volt_select=self.voltselect,
+			fastboot=self.fastboot,
+			qvbumps_core=getattr(self, 'qvbumps_core', None),
+			qvbumps_mesh=getattr(self, 'qvbumps_mesh', None),
+			core_string=self.core_string,
+			input_func=input
+		)
 		
-		self.cfc_volt = {c:None for c in self.computes}
-		self.hdc_volt = {c:None for c in self.computes}					
+		# Get configured values back from manager
+		if configured or self.use_ate_volt:
+			volt_dict = self.voltage_mgr.get_voltage_dict()
+			self.volt_config = volt_dict['volt_config']
+			self.custom_volt = volt_dict['custom_volt']
+			self.vbumps_volt = volt_dict['vbumps_volt']
+			self.ppvc_fuses = volt_dict['ppvc_fuses']
+			
+			# Update manager frequency values for use in other parts
+			self.core_volt = volt_dict['core_volt']
+			self.core_mlc_volt = volt_dict['core_mlc_volt']
+			self.mesh_cfc_volt = volt_dict['mesh_cfc_volt']
+			self.mesh_hdc_volt = volt_dict['mesh_hdc_volt']
+			self.io_cfc_volt = volt_dict['io_cfc_volt']
+			self.ddrd_volt = volt_dict['ddrd_volt']
+			self.ddra_volt = volt_dict['ddra_volt']
+			
+			print(f"\n{bullets} Voltage configured successfully")
+
+	#========================================================================================================#
+	#=============== FREQUENCY CONFIGURATION USING FREQUENCYMANAGER ========================================#
+	#========================================================================================================#
+
+	def set_frequency(self):
+		"""
+		Configure frequency using FrequencyManager.
+		Handles both ATE and manual frequency configuration.
+		"""
+		# Try ATE frequency first
+		#ate_configured = self.frequency_mgr.configure_ate_frequency(
+		#	mode=self.mode,
+		#	core_string=self.core_string,
+		#	input_func=input
+		#)
 		
-		# Variables used in CORE are different than the ones used in mesh, but values are the same
-		for k,v in stc.All_Safe_RST_PKG.items():
-			self.safevolts_PKG.append([k,v])
-		for k,v in stc.All_Safe_RST_CDIE.items():
-			self.safevolts_CDIE.append([k,v])
+		# Fall back to manual if ATE not used
+		#if not ate_configured:
+		self.frequency_mgr.configure_manual_frequency(input_func=input)
 		
-		# Setting safevalues depending on selection, slice or mesh
-		safevalues = self.safevolts_CDIE if mode == 'slice' else self.safevolts_PKG
-		self.voltstable = tabulate(safevalues, headers="firstrow", tablefmt="grid")
-		self.v_confg = None
-		self.volt_config = {	'compute0':[],
-						'compute1':[],
-						'compute2':[],
-						'io0':[],
-						'io1':[],}
+		# Get configured values back from manager
+		freq_dict = self.frequency_mgr.get_frequency_dict()
+		self.core_freq = freq_dict['core_freq']
+		self.mesh_freq = freq_dict['mesh_freq']
+		self.io_freq = freq_dict['io_freq']
+		self.flowid = freq_dict['flowid']
+		self.use_ate_freq = freq_dict['use_ate_freq']
+		
+		print(f"\n{bullets} Frequency configured:")
+		print(f"  {self.core_string}: {self.core_freq}")
+		print(f"  Mesh: {self.mesh_freq}")
+		print(f"  IO: {self.io_freq}")
+
+	#========================================================================================================#
+	#=============== CONFIGURATION SAVE/LOAD USING MANAGERS ================================================#
+	#========================================================================================================#
 	
-	def ate_data(self, mode = 'mesh'):
-		if mode == 'slice':
-			print(f"\n{bullets} {self.product} {self.coremenustring} frequencies are:")
-
-			table = [[f'{self.coremenustring} Frequency', 'IA Value', 'CFC Value']]
-			for k, v in stc.CORE_FREQ.items():
-				table.append([f'F{k}',v,stc.CORE_CFC_FREQ[k]])
-
-			print(tabulate(table, headers="firstrow", tablefmt="grid"))
-			print(f'--> Multiple freqs are FLOWID 1-4')
-		
-		elif mode == 'mesh':
-			print(f"\n{bullets} {self.product} CFC frequencies are:")
-			table = [['UnCore Frequency', 'CFC Value', 'IA Value']]
-			for k, v in stc.CFC_FREQ.items():
-				table.append([f'F{k}',v,stc.CFC_CORE_FREQ[k]])
-
-			print(tabulate(table, headers="firstrow", tablefmt="grid"))
-			print(f'--> Multiple freqs are FLOWID 1-4')
-
-	## Confguration Save / Load / Run
 	def save_config(self, file_path = r'C:\\Temp\\System2TesterRun.json'):
-		
+		"""
+		Save configuration including manager states.
+		Now includes voltage and frequency manager dictionaries.
+		"""
 		config = {
+			'product': self.strategy.get_product_name(),
 			'mode': self.mode,
 			'targetLogicalCore': self.targetLogicalCore,
 			'targetTile': self.targetTile,
 			'target': self.target,
 			'custom_list': self.custom_list,
-			'use_ate_freq': self.use_ate_freq,
-			'use_ate_volt': self.use_ate_volt,
-			'flowid': self.flowid,
-			'core_freq': self.core_freq,
-			'mesh_freq': self.mesh_freq,               
-			'io_freq': self.io_freq,
+			
+			# Frequency configuration from manager
+			'frequency': self.frequency_mgr.get_frequency_dict(),
+			
+			# Voltage configuration from manager
+			'voltage': self.voltage_mgr.get_voltage_dict(),
+			
+			# Other settings
 			'license_level': self.license_level,
 			'dcf_ratio': self.dcf_ratio,
 			'stop_after_mrc': self.stop_after_mrc,
@@ -781,6 +869,7 @@ class S2TFlow():
 			'dis_acode': self.dis_acode,
 			'dis_ht': self.dis_ht,
 			'dis_2CPM': self.dis_2CPM,
+			'dis_1CPM': self.dis_1CPM,
 			'postBootS2T': self.postBootS2T,
 			'clusterCheck': self.clusterCheck,
 			'lsb': self.lsb,
@@ -788,89 +877,96 @@ class S2TFlow():
 			'dryrun': self.dryrun,
 			'fastboot': self.fastboot,
 			'mlcways': self.mlcways,
-			'ppvc_fuses': self.ppvc_fuses,
-			'custom_volt': self.custom_volt,
-			'vbumps_volt': self.vbumps_volt,
-			'volt_config': self.volt_config,
 			'u600w': self.u600w,
-			#'reset_start': self.reset_start,
-			#'check_bios': self.check_bios,
-			'mesh_cfc_volt': self.mesh_cfc_volt,
-			'mesh_hdc_volt': self.mesh_hdc_volt,
-			'io_cfc_volt': self.io_cfc_volt,
-			'ddrd_volt': self.ddrd_volt,
-			'ddra_volt': self.ddra_volt,
-			'core_volt': self.core_volt,
-			'masks': {k:str(v) for k,v in self.masks.items()} if self.masks != None else self.masks,
-			'extMasks': self.extMasks}
+			'masks': {k:str(v) for k,v in self.masks.items()} if hasattr(self, 'masks') and self.masks != None else None,
+			'extMasks': self.extMasks
+		}
 		
-		print(f' ---> Saving Configuration file to: {file_path}')
-		#print(config['masks'])
-		#print('---------------')
-		#print(config['volt_config'])
+		print(f'\n{bullets} Saving Configuration file to: {file_path}')
 		with open(file_path, 'w') as f:
 			json.dump(config, f, indent=4)
 
 	def load_config(self, file_path = r'C:\\Temp\\System2TesterRun.json'):
+		"""
+		Load configuration and restore manager states.
+		"""
 		with open(file_path, 'r') as f:
-			config = json.load(f)
-			self.mode = config.get('mode')
-			self.targetLogicalCore = config.get('targetLogicalCore')
-			self.targetTile = config.get('targetTile')
-			self.target = config.get('target')
-			self.custom_list = config.get('custom_list')
-			self.use_ate_freq = config.get('use_ate_freq')
-			self.use_ate_volt = config.get('use_ate_volt')
-			self.flowid = config.get('flowid')
-			self.core_freq = config.get('core_freq')
-			self.mesh_freq = config.get('mesh_freq')
-			self.io_freq = config.get('io_freq')
-			self.license_level = config.get('license_level')
-			self.dcf_ratio = config.get('dcf_ratio')
-			self.stop_after_mrc = config.get('stop_after_mrc', False)
-			self.boot_postcode = config.get('boot_postcode', False)
-			self.clear_ucode = config.get('clear_ucode')
-			self.halt_pcu = config.get('halt_pcu')
-			self.dis_acode = config.get('dis_acode')
-			self.dis_ht = config.get('dis_ht')
-			self.dis_2CPM = config.get('dis_2CPM')
-			self.postBootS2T = config.get('postBootS2T')
-			self.clusterCheck = config.get('clusterCheck')
-			self.lsb = config.get('lsb')
-			self.fix_apic = config.get('fix_apic')
-			self.dryrun = config.get('dryrun')
-			self.fastboot = config.get('fastboot')
-			self.mlcways = config.get('mlcways')
-			self.ppvc_fuses = config.get('ppvc_fuses')
-			self.custom_volt = config.get('custom_volt')
-			self.vbumps_volt = config.get('vbumps_volt')
-			self.reset_start = config.get('reset_start')
-			self.check_bios = config.get('check_bios')
-			self.mesh_cfc_volt = config.get('mesh_cfc_volt')
-			self.mesh_hdc_volt = config.get('mesh_hdc_volt')
-			self.io_cfc_volt = config.get('io_cfc_volt')
-			self.ddrd_volt = config.get('ddrd_volt')
-			self.ddra_volt = config.get('ddra_volt')
-			self.core_volt = config.get('core_volt')
-			masks = config.get('masks')
-			self.extMasks = config.get('extMasks')
+			config_data = json.load(f)
+		
+		# Validate product matches
+		if config_data.get('product') != self.strategy.get_product_name():
+			print(f"\n{bullets} Warning: Config was for {config_data.get('product')}, current product is {self.strategy.get_product_name()}")
+		
+		# Restore basic settings
+		self.mode = config_data.get('mode')
+		self.targetLogicalCore = config_data.get('targetLogicalCore')
+		self.targetTile = config_data.get('targetTile')
+		self.target = config_data.get('target')
+		self.custom_list = config_data.get('custom_list')
+		
+		# Restore frequency manager state
+		if 'frequency' in config_data:
+			self.frequency_mgr.set_from_dict(config_data['frequency'])
+			freq_dict = self.frequency_mgr.get_frequency_dict()
+			self.core_freq = freq_dict['core_freq']
+			self.mesh_freq = freq_dict['mesh_freq']
+			self.io_freq = freq_dict['io_freq']
+			self.flowid = freq_dict['flowid']
+			self.use_ate_freq = freq_dict['use_ate_freq']
+		
+		# Restore voltage manager state
+		if 'voltage' in config_data:
+			self.voltage_mgr.set_from_dict(config_data['voltage'])
+			volt_dict = self.voltage_mgr.get_voltage_dict()
+			self.volt_config = volt_dict['volt_config']
+			self.custom_volt = volt_dict['custom_volt']
+			self.vbumps_volt = volt_dict['vbumps_volt']
+			self.ppvc_fuses = volt_dict['ppvc_fuses']
 			
-			if masks == None:
-				self.masks = masks
-			else:
-				self.masks = {k: (lambda v: None if v == "None" else int(v, 16))(v) for k, v in masks.items()}
-				#for k,v in masks.items():
-				#	self.masks[k] = None if v == "None" else int(v,16)
-			#print(self.masks)
-			#self.masks = {k: (lambda v: None if v == "None" else int(v, 16))(v) for k, v in masks.items()}
-			self.volt_config = config.get('volt_config')
-			self.u600w = config.get('u600w')
-			#print(self.masks)
+			# Sync voltage values to SetTesterRegs_2 attributes for set_globals()
+			self.core_volt = volt_dict['core_volt']
+			self.mesh_cfc_volt = volt_dict['mesh_cfc_volt']
+			self.mesh_hdc_volt = volt_dict['mesh_hdc_volt']
+			self.io_cfc_volt = volt_dict['io_cfc_volt']
+			self.ddrd_volt = volt_dict['ddrd_volt']
+			self.ddra_volt = volt_dict['ddra_volt']
+			self.use_ate_volt = volt_dict['use_ate_volt']
+		
+		# Restore other settings
+		self.license_level = config_data.get('license_level')
+		self.dcf_ratio = config_data.get('dcf_ratio')
+		self.stop_after_mrc = config_data.get('stop_after_mrc', False)
+		self.boot_postcode = config_data.get('boot_postcode', False)
+		self.clear_ucode = config_data.get('clear_ucode')
+		self.halt_pcu = config_data.get('halt_pcu')
+		self.dis_acode = config_data.get('dis_acode')
+		self.dis_ht = config_data.get('dis_ht',None)
+		self.dis_2CPM = config_data.get('dis_2CPM',None)
+		self.dis_1CPM = config_data.get('dis_1CPM',None)
+		self.postBootS2T = config_data.get('postBootS2T')
+		self.clusterCheck = config_data.get('clusterCheck')
+		self.lsb = config_data.get('lsb')
+		self.fix_apic = config_data.get('fix_apic')
+		self.dryrun = config_data.get('dryrun')
+		self.fastboot = config_data.get('fastboot')
+		self.mlcways = config_data.get('mlcways')
+		self.u600w = config_data.get('u600w')
+		self.extMasks = config_data.get('extMasks')
+		
+		masks = config_data.get('masks')
+		if masks == None:
+			self.masks = masks
+		else:
+			self.masks = {k: (lambda v: None if v == "None" else int(v, 16))(v) for k, v in masks.items()}
+		
+		self.configfile = file_path		
+		print(f'\n{bullets} S2T Configuration loaded from: {file_path}\n')
+		
+		# Display loaded configuration
 		configtable = [["Setting", "Value"]]
-		for k,v in config.items():
+		for k,v in config_data.items():
 			if isinstance(v,dict):
 				for d,c in v.items():
-					#print(c)
 					if c != None:
 						if isinstance(c,list):
 							if len(c) > 5:
@@ -886,33 +982,29 @@ class S2TFlow():
 				configtable.append([k,v if v != None else 'N/A'])
 		
 		print(f'{bullets} S2T Settings loaded:\n')
+		print(f'{bullets} S2T Configuration loaded from: {self.configfile}\n')
+
 		print(tabulate(configtable, headers="firstrow", tablefmt="grid"))
-
-		self.configfile = file_path		
-		print(f'{bullets} S2T Configuration loaded from: {file_path}\n')
-
+	
 	def run_config(self, dryrun= True, file_path = r'C:\\Temp\\System2TesterRun.json'):
+		"""Run configuration from file"""
 		if self.u600w: 
 			print(f'{bullets} Unit set for 600w Configuration, removing Fastboot option...')
-			self.fastboot == False
+			self.fastboot = False
+			
 		if self.configfile == None: 
-			#print(f'{bullets} S2T Configuration loaded from: {file_path}\n')
 			self.load_config(file_path = file_path)
 		
 		print(f'{bullets} Running System 2 Tester with Configuration loaded from: {self.configfile}\n')
 
 		if dryrun: 
-			
 			self.reset_start = True
 		
 		self.check_bios = False
-		# Will ask for system Restart
-		#if self.reset_start == False:
-		#	self.reset_start = _yorn_bool(default_yorn='Y', prompt = self.Menus['Reset'].replace('Enter for [N]','Enter for [Y]'))
 		
 		self.init_flow()
+		
 		if self.mode == 'slice':
-			# Starts the Run Sequence
 			print(f'{bullets} Running System 2 Tester {self.mode.upper()} with Configuration loaded from: {self.configfile}\n')
 			self.slice_run()
 		elif self.mode == 'mesh':
@@ -921,7 +1013,10 @@ class S2TFlow():
 		else:
 			print(f'{bullets} Not a valid System 2 Tester Flow found in the configuration please check your file')
 
-	## Common Settings for Slice and Mesh
+	#========================================================================================================#
+	#=============== COMMON AND MISCELLANEOUS FUNCTIONS ====================================================#
+	#========================================================================================================#
+
 	def set_license(self):
 		if self.license_level == None and self.__FRAMEWORK_FEATURES['license_level']['enabled']:
 			print(f"\n{bullets} Select Core License Level:")
@@ -937,156 +1032,6 @@ class S2TFlow():
 			while self.license_level not in range (0,8): 
 				self.license_level = int(input("--> Enter 0-7 : "))
 			if self.license_level == 0: self.license_level = None
-
-	def set_voltage(self):
-		computes = self.computes
-		external = self.external
-		volt_select = self.voltselect
-		
-		if self.use_ate_volt == False and self.__FRAMEWORK_FEATURES['use_ate_volt']['enabled']:
-			
-			## Skips self.Menus if data is coming from an external source
-			if not external: 
-				print(f"\n{bullets} Set System Voltage?") 
-				print("\t> 1. No")
-				print("\t> 2. Fixed Voltage")
-				print("\t> 3. Voltage Bumps")
-				print("\t> 4. PPVC Conditions")
-				while volt_select not in range (1,5): 
-					volt_select = input("\n--> Enter 1-4: (enter for [1]) ")
-					if volt_select == "":
-						volt_select = 1
-					volt_select = int(volt_select)
-			
-			## Fixed Voltage Configuration
-			if volt_select == 2:
-				
-				if not external: 
-					print(f"\n{bullets} Fixed Voltage Configuration Selected\n")
-					print(f"\n{bullets} Tester Safe values for reference:\n")
-					print(self.voltstable)
-					self.core_volt = _yorn_float(default_yorn ='N', prompt = self.Menus['CoreVolt'], userin = f"--> Enter {self.coremenustring} Voltage: ")
-				else: 
-					self.core_volt = self.qvbumps_core
-
-				# Calls the Uncore Voltages options
-				self.uncore_voltages(fixed=True)
-
-				if not external: 
-					self.io_cfc_volt = _yorn_float(default_yorn ='N', prompt = self.Menus['CFCIOVolt'], userin = "--> Enter CFC IO DIE Voltage: ")
-					self.ddrd_volt = _yorn_float(default_yorn ='N', prompt = self.Menus['DDRDVolt'], userin = "--> Enter DDRD Voltage: ")
-				
-				# DDRA option will be included later, only digital side is available for now
-				#self.ddrd_volt = _yorn_float(default_yorn ='N', prompt = self.Menus['DDRAVolt'], userin = "--> Enter DDRA Voltage: ")
-				voltdict = {'core':self.core_volt, 'cfc_die':self.mesh_cfc_volt, 'hdc_die':self.mesh_hdc_volt, 'cfc_io':self.io_cfc_volt, 'ddrd':self.ddrd_volt, 'ddra':self.ddra_volt}
-				self.volt_config = dpm.tester_voltage(bsformat = (not self.fastboot), volt_dict = voltdict, volt_fuses = [], fixed=True, vbump = False)
-				self.custom_volt = True
-				#self.v_confg = [['Domain', 'FixedValue']]
-			
-			## Voltage Vbumps
-			elif volt_select == 3:
-
-				if not external: 
-					print(f"\n{bullets} Vbumps Configuration selected, use values in volts range of -0.2V to 0.2V:")
-					self.core_volt = self.check_vbumps(_yorn_float(default_yorn ='N', prompt = self.Menus['CoreBump'], userin = f"--> Enter {self.coremenustring} vBump: "))
-				else: 
-					self.core_volt = self.qvbumps_core
-				# Adding a bit of Change for MESH as this can be applied to each Compute individually
-				# Calls the Uncore Voltages options
-				self.uncore_voltages(vbumps=True)
-
-				if not external: 
-					self.io_cfc_volt =  self.check_vbumps(_yorn_float(default_yorn ='N', prompt = self.Menus['CFCIOBump'], userin = "--> Enter CFC IO DIE vBump: "))
-					self.ddrd_volt =  self.check_vbumps(_yorn_float(default_yorn ='N', prompt = self.Menus['DDRDBump'], userin = "--> Enter DDRD vBump: "))
-				# DDRA option will be included later, only digital side is available for now
-				#self.ddrd_volt = self.check_vbumps(_yorn_float(default_yorn ='N', prompt = self.Menus['DDRABump'], userin = "--> Enter DDRD vBump: "))
-				voltdict = {'core':self.core_volt, 'cfc_die':self.mesh_cfc_volt, 'hdc_die':self.mesh_hdc_volt, 'cfc_io':self.io_cfc_volt, 'ddrd':self.ddrd_volt, 'ddra':self.ddra_volt}
-				self.volt_config = dpm.tester_voltage(bsformat = (not self.fastboot), volt_dict = voltdict, volt_fuses = [], fixed=False, vbump = True)
-				self.vbumps_volt = True
-				#self.v_confg = [['Domain', 'Vbump']]
-			
-			## PPVC fuses Configuration -- For an external use, need to modify a few more scripts... WIP
-			elif volt_select == 4:
-
-				self.volt_config = dpm.ppvc(bsformat=(not self.fastboot), ppvc_fuses = [])
-				self.ppvc_fuses = True			
-		
-		elif self.use_ate_volt:
-			voltdict = {'core':self.core_volt, 'cfc_die':self.mesh_cfc_volt, 'hdc_die':self.mesh_hdc_volt, 'cfc_io':self.io_cfc_volt, 'ddrd':self.ddrd_volt, 'ddrd':self.ddra_volt}
-			self.volt_config = dpm.tester_voltage(bsformat = (not self.fastboot), volt_dict = voltdict, volt_fuses = [], fixed=True, vbump = False)
-
-	def uncore_voltages(self, vbumps= False, fixed= False):
-		if self.external:
-			uncore = 3
-			
-		else:
-			uncore = None
-			print(f"\n{bullets} Uncore Voltage Options?") 
-			print("\t> 1. Same for all Computes")
-			print("\t> 2. Set per Compute")
-		
-			while uncore not in range (1,3): 
-					uncore = input("\n--> Enter 1-2: (enter for [1]) ")
-					if uncore == "":
-						uncore = 1
-					uncore = int(uncore)
-		
-		# Same for all computes
-		if uncore == 1:
-			if fixed:
-				cfcvalue = _yorn_float(default_yorn ='N', prompt = self.Menus['CFCVolt'], userin = f"--> Enter CFC Voltage: ")	
-				hdcvalue = _yorn_float(default_yorn ='N', prompt = self.Menus['HDCVolt'], userin = f"--> Enter HDC Voltage: ")
-				for c in self.computes:
-					self.cfc_volt[c] = 	cfcvalue			
-					self.hdc_volt[c] =  hdcvalue
-
-			if vbumps:			
-				cfcvalue = self.check_vbumps(_yorn_float(default_yorn ='N', prompt = self.Menus['CFCBump'], userin = f"--> Enter CFC vBump: "))
-				hdcvalue = self.check_vbumps(_yorn_float(default_yorn ='N', prompt = self.Menus['HDCBump'], userin = f"--> Enter HDC vBump: "))
-				for c in self.computes:
-					self.cfc_volt[c] =  cfcvalue
-					self.hdc_volt[c] =  hdcvalue
-
-		# Selection per compute	
-		elif uncore== 2:		
-			if fixed:
-				for c in self.computes:
-					self.cfc_volt[c] = _yorn_float(default_yorn ='N', prompt = self.Menus['CFCVolt'].replace('Uncore CFC Voltage',f'{c.upper()} Uncore CFC Voltage'), userin = f"--> Enter CFC {c.upper()} Voltage: ")					
-					self.hdc_volt[c] = _yorn_float(default_yorn ='N', prompt = self.Menus['HDCVolt'].replace('Uncore HDC Voltage',f'{c.upper()} Uncore HDC Voltage'), userin = f"--> Enter HDC {c.upper()} Voltage: ")
-
-			if vbumps:			
-				for c in self.computes:
-					self.cfc_volt[c] =  self.check_vbumps(_yorn_float(default_yorn ='N', prompt = self.Menus['CFCBump'].replace('Uncore CFC vBump',f'{c.upper()} Uncore CFC vBump'), userin = f"--> Enter CFC {c.upper()} vBump: "))
-					self.hdc_volt[c] =  self.check_vbumps(_yorn_float(default_yorn ='N', prompt = self.Menus['HDCBump'].replace('Uncore HDC vBump',f'{c.upper()} Uncore HDC vBump'), userin = f"--> Enter HDC {c.upper()} vBump: "))
-		
-		## External option 
-		elif uncore== 3:	
-			for c in self.computes:
-				self.cfc_volt[c] =  self.qvbumps_mesh
-				self.hdc_volt[c] =  self.qvbumps_mesh if self.core_type == 'bigcore' else self.qvbumps_core
-
-		self.mesh_cfc_volt = self.cfc_volt
-		self.mesh_hdc_volt = self.hdc_volt
-
-	def check_vbumps(self, value):
-		if value != None:
-			while value > 0.2 or value <-0.2:
-				try:
-					value = float(input(self.Menus['vbumpfix']))	
-				except:
-					pass
-		return value
-
-	def set_frequency(self):
-
-		if self.core_freq == None and self.__FRAMEWORK_FEATURES['core_freq']['enabled']:
-			self.core_freq = _yorn_int(default_yorn ='Y', prompt = self.Menus['CoreFreq'], userin = f"--> Enter {self.coremenustring} Frequency: ")
-		
-		if self.mesh_freq == None and self.__FRAMEWORK_FEATURES['mesh_freq']['enabled']:
-			self.mesh_freq = _yorn_int(default_yorn ='Y', prompt = self.Menus['MeshFreq'], userin = "--> Enter CFC/HDC Mesh Frequency: ")
-		
-		if self.io_freq == None and self.__FRAMEWORK_FEATURES['io_freq']['enabled']:
-			self.io_freq = _yorn_int(default_yorn ='Y', prompt = self.Menus['IOFreq'], userin = "--> Enter IO Mesh Frequency: ")
 
 	def set_misc(self):
 		print(f'\n{bullets} Clear Ucode S2T option is defaulted to [N]. This portion is not available to use.')
@@ -1104,46 +1049,72 @@ class S2TFlow():
 			self.halt_pcu = _yorn_bool(default_yorn='N', prompt = self.Menus['PCU'])
 
 	def set_globals(self, flow = 'core'):
+		"""Set global variables for SCM module"""
 		scm.reset_globals()
 		scm.global_slice_core=self.targetLogicalCore
 		scm.global_fixed_core_freq=self.core_freq
 		scm.global_ia_turbo=self.core_freq
-		#if flow =='core': scm.global_ia_vf=self.core_freq # Removing this affecting voltage as vf is being flatten on one of the pairs...
 		scm.global_fixed_mesh_freq=self.mesh_freq
 		scm.global_fixed_io_freq=self.io_freq
-		# Voltages Setting the variables but, there is no need for them as how we implemented this
+		
+		# Voltages
 		scm.global_fixed_core_volt=self.core_volt
 		scm.global_fixed_cfc_volt=self.mesh_cfc_volt
-		scm.global_fixed_hdc_volt=self.mesh_hdc_volt
+		
+		# mesh_hdc_volt: only set if product supports it
+		if self.voltage_mgr.voltage_ips.get('mesh_hdc_volt', False):
+			scm.global_fixed_hdc_volt=self.mesh_hdc_volt
+		else:
+			scm.global_fixed_hdc_volt=None  # DMR/CWF don't use mesh_hdc_volt
+		
 		scm.global_fixed_cfcio_volt=self.io_cfc_volt
 		scm.global_fixed_ddrd_volt=self.ddrd_volt
 		scm.global_fixed_ddra_volt=self.ddra_volt
+		
+		# DMR-specific: core_mlc_volt
+		if self.voltage_mgr.voltage_ips.get('core_mlc_volt', False):
+			scm.global_fixed_core_mlc_volt = self.voltage_mgr.core_mlc_volt
+		else:
+			scm.global_fixed_core_mlc_volt=None  # GNR/CWF don't use core_mlc_volt
+				
 		scm.global_avx_mode = self.license_level
 		scm.global_vbumps_configuration=self.vbumps_volt
 		scm.global_u600w=self.u600w
 		scm.global_boot_extra=",pwrgoodmethod='usb', pwrgoodport=1, pwrgooddelay=45 "
-		# Mesh Specific
-		if flow =='mesh': scm.global_ht_dis = self.dis_ht
+		
+		# Flow specific
+		if flow =='mesh': 
+			scm.global_ht_dis = self.dis_ht
+		
 		scm.global_2CPM_dis = self.dis_2CPM
-		if flow =='mesh': scm.global_acode_dis=False # Acode cant be disabled
-		if flow =='mesh': scm.global_dry_run = self.dryrun
-		# scm.global_avx_mode=license_level   Do this via register method below
+		scm.global_1CPM_dis = self.dis_1CPM
+
+		if flow =='mesh': 
+			scm.global_acode_dis=False
+		if flow =='mesh': 
+			scm.global_dry_run = self.dryrun
+		
 		scm.global_acode_dis=self.dis_acode
+		
 		if self.stop_after_mrc:
 			print (f"{bullets} SETTING GLOBAL STOP_AFTER_MRC")
 			scm.global_boot_stop_after_mrc=True
 		else:
 			scm.global_boot_stop_after_mrc=False
+			
 		if self.boot_postcode:
 			print (f"{bullets} SETTING GLOBAL BOOT STOP BREAKPOINT")
 			scm.global_boot_postcode=True
 			scm.BOOT_STOP_POSTCODE = self.boot_postcode_break
 		else:
 			scm.global_boot_postcode=False
-		
-	##Slice Flow Settings
-	## TargetLogicalCore: Selected Core to be used in the Slice test
+
+	#========================================================================================================#
+	#=============== SLICE MODE IMPLEMENTATION ==============================================================#
+	#========================================================================================================#
+
 	def setupSliceMode(self):
+		"""Setup Slice Mode - Main entry point"""
 		# Slice Mode init
 		self.slice_init()
 
@@ -1154,7 +1125,8 @@ class S2TFlow():
 		self.slice_ate()
 
 		# Fastboot option selection -- Moved to the start of the flow, as we need this to properly set some fuses
-		if not self.u600w and self.__FRAMEWORK_FEATURES['fastboot']['enabled']: self.fastboot = _yorn_bool(self.Menus['FASTBOOT'],"Y")
+		if not self.u600w and self.__FRAMEWORK_FEATURES['fastboot']['enabled']: 
+			self.fastboot = _yorn_bool(self.Menus['FASTBOOT'],"Y")
 
 		# Asks for license configuration
 		self.set_license()
@@ -1172,56 +1144,28 @@ class S2TFlow():
 		self.set_voltage()
 
 		# Reboots the unit with Configuration -- In debug the script won't boot, this is mainly to check any core addition to the script
-		if not self.debug: self.slice_run()
+		if not self.debug: 
+			self.slice_run()
 
 		# Save Configuration to Temp Folder
 		self.save_config(file_path=self.defaultSave)
 
-	def slice_run(self):
-
-		# Global Variables configuration
-		self.set_globals(flow='core')
-		
-		slice_mode = scm.System2Tester(target = self.targetLogicalCore, masks = self.masks, boot=True, ht_dis=False, dis_2CPM = self.dis_2CPM, fresh_state= False,fastboot = self.fastboot, ppvc_fuses=self.volt_config, execution_state = self.execution_state)
-
-		slice_mode.setCore()
-		
-		# Will force refresh after boot to properly load all the nodes after mask changes
-		if scm.check_user_cancel(self.execution_state):
-			return
-		scm.svStatus(refresh=True) #ipc.unlock(); ipc.forcereconfig(); sv.refresh()
-		
-		#scm.setCore(targetLogicalCore, boot=True, ht_dis=False, fresh_state= False)
-		if (itp.ishalted() == False): 
-			try:
-				itp.halt()
-			except:
-				print("--> Unit Can't be halted, problems with ipc...")
-
-		if self.postBootS2T:
-			try:
-				set_slice(self.cr_array_start, self.cr_array_end, license_level=self.license_level, core_ratio=None, mesh_ratio=None, clear_ucode=self.clear_ucode, dcf_ratio=self.dcf_ratio, halt_pcu=self.halt_pcu)
-			except:
-				print('--> Errors ocurred applying slice configuration, skipping...')
-		if (itp.ishalted() == True): 
-			try:
-				itp.go()
-			except:
-				print("--> Unit go can't be issued, problems with ipc...")
-
-
-		## Apply Fuse Checks for SLICE Content
-		slice_mode.fuse_checks()
-
-		# Calls overview and last refresh
-		self.slice_end()
-
 	def slice_init(self):
 		self.mode = 'slice'
-		self.init_voltage(mode=self.mode)
-		
+
+		# Initialize voltage tables with safe voltages
+		self.voltage_mgr.init_voltage_tables(
+			mode=self.mode,
+			safe_volts_pkg=stc.All_Safe_RST_PKG,
+			safe_volts_cdie=stc.All_Safe_RST_CDIE
+		)
+
+		# Expose voltstable for UI compatibility
+		self.voltstable = self.voltage_mgr.voltstable
+
 		if scm.check_user_cancel(self.execution_state):
 			return
+		
 		scm.svStatus(refresh=False)
 		
 		self.init_flow()
@@ -1229,218 +1173,153 @@ class S2TFlow():
 		self.core_dict = {f'{key}':{key: value} for key,value in self.array['CORES'].items()}
 		
 	def slice_core(self, array, core_dict):
-		
+		"""Select core for slice mode using strategy"""
 		
 		if self.targetLogicalCore == None and self.__FRAMEWORK_FEATURES['targetLogicalCore']['enabled']:		
 			enabledCores = []
 				
-			# Checks for current System Masks and prints a table with all the availables CORES
-			# Mask is also used for 
-
-			printTable (core_dict, header = ['Type', 'Physical ID'], label = f'Each array shows the available physical {self.coremenustring}s for each compute')
+			# Use strategy to format core table
+			print(f"\n{bullets} Available {self.core_string}s:")
+			printTable (core_dict, header = ['Type', 'Physical ID'], 
+					   label = f'Each array shows the available physical {self.core_string}s for each {self.domain_type}')
 				
-			# Build a list of all available Cores (Physical)
+			# Build list of all available cores
 			for listkeys in array['CORES'].keys():
 				enabledCores.extend(array['CORES'][listkeys])
-			# Loops the Target Physical Core to be used in Slice MODE: If CORE is disabled in current Mask will not continue.
+			
+			# Loop until valid core selected
 			while self.targetLogicalCore not in enabledCores:
 				try:
 					# Checks for Core Status in current System
 					self.targetLogicalCore = int(input(self.Menus['TargetCore']))
-					#CoreStatus = scm.CheckCore(targetLogicalCore, masks)
-					#if CoreStatus == True:
+
 					if self.targetLogicalCore not in enabledCores:
-						print (f"\n{bullets} Selected {self.coremenustring} is disabled for this unit please enter a different one as per below table: \n")
-						printTable (core_dict, header = ['Type', 'Physical ID'], label = f'Each array shows the available physical {self.coremenustring}s for each compute')
+						print (f"\n{bullets} Selected {self.core_string} is disabled for this unit please enter a different one as per below table: \n")
+						printTable (core_dict, header = ['Type', 'Physical ID'], label = f'Each array shows the available physical {self.core_string}s for each compute')
 				except:
 					pass
 
-			#return self.targetLogicalCore
+			print(f"\n{bullets} Selected {self.core_string}: {self.targetLogicalCore}")
 			
 	def slice_ate(self):
-		computes = self.computes
+		"""
+		ATE configuration for slice mode - handles both frequency and voltage.
+		Uses managers for voltage and frequency configuration.
+		"""
+		
 		if (self.use_ate_freq and self.__FRAMEWORK_FEATURES['use_ate_freq']['enabled']):		
 			yorn = ""
 			yornv = ""
-			vdata = []
+			
 			print (f"\n{bullets} Want to set {self.coremenustring} Frequency via ATE frequency method?: i.e.  {self.ATE_CORE_FREQ}?")
+
 			while "N" not in yorn and "Y" not in yorn:
 				yorn = input('--> Y / N (enter for [Y]): ').upper()
 				if yorn == "": yorn = "Y"
+
 			if yorn == "Y":
-				self.ate_data(mode= 'slice')
-				#print(f"\n{bullets} GNR Core frequencies are:")
-				#freq_dict = {f'F{key}':{key: value} for key,value in stc.CORE_FREQ.items()}
-				#printTable (freq_dict, header = ['Core Frequency', 'Value'], label = 'Multiple freqs are FLOWID 1-4')
-				#print ("F1 == 8 F2 == 17 F3 == 24 F4 = 32 F5 == 38-36-34-32 F6: 40-38-36-34 F7:42-40-38-36 ( Multiple freqs are FLOWID 1-4 )")
+				# Display ATE data using frequency manager
+				self.frequency_mgr.display_ate_frequencies(mode='slice', core_string=self.core_string)
+				
 				print(f"\n{bullets} Enter Frequency:  {self.ATE_CORE_FREQ}:  ")
 				ate_freq=0
+				
 				core_range = len(stc.CORE_FREQ.keys())
+				
 				while ate_freq not in range (1,(core_range + 1)): 
 					try:
 						ate_freq = int(input(f"--> Enter 1-{core_range}: F"))
 					except:
 						pass
+				
 				if ate_freq > 4:
 					tmp = input('--> enter FlowID (enter for [1]): ')
 					if tmp == '':
 						self.flowid = 1
 					else:
 						self.flowid = int(tmp)
+				
 				print(f'\n{bullets} ' + "FLOWID %d ate_freq %d" % ( self.flowid, ate_freq))
-				self.core_freq, self.mesh_freq, self.io_freq = stc.get_ratios_core(ate_freq, self.flowid)
+				
+				# Use FrequencyManager to configure ATE frequencies
+				self.frequency_mgr.configure_ate_frequency(
+					mode = 'slice',
+					core_string = self.core_string,
+					ate_freq=ate_freq,
+				)
+
+				# Sync frequencies from manager
+				self.core_freq = self.frequency_mgr.core_freq
+				self.mesh_freq = self.frequency_mgr.mesh_freq
+				self.io_freq = self.frequency_mgr.io_freq
+				
 				# More variability in testing conditions after selecting ATE
 				print(f"\n{bullets} Setting system with ATE configuration: {self.coremenustring.upper()}: { self.core_freq}, CFCCOMP: { self.mesh_freq}, CFCIO:{ self.io_freq}")
 
-				#if (use_ate_volt):
+				# ATE Voltage Selection
 				print (f"\n{bullets} Want to set Voltage based on ATE Frequency selection F{ate_freq}?")
+				
 				while "N" not in yornv and "Y" not in yornv:
 					yornv = input('--> Y / N (enter for [N]): ').upper()
 					if yornv == "": yornv = "N"
+				
 				if yornv == "Y":
 
 					VID = str(input(f"{self.Menus['UnitVID']}"))
 					
-					# Function to collect DFF Data -- CORE
-					self.slice_ate_type(VID, ate_freq)
-					
-					#try:
-					#	vdata = stc.get_voltages_core(visual=VID, core = self.targetLogicalCore, ate_freq=f'F{ate_freq}', hot=True)
-					#	if self.core_type == 'atomcore': vdata_l2 = stc.get_voltages_uncore(visual=VID, ate_freq=f'F{ate_freq}', hot=True)
+					# Use VoltageManager to configure ATE voltages
+					self.voltage_mgr.configure_ate_voltage_slice(
+						VID=VID,
+						ate_freq=ate_freq,
+						target_core=self.targetLogicalCore,
+						license_dict=self.core_license_dict,
+						license_levels=self.core_license_levels,
+						stc_module=stc,
+						input_func=input,
+						core_string=self.coremenustring
+					)
 
-					#	voltlic = None
-					#	#vdatalen = len(vdata)
-					#	while voltlic not in self.core_license_levels:
-					#		if not vdata: break
-					#		voltlic = str(input(f"Select License from {self.core_license_levels} :"))
-					#		if voltlic not in self.core_license_levels:
-					#			print(f'--> Selected License Value not valid, use: {self.core_license_levels}')
-					#		else: 
-					#			
-					#			self.license_level = self.core_license_dict[voltlic]
-					#			print(f'--> Setting {self.coremenustring} License to: {self.license_dict[self.license_level]}')
+					# Sync voltages from manager
+					self.core_volt = self.voltage_mgr.core_volt
+					self.core_mlc_volt = self.voltage_mgr.core_mlc_volt
+					self.mesh_cfc_volt = self.voltage_mgr.mesh_cfc_volt
+					self.mesh_hdc_volt = self.voltage_mgr.mesh_hdc_volt
+					self.io_cfc_volt = self.voltage_mgr.io_cfc_volt
+					self.ddrd_volt = self.voltage_mgr.ddrd_volt
+					self.ddra_volt = self.voltage_mgr.ddra_volt
+					self.use_ate_volt = self.voltage_mgr.use_ate_volt
 
-					#	self.core_volt = stc.filter_core_voltage(data=vdata, lic=voltlic, core = self.targetLogicalCore, ate_freq=f'F{ate_freq}')
-					#	if self.core_type == 'atomcore': 
-					#		hdc_volt = {c:stc.filter_uncore_voltage(data=vdata_l2, ip='HDC', die= c.upper(), ate_freq=f'F{ate_freq}') for c in computes}
-						
-					#except:
-					#	print(f'!!! Failed collecting DFF Data for {VID}, enter value manually or use system default')
-					#	self.core_volt = _yorn_float(default_yorn ='Y', prompt = self.Menus['CoreVolt'], userin = f"--> Enter {self.coremenustring} Voltage: ")
-					#	if self.core_type == 'atomcore':
-					#		for c in computes:
-					#			self.hdc_volt[c] =  _yorn_float(default_yorn ='Y', prompt = self.Menus['HDCVolt'].replace('Uncore HDC Voltage',f'{c.upper()} Uncore HDC Voltage'), userin = f"--> Enter HDC {c.upper()} voltage: ")
-					    						
-					#if not vdata:
-					#	print(f'!!! Empty DFF Data for {VID}, check if data is at your site, enter value manually or use system default')
-					#	self.core_volt = _yorn_float(default_yorn ='Y', prompt = self.Menus['CoreVolt'], userin = f"--> Enter {self.coremenustring} Voltage: ")
-					#	if self.core_type == 'atomcore':
-					#		for c in computes:
-					#			self.hdc_volt[c] =  _yorn_float(default_yorn ='Y', prompt = self.Menus['HDCVolt'].replace('Uncore HDC Voltage',f'{c.upper()} Uncore HDC Voltage'), userin = f"--> Enter HDC {c.upper()} voltage: ")
-					#
-					#cfc_volt = {c:stc.All_Safe_RST_CDIE['VCFC_CDIE_RST'] for c in computes}
-					#if self.core_type == 'bigocre': hdc_volt = {c:stc.All_Safe_RST_CDIE['VHDC_RST'] for c in computes}					
-
-					#self.mesh_cfc_volt = cfc_volt
-					#self.mesh_hdc_volt = hdc_volt
-					##self.io_cfc_volt = stc.All_Safe_RST_PKG['VCFC_IO_RST']
-					#self.ddrd_volt = stc.All_Safe_RST_CDIE['VDDRD_RST']
-					#self.ddra_volt = stc.All_Safe_RST_CDIE['VDDRA_RST']
-					
-					#if self.core_type == 'atomcore':
-					#	print(f'\n{bullets} Using Safe Voltages for CFC:{self.mesh_cfc_volt}, CFC_IO: {self.io_cfc_volt}, DDRD: {self.ddrd_volt} --')
-					#	print(f'\n{bullets} Using ATE MESH CFC Voltage --- {self.mesh_cfc_volt} --')		
-					#	print(f'\n{bullets} Setting {self.coremenustring} Voltage to {self.core_volt if self.core_volt != None else "System Value"} --')
-	
-					#else:
-					#	print(f'\n{bullets} Using Safe Voltages for CFC:{self.mesh_cfc_volt}, HDC: {self.mesh_hdc_volt}, CFC_IO: {self.io_cfc_volt}, DDRD: {self.ddrd_volt} --')
-					#	print(f'\n{bullets} Setting {self.coremenustring} Voltage to {self.core_volt if self.core_volt != None else "System Value"} --')
 				else:
 					print(f'\n{bullets} Using System Default voltage configuration --')
 					
-				if self.core_volt: self.use_ate_volt = True
+				if self.core_volt: 
+					self.use_ate_volt = True
 				
 				ATEChange = _yorn_bool(self.Menus['ATE_Change'],"N")
+				
 				if ATEChange:
-    				
-					if self.HDC_AT_CORE: meshf = _yorn_int(default_yorn ='N', prompt = self.Menus['MeshFreq'], userin = "--> Enter CFC Mesh Frequency: ")
-					else: meshf = _yorn_int(default_yorn ='N', prompt = self.Menus['MeshFreq'], userin = "--> Enter CFC/HDC Mesh Frequency: ")
+					
+					if self.HDC_AT_CORE: 
+						meshf = _yorn_int(default_yorn ='N', prompt = self.Menus['MeshFreq'], userin = "--> Enter CFC Mesh Frequency: ")
+					else: 
+						meshf = _yorn_int(default_yorn ='N', prompt = self.Menus['MeshFreq'], userin = "--> Enter CFC/HDC Mesh Frequency: ")
 					
 					#coref = _yorn_int(default_yorn ='N', prompt = self.Menus['CoreFreq'], userin = "--> Enter Core Frequency: ")
 					iof = _yorn_int(default_yorn ='N', prompt = self.Menus['IOFreq'], userin = "--> Enter IO Mesh Frequency: ")
-					#if meshf != None:  mesh_freq = meshf
-					if meshf != None:  self.mesh_freq = meshf
-					if iof != None:  self.io_freq = iof
+
+					# Update frequency manager
+					self.frequency_mgr.configure_from_user_input(mesh=meshf, io=iof)
+					
+					# Sync frequencies
+					self.mesh_freq = self.frequency_mgr.mesh_freq
+					self.io_freq = self.frequency_mgr.io_freq
+					
 					print(f"\n{bullets} Updated configuration: {self.coremenustring.upper()}: {self.core_freq}, CFCCOMP: {self.mesh_freq}, CFCIO:{self.io_freq}")
 
 			#return core_freq, mesh_freq, io_freq, mesh_cfc_volt, mesh_hdc_volt, io_cfc_volt, ddrd_volt, use_ate_volt
 
-	def slice_ate_type(self, VID, ate_freq):
-		computes = self.computes
-
-		# Will start collecting Data based on VID info, if fails will ask for manual inputs
-		try:
-			vdata = stc.get_voltages_core(visual=VID, core = self.targetLogicalCore, ate_freq=f'F{ate_freq}', hot=True)
-			if self.HDC_AT_CORE: vdata_l2 = stc.get_voltages_uncore(visual=VID, ate_freq=f'F{ate_freq}', hot=True)
-
-			voltlic = None
-			#vdatalen = len(vdata)
-			while voltlic not in self.core_license_levels:
-				if not vdata: break
-				voltlic = str(input(f"Select License from {self.core_license_levels} :"))
-				if voltlic not in self.core_license_levels:
-					print(f'--> Selected License Value not valid, use: {self.core_license_levels}')
-				else: 
-							
-					self.license_level = self.core_license_dict[voltlic]
-					print(f'--> Setting {self.coremenustring} License to: {self.license_dict[self.license_level]}')
-
-			self.core_volt = stc.filter_core_voltage(data=vdata, lic=voltlic, core = self.targetLogicalCore, ate_freq=f'F{ate_freq}')
-			
-			## Modifies 
-			if self.HDC_AT_CORE: 
-				hdc_volt = {c:stc.filter_uncore_voltage(data=vdata_l2, ip='HDC', die= c.upper(), ate_freq=f'F{ate_freq}') for c in computes}
-						
-		except Exception as e:
-			print(f'!!! Failed collecting DFF Data for {VID}, enter value manually or use system default')
-			print(f'Execption -- {e}')
-			self.core_volt = _yorn_float(default_yorn ='Y', prompt = self.Menus['CoreVolt'], userin = f"--> Enter {self.coremenustring} Voltage: ")
-			if self.HDC_AT_CORE:
-				for c in computes:
-					self.hdc_volt[c] =  _yorn_float(default_yorn ='Y', prompt = self.Menus['HDCVolt'].replace('Uncore HDC Voltage',f'{c.upper()} Uncore HDC Voltage'), userin = f"--> Enter HDC {c.upper()} voltage: ")
-					    						
-		if not vdata:
-			print(f'!!! Empty DFF Data for {VID}, check if data is at your site, enter value manually or use system default')
-			self.core_volt = _yorn_float(default_yorn ='Y', prompt = self.Menus['CoreVolt'], userin = f"--> Enter {self.coremenustring} Voltage: ")
-				
-			if self.HDC_AT_CORE:
-				for c in computes:
-					self.hdc_volt[c] =  _yorn_float(default_yorn ='Y', prompt = self.Menus['HDCVolt'].replace('Uncore HDC Voltage',f'{c.upper()} Uncore HDC Voltage'), userin = f"--> Enter HDC {c.upper()} voltage: ")
-
-				
-		
-		cfc_volt = {c:stc.All_Safe_RST_CDIE['VCFC_CDIE_RST'] for c in computes}
-		if not self.HDC_AT_CORE: hdc_volt = {c:stc.All_Safe_RST_CDIE['VHDC_RST'] for c in computes}
-
-		self.mesh_cfc_volt = cfc_volt
-		self.mesh_hdc_volt = hdc_volt
-		#self.io_cfc_volt = stc.All_Safe_RST_PKG['VCFC_IO_RST']
-		self.ddrd_volt = stc.All_Safe_RST_CDIE['VDDRD_RST']
-		self.ddra_volt = stc.All_Safe_RST_CDIE['VDDRA_RST']
-					
-		if self.HDC_AT_CORE:
-			print(f'\n{bullets} Using Safe Voltages for CFC:{self.mesh_cfc_volt}, CFC_IO: {self.io_cfc_volt}, DDRD: {self.ddrd_volt} --')
-			print(f'\n{bullets} Using ATE MESH HDC Voltage --- {self.mesh_hdc_volt} --')		
-			print(f'\n{bullets} Setting {self.coremenustring} Voltage to {self.core_volt if self.core_volt != None else "System Value"} --')
-	
-		else:
-			print(f'\n{bullets} Using Safe Voltages for CFC:{self.mesh_cfc_volt}, HDC: {self.mesh_hdc_volt}, CFC_IO: {self.io_cfc_volt}, DDRD: {self.ddrd_volt} --')
-			print(f'\n{bullets} Setting {self.coremenustring} Voltage to {self.core_volt if self.core_volt != None else "System Value"} --')
-	    	
 	def slice_registers(self):
-		#reg_select = None
-		#cr_array_start=0 
-		#cr_array_end=0xffff
+		"""Register selection for slice mode"""
 		if self.reg_select == None and self.__FRAMEWORK_FEATURES['use_ate_freq']['enabled']:
 			print(f"\n{bullets} Set tester registers? ") 
 			print("\t> 1. No")
@@ -1469,25 +1348,76 @@ class S2TFlow():
 				cr_array_end = 0xffff
 			self.cr_array_end = int(cr_array_end)
 
+	def slice_run(self):
+		"""Run slice configuration"""
+		# Global Variables configuration
+		self.set_globals(flow='core')
+		
+		slice_mode = scm.System2Tester(target = self.targetLogicalCore, masks = self.masks, 
+									   boot=True, ht_dis=False, dis_2CPM = self.dis_2CPM, 
+									   dis_1CPM = self.dis_1CPM,fresh_state= False, 
+									   fastboot = self.fastboot, ppvc_fuses=self.volt_config, 
+									   execution_state = self.execution_state)
+
+		slice_mode.setCore()
+		
+		# Will force refresh after boot to properly load all the nodes after mask changes
+		if scm.check_user_cancel(self.execution_state):
+			return
+		scm.svStatus(refresh=True) #ipc.unlock(); ipc.forcereconfig(); sv.refresh()
+		
+		#scm.setCore(targetLogicalCore, boot=True, ht_dis=False, fresh_state= False)
+		if (itp.ishalted() == False): 
+			try:
+				itp.halt()
+			except:
+				print("--> Unit Can't be halted, problems with ipc...")
+
+		if self.postBootS2T:
+			try:
+				set_slice(self.cr_array_start, self.cr_array_end, license_level=self.license_level, 
+						 core_ratio=None, mesh_ratio=None, clear_ucode=self.clear_ucode, 
+						 dcf_ratio=self.dcf_ratio, halt_pcu=self.halt_pcu)
+			except:
+				print('--> Errors ocurred applying slice configuration, skipping...')
+		
+		if (itp.ishalted() == True): 
+			try:
+				itp.go()
+			except:
+				print("--> Unit go can't be issued, problems with ipc...")
+
+		## Apply Fuse Checks for SLICE Content
+		slice_mode.fuse_checks()
+
+		# Calls overview and last refresh
+		self.slice_end()
+
 	def slice_end(self):
-		print ("\n----------------------------------------------------------------")
+		print(f"\n{'='*80}")
+		print(f"{bullets} Slice Mode Configuration Complete")
+		print(f"{'='*80}\n")
+
+		print (f"\n{'='*80}")
 		print ("\tUnit Tileview")
-		print ("----------------------------------------------------------------\n")
+		print (f"{'='*80}\n")
 		scm.coresEnabled(rdfuses=False)
-		print ("\n----------------------------------------------------------------")
+		print (f"\n{'='*80}")
 		print ("\tConfiguration Summary")
-		print ("----------------------------------------------------------------\n")
+		print (f"{'='*80}\n")
 		print ("\t> Booted to physical %s: %d" % (self.coremenustring, self.targetLogicalCore))
 		if self.core_freq != None: print ("\t> %s Freq = %d" % (self.coremenustring,self.core_freq))
 		if self.mesh_freq != None: print ("\t> Mesh Freq = %d" % self.mesh_freq)
 		if self.io_freq != None: print ("\t> IO Freq = %d" % self.io_freq)
 		if self.dis_acode: print("\t> ACODE disabled")
 		if self.dis_2CPM: print(f"\t> Booted with 2 Cores per Module -> Fuse Config: {self.dis_2CPM}")
+		if self.dis_1CPM: print(f"\t> Booted with 1 Core per Module -> Fuse Config: {self.dis_1CPM}")
 		if self.ppvc_fuses: print("\t> PPV Condition fuses set")
 		if self.custom_volt: print("\t> Custom Fixed Voltage fuses set")
 		if self.vbumps_volt: print("\t> Voltage Bumps fuses set")
 		if self.use_ate_volt: print("\t> ATE Fixed Voltage fuses set")
-		if self.core_volt != None: print ("\t> %s Volt = %f" % (self.coremenustring, self.core_volt))		
+		if self.core_volt != None: print ("\t> %s Volt = %f" % (self.coremenustring, self.core_volt))
+		if self.core_mlc_volt != None: print (f"\t> {self.coremenustring} MLC Volt = {self.core_mlc_volt}" )		
 		if self.mesh_cfc_volt != None: print (f"\t> Mesh CFC Volt = {self.mesh_cfc_volt}" )	
 		if self.mesh_hdc_volt != None: print (f"\t> Mesh HDC Volt = {self.mesh_hdc_volt}" )	
 		if self.io_cfc_volt != None: print ("\t> IO CFC Volt = %f" % self.io_cfc_volt)	
@@ -1512,12 +1442,16 @@ class S2TFlow():
 			return
 		scm.svStatus()
 
-	##Mesh Flow Settings
-	## Target: Selected Mesh Configuration mode
+	#========================================================================================================#
+	#=============== MESH MODE IMPLEMENTATION ==============================================================#
+	#========================================================================================================#
+
 	def setupMeshMode(self):
+		"""Setup Mesh Mode - Main entry point"""
+		# Mesh Mode init
 		self.mesh_init()
 		
-		# Asks for ATE Mesh configuration, frequency and voltage
+		# ATE Selection - Frequency and Voltage (includes DFF data collection)
 		self.mesh_ate()
 
 		# Asks for mesh configuration selection: ATE Masks, Custom, Tiles
@@ -1525,7 +1459,7 @@ class S2TFlow():
 
 		# Fastboot option selection (To be used only in Full Chip mode to apply configuration fuses)
 		if self.targetTile == 4: 
-			if not self.u600w: 
+			if not self.u600w and self.__FRAMEWORK_FEATURES['fastboot']['enabled']:
 				self.fastboot = _yorn_bool(self.Menus['FASTBOOT'],"Y")
 
 		# Asks for DCF, PCU Halt, Clear Ucode -- Clear Ucode and PCU Halt, disabled by default		
@@ -1544,276 +1478,189 @@ class S2TFlow():
 		self.set_voltage()
 
 		# Reboots the unit with Configuration -- In debug the script won't boot, this is mainly to check any core addition to the script
-		if not self.debug: self.mesh_run()
+		if not self.debug: 
+			self.mesh_run()
 
 		# Save Configuration to Temp Folder
 		self.save_config(file_path=self.defaultSave)
 
-	def mesh_run(self):
-		
-		#Set Globals before calling the S2T Script flow
-		self.set_globals(flow='mesh')
-
-		## Call the appropita script based on the selected mode
-		mesh = scm.System2Tester(target= self.target, masks = self.masks, boot = True, ht_dis = self.dis_ht, dis_2CPM = self.dis_2CPM, fresh_state = False, readFuse = True, clusterCheck = self.clusterCheck,fastboot = self.fastboot, ppvc_fuses=self.volt_config, execution_state = self.execution_state)
-		
-		if self.targetTile == 1:
-			mesh.setmesh(boot_postcode=self.boot_postcode,stop_after_mrc=self.stop_after_mrc, lsb = self.lsb, extMasks=self.extMasks)
-			#scm.System2Tester(targetConfig= ate_config, ht_dis=dis_ht, stop_after_mrc=stop_after_mrc, fresh_state=False)
-			
-		elif self.targetTile == 2:
-			mesh.setTile(boot_postcode=self.boot_postcode,stop_after_mrc=self.stop_after_mrc)
-			#scm.setTile(targetTile = compute_list, ht_dis=dis_ht, stop_after_mrc=stop_after_mrc, fresh_state=False)
-		
-		elif self.targetTile == 3:
-			mesh.setmesh(CustomConfig = self.custom_list, boot_postcode=self.boot_postcode,stop_after_mrc=self.stop_after_mrc, lsb = self.lsb, extMasks=self.extMasks)
-
-		elif self.targetTile == 4:
-			mesh.setfc(extMasks = self.extMasks, boot_postcode=self.boot_postcode,stop_after_mrc=self.stop_after_mrc)
-			#if self.fastboot:
-				#mesh._fastboot(stop_after_mrc=self.stop_after_mrc, pm_enable_no_vf=False)
-			#else:
-				#mesh._doboot(stop_after_mrc=self.stop_after_mrc, pm_enable_no_vf=False)
-
-		# Will force refresh after boot to properly load all the nodes after mask changes
-		if scm.check_user_cancel(self.execution_state):
-			return
-		scm.svStatus(refresh=True) # ipc.unlock(); ipc.forcereconfig(); sv.refresh()
-		
-		if (itp.ishalted() == False): 
-			try:
-				itp.halt()
-			except:
-				print("--> Unit Can't be halted, problems with ipc...")
-
-		if self.fix_apic:
-			#print('\n --- Continuing boot moving EFI ---\n')
-			tester_apic_id()
-			scm.go_to_efi(self.execution_state)
-
-		## Reorder APIC to be applied on MRC Postcode, removing it from below set mesh
-		if self.postBootS2T:
-			try:
-				set_mesh(self.cr_array_start, self.cr_array_end, license_level=self.license_level, core_ratio=None, mesh_ratio=None, reorder_apic=False, clear_ucode=self.clear_ucode,dcf_ratio=self.dcf_ratio, halt_pcu=self.halt_pcu, mlcways=self.mlcways)
-			except:
-				print('--> Errors ocurred applying mesh configuration, skipping...')
-
-		if (itp.ishalted() == True): 
-			try:
-				itp.go()
-			except:
-				print("--> Unit go can't be issued, problems with ipc...")
-
-		## Apply Fuse Checks for MESH Content
-		mesh.fuse_checks()	
-		
-		self.mesh_end()
-
 	def mesh_init(self):
 		self.mode = 'mesh'
-		self.init_voltage(mode=self.mode)
-		
+
+		# Initialize voltage tables with safe voltages
+		self.voltage_mgr.init_voltage_tables(
+			mode=self.mode,
+			safe_volts_pkg=stc.All_Safe_RST_PKG,
+			safe_volts_cdie=stc.All_Safe_RST_CDIE
+		)
+
+		# Expose voltstable for UI compatibility
+		self.voltstable = self.voltage_mgr.voltstable
+
 		if scm.check_user_cancel(self.execution_state):
 			return
 		scm.svStatus(refresh=False)
 		
 		self.init_flow()
 		self.masks, self.array = scm.CheckMasks(extMasks=self.extMasks)
-		#print(self.masks)
-					
+
 	def mesh_ate(self):
-		computes = self.computes
+		"""
+		ATE configuration for mesh mode - handles both frequency and voltage.
+		Uses managers for voltage and frequency configuration.
+		"""
+		 
 		if (self.use_ate_freq):
 			yorn = ""
 			yornv = ""
-			vdata = []
+			
 			print (f"\n{bullets} Want to set CFC Frequency via ATE frequency method?: i.e. {self.ATE_MESH_FREQ}?")
 			while "N" not in yorn and "Y" not in yorn:
 				yorn = input('--> Y / N (enter for [Y]): ').upper()
 				if yorn == "": yorn = "Y"
 			if yorn == "Y":
-				self.ate_data(mode = 'mesh')
+				self.frequency_mgr.display_ate_frequencies(mode='mesh', core_string=self.core_string)
 
 				print(f"\n{bullets} Enter Frequency: {self.ATE_MESH_FREQ} :  ")
 				ate_freq=0
 				mesh_range = len(stc.CFC_FREQ.keys())
+
 				while ate_freq not in range (1,(mesh_range + 1)): 
 					try:
 						ate_freq = int(input(f"--> Enter 1-{mesh_range}: F"))
 					except:
 						pass
+				
 				if ate_freq == 4:
 					tmp = input('--> Enter FlowID (enter for [1]): ')
 					if tmp == '':
 						self.flowid = 1
 					else:
 						self.flowid = int(tmp)
+
+				
 				print(f"\n{bullets} FLOWID %d ate_freq %d" % ( self.flowid, ate_freq))
-				self.core_freq, self.mesh_freq, self.io_freq = stc.get_ratios_uncore(ate_freq, self.flowid)
+				
+				# Use FrequencyManager to configure ATE frequencies
+				self.frequency_mgr.configure_ate_frequency(
+					mode = 'mesh',
+					core_string = self.core_string,
+					ate_freq=ate_freq,
+				)
+				
+				# Sync frequencies from manager
+				self.core_freq = self.frequency_mgr.core_freq
+				self.mesh_freq = self.frequency_mgr.mesh_freq
+				self.io_freq = self.frequency_mgr.io_freq
+		
 				print(f"\n{bullets} Setting system with ATE configuration: {self.coremenustring}: { self.core_freq}, CFCCOMP: { self.mesh_freq}, CFCIO:{ self.io_freq}")
 
 				#if (use_ate_volt):
 				print (f"\n{bullets} Want to set Voltage based on ATE Frequency selection F{ate_freq}?")
+				
 				while "N" not in yornv and "Y" not in yornv:
 					yornv = input('--> Y / N (enter for [N]): ').upper()
 					if yornv == "": yornv = "N"
+				
 				if yornv == "Y":
 
 					VID = str(input(f"{self.Menus['UnitVID']}"))
-					self.mesh_ate_type(VID, ate_freq)	
-				#	try:
-				#		vdata = stc.get_voltages_uncore(visual=VID, ate_freq=f'F{ate_freq}', hot=True)
-				#		#vdatalen = len(vdata)
-				#		self.cfc_volt = {c:stc.filter_uncore_voltage(data=vdata, ip='CFC', die=c.upper(), ate_freq=f'F{ate_freq}') for c in computes}
-				#		if self.core_type == 'bigcore': 
-				#			self.hdc_volt = {c:stc.filter_uncore_voltage(data=vdata, ip='HDC', die=c.upper(), ate_freq=f'F{ate_freq}') for c in computes}
-				#		else:
-				#			self.hdc_volt = stc.All_Safe_RST_PKG['VHDC_RST']
 
-				#	except:
-				#		print(f'!!! Failed collecting DFF Data for {VID}, enter value manually or use system default')
-				#		for c in computes:
-				#			self.cfc_volt[c] =  _yorn_float(default_yorn ='Y', prompt = self.Menus['CFCVolt'].replace('Uncore CFC Voltage',f'{c.upper()} Uncore CFC Voltage'), userin = f"--> Enter CFC {c.upper()} voltage: ")
-				#			if self.core_type == 'bigcore': self.hdc_volt[c] =  _yorn_float(default_yorn ='Y', prompt = self.Menus['HDCVolt'].replace('Uncore HDC Voltage',f'{c.upper()} Uncore HDC Voltage'), userin = f"--> Enter HDC {c.upper()} voltage: ")
-
-				
-				#	if not vdata:
-				#		print(f'!!! Empty DFF Data for {VID}, check if data is at your site, enter value manually or use system default')
-				#		for c in computes:
-				#			self.cfc_volt[c] =  _yorn_float(default_yorn ='Y', prompt = self.Menus['CFCVolt'].replace('Uncore CFC Voltage',f'{c.upper()} Uncore CFC Voltage'), userin = f"--> Enter CFC {c.upper()} voltage: ")
-				#			if self.core_type == 'bigcore': self.hdc_volt[c] =  _yorn_float(default_yorn ='Y', prompt = self.Menus['HDCVolt'].replace('Uncore HDC Voltage',f'{c.upper()} Uncore HDC Voltage'), userin = f"--> Enter HDC {c.upper()} voltage: ")
+					# Use VoltageManager to configure ATE voltages
+					self.voltage_mgr.configure_ate_voltage_mesh(
+						VID=VID,
+						ate_freq=ate_freq,
+						stc_module=stc,
+						input_func=input,
+						core_string=self.coremenustring
+					)
 					
-				#	self.core_volt = stc.All_Safe_RST_PKG['VCORE_RST']
-				#	#self.mesh_hdc_volt = stc.All_Safe_RST_PKG['VHDC_RST']
-				#	self.io_cfc_volt = stc.All_Safe_RST_PKG['VCFC_IO_RST']
-				#	self.ddrd_volt = stc.All_Safe_RST_PKG['VDDRD_RST']
-				#	self.ddra_volt = stc.All_Safe_RST_PKG['VDDRA_RST']
+					# Sync voltages from manager
+					self.core_volt = self.voltage_mgr.core_volt
+					self.mesh_cfc_volt = self.voltage_mgr.mesh_cfc_volt
+					self.mesh_hdc_volt = self.voltage_mgr.mesh_hdc_volt
+					self.io_cfc_volt = self.voltage_mgr.io_cfc_volt
+					self.ddrd_volt = self.voltage_mgr.ddrd_volt
+					self.ddra_volt = self.voltage_mgr.ddra_volt
+					self.use_ate_volt = self.voltage_mgr.use_ate_volt
 
-				#	self.mesh_cfc_volt = self.cfc_volt
-				#	self.mesh_hdc_volt = self.hdc_volt
-
-				#	if self.core_type == 'bigcore':
-				#		print(f'\n{bullets} Using ATE Safe Voltages    --- {self.coremenustring.upper()}:{self.core_volt}, CFC_IO: {self.io_cfc_volt}, DDRD: {self.ddrd_volt} --')
-				#		print(f'\n{bullets} Using ATE MESH CFC Voltage --- {self.mesh_cfc_volt} --')
-				#		print(f'\n{bullets} Using ATE MESH HDC Voltage --- {self.mesh_hdc_volt} --')
-				#	else:
-				#		print(f'\n{bullets} Using ATE Safe Voltages    --- {self.coremenustring.upper()}:{self.core_volt},HDC(L2):{self.mesh_hdc_volt}, CFC_IO: {self.io_cfc_volt}, DDRD: {self.ddrd_volt} --')
-				#		print(f'\n{bullets} Using ATE MESH CFC Voltage --- {self.mesh_cfc_volt} --')
-						
 				else:
 					print(f'\n{bullets} Using System Default voltage configuration --')
 					
-				if self.mesh_cfc_volt: self.use_ate_volt = True
+				if self.mesh_cfc_volt: 
+					self.use_ate_volt = True
 
-				# More variability in testing conditions after selecting ATE
+				# Allow changes after ATE selection
 				ATEChange = _yorn_bool(self.Menus['ATE_Change'],"N")
+
 				if ATEChange:
-					#meshf = _yorn_int(default_yorn ='N', prompt = self.Menus['MeshFreq'], userin = "--> Enter CFC/HDC Mesh Frequency: ")
+					
 					coref = _yorn_int(default_yorn ='N', prompt = self.Menus['CoreFreq'], userin = f"--> Enter {self.coremenustring} Frequency: ")
 					iof = _yorn_int(default_yorn ='N', prompt = self.Menus['IOFreq'], userin = "--> Enter IO Mesh Frequency: ")
-					#if meshf != None:  mesh_freq = meshf
-					if coref != None:  self.core_freq = coref
-					if iof != None:   self.io_freq = iof
+
+					# Update frequency manager
+					self.frequency_mgr.configure_from_user_input(core=coref, io=iof)
+					
+					# Update frequency manager
+					self.core_freq = self.frequency_mgr.core_freq
+					self.io_freq = self.frequency_mgr.io_freq
+
 					print(f"\n{bullets} Updated configuration: {self.coremenustring.upper()}: { self.core_freq}, CFCCOMP: { self.mesh_freq}, CFCIO:{ self.io_freq}")
-
-	def mesh_ate_type(self, VID, ate_freq):
-		computes = self.computes
 					
-		try:
-			vdata = stc.get_voltages_uncore(visual=VID, ate_freq=f'F{ate_freq}', hot=True)
-			#vdatalen = len(vdata)
-			self.cfc_volt = {c:stc.filter_uncore_voltage(data=vdata, ip='CFC', die=c.upper(), ate_freq=f'F{ate_freq}') for c in computes}
-			
-			if not self.HDC_AT_CORE: 
-				self.hdc_volt = {c:stc.filter_uncore_voltage(data=vdata, ip='HDC', die=c.upper(), ate_freq=f'F{ate_freq}') for c in computes}
-			
-
-		except:
-			print(f'!!! Failed collecting DFF Data for {VID}, enter value manually or use system default')
-			for c in computes:
-				
-				self.cfc_volt[c] =  _yorn_float(default_yorn ='Y', prompt = self.Menus['CFCVolt'].replace('Uncore CFC Voltage',f'{c.upper()} Uncore CFC Voltage'), userin = f"--> Enter CFC {c.upper()} voltage: ")
-				
-				if not self.HDC_AT_CORE: 
-					self.hdc_volt[c] =  _yorn_float(default_yorn ='Y', prompt = self.Menus['HDCVolt'].replace('Uncore HDC Voltage',f'{c.upper()} Uncore HDC Voltage'), userin = f"--> Enter HDC {c.upper()} voltage: ")
-
-		if not vdata:
-			print(f'!!! Empty DFF Data for {VID}, check if data is at your site, enter value manually or use system default')
-			for c in computes:
-				self.cfc_volt[c] =  _yorn_float(default_yorn ='Y', prompt = self.Menus['CFCVolt'].replace('Uncore CFC Voltage',f'{c.upper()} Uncore CFC Voltage'), userin = f"--> Enter CFC {c.upper()} voltage: ")
-				
-				if not self.HDC_AT_CORE: 
-					self.hdc_volt[c] =  _yorn_float(default_yorn ='Y', prompt = self.Menus['HDCVolt'].replace('Uncore HDC Voltage',f'{c.upper()} Uncore HDC Voltage'), userin = f"--> Enter HDC {c.upper()} voltage: ")
-					
-		self.core_volt = stc.All_Safe_RST_PKG['VCORE_RST']
-		if self.HDC_AT_CORE: self.mesh_hdc_volt = stc.All_Safe_RST_PKG['VHDC_RST']
-		self.io_cfc_volt = stc.All_Safe_RST_PKG['VCFC_IO_RST']
-		self.ddrd_volt = stc.All_Safe_RST_PKG['VDDRD_RST']
-		self.ddra_volt = stc.All_Safe_RST_PKG['VDDRA_RST']
-
-		self.mesh_cfc_volt = self.cfc_volt
-		self.mesh_hdc_volt = self.hdc_volt
-
-		if self.core_type == 'bigcore':
-			print(f'\n{bullets} Using ATE Safe Voltages    --- {self.coremenustring.upper()}:{self.core_volt}, CFC_IO: {self.io_cfc_volt}, DDRD: {self.ddrd_volt} --')
-			print(f'\n{bullets} Using ATE MESH CFC Voltage --- {self.mesh_cfc_volt} --')
-			print(f'\n{bullets} Using ATE MESH HDC Voltage --- {self.mesh_hdc_volt} --')
-		else:
-			print(f'\n{bullets} Using ATE Safe Voltages    --- {self.coremenustring.upper()}:{self.core_volt},HDC(L2):{self.mesh_hdc_volt}, CFC_IO: {self.io_cfc_volt}, DDRD: {self.ddrd_volt} --')
-			print(f'\n{bullets} Using ATE MESH CFC Voltage --- {self.mesh_cfc_volt} --')
-						
 	def mesh_configuration(self):
-		
-		# Init Variables
+		"""Mask selection for mesh mode"""
 		ate_mask = 0
-		computes =self.computes
-		#compute = ''
-		#custom = ''
-		#flowid = 1
+		
+		# Get Available Domains (Compute / CBB) --
+		domains = self.strategy.get_voltage_domains()
+
 		print(f'\n{bullets} System 2 Tester MESH Available Configurations: ')
 		self.print_menu(menu=self.ate_config_main)
+			
+		# Get user selection
+		maxrng = self.ate_config_product['maxrng']
 		
 		if self.targetTile == None:
 			self.targetTile = int(input("--> Enter Configuration: "))
-
+			
+			while self.targetTile not in range(1, maxrng):
+				try:
+					self.targetTile = int(input(f"--> Enter 1-{maxrng-1}: "))
+				except:
+					pass
+		
 		if self.targetTile == 1:
 			print(f'\n{bullets} Enter ATE Class mask configuration:')
 			self.print_menu(menu=self.ate_config_product)
 			maxrng = self.ate_config_product['maxrng']
 
-		
-			
 			while ate_mask not in range (1,maxrng):
 				ate_config = ''
 				try:
 					ate_mask = int(input("--> ATE Pass mask to be used: "))
 					ate_config = self.ate_masks[ate_mask]
-		#				
-		#			if XCC and ate_mask > 2:	
-		#				ate_maskxcc = ate_mask + 1
-		#			else: 
-		#				ate_maskxcc = ate_mask
-		#			
-		#			if ate_maskxcc in self.ate_masks.keys():
-		#				ate_config = self.ate_masks[ate_maskxcc]
-		#			#target = ate_config
 				except:
 					pass
-				
+				print(f'--> System 2 Tester Configured in ATE Mode: {ate_config.upper()}')
 				self.target = ate_config
 		
-
 		# Need to check how to user input a list
 		elif self.targetTile == 2:
+			# Tile Isolation
 			invalid = True
-			print(f'\n{bullets} Valid input values for Compute mode are: {computes}')
+			domain_list = []
+			print(f"\n{bullets} {self.domain_type} Isolation:")
+			for idx, domain in enumerate(domains, 1):
+				print(f"\t> {idx}. {domain.upper()}")
+		
 			while invalid:
-				input_str = str(input("--> Enter Compute(s) name splitted by comma: "))
-				compute_list = input_str.lower().strip(' ').split(',')
-				invalid = [val for val in compute_list if val not in computes]
+				input_str = str(input(f"--> Enter {self.domain_type.upper()}(s) name splitted by comma: "))
+				domain_list = input_str.lower().strip(' ').split(',')
+				invalid = [val for val in domain_list if val not in domains]
 				if invalid:
 					print(f'--> Not valid values entered please check: {invalid}')
-			self.target = compute_list
+			print(f'--> System 2 Tester Configured in {self.domain_type} Isolation Mode: {domain_list}')
+			self.target = domain_list
 		
 
 		## Check for the Custom configuration in X2
@@ -1824,33 +1671,56 @@ class S2TFlow():
 			while invalid:
 				input_str = str(input("--> Enter Column(s)/Row(s) name splitted by comma:"))
 				self.custom_list = input_str.upper().strip(' ').split(',')
-				#USE Lower for the string no need to match cases
-				#customs_upper = [s.upper() for s in customs]
+
 				invalid = [val for val in self.custom_list if val not in self.customs]
 				if invalid:
 					print(f'--> Not valid values entered please check: {invalid}')
+			
+			print(f'--> System 2 Tester Configured in Custom Mode: {self.custom_list}')
 
+		elif self.targetTile == 4:
+			# Full Chip
+			print(f'--> System 2 Tester Configured in Full Chip Mode')
+			self.target = 'FULLCHIP'
+	
 	def mesh_misc(self):
-
+		"""
+		Mesh miscellaneous settings.
+		Handles mlcways, dis_ht, dis_2CPM, fix_apic, boot_postcode, clusterCheck, and license_level.
+		Uses targetTile to determine appropriate defaults.
+		"""
 		if self.mlcways == None and self.__FRAMEWORK_FEATURES['mlcways']['enabled']:
 			self.mlcways = _yorn_bool(self.Menus['MLC'],"N")
+		
 		if self.dis_ht == None and self.__FRAMEWORK_FEATURES['dis_ht']['enabled']:
-			self.dis_ht = _yorn_bool(self.Menus['HTDIS'],"Y" if self.targetTile != 4 else "N")
+			default_ht = "Y" if self.targetTile != 4 else "N"
+			self.dis_ht = _yorn_bool(self.Menus['HTDIS'],default_ht)
+		
 		if self.dis_2CPM == None and self.__FRAMEWORK_FEATURES['dis_2CPM']['enabled']:
-			_dis_2cpm = _yorn_bool(self.Menus['DIS2CPM'],"Y" if self.targetTile != 4 else "N")
-			
+			default_2cpm = "Y" if self.targetTile != 4 else "N"
+			_dis_2cpm = _yorn_bool(self.Menus['DIS2CPM'],default_2cpm)		
 			if _dis_2cpm:
 				self.dis2CPM()
+
+		if self.dis_1CPM == None and self.__FRAMEWORK_FEATURES['dis_1CPM']['enabled']:
+			default_1cpm = "Y" if self.targetTile != 4 else "N"
+			_dis_1cpm = _yorn_bool(self.Menus['DIS1CPM'],default_1cpm)		
+			if _dis_1cpm:
+				self.dis1CPM()
 				
 		if self.fix_apic == None and self.__FRAMEWORK_FEATURES['fix_apic']['enabled']:
 			self.fix_apic = _yorn_bool(self.Menus['APICS'],"N")
-			if self.fix_apic: self.stop_after_mrc = True
+			if self.fix_apic: 
+				self.stop_after_mrc = True
 
 		if self.boot_postcode == None and self.__FRAMEWORK_FEATURES['boot_postcode']['enabled']:
-			self.boot_postcode_break = _yorn_int(default_yorn ='N', prompt = self.Menus['BOOT_BREAK'], userin = "--> Enter Hex Value of Breakpoint: ")
+			self.boot_postcode_break = _yorn_int(default_yorn ='N', 
+										prompt = self.Menus['BOOT_BREAK'], 
+										userin = "--> Enter Hex Value of Breakpoint: ")
 			if self.boot_postcode_break != None:
 				self.boot_postcode = True
 
+		# Cluster check only for ATE configuration (targetTile == 1)
 		if self.clusterCheck == None and self.targetTile == 1 and self.__FRAMEWORK_FEATURES['clusterCheck']['enabled']:
 			self.clusterCheck = _yorn_bool(self.Menus['CLUSTER'],"Y")
 			if self.clusterCheck:
@@ -1865,8 +1735,8 @@ class S2TFlow():
 	def dis2CPM(self):
 		_2cpm = 0
 		print(f'\n{bullets} Select Cores to disabled:')
-		self.print_menu(menu=DIS2CPM_MENU['main'])
-		maxrng = DIS2CPM_MENU['main']['maxrng']
+		self.print_menu(menu=config.DIS2CPM_MENU['main'])
+		maxrng = config.DIS2CPM_MENU['main']['maxrng']
 			
 		while _2cpm not in range (1,maxrng):
 			_2cpm = ''
@@ -1876,17 +1746,32 @@ class S2TFlow():
 			except:
 				pass  
 
+	def dis1CPM(self):
+		_1cpm = 0
+		print(f'\n{bullets} Select Cores to disabled:')
+		self.print_menu(menu=config.DIS1CPM_MENU['main'])
+		maxrng = config.DIS1CPM_MENU['main']['maxrng']
+			
+		while _1cpm not in range (1,maxrng):
+			_1cpm = ''
+			try:
+				_1cpm = int(input("--> Core disable selection to be used: "))
+				self.dis_1CPM = self.dis1cpm_dict[_1cpm]  
+			except:
+				pass  
+
 	def mesh_registers(self):
-		#reg_select = None
-		#cr_array_start=0 
-		#cr_array_end=0xffff
+		"""
+		Register selection for mesh mode.
+		Allows setting all registers, subset, or none.
+		"""
 		if self.reg_select == None and self.__FRAMEWORK_FEATURES['reg_select']['enabled']:
-    
+	
 			print(f"\n{bullets} Set tester registers? ") 
 			print("\t> 1. No")
 			print("\t> 2. Yes - Set all the regs")
 			print("\t> 3. Yes - Set a subset of the regs")
-			#print("\t> 3. Yes - Set a subset of the regs")
+
 			# Disabled by default
 			print(f'\n{bullets} Mesh registers disabled by default, option not availble for now.')
 			self.reg_select = 1
@@ -1914,15 +1799,87 @@ class S2TFlow():
 			if cr_array_end == "":
 				self.cr_array_end = 0xffff
 			self.cr_array_end = int(cr_array_end)
+				
+	def mesh_run(self):
 		
+		#Set Globals before calling the S2T Script flow
+		self.set_globals(flow='mesh')
+
+		# Call the appropriate script based on the selected mode
+		mesh = scm.System2Tester(target=self.target, masks=self.masks, boot=True, 
+						   				ht_dis=self.dis_ht, dis_2CPM=self.dis_2CPM, 
+										dis_1CPM=self.dis_1CPM, fresh_state=False, readFuse=True,
+										fastboot=self.fastboot, ppvc_fuses=self.volt_config,
+										execution_state=self.execution_state)
+
+		# Call different methods based on targetTile  
+		# ATE Configuration
+		if self.targetTile == 1:
+			mesh.setmesh(boot_postcode=self.boot_postcode,stop_after_mrc=self.stop_after_mrc, lsb = self.lsb, extMasks=self.extMasks)
+
+		 # Tile Isolation
+		elif self.targetTile == 2:
+			mesh.setTile(boot_postcode=self.boot_postcode,stop_after_mrc=self.stop_after_mrc)
+
+		# Custom Configuration
+		elif self.targetTile == 3:
+			mesh.setmesh(CustomConfig = self.custom_list, boot_postcode=self.boot_postcode,stop_after_mrc=self.stop_after_mrc, lsb = self.lsb, extMasks=self.extMasks)
+
+		# Full Chip
+		elif self.targetTile == 4:
+			mesh.setfc(extMasks = self.extMasks, boot_postcode=self.boot_postcode,stop_after_mrc=self.stop_after_mrc)
+
+		# Force refresh after boot
+		if scm.check_user_cancel(self.execution_state):
+			return
+		scm.svStatus(refresh=True) # ipc.unlock(); ipc.forcereconfig(); sv.refresh()
+		
+		if (itp.ishalted() == False): 
+			try:
+				itp.halt()
+			except:
+				print("--> Unit Can't be halted, problems with ipc...")
+
+		if self.fix_apic:
+			#print('\n --- Continuing boot moving EFI ---\n')
+			tester_apic_id()
+			scm.go_to_efi(self.execution_state)
+
+		# Post-boot S2T configuration
+		if self.postBootS2T:
+			try:
+				set_mesh(self.cr_array_start, self.cr_array_end, 
+			 					license_level=self.license_level, core_ratio=None, mesh_ratio=None, 
+								reorder_apic=False, clear_ucode=self.clear_ucode,
+								dcf_ratio=self.dcf_ratio, halt_pcu=self.halt_pcu, 
+								mlcways=self.mlcways)
+			except:
+				print('--> Errors ocurred applying mesh configuration, skipping...')
+
+		if (itp.ishalted() == True): 
+			try:
+				itp.go()
+			except:
+				print("--> Unit go can't be issued, problems with ipc...")
+
+		## Apply Fuse Checks for MESH Content
+		mesh.fuse_checks()	
+		
+		self.mesh_end()
+
 	def mesh_end(self):
-		print ("\n----------------------------------------------------------------")
+		"""Finalize mesh mode"""
+		print(f"\n{'='*80}")
+		print(f"{bullets} Mesh Mode Configuration Complete")
+		print(f"{'='*80}\n")
+		
+		print (f"\n{'='*80}")
 		print ("\tUnit Tileview")
-		print ("----------------------------------------------------------------\n")
+		print (f"{'='*80}\n")
 		scm.coresEnabled(rdfuses=False)
-		print ("\n----------------------------------------------------------------")
+		print (f"\n{'='*80}")
 		print ("\tConfiguration Summary")
-		print ("----------------------------------------------------------------\n")
+		print (f"{'='*80}\n")
 		print ("\t> Unit Booted using pseudo configuration: %s" % self.target)
 		if self.core_freq != None: print ("\t> %s Freq = %d" % (self.coremenustring, self.core_freq))
 		if self.mesh_freq != None: print ("\t> Mesh Freq = %d" % self.mesh_freq)
@@ -1930,6 +1887,7 @@ class S2TFlow():
 		if self.dis_acode: print("\t> ACODE disabled")
 		if self.dis_ht: print("\t> Hyper Threading disabled")
 		if self.dis_2CPM: print(f"\t> Booted with 2 Cores per Module -> Fuse Config: {self.dis_2CPM}")
+		if self.dis_1CPM: print(f"\t> Booted with 1 Core per Module -> Fuse Config: {self.dis_1CPM}")
 		if self.ppvc_fuses: print("\t> PPV Condition fuses set")
 		if self.custom_volt: print("\t> Custom Fixed Voltage fuses set")
 		if self.vbumps_volt: print("\t> Voltage Bumps fuses set")
@@ -1955,6 +1913,11 @@ class S2TFlow():
 		if scm.check_user_cancel(self.execution_state):
 			return
 		scm.svStatus()
+
+
+#========================================================================================================#
+#=============== HELPER FUNCTIONS ======================================================================#
+#========================================================================================================#
 
 ## PM Mode need to revisit at some point -- Will add this to the Class once implemented
 def setupMeshPMMode(target_tile = None, pm_default=None):
@@ -2161,7 +2124,6 @@ def print_apic_ids():
 	table = tabulate(data, headers='firstrow', tablefmt="grid")
 	print(table)
 
-
 ## APIC ID Configurations  -- Revisit for CWF
 def tester_apic_id(die=None, SVrefresh = True):
 	'''
@@ -2183,8 +2145,8 @@ def tester_apic_id(die=None, SVrefresh = True):
 	new_legacy_id = {'compute0':0, 'compute1':128, 'compute2':0}
 	data = {'Core':[],
 			'Thread #':[],
-		 	'Physical ID':[],
-		 	'Logical ID':[],
+			 'Physical ID':[],
+			 'Logical ID':[],
 #			'CLASS Logical ID':[],
 			'Old APIC ID (SYS)':[],
 			'New APIC ID (CLASS)':[]}

@@ -98,8 +98,12 @@ class GNRStrategy(ProductStrategy):
 	
 	def supports_2cpm(self) -> bool:
 		"""GNR supports 2CPM disable."""
-		return True
-	
+		return False
+
+	def supports_1cpm(self) -> bool:
+		"""GNR supports 1CPM disable."""
+		return False
+		
 	def get_bootscript_config(self) -> Dict[str, Any]:
 		"""Get GNR bootscript configuration."""
 		product_key = self.config.PRODUCT_CONFIG
@@ -131,6 +135,22 @@ class GNRStrategy(ProductStrategy):
 		"""Initialize voltage config with compute structure."""
 		domains = self.get_voltage_domains()
 		return {domain: [] for domain in domains}
+	
+	def get_voltage_ips(self) -> Dict[str, bool]:
+		"""
+		Get which voltage IPs are used by GNR.
+		GNR uses: core, CFC/HDC per compute, IO CFC, DDRD, DDRA
+		GNR does NOT use: core_mlc_volt (DMR-specific)
+		"""
+		return {
+			'core_volt': True,
+			'mesh_cfc_volt': True,   # Per compute
+			'mesh_hdc_volt': True,   # Per compute (bigcore)
+			'core_mlc_volt': False,  # Not used in GNR
+			'io_cfc_volt': True,
+			'ddrd_volt': True,
+			'ddra_volt': True
+		}
 	
 	# ========================================================================
 	# Validation Methods

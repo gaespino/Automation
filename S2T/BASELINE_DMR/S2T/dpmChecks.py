@@ -72,8 +72,6 @@ import users.gaespino.dev.S2T.Logger.logger as dpmlog
 import users.gaespino.dev.S2T.Tools.portid2ip as p2ip
 import users.gaespino.dev.S2T.Tools.requests_unit_info as reqinfo
 
-
-
 importlib.reload(dpmlog)
 importlib.reload(dpmtileview)
 
