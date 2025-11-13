@@ -69,8 +69,9 @@ class ConfigApp:
 		self.run_button.config(state=tk.DISABLED)
 		self.close_button.config(state=tk.DISABLED)
 		self.start_time = time.time()
-		self.update_timer()
-		threading.Thread(target=self.run_config_thread).start()
+		self.root.update_idletasks()  # Force UI update
+		threading.Thread(target=self.run_config_thread, daemon=True).start()
+		self.root.after(100, self.update_timer)
 
 	def run_config_thread(self):
 		self.s2t_flow.run_config()
@@ -85,6 +86,7 @@ class ConfigApp:
 	def update_timer(self):
 		elapsed_time = int(time.time() - self.start_time)
 		self.waiting_label.config(text=f"Running configuration... Please wait. Time elapsed: {elapsed_time} seconds")
+		self.root.update_idletasks()  # Force UI update
 		if self.run_button['state'] == tk.DISABLED:
 			self.root.after(1000, self.update_timer)
 
@@ -123,7 +125,7 @@ class QuickDefeatureTool:
 		self.core_type = s2t.core_type if s2t != None else None
 		
 		# Use domains instead of computes (works for computes, cbbs, etc.)
-		self.domains = [d.capitalize() for d in s2t.domains.keys()] if s2t != None else ['Compute0', 'Compute1', 'Compute2']
+		self.domains = [d.capitalize() for d in s2t.domains] if s2t != None else ['Compute0', 'Compute1', 'Compute2']
 		self.domain_type = s2t.domain_type if s2t != None else 'Compute'  # 'Compute' or 'CBB'
 		
 		self.validclass = s2t.validclass if s2t != None else []
@@ -521,22 +523,26 @@ class QuickDefeatureTool:
 		else:
 			self.expected_time = self.EXPECTED_TIME_FASTBOOT if self.fastboot_var.get() else self.EXPECTED_TIME_NORMAL
 		self.start_time = time.time()
+		self.is_running = True  # Flag to track if config is running
+		
+		# Configure progress bar style BEFORE showing it
+		style = ttk.Style()
+		style.configure("green.Horizontal.TProgressbar", foreground='green', background='green')
+		style.configure("red.Horizontal.TProgressbar", foreground='red', background='red')
 		
 		# Show progress bar and info label
 		self.progress_bar['maximum'] = 100
 		self.progress_bar['value'] = 0
+		self.progress_bar.configure(style="green.Horizontal.TProgressbar")
 		self.progress_bar.grid()
 		self.progress_info_label.grid()
 		
-		# Configure progress bar style
-		style = ttk.Style()
-		style.configure("green.Horizontal.TProgressbar", foreground='green', background='green')
-		style.configure("red.Horizontal.TProgressbar", foreground='red', background='red')
-		self.progress_bar.configure(style="green.Horizontal.TProgressbar")
+		# Force UI update to show initial state
+		self.root.update_idletasks()
 		
-		threading.Thread(target=self.run_config_thread).start()
+		threading.Thread(target=self.run_config_thread, daemon=True).start()
 		# Schedule the first timer update to run in the UI thread
-		self.root.after(100, self.update_timer)
+		self.root.after(1000, self.update_timer)
 
 	def run_config_thread(self):
 		# Test mode: simulate a run with sleep instead of actual execution
@@ -589,6 +595,7 @@ class QuickDefeatureTool:
 		self.root.after(0, self.run_config_done)
 
 	def run_config_done(self):
+		self.is_running = False  # Stop the timer
 		self.waiting_label.config(text="")
 		self.run_button.config(state=tk.NORMAL)
 		self.cancel_button.config(state=tk.NORMAL)
@@ -600,11 +607,20 @@ class QuickDefeatureTool:
 		messagebox.showinfo("Info", "Configuration run successfully")
 
 	def update_timer(self):
+		# Check if we should stop updating
+		if not hasattr(self, 'is_running') or not self.is_running:
+			return
+			
 		elapsed_time = int(time.time() - self.start_time)
 		
 		# Calculate progress percentage
 		progress_percent = min(100, (elapsed_time / self.expected_time) * 100)
 		
+		# Debug output in test mode
+		if self.test_mode:
+			print(f"[Timer Update] Progress: {progress_percent:.1f}% | Elapsed: {elapsed_time}s/{self.expected_time}s | Bar: {self.progress_bar['value']:.1f}")
+		
+		# Update progress bar value - set it explicitly
 		self.progress_bar['value'] = progress_percent
 		
 		# Change color to red if exceeding expected time
@@ -624,20 +640,30 @@ class QuickDefeatureTool:
 			foreground="red" if elapsed_time > self.expected_time else "blue"
 		)
 		
-		# Force the UI to process all pending events and redraw
-		# Using update() instead of update_idletasks() ensures redraws happen
-		self.root.update()
+		# Force complete UI update to ensure progress bar redraws
+		try:
+			# This is the key - update the entire window to force redraw
+			self.root.update_idletasks()
+			# Also update the progress bar widget specifically
+			self.progress_bar.update()
+		except:
+			pass  # In case window is closing
 		
-		# Keep updating while run button is disabled (meaning config is still running)
-		if self.run_button['state'] == tk.DISABLED:
+		# Keep updating while config is running
+		if self.is_running:
 			self.root.after(1000, self.update_timer)		
 	
 	def get_options(self):
+
+		# Registers entry values
+		registers_max_entry = self.int_format(self.registers_max_entry.get())
+		registers_min_entry = self.int_format(self.registers_min_entry.get())
+
 		options = {
 			"Configuration": self.mesh_config_var.get(),
 			"Frequency Defeature": self.freq_defeature_var.get(),
-			"Flat Core Frequency": None if self.flat_core_freq_entry.get() == '' else int(self.flat_core_freq_entry.get(),10),
-			"Flat Mesh Frequency": None if self.flat_mesh_freq_entry.get() == '' else int(self.flat_mesh_freq_entry.get(),10),
+			"Flat Core Frequency": None if self.flat_core_freq_entry.get() == '' else int(self.flat_core_freq_entry.get(),0),
+			"Flat Mesh Frequency": None if self.flat_mesh_freq_entry.get() == '' else int(self.flat_mesh_freq_entry.get(),0),
 			"License Level":self.license_data[self.license_level_var.get()],
 			"Voltage Defeature": self.volt_defeature_var.get(),
 			"Core vBumps": None if self.core_vbumps_entry.get() == '' else float(self.core_vbumps_entry.get()),
@@ -649,11 +675,21 @@ class QuickDefeatureTool:
 			"Disable 2C Module": self.dis_2CPM_var.get(),
 			"Disable 1C Module": self.dis_1CPM_var.get(),
 			"Registers Select": 2 if self.registers_var.get() else 1,
-			"Registers Max": 0xFFFF if not self.registers_var.get() else int(self.registers_max_entry.get(),10),
-			"Registers Min": 0xFFFF if not self.registers_var.get() else int(self.registers_min_entry.get(),10),
+			"Registers Max": registers_max_entry, # 0xFFFF if not self.registers_var.get() else int(self.registers_max_entry.get(),0),
+			"Registers Min": registers_min_entry, # 0xFFFF if not self.registers_var.get() else int(self.registers_min_entry.get(),0),
 		}
 		return options
 
+	def int_format(self, value, default = 0xFFF):
+		if value is None:
+			return default
+		if value == '':
+			return default
+		
+		if isinstance(value, str):
+			return hex(int(value, 0))
+		return value
+	
 	def updates2t(self, options):
 		# In test mode or when s2t is None, skip updating s2t attributes
 		if self.test_mode or self.s2t is None:

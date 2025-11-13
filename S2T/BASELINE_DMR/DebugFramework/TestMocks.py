@@ -930,11 +930,17 @@ class MockSetTesterRegs:
         # CRITICAL: This must be a simple string, not a mock object
         SELECTED_PRODUCT = "GNR"
         
+        class config:
+            SELECTED_PRODUCT = "GNR"
+            
+        
+        config.SELECTED_PRODUCT = SELECTED_PRODUCT
+        
         @staticmethod
         def MeshQuickTest(core_freq=None, mesh_freq=None, vbump_core=None, vbump_mesh=None,
                           Reset=True, Mask=None, pseudo=False, dis_2CPM=0, GUI=False,
                           fastboot=False, corelic=None, volttype='nom', debug=False,
-                          boot_postcode=False, extMask=None, execution_state=None):
+                          boot_postcode=False, extMask=None, u600w=None,execution_state=None):
             print(f"[MOCK S2T] Starting MeshQuickTest with:")
             print(f"  Core Freq: {core_freq}, Mesh Freq: {mesh_freq}")
             print(f"  Core Voltage: {vbump_core}, Mesh Voltage: {vbump_mesh}")
@@ -978,7 +984,7 @@ class MockSetTesterRegs:
         @staticmethod
         def SliceQuickTest(Target_core=None, core_freq=None, mesh_freq=None, vbump_core=None,
                            vbump_mesh=None, Reset=True, pseudo=False, dis_2CPM=0, GUI=False,
-                           fastboot=False, corelic=None, volttype='nom', debug=False,
+                           fastboot=False, corelic=None, volttype='nom',u600w=None, debug=False,
                            boot_postcode=False, execution_state=None):
             print(f"[MOCK S2T] Starting SliceQuickTest with:")
             print(f"  Target Core: {Target_core}")

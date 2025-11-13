@@ -93,6 +93,10 @@ class CWFStrategy(ProductStrategy):
 	def has_hdc_at_core(self) -> bool:
 		"""CWF is atomcore, so HDC is at core level (L2)."""
 		return True
+		
+	def has_mlc_at_core(self) -> bool:
+		"""CWF has HDC at core level."""
+		return False
 	
 	def supports_600w_config(self) -> bool:
 		"""CWF supports 600W configuration."""

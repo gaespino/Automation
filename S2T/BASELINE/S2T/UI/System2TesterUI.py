@@ -654,11 +654,16 @@ class QuickDefeatureTool:
 			self.root.after(1000, self.update_timer)		
 	
 	def get_options(self):
+
+		# Registers entry values
+		registers_max_entry = self.int_format(self.registers_max_entry.get())
+		registers_min_entry = self.int_format(self.registers_min_entry.get())
+
 		options = {
 			"Configuration": self.mesh_config_var.get(),
 			"Frequency Defeature": self.freq_defeature_var.get(),
-			"Flat Core Frequency": None if self.flat_core_freq_entry.get() == '' else int(self.flat_core_freq_entry.get(),10),
-			"Flat Mesh Frequency": None if self.flat_mesh_freq_entry.get() == '' else int(self.flat_mesh_freq_entry.get(),10),
+			"Flat Core Frequency": None if self.flat_core_freq_entry.get() == '' else int(self.flat_core_freq_entry.get(),0),
+			"Flat Mesh Frequency": None if self.flat_mesh_freq_entry.get() == '' else int(self.flat_mesh_freq_entry.get(),0),
 			"License Level":self.license_data[self.license_level_var.get()],
 			"Voltage Defeature": self.volt_defeature_var.get(),
 			"Core vBumps": None if self.core_vbumps_entry.get() == '' else float(self.core_vbumps_entry.get()),
@@ -670,11 +675,22 @@ class QuickDefeatureTool:
 			"Disable 2C Module": self.dis_2CPM_var.get(),
 			"Disable 1C Module": self.dis_1CPM_var.get(),
 			"Registers Select": 2 if self.registers_var.get() else 1,
-			"Registers Max": 0xFFFF if not self.registers_var.get() else int(self.registers_max_entry.get(),10),
-			"Registers Min": 0xFFFF if not self.registers_var.get() else int(self.registers_min_entry.get(),10),
+			"Registers Max": registers_max_entry, # 0xFFFF if not self.registers_var.get() else int(self.registers_max_entry.get(),0),
+			"Registers Min": registers_min_entry, # 0xFFFF if not self.registers_var.get() else int(self.registers_min_entry.get(),0),
 		}
 		return options
 
+	def int_format(self, value, default = 0xFFF):
+		if value is None:
+			return default
+		if value == '':
+			return default
+		
+		if isinstance(value, str):
+			return int(value, 0)
+		
+		return value
+	
 	def updates2t(self, options):
 		# In test mode or when s2t is None, skip updating s2t attributes
 		if self.test_mode or self.s2t is None:

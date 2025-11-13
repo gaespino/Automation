@@ -7,6 +7,7 @@ Code migration to product specific features
 """
 
 import colorama
+import time
 from colorama import Fore, Style, Back
 from dataclasses import dataclass
 
@@ -94,6 +95,151 @@ class functions:
 			sv.sockets.computes.cpu.modules.setaccess('default')
 			return drs, mcadata    	
 
+	@staticmethod
+	def _set_crs(sv, num_crs, crarray, cr_array_start, cr_array_end, skip_index_array, _s2t_dict, func_wr_ipc):
+		
+		def check_value(value,n,label='TAP'):
+			
+			if int(value) == int(desired_value):
+				print(Fore.LIGHTGREEN_EX +"{} -- | {}:{} Already at desired value :{}:{} ".format(label, index, n, hex(desired_value), hex(value)) + Fore.RESET)
+				return True
+			return False
+
+		def validate_change(n):
+			check_string = Fore.RED + "NOT OK" + Fore.RESET
+			n_value = sv.sockets[0].cpu.modules[0].cores[0].get_by_path(n).get_value()
+			if int(n_value) == int(desired_value):
+				check_string = Fore.GREEN + "OK" + Fore.RESET
+			
+			return check_string
+
+		print ("\nSetting %d CRs " % num_crs)
+		index = 0
+
+		for n in sorted(crarray):
+		# for n in (crarray):
+			desired_value = crarray[n]
+			
+			# HardCoded Flag -- we will use TAP for registers located at thread level
+			use_TAP = True
+			
+			if (index not in skip_index_array) and (index >= cr_array_start) and (index<=cr_array_end):
+				value = sv.sockets[0].cpu.modules[0].cores[0].get_by_path(n).get_value()
+				if check_value(value, n, label='CRS'):
+					index +=1
+					continue
+				
+				if 'thread' in n and use_TAP:
+
+					# This does not apply to CWF but leaving for reference
+					threads = len(sv.sockets.cpu.modules[0].cores.threads)
+					if threads == 1 and 'thread1' in n:
+						print ("%d: !!!! skipping %s, single thread is configured" % (index, n)  )
+						continue
+
+					sv.socket0.computes.cpu.modules.cores.get_by_path(n).write(crarray[n])
+					
+					check_str = validate_change(n)
+
+					print("TAP -- | {}:{} Changed from :{}: -> :{}: | ".format(index, n, hex(value), hex(crarray[n])) + check_str)
+				else:
+					func_wr_ipc(index, n, crarray) ## Calls write IPC function on S2T Main
+					check_str = validate_change(n)
+					print("IPC -- | {}:{}({}) Changed from :{}: -> :{}: | ".format(index, n,hex(_s2t_dict[n]['cr_offset']),hex(value),hex(crarray[n])) + check_str)
+			else:
+				print (Fore.YELLOW +"%d: !!!! skipping %s" % (index, n) + Fore.RESET)
+			index +=1
+
+	@staticmethod
+	def _set_crs_tap(sv, num_crs, crarray, cr_array_start, cr_array_end, skip_index_array):
+		print ("Setting %d CRs " % num_crs)
+		index = 0		
+		
+		for n in sorted(crarray):
+		# for n in (crarray):
+			
+			if (index not in skip_index_array) and (index >= cr_array_start) and (index<=cr_array_end):
+				# print ("%d:%s: itp.crb64(0x%x, 0x%x)" % (index, n, _s2t_dict[n], crarray[n]))
+				
+				
+				threads = len(sv.sockets.cpu.modules[0].cores)
+				
+				# This does not apply to CWF but leaving for reference
+				if threads == 1 and 'thread1' in n:
+					print ("%d: !!!! skipping %s, single thread is configured" % (index, n)  )
+					continue
+				
+				value = sv.socket0.compute0.cpu.modules[0].get_by_path(n)
+				sv.socket0.computes.cpu.modules.get_by_path(n).write(crarray[n])
+				
+				time.sleep(0.5)	
+				
+				mcchk = sv.socket0.compute0.cpu.modules[0].bus_cr_mci_status # Need to confirm will check BUS for now
+			
+				if mcchk != 0:
+					print(f'sv.socket0.cpu.core0.ml2_cr_mc3_status = {mcchk}')
+					print(f"{index}: {n} - Failing the unit add to skip --")
+					break
+				print("{}:{} Changed from :{}: -> :{}: ".format(index, n, value, hex(crarray[n])))
+
+			else:
+				print ("%d: !!!! skipping %s" % (index, n)  )
+			index +=1
+
+	@staticmethod
+	def _cr_reg_dump(_seldict, seldict, sv, core, regsname, _crd):
+
+		for key in _seldict[seldict].keys():
+			regfound = sv.socket0.cpu.get_by_path(f'module{core}').core0.thread0.search(key)
+			#threaded = True if 'thread0' in regfound else False
+			try:
+				if key in regfound:
+					data = sv.socket0.cpu.get_by_path(f'module{core}').core0.thread0.get_by_path(key).info
+					value = sv.socket0.cpu.get_by_path(f'module{core}').core0.thread0.get_by_path(key).read()
+					register = f'thread0.{key}'
+				else:
+					data = sv.socket0.cpu.get_by_path(f'module{core}').core0.get_by_path(key).info
+					value = sv.socket0.cpu.get_by_path(f'module{core}').core0.get_by_path(key).read()
+					register = key
+				
+				description = data['description'] if 'description' in data.keys() else data['original_name']
+				cr_offset = data['cr_offset']
+				numbits = data['numbits']
+				
+				_crd[regsname[seldict]][register] = {'description':description,
+												'cr_offset':cr_offset, 
+												'numbits':numbits,
+												'desired_value':hex(_seldict[seldict][key]),
+												'ref_value':hex(int(value)),} 
+				
+				print(f"{register} : cr_offset = {data['cr_offset']}, numbits = {data['numbits']}, desired_value = {_seldict[seldict][key]} -- {value}")
+			
+			except Exception as e:
+
+				print (f"Exception reading {key} on core{core} : {e}")
+				_crd[regsname[seldict]][key] = {'description':'N/A',
+												'cr_offset':'N/A', 
+												'numbits':'N/A',
+												'desired_value':hex(_seldict[seldict][key]),
+												'ref_value':'N/A',} 
+
+		return _crd
+	
+	@staticmethod
+	def _cr_reg_check(sv, _seldict, seldict, core):
+		
+		for key in _seldict[seldict].keys():
+			#thread_search = True if 'thread' in key else False
+			try:
+				value = sv.socket0.cpu.get_by_path(f'module{core}').core0.get_by_path(key).get_value()
+
+				desired_value = _seldict[seldict][key]
+				
+				string_check = (Fore.RED + "DIFFERENT" + Fore.RESET) if int(value) != int(desired_value) else (Fore.GREEN + "SAME" + Fore.RESET) 
+
+				print(f"{key} : TESTER = {hex(desired_value)} :: System = {hex(value)} | "+ string_check)
+			except Exception as e:
+				print (Fore.RED + f"Exception reading {key} on module{core} : {e}" + Fore.RESET)
 
 	@staticmethod
 	def display_banner(revision, date, engineer):

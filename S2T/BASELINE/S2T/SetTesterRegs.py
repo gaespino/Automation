@@ -540,6 +540,7 @@ class S2TFlow():
 		self.ddrd_volt = ddrd_volt
 		self.ddra_volt = ddra_volt
 		self.use_ate_volt = use_ate_volt
+		self.volt_config = None
 
 		## Script Flow
 		self.mode = None
@@ -683,6 +684,7 @@ class S2TFlow():
 		self.frequency_mgr.io_freq = self.io_freq
 		self.frequency_mgr.use_ate_freq = self.use_ate_freq
 		self.frequency_mgr.flowid = self.flowid
+		self.frequency_mgr.volt_config = self.volt_config
 		
 		# Pass initial voltage values to manager
 		self.voltage_mgr.core_volt = self.core_volt
@@ -2299,7 +2301,7 @@ def set_tester(
 def _set_crs(crarray, cr_array_start=0, cr_array_end=0xffff, skip_index_array=[], clear_ucode = False, halt_pcu = False, skip_wbinvd = False, SVrefresh = True): 
 	#sv = namednodes.sv.get_manager(["socket"])
 	scm.svStatus(refresh=SVrefresh)#itp.unlock()
-	#sv.refresh()
+	func_wr_ipc = cr_write_ipc
 	
 	start_halted = True
 	if (itp.isrunning() == True):
@@ -2308,36 +2310,40 @@ def _set_crs(crarray, cr_array_start=0, cr_array_end=0xffff, skip_index_array=[]
 		start_halted = False
 	if (skip_wbinvd == False):
 		itp.threads[CoreDebugUtils.find_bsp_thread()].wbinvd()
+	
 	print ("\nSetting CRs to tester values ( at least as close as we can get)")
 	num_crs = len(crarray)
 	# TODO: Check that cr_array_end, cr_array_start and all elements within skip_index_array are within the bounds of the crarray
 	if ((cr_array_start !=0) or (cr_array_end != 0xffff)):
 		num_crs = cr_array_end - cr_array_start  # Blind calc.  Doesn't check against number of items in array
 
-	print ("\nSetting %d CRs " % num_crs)
-	index = 0
-	for n in sorted(crarray):
-	# for n in (crarray):
-		
-		if (index not in skip_index_array) and (index >= cr_array_start) and (index<=cr_array_end):
+	# Product specific to set CRS using IPC
+	pf._set_crs(sv, num_crs, crarray, cr_array_start, cr_array_end, skip_index_array, _s2t_dict, func_wr_ipc)
 
-			if 'thread' in n:
-
-				
-				threads = len(sv.sockets.cpu.cores[0].threads)
-				if threads == 1 and 'thread1' in n:
-					print ("%d: !!!! skipping %s, single thread is configured" % (index, n)  )
-					continue
-				value = sv.sockets.cpu.cores[0].get_by_path(n).read()
-				sv.socket0.computes.cpu.cores.get_by_path(n).write(crarray[n])
-
-				print("TAP -- | {}:{} Changed from :{}: -> :{}: ".format(index, n, value, hex(crarray[n])))
-			else:
-				cr_write_ipc(index, n, crarray)
-				print("IPC -- | {}:{}({})={}".format(index, n,hex(_s2t_dict[n]['cr_offset']),hex(crarray[n])))
-		else:
-			print ("%d: !!!! skipping %s" % (index, n)  )
-		index +=1
+#	print ("\nSetting %d CRs " % num_crs)
+#	index = 0
+#	for n in sorted(crarray):
+#	# for n in (crarray):
+#		
+#		if (index not in skip_index_array) and (index >= cr_array_start) and (index<=cr_array_end):
+#
+#			if 'thread' in n:
+#
+#				
+#				threads = len(sv.sockets.cpu.cores[0].threads)
+#				if threads == 1 and 'thread1' in n:
+#					print ("%d: !!!! skipping %s, single thread is configured" % (index, n)  )
+#					continue
+#				value = sv.sockets.cpu.cores[0].get_by_path(n).read()
+#				sv.socket0.computes.cpu.cores.get_by_path(n).write(crarray[n])
+#
+#				print("TAP -- | {}:{} Changed from :{}: -> :{}: ".format(index, n, value, hex(crarray[n])))
+#			else:
+#				cr_write_ipc(index, n, crarray)
+#				print("IPC -- | {}:{}({})={}".format(index, n,hex(_s2t_dict[n]['cr_offset']),hex(crarray[n])))
+#		else:
+#			print ("%d: !!!! skipping %s" % (index, n)  )
+#		index +=1
 
 	print ("Done setting CRs ")
 	if clear_ucode: CoreDebugUtils.do_clear_ucode()
@@ -2366,34 +2372,35 @@ def _set_crs_tap(crarray = None , cr_array_start=0, cr_array_end=0xffff, skip_in
 	if ((cr_array_start !=0) or (cr_array_end != 0xffff)):
 		num_crs = cr_array_end - cr_array_start  # Blind calc.  Doesn't check against number of items in array
 
-	print ("Setting %d CRs " % num_crs)
-	index = 0
-	for n in sorted(crarray):
-	# for n in (crarray):
-		
-		if (index not in skip_index_array) and (index >= cr_array_start) and (index<=cr_array_end):
-			# print ("%d:%s: itp.crb64(0x%x, 0x%x)" % (index, n, _s2t_dict[n], crarray[n]))
-			
-			
-			threads = len(sv.sockets.cpu.cores[0].threads)
-			if threads == 1 and 'thread1' in n:
-				print ("%d: !!!! skipping %s, single thread is configured" % (index, n)  )
-				continue
-			
-			value = sv.socket0.compute0.cpu.cores[0].get_by_path(n)
-			sv.socket0.computes.cpu.cores.get_by_path(n).write(crarray[n])
-			time.sleep(0.5)	
-			mcchk = sv.socket0.compute0.cpu.cores[0].ml2_cr_mc3_status
-		
-			if mcchk != 0:
-				print(f'sv.socket0.cpu.core0.ml2_cr_mc3_status = {mcchk}')
-				print(f"{index}: {n} - Failing the unit add to skip --")
-				break
-			print("{}:{} Changed from :{}: -> :{}: ".format(index, n, value, hex(crarray[n])))
+	# Product specific to set CRS using TAP
+	pf._set_crs_tap(sv, num_crs, crarray, cr_array_start, cr_array_end, skip_index_array)
 
-		else:
-			print ("%d: !!!! skipping %s" % (index, n)  )
-		index +=1
+#	for n in sorted(crarray):
+#	# for n in (crarray):
+#		
+#		if (index not in skip_index_array) and (index >= cr_array_start) and (index<=cr_array_end):
+#			# print ("%d:%s: itp.crb64(0x%x, 0x%x)" % (index, n, _s2t_dict[n], crarray[n]))
+#			
+#			
+#			threads = len(sv.sockets.cpu.cores[0].threads)
+#			if threads == 1 and 'thread1' in n:
+#				print ("%d: !!!! skipping %s, single thread is configured" % (index, n)  )
+#				continue
+#			
+#			value = sv.socket0.compute0.cpu.cores[0].get_by_path(n)
+#			sv.socket0.computes.cpu.cores.get_by_path(n).write(crarray[n])
+#			time.sleep(0.5)	
+#			mcchk = sv.socket0.compute0.cpu.cores[0].ml2_cr_mc3_status
+#		
+#			if mcchk != 0:
+#				print(f'sv.socket0.cpu.core0.ml2_cr_mc3_status = {mcchk}')
+#				print(f"{index}: {n} - Failing the unit add to skip --")
+#				break
+#			print("{}:{} Changed from :{}: -> :{}: ".format(index, n, value, hex(crarray[n])))
+#
+#		else:
+#			print ("%d: !!!! skipping %s" % (index, n)  )
+#		index +=1
 
 	print ("Done setting CRs ")
 	if clear_ucode: CoreDebugUtils.do_clear_ucode()
@@ -2491,29 +2498,32 @@ def cr_reg_dump(core = 0,  seldict = 3, wjson = True):
 	_seldict =[mesh_crs,slice_crs_min,crdict, s2t_reg]
 	regsname =['mesh_crs','slice_crs_min','crdict', 's2t_reg']
 	_crd = {regsname[seldict]: {}}
-	for key in _seldict[seldict].keys():
-		regfound = sv.socket0.cpu.get_by_path(f'core{core}').thread0.search(key)
-		#print(regfound)
-		if key in regfound:
-			data = sv.socket0.cpu.get_by_path(f'core{core}').thread0.get_by_path(key).info
-			value = sv.socket0.cpu.get_by_path(f'core{core}').thread0.get_by_path(key).read()
-			#print(f'{key} : cr_offset = {data['cr_offset']}, numbits = {data['numbits']}')
-			#for keydata, value in data.items():
-			#    _crd[key][keydata] = value
-			#    print(f'thread0.{key} : {value}')
-		else:
-			data = sv.socket0.cpu.get_by_path(f'core{core}').get_by_path(key).info
-			value = sv.socket0.cpu.get_by_path(f'core{core}').get_by_path(key).read()
-			#print(data)
-		_crd[regsname[seldict]][key] = {'description':data['description'],
-										'cr_offset':data['cr_offset'], 
-										'numbits':data['numbits'],} # Use below entries to build initial s2tregs main file, not needed for the rest.
-										#'desired_value':hex(_seldict[seldict][key]),
-										#'ref_value': hex(value)}
-		print(f"{key} : cr_offset = {data['cr_offset']}, numbits = {data['numbits']}, desired_value = {_seldict[seldict][key]} -- {value}")
-			#for keydata, value in data.items():
-			#    _crd[key][keydata] = value
-			#    print(f'{key} : {value}')
+
+	# Product Specific function to dump register values
+	_crd = pf._cr_reg_dump(_seldict, seldict, sv, core, regsname, _crd)
+#	for key in _seldict[seldict].keys():
+#		regfound = sv.socket0.cpu.get_by_path(f'core{core}').thread0.search(key)
+#		#print(regfound)
+#		if key in regfound:
+#			data = sv.socket0.cpu.get_by_path(f'core{core}').thread0.get_by_path(key).info
+#			value = sv.socket0.cpu.get_by_path(f'core{core}').thread0.get_by_path(key).read()
+#			#print(f'{key} : cr_offset = {data['cr_offset']}, numbits = {data['numbits']}')
+#			#for keydata, value in data.items():
+#			#    _crd[key][keydata] = value
+#			#    print(f'thread0.{key} : {value}')
+#		else:
+#			data = sv.socket0.cpu.get_by_path(f'core{core}').get_by_path(key).info
+#			value = sv.socket0.cpu.get_by_path(f'core{core}').get_by_path(key).read()
+#			#print(data)
+#		_crd[regsname[seldict]][key] = {'description':data['description'],
+#										'cr_offset':data['cr_offset'], 
+#										'numbits':data['numbits'],} # Use below entries to build initial s2tregs main file, not needed for the rest.
+#										#'desired_value':hex(_seldict[seldict][key]),
+#										#'ref_value': hex(value)}
+#		print(f"{key} : cr_offset = {data['cr_offset']}, numbits = {data['numbits']}, desired_value = {_seldict[seldict][key]} -- {value}")
+#			#for keydata, value in data.items():
+#			#    _crd[key][keydata] = value
+#			#    print(f'{key} : {value}')
 	if wjson:
 		# Write to JSON file
 		jfile = r'C:\\Temp\\s2tregdata.json'
@@ -2528,22 +2538,25 @@ def cr_reg_check(core = 0,  seldict = 3):
 	s2t_reg = _s2t_reg
 	_seldict =[mesh_crs,slice_crs_min,crdict, s2t_reg]
 	regsname =['mesh_crs','slice_crs_min','crdict', 's2t_reg']
-	for key in _seldict[seldict].keys():
-		regfound = sv.socket0.cpu.get_by_path(f'core{core}').thread0.search(key)
-		#print(regfound)
-		if key in regfound:
 
-			value = sv.socket0.cpu.get_by_path(f'core{core}').thread0.get_by_path(key).read()
-			#print(f'{key} : cr_offset = {data['cr_offset']}, numbits = {data['numbits']}')
-			#for keydata, value in data.items():
-			#    _crd[key][keydata] = value
-			#    print(f'thread0.{key} : {value}')
-		else:
-
-			value = sv.socket0.cpu.get_by_path(f'core{core}').get_by_path(key).read()
-			#print(data)
-
-		print(f"{key} : desired_value = {hex(_seldict[seldict][key])} -- {value}")
+	# Product Specific function to check register values
+	pf._cr_reg_check(sv, _seldict, seldict, core)
+#	for key in _seldict[seldict].keys():
+#		regfound = sv.socket0.cpu.get_by_path(f'core{core}').thread0.search(key)
+#		#print(regfound)
+#		if key in regfound:
+#
+#			value = sv.socket0.cpu.get_by_path(f'core{core}').thread0.get_by_path(key).read()
+#			#print(f'{key} : cr_offset = {data['cr_offset']}, numbits = {data['numbits']}')
+#			#for keydata, value in data.items():
+#			#    _crd[key][keydata] = value
+#			#    print(f'thread0.{key} : {value}')
+#		else:
+#
+#			value = sv.socket0.cpu.get_by_path(f'core{core}').get_by_path(key).read()
+#			#print(data)
+#
+#		print(f"{key} : desired_value = {hex(_seldict[seldict][key])} -- {value}")
 
 ## Data tabulate - Display data in a organized table format
 def printTable(data, header = ['Frequency', 'Value(s)'], label = ''):

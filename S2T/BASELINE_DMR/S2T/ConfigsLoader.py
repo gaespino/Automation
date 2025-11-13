@@ -37,10 +37,12 @@ sys.path.append(MANAGERS_PATH)
 import configs as pe
 import registers as regs
 import functions as pf
+import strategy as strat
 
 importlib.reload(pe)
 importlib.reload(regs)
 importlib.reload(pf)
+importlib.reload(module=strat)
 
 _configs = pe.configurations(SELECTED_PRODUCT)
 
@@ -102,14 +104,21 @@ class ProductConfiguration:
 		self.Physical2apicIDAssignmentOrder10x5 = config_dict['PHY2APICID']
 		self.phys2colrow = config_dict['PHY2COLROW']
 		self.skip_physical_modules = config_dict['SKIPPHYSICAL']
-		
+		self.skip_cores_10x5 = self.skip_physical_modules
 		# DMR specific configurations
-		self.MODS_PER_CBB = self.CORETYPES[PRODUCT_CONFIG]['mods_per_cbb']
-		self.MODS_PER_COMPUTE = self.CORETYPES[PRODUCT_CONFIG]['mods_per_compute']
-		self.MODS_ACTIVE_PER_CBB = self.CORETYPES[PRODUCT_CONFIG]['active_per_cbb']
-		self.MAX_CBBS = self.CORETYPES[PRODUCT_CONFIG]['max_cbbs']
-		self.MAX_IMHS = self.CORETYPES[PRODUCT_CONFIG]['max_imhs']
-		
+		if 'DMR' in DEVICE_NAME:
+			self.MODS_PER_CBB = self.CORETYPES[PRODUCT_CONFIG]['mods_per_cbb']
+			self.MODS_PER_COMPUTE = self.CORETYPES[PRODUCT_CONFIG]['mods_per_compute']
+			self.MODS_ACTIVE_PER_CBB = self.CORETYPES[PRODUCT_CONFIG]['active_per_cbb']
+			self.MAX_CBBS = self.CORETYPES[PRODUCT_CONFIG]['max_cbbs']
+			self.MAX_IMHS = self.CORETYPES[PRODUCT_CONFIG]['max_imhs']
+		else:
+			self.MODS_PER_CBB = None
+			self.MODS_PER_COMPUTE = None
+			self.MODS_ACTIVE_PER_CBB = None
+			self.MAX_CBBS = None
+			self.MAX_IMHS = None
+			
 		# Product fuses
 		self.FUSES = fuses_dict
 		self.DEBUGMASK = fuses_dict['DebugMasks']
@@ -177,15 +186,17 @@ class ProductConfiguration:
 		if self._strategy is None:
 			# Import the appropriate strategy based on product
 			try:
-				if 'GNR' in SELECTED_PRODUCT:
-					from gnr.strategy import GNRStrategy
-					self._strategy = GNRStrategy(self)
-				elif 'CWF' in SELECTED_PRODUCT:
-					from cwf.strategy import CWFStrategy
-					self._strategy = CWFStrategy(self)
-				elif 'DMR' in SELECTED_PRODUCT:
-					from dmr.strategy import DMRStrategy
-					self._strategy = DMRStrategy(self)
+				if 'GNR' in SELECTED_PRODUCT.upper():
+					
+					self._strategy = strat.GNRStrategy(self)
+				
+				elif 'CWF' in SELECTED_PRODUCT.upper():
+					
+					self._strategy = strat.CWFStrategy(self)
+				
+				elif 'DMR' in SELECTED_PRODUCT.upper():
+					
+					self._strategy = strat.DMRStrategy(self)
 				else:
 					raise ValueError(f"No strategy implementation found for product: {SELECTED_PRODUCT}")
 			except Exception as e:
@@ -229,12 +240,21 @@ physical2ClassLogical = config.physical2ClassLogical
 Physical2apicIDAssignmentOrder10x5 = config.Physical2apicIDAssignmentOrder10x5
 phys2colrow = config.phys2colrow
 skip_physical_modules = config.skip_physical_modules
+skip_cores_10x5 = skip_physical_modules # Duplicate for old product variable name
 
-MODS_PER_CBB = config.MODS_PER_CBB
-MODS_PER_COMPUTE = config.MODS_PER_COMPUTE
-MODS_ACTIVE_PER_CBB = config.MODS_ACTIVE_PER_CBB
-MAX_CBBS = config.MAX_CBBS
-MAX_IMHS = config.MAX_IMHS
+# DMR specific configurations
+if 'DMR' in DEVICE_NAME:
+	MODS_PER_CBB = config.MODS_PER_CBB
+	MODS_PER_COMPUTE = config.MODS_PER_COMPUTE
+	MODS_ACTIVE_PER_CBB = config.MODS_ACTIVE_PER_CBB
+	MAX_CBBS = config.MAX_CBBS
+	MAX_IMHS = config.MAX_IMHS
+else:
+	MODS_PER_CBB = None
+	MODS_PER_COMPUTE = None
+	MODS_ACTIVE_PER_CBB = None
+	MAX_CBBS = None
+	MAX_IMHS = None
 
 DEBUGMASK = config.DEBUGMASK
 PSEUDOCONDFIGS = config.PSEUDOCONDFIGS
@@ -264,6 +284,8 @@ ATE_MASKS = config.ATE_MASKS
 ATE_CONFIG = config.ATE_CONFIG
 DIS2CPM_MENU = config.DIS2CPM_MENU
 DIS2CPM_DICT = config.DIS2CPM_DICT
+DIS1CPM_MENU = config.DIS1CPM_MENU
+DIS1CPM_DICT = config.DIS1CPM_DICT
 RIGHT_HEMISPHERE = config.RIGHT_HEMISPHERE
 LEFT_HEMISPHERE = config.LEFT_HEMISPHERE
 

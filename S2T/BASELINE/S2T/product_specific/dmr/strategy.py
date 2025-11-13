@@ -93,7 +93,11 @@ class DMRStrategy(ProductStrategy):
 		Returns False because DMR doesn't have mesh_hdc_volt (no HDC voltage domain).
 		"""
 		return False  # DMR doesn't have HDC, it has MLC instead
-	
+
+	def has_mlc_at_core(self) -> bool:
+		"""DMR has MLC at core level."""
+		return True
+		
 	def supports_600w_config(self) -> bool:
 		"""DMR does not support 600W configuration."""
 		return False

@@ -6,7 +6,7 @@ Code migration to product specific features
 
 """
 
-CONFIG_PRODUCT = 'DMR'
+CONFIG_PRODUCT = ['DMR', 'DMR_CLTAP']
 
 print (f"Loading Configurations for {CONFIG_PRODUCT} || REV 0.1")
 
@@ -14,22 +14,49 @@ class configurations:
 
 	def __init__(self, product):
 		self.product: str = product
-		self.config_product: str = CONFIG_PRODUCT
+		self.config_product: list[str] = CONFIG_PRODUCT
 		self.product_check(product)
 
+	def _get_chop(self, sv):
+		domains_size = len(sv.socket0.computes)
+		chop = None
+
+		if domains_size == 3:		
+			chop = 'UCC'
+		elif domains_size == 2:
+			chop = 'XCC'
+		elif domains_size == 1:
+			chop = 'HCC' # holder we don't really support GNR HCC 
+		else:
+			raise ValueError (f" Invalid Domains size: {domains_size}")
+		print(f' GNR Product configuration: {chop}')
+		return chop
+
+	def _get_variant(self, sv):
+		domains_size = len(sv.socket0.computes)
+		variant = None
+
+		if domains_size == 3:		
+			variant = 'AP'
+		elif domains_size == 2:
+			variant = 'SP'
+		elif domains_size == 1:
+			variant = 'LP' # holder we don't really support GNR HCC 
+		else:
+			raise ValueError (f" Invalid Domains size: {domains_size}")
+		print(f' GNR Product configuration: {variant}')
+		return variant
+
 	def product_check(self, product):
-		if product != CONFIG_PRODUCT:
+		if product not in CONFIG_PRODUCT:
 			raise ValueError (f" Invalid Product, this function is only available for {CONFIG_PRODUCT}")
 
 	def init_product_specific(self):
 		
 		# Product config
 		product = self.product
-		#DMR_TOTAL_MODULES_PER_CBB = 32
-		#DMR_TOTAL_MODULES_PER_COMPUTE = 8
-		#DMR_TOTAL_ACTIVE_MODULES_PER_CBB = 32
-
-		# System Specific Configurations based on product		
+		
+		# System Specific Configurations based on product
 		ConfigFile = f'{product}FuseFileConfigs.json'
 		CORESTRING = 'MODULE'
 		CORETYPES = {'DMR_CLTAP':{	'core':'bigcore',

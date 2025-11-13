@@ -10,8 +10,12 @@ from pathlib import Path
 import os
 import sys
 
+# Import DMR decoder
 
-validproducts = {'GNR':'bigcore', 'CWF':'atom'}
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from Decoder.decoder_dmr import decoder_dmr
+
+validproducts = {'GNR':'bigcore', 'CWF':'atom', 'DMR':'bigcore'}
 
 class mcadata():
 	def __init__(self, product):
@@ -26,7 +30,16 @@ class mcadata():
 
 
 	def llc(self):
-    		
+		# Load product-specific LLC data from JSON if available (DMR, future products)
+		# Otherwise use default GNR/CWF hardcoded data
+		try:
+			llc_json = dev_dict('llc_params.json', filedir = self.jsfile_dir)
+			if llc_json:
+				return llc_json
+		except:
+			pass
+		
+		# Default LLC data for GNR/CWF (fallback)
 		llc_json = {'MSCOD_BY_VAL': {
 		"0": "MSCOD_NONE",
 		"2": "MSCOD_UNCORRECTABLE_TAG_ERROR",
@@ -70,10 +83,15 @@ class decoder():
 	
 	def __init__(self, data, product = 'GNR'):
 		self.data = data
+		self.product = product
 
 		if product in validproducts.keys():
 			self.mcadata = mcadata(product)
 			self.coretype = validproducts[product]
+			
+			# Instantiate DMR-specific decoder if product is DMR
+			if product == 'DMR':
+				self.dmr_decoder = decoder_dmr(data, self.mcadata)
 		else:
 			print(f' Not valid product selected use: {validproducts}')
 			sys.exit()
@@ -155,6 +173,10 @@ class decoder():
 		return  lutvalue
 
 	def cha(self):
+		# Delegate to DMR CCF decoder if product is DMR
+		if self.product == 'DMR':
+			return self.dmr_decoder.ccf()
+		
 		mcdata = self.data
 		# Initialize the new dataframe
 		columns = ['VisualID', 'Run', 'Operation', 'CHA_MC', 'Compute', 'CHA', 'MC_STATUS', 'MC DECODE','MC_ADDR', 'MC_MISC', 'MC_MISC3','Orig Req','Opcode','cachestate','TorID','TorFSM','SrcID','ISMQ','Attribute','Result','Local Port']
@@ -282,6 +304,9 @@ class decoder():
 		return mc_value
 
 	def llc(self):
+		# LLC is included in the same bank as CHA for DMR
+		if self.product == 'DMR':
+			return pd.DataFrame()  # Return empty DataFrame for DMR (LLC is in CCF)
 		
 		mcdata = self.data
 		# Initialize the new dataframe
@@ -405,7 +430,22 @@ class decoder():
 		
 		return mc_value
 
+	def sca(self):
+		"""
+		SCA (Scalable Caching Agent) decoder - DMR only
+		SCA is IO Caching Agent for UIO devices, Bank 14
+		Only used by DMR product
+		"""
+		# SCA is only available for DMR
+		if self.product == 'DMR':
+			return self.dmr_decoder.sca()
+		else:
+			return pd.DataFrame()  # Return empty DataFrame for non-DMR products
+
 	def core(self):
+		# Delegate to DMR core decoder if product is DMR
+		if self.product == 'DMR':
+			return self.dmr_decoder.core()
 		
 		coretype = self.coretype
 		mcdata = self.data

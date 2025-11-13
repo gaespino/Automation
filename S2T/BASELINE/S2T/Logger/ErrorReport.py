@@ -23,6 +23,21 @@ SELECTED_PRODUCT = pe.SELECTED_PRODUCT
 SELECTED_VARIANT = pe.PRODUCT_VARIANT
 MAXPHYSICAL = pe.MAXPHYSICAL
 
+# Import MCA bank decoders based on product
+try:
+	if SELECTED_PRODUCT == 'GNR':
+		from users.gaespino.dev.S2T.product_specific.gnr import mca_banks
+	elif SELECTED_PRODUCT == 'CWF':
+		from users.gaespino.dev.S2T.product_specific.cwf import mca_banks
+	elif SELECTED_PRODUCT == 'DMR':
+		from users.gaespino.dev.S2T.product_specific.dmr import mca_banks
+	else:
+		mca_banks = None
+		print(f'MCA bank decoder not available for {SELECTED_PRODUCT}')
+except Exception as e:
+	mca_banks = None
+	print(f'Error importing MCA bank decoder: {e}')
+
 
 try: 
 	if SELECTED_PRODUCT == 'GNR':
@@ -94,6 +109,7 @@ FRAMEWORK_VARS = {	'qdf':'',
 					'bumps':'', 
 					'htdis':'', 
 					'dis2CPM':'', 
+					'dis1CPM':'',
 					'freqIA':'', 
 					'voltIA':'', 
 					'freqCFC':'', 
@@ -833,12 +849,87 @@ def mca_file(pathfile, data):
 		dffinal.to_excel(writer, sheet_name='final_bucket', index=False)
 		dfresults.to_excel(writer, sheet_name='results', index=False)
 
+def decode_mca_bank(register_path, status_value=None):
+	"""
+	Decode MCA bank information from register path and status value.
+	Uses product-specific MCA bank decoder if available.
+	
+	Args:
+		register_path (str): Full register path from pysvtools
+		status_value (int, optional): MCi_STATUS register value
+		
+	Returns:
+		str: Formatted bank information or empty string if decoder unavailable
+	"""
+	if mca_banks is None:
+		return ""
+	
+	try:
+		# Extract bank ID from common register path patterns
+		bank_id = None
+		
+		# Try to extract bank number from register name
+		if 'mc0_status' in register_path or 'ifu_cr' in register_path:
+			bank_id = 0
+		elif 'mc1_status' in register_path or 'dcu_cr' in register_path or 'mec_cr' in register_path:
+			bank_id = 1
+		elif 'mc2_status' in register_path or 'dtlb_cr' in register_path or 'bbl_cr' in register_path:
+			bank_id = 2
+		elif 'mc3_status' in register_path or 'ml2_cr' in register_path or 'bus_cr' in register_path:
+			bank_id = 3
+		elif 'l2_cr' in register_path:
+			bank_id = 4
+		elif 'pmsb' in register_path.lower() or 'pma_core' in register_path:
+			bank_id = 4
+		elif 'cha' in register_path.lower() and 'mc_status' in register_path:
+			bank_id = 5
+		elif 'imc' in register_path.lower() or 'mcchan' in register_path:
+			bank_id = 6
+		elif 'b2cmi' in register_path.lower():
+			bank_id = 7
+		elif 'mse' in register_path.lower() and 'mci_status' in register_path:
+			bank_id = 8
+		elif 'llc' in register_path.lower() or 'scf_llc' in register_path:
+			bank_id = 9
+		elif 'upi' in register_path.lower() or 'kti_mc_st' in register_path:
+			bank_id = 10
+		elif 'ubox' in register_path.lower():
+			bank_id = 11
+		elif 'punit' in register_path.lower() and 'mc_status' in register_path:
+			bank_id = 12
+		
+		if bank_id is not None:
+			bank_name = mca_banks.get_bank_name(bank_id)
+			bank_full = mca_banks.get_bank_full_name(bank_id)
+			bank_info = mca_banks.get_bank_info(bank_id)
+			
+			decoded = f" --> MCA Bank {bank_id}: {bank_name} ({bank_full})"
+			if bank_info:
+				decoded += f"\n     Scope: {bank_info['scope']} | {bank_info['description']}"
+				if bank_info.get('notes'):
+					decoded += f"\n     Note: {bank_info['notes']}"
+			
+			return decoded
+		
+	except Exception as e:
+		# Silently fail if decoding fails
+		pass
+	
+	return ""
+
 # Portion of code extracted from core debug
 def mca_dump_gnr(verbose=True):
 
 	def print_valid(i,a,mc,e,b=63,save=False):
 		try:
-			if verbose: print("%s = 0x%x" %(i.path, i.read()))
+			if verbose: 
+				status_val = i.read()
+				print("%s = 0x%x" %(i.path, status_val))
+				# Add decoded bank information
+				decoded_info = decode_mca_bank(i.path, status_val)
+				if decoded_info:
+					print(decoded_info)
+			
 			if i.bits(b,1): 
 				a.append(i)
 				mc.append(i)
@@ -1037,8 +1128,15 @@ def mca_dump_gnr(verbose=True):
 			
 	if a != []:
 		print('\nFOUND VALID MCA')
+		print('='*80)
 		for i in a:
-			print("%s = 0x%x" %(i.path, i.get_value()))
+			status_val = i.get_value()
+			print("%s = 0x%x" %(i.path, status_val))
+			# Add decoded bank information for summary
+			decoded_info = decode_mca_bank(i.path, status_val)
+			if decoded_info:
+				print(decoded_info)
+			print('-'*80)
 			if 'cha' in i.path: pysvdecode['cha'] = True
 			if 'scf_llc' in i.path: pysvdecode['llc'] = True
 			if 'ubox' in i.path: pysvdecode['ubox'] = True
@@ -1063,7 +1161,14 @@ def mca_dump_cwf(verbose=True):
 
 	def print_valid(i,a,mc,e,b=63,save=False):
 		try:
-			if verbose: print("%s = 0x%x" %(i.path, i.read()))
+			if verbose: 
+				status_val = i.read()
+				print("%s = 0x%x" %(i.path, status_val))
+				# Add decoded bank information
+				decoded_info = decode_mca_bank(i.path, status_val)
+				if decoded_info:
+					print(decoded_info)
+			
 			if i.bits(b,1): 
 				a.append(i)
 				mc.append(i)
@@ -1273,8 +1378,15 @@ def mca_dump_cwf(verbose=True):
 			mcadata['TestValue'].append("0x%x" % i.get_value())
 	if a != []:
 		print('\nFOUND VALID MCA')
+		print('='*80)
 		for i in a:
-			print("%s = 0x%x" %(i.path, i.get_value()))
+			status_val = i.get_value()
+			print("%s = 0x%x" %(i.path, status_val))
+			# Add decoded bank information for summary
+			decoded_info = decode_mca_bank(i.path, status_val)
+			if decoded_info:
+				print(decoded_info)
+			print('-'*80)
 			if 'cha' in i.path: pysvdecode['cha'] = True
 			if 'scf_llc' in i.path: pysvdecode['llc'] = True
 			if 'ubox' in i.path: pysvdecode['ubox'] = True
@@ -1294,6 +1406,179 @@ def mca_dump_cwf(verbose=True):
 	return mcadata, pysvdecode
 	#return a
 
+def mca_dump_dmr(verbose=True):
+
+    
+    def print_valid(i,a,e,b=63):
+        try:
+            if verbose: 
+                status_val = i.read()
+                print("%s = 0x%x" %(i.path, status_val))
+                # Add decoded bank information
+                decoded_info = decode_mca_bank(i.path, status_val)
+                if decoded_info:
+                    print(decoded_info)
+            
+            if i.bits(b,1): 
+                a.append(i)
+                return True
+            else:
+                return False
+        except:
+            #print("Access failed to: {}".format(i.path))
+            print("%s = <error reading>" %(i.path))
+            e.append(i)
+            return False
+    
+    import ipccli
+    itp = ipccli.baseaccess()
+    itp.unlock()
+    if not sv.sockets: sv.refresh()
+    a=[] #mcas
+    e=[] #errors
+
+    sv.sockets.cbbs.computes.modules.cores.setaccess('crb') #no halt required
+    
+    with itp.device_locker():
+        ##MachineCheckBank:0:IFU
+        for i in sv.socket0.cbbs.computes.modules.cores.ifu_cr_mc0_status:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.ifu_cr_mc0_addr)
+        for i in sv.socket0.cbbs.computes.modules.cores.rob1_cr_mc_status:
+            print_valid(i,a,e)
+
+        ##MachineCheckBank:1:DCU
+        for i in sv.socket0.cbbs.computes.modules.cores.dcu_cr_mc1_status:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.dcu_cr_mc1_addr)
+        ##MachineCheckBank:2:DTLB
+        for i in sv.socket0.cbbs.computes.modules.cores.dtlb_cr_mc2_status:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.dtlb_cr_mc2_addr)
+        ##MachineCheckBank:3:MLC
+        for i in sv.socket0.cbbs.computes.modules.ml2_cr_mc3_status:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.ml2_cr_mc3_addr)
+		##MachineCheckBAnk:rob1_cr_mc_status
+        ##MachineCheckBank:4:PUNIT_CBB
+        for i in sv.socket0.cbbs.base.punit_regs.punit_gpsb.gpsb_infvnn_crs.mc_status:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.mc_addr)
+                
+    # for i in sv.sockets.computes.uncore.core_pmsb.core_pmsbs.core_pmsb_instance.pmsb_top.pma_core.error_report: no se
+            # print_valid(i,a,e,b=0)
+    #for i in sv.sockets.soc.chalogical.chas.util.mc_status:
+    
+        ##MachineCheckBank:5:NCU
+        for i in sv.socket0.cbbs.base.sncu_top.sncevents.mc5_status:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.mc5_addr)
+    # #sometimes the iMC paths not showing in computes..use soc backup method
+        ##MachineCheckBank:6:CCF
+        for i in sv.socket0.cbbs.base.i_ccf_envs.cbregs_alls.mc_status:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.mc_addr)
+
+        ##MachineCheckBank:7:D2D_CBB: [stack_0/1, ula_0/1]
+        for i in sv.socket0.cbbs.base.d2d_stack_0.ula_0.ula.ula_mc_st:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.ula_mc_ad)
+        for i in sv.socket0.cbbs.base.d2d_stack_0.ula_1.ula.ula_mc_st:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.ula_mc_ad)
+        for i in sv.socket0.cbbs.base.d2d_stack_1.ula_0.ula.ula_mc_st:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.ula_mc_ad)
+        for i in sv.socket0.cbbs.base.d2d_stack_1.ula_1.ula.ula_mc_st:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.ula_mc_ad)
+        ##MachineCheckBank:10:RASIP
+        for i in sv.socket0.imhs.rasip.root_ras.rasip_regs_block.rasip_reg_msg_cr_rasip_error_handler_cr.reg_cr_mci_status:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.reg_cr_mci_addr)
+        ##MachineCheckBank:11:PUNIT_IMH
+        for i in sv.socket0.imhs.punit.ras.gpsb.mc_status:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.mc_addr)
+        ##MachineCheckBank:12:HAMVF
+        #for i in sv.socket0.imhs.scf.hamvf.ha_0.mci_status:
+        #    if print_valid(i,a,e):
+        #        if i.bits(58,1): a.append(i.parent.mc_addr)
+        for ha_index in range(16):  # Loop from 0 to 15
+            ha_instance = getattr(sv.socket0.imhs.scf.hamvf, f'ha_{ha_index}')
+            for i in ha_instance.mci_status:
+                if print_valid(i, a, e):
+                    if i.bits(58, 1):
+                        a.append(i.parent.mc_addr)
+        ##MachineCheckBank:13:HSF
+        #for i in sv.socket0.imhs.scf.hamvf.hsf_0.util.mci_status:
+        #    if print_valid(i,a,e):
+        #        if i.bits(58,1): a.append(i.parent.mci_addr)
+        for hsf_index in range(16):  # Loop from 0 to 15
+            hsf_instance = getattr(sv.socket0.imhs.scf.hamvf, f'hsf_{hsf_index}')
+            for i in hsf_instance.util.mci_status:
+                if print_valid(i, a, e):
+                    if i.bits(58, 1):
+                        a.append(i.parent.mci_addr)
+        ##MachineCheckBank:14:SCA
+        for i in sv.socket0.imhs.scf.sca.scas.util.mc_status:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.mc_addr)
+        ##MachineCheckBank:15:D2D_IMH
+        #for i in sv.socket0.imhs.d2d_stack.d2d_stack_0.uxi_0.ula_mc_st:
+        #    if print_valid(i,a,e):
+        #        if i.bits(58,1): a.append(i.parent.ula_mc_ad)
+        for uxi_index in range(2):  # Loop for uxi_0 and uxi_1
+            for stack_index in range(6):  # Loop from d2d_stack_0 to d2d_stack_5
+                d2d_stack_instance = getattr(sv.socket0.imhs.d2d_stack, f'd2d_stack_{stack_index}')
+                uxi_instance = getattr(d2d_stack_instance, f'uxi_{uxi_index}')
+                for i in uxi_instance.ula_mc_st:
+                    if print_valid(i, a, e):
+                        if i.bits(58, 1):
+                            a.append(i.parent.ula_mc_ad)                
+        ##MachineCheckBank:16:MSE
+        for i in sv.socket0.imhs.memss.mcs.subchs.mse.mse_mci_status:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.mse_mci_addr)
+        ##MachineCheckBank:17:IOCACHE
+        for i in sv.socket0.imhs.scf.sca.iocaches.util.mci_status:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.mci_addr)
+        ##MachineCheckBank:18:UXI
+        for i in sv.socket0.imhs.ula.ula_uios.ula_mc_st:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.ula_mc_ad)
+        ##MachineCheckBanks:19-26:MCCHAN0-7
+        for i in sv.socket0.imhs.memss.mcs.subchs.mcdata.imc0_mc_status:
+            if print_valid(i,a,e):
+                if i.bits(58,1): a.append(i.parent.parent.mctrk.imc0_mc_addr)              
+    if a != []:
+        print('\nFOUND VALID MCA')
+        print('='*80)
+        for i in a:
+            status_val = i.get_value()
+            print(f"{i.path} = {hex(status_val)}")
+            # Add decoded bank information for summary
+            decoded_info = decode_mca_bank(i.path, status_val)
+            if decoded_info:
+                print(decoded_info)
+            if verbose: print("%s \n"%i.show())
+            print('-'*80)
+        print('''
+Dump: IFU, DCU, DTLB, MLC, PUNIT_CBB, NCU, CCF, D2D_CBB, RASIP, PUNIT_IMH, HAMVF, HSF, SCA, D2D_IMH, MSE, IOCACHE, UXI, MCCHANS
+        ''')
+    else:
+        print('''
+did not find valid MCA
+Dump: IFU, DCU, DTLB, MLC, PUNIT_CBB, NCU, CCF, D2D_CBB, RASIP, PUNIT_IMH, HAMVF, HSF, SCA, D2D_IMH, MSE, IOCACHE, UXI, MCCHANS
+        ''')
+    
+    if e != []:
+        print('errors found during mca_dump. see above')
+    
+    sv.sockets.cbbs.computes.modules.cores.setaccess('default') #restore
+    #return a
+	
 def readscratchpad():
 	scratchpad = str(sv.socket0.io0.uncore.ubox.ncdecs.biosnonstickyscratchpad7_cfg)
 	return scratchpad

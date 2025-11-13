@@ -17,6 +17,7 @@ current_dir= os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 print(' Framework Automation Panel -- rev 1.7')
+# Note: parent_dir path not printed to avoid console clutter
 
 sys.path.append(parent_dir)
 

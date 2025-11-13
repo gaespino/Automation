@@ -2218,175 +2218,38 @@ class registers:
         return _crdict
 
     @staticmethod
-    def s2t_reg():
+    def s2t_reg(skip_keys=None):
+        """
+        Load register dictionary from s2tregdata.json file.
         
-        # Dict will be loaded from json file in in s2t\Regfiles folder
-        # Below is all the new values, all keys should be available in json data, if something needs to be added, please run again 
-        # cr_reg_dump(core = 0,  seldict = 3, wjson = True) # To rebuild the json file, copy and replace, new file will be placed in C:\Temps
+        Args:
+            skip_keys (list, optional): List of register keys to skip/exclude from the dictionary.
+                                       Defaults to None (no keys skipped).
+        
+        Returns:
+            dict: Dictionary with register names as keys and their desired_values (converted to int).
+        
+        Example:
+            # Load all registers
+            regs = registers.s2t_reg()
+            
+            # Load registers but skip specific ones
+            regs = registers.s2t_reg(skip_keys=['ic_cr_mci_addr', 'mec_cr_mci_ctl'])
+        """
+        # Initialize skip list
+        if skip_keys is None:
+            skip_keys = []
+        
+        # Load the JSON data using the existing regs_dict method
+        json_data = registers.regs_dict(jfile=SLICE_DICT, dictname='s2t_reg')
+        
+        # Build the dictionary from JSON data using desired_value
         _s2t_reg = {
-        'al_cr_alloc_pwrdn_ovrd' : 0x40000000,
-        'al_cr_testmode' : 0x0000155000000000,
-        'bpu1_cr_debug3' : 0x04280000,
-        'ctap_cr_core_config_0' : 0x86910800,
-        'ctap_cr_core_config_1' : 0x18340422,
-        'ctap_cr_core_config_2' : 0x08700820, 
-        'ctap_cr_core_config_3' : 0x000104D7, 
-        'ctap_cr_core_config_5' : 0x63000800, 
-        #'ctap_cr_tap_config' : 0x72081D37, ## HANG
-        'ctap_cr_tap_config2' : 0x00004010,##  
-        'dcu_cr_defeature' : 0x0000000261D800B0, # Issue?
-        'dcu_cr_defeature_2' : 0x00000000000A4FFF, # Issue?
-        'dcu_cr_err_spoof' : 0x00000000, # Issue?
-        'dcu_cr_pwrdn_ovrd' : 0x0000000000000000, # Issue?
-        #'dcu_cr_test_mode' : 0x00060000, ## hang
-        'dcu_cr_uarch' : 0x03FC1B4E,
-        #'dsbfe_cr_pwrdn_ovrd' : 0x00000000, ## Hangs Seeds 1Aught, Aes, Geode, original value 0x40
-        'dsbfe_cr_sou_recl_debug' : 0x00020800,
-        'ieslow_cr_datout' : 0x00000000,
-        'ieslow_cr_vmcs_pla_ctl' : 0x00006CD6,
-        'iq_cr_command' : 0x11000002,
-        'iq_cr_pwrdn_ovrd' : 0x00000000, ## 
-        'mi_cr_iccp_ctrl' : 0x00001080,
-        'ml1_cr_encdr_dtf_src_status' : 0x00000000,
-        'ml1_cr_saf_debug' : 0x00000000,
-        'ml2_cr_dbp_observer_set' : 0x0000001D,
-        'ml2_cr_mc3_ctl' : 0x0000000000000000,
-        'ml2_cr_mcg_contain' : 0x00000000, ##
-        'ml2_cr_mlc_open_ways' : 0x00000002,
-        'ml2_cr_pwrdn_ovrd' : 0x00000000,
-        'ml2_cr_xq_debug' : 0x2A040000,
-        'ml2_cr_xq_debug2' : 0x40006400,
-        'ml3_cr_mcount_counting_factor_p1_val' : 0x00000000, ## 
-        'ml3_cr_pic_boot_message' : 0x800241E0,
-        #'ml3_cr_pic_boot_message_readonly' : 0x800241E0, ## hang
-        #'ml3_cr_pic_core_pm_state_status' : 0x00000001, ## hang pending to verify which one
-        'ml3_cr_pic_tsc' : 0x0000000000000073,
-        'ml4_cr_idi_debug' : 0x83000000,
-        'ml4_cr_snc_config' : 0x00000000,
-        'ml4_cr_snc_range1_base' : 0x00000000,
-        'ml4_cr_snc_range2_base' : 0x00000000,
-        'ml4_cr_snc_range3_base' : 0x00000000,
-        'ml4_cr_snc_range4_base' : 0x00000000, ## 
-        'ml5_cr_mlc_c1_res_counter' : 0x0000000000000000,
-        'ml5_cr_mlc_iccp_config' : 0x0000C202,
-        'ml5_cr_mlc_iccp_pcu_config' : 0x000000F0,
-        'ml5_cr_mlc_iccp_thresholds' : 0x00311400,
-        'ml6_cr_cache_reset' : 0x00000000,
-        'ml6_cr_pref_amp_ctrl' : 0x018A061F,
-        'ml6_cr_pref_debug' : 0x00000213,
-        'ms_cr_defeature2' : 0x00140020,
-        'ms_cr_uarch_cov' : 0x00000DEB,
-        'rat_cr_defeature2' : 0x003C6002, ##
-        'rat_cr_pwrdn_ovrd' : 0x00000000000000C0,
-        'rat_cr_pwrdn_ovrd2' : 0x00000040,
-        'rob1_cr_rs_droop_calc_ctl_cfg' : 0x0000000000000000,
-        'rob1_cr_rs_pvp_ctl' : 0x00000000,
-        'rob1_cr_rs_pvp2_ctl_0' : 0x32021099BCDFCF79,
-        'rob1_cr_rs_pvp2_ctl_1' : 0x00400620, ## 
-        'rob1_cr_rs2_dft' : 0x0000030000000000, #
-        'rob1_cr_rs2_pwrdn_ovrd' : 0x00001000,
-        'rs_cr_fine_grain_iccp_cfg' : 0x8008002C1A248448,
-        'rs_cr_rs_dft' : 0x0000080100000400,
-        'rs_cr_rs_pwrdn_ovrd' : 0x00000000,
-        'scp_cr_core_llc_flush_cfg' : 0xA8F989C168D18E40, ## 
-        'scp_cr_core_scoped_misc_flags' : 0x0000000000000000,
-        'scp_cr_core_sp_tap_mastering_patch_load_status' : 0x0000000000000000,
-        'scp_cr_core_specific_data' : 0x00000000,
-        'scp_cr_fscp_c6_save_ranges' : 0x00000154,
-        'scp_cr_patch_rev_id' : 0x00000000,
-        'scp_cr_patch_svn' : 0x00000000,
-        'scp_cr_prmrr_valid_config' : 0x00000002,
-        'scp_cr_rkey_high' : 0x0000000000000000,
-        'scp_cr_rkey_low' : 0x0000000000000000,
-        'scp_cr_stepping_id' : 0x00000000, ## 
-        'scp_cr_ucode_se_svn' : 0x00000000,
-        'thread0.bac_cr_cs_base' : 0x00026000, ## Thread0/Thread1 different - Don't see it being written
-        'thread0.ctap_cr_distributed_0' : 0x0000000000000000,
-        'thread0.ctap_cr_distributed_2' : 0x0000000000000000,
-        'thread0.ctap_cr_probe_mode_dr' : 0x0000000000000000,
-        'thread0.ctap_cr_ucode_iosf_control' : 0x00000000,
-        'thread0.ctap_cr_ucode_iosf_data' : 0x0000000000000000,
-        'thread0.dcu_cr_mc1_ctl' : 0x0000000000000000,
-        'thread0.dsbfe_cr_taenc_key' : 0x2C000004,
-        'thread0.ml3_cr_opd_control' : 0x00008140, ## Thread0/Thread1 different
-        'thread0.ml3_cr_pic_lt_doorbell' : 0x00000000, 
-        #'thread0.ml3_cr_pic_mail_box_address' : 0x00000000, ## Hanged unit with mc 406 
-        'thread0.ml3_cr_pic_mail_box_data' : 0x00000000, ## Thread0/Thread1 different
-        'thread0.ml3_cr_pic_piclet_state' : 0xA000000180000000, ## Thread0/Thread1 different
-        #'thread0.ml3_cr_pic_sipi_vector' : 0x00000000,
-        'thread0.ml3_cr_pic_thread_config' : 0x00000400,
-        'thread0.ml3_cr_pic_timer_initial_count_reg' : 0x00000000,
-        'thread0.ml3_cr_pic_timer_status' : 0x00010000,
-        #'thread0.ml4_cr_bios_done' : 0x00000000,
-        'thread0.ml5_cr_pic_lvt_lint0' : 0x00010000,
-        'thread0.ml5_cr_pic_lvt_lint1' : 0x00010000, ##
-        'thread0.ml5_cr_pic_lvt_timer' : 0x00010000,
-        'thread0.ml5_cr_pic_spurious_interrupt' : 0x000001FF, # Using 0x1FF instead of 0xff, system bit can't be cleared.
-        'thread0.ms_cr_hw_mbb' : 0x18000040000040F0, ## Thread0/Thread1 different
-        #'thread0.ms_cr_mbb_pppe_exe_ctl' : 0x0000000000000000, # Issues with console
-        #'thread0.ms_cr_mbb_ucode_state' : 0x0002004080480110, # Issues with console
-        'thread0.ms_cr_micro_match_record_reg' : 0x00000000,
-        'thread0.ms_cr_mswrms_mbb' : 0x00000003, ## Thread0/Thread1 different
-        'thread0.rat_cr_psegbits' : 0x00000007, ## Thread0/Thread1 different
-        'thread0.rat_cr_tagword' : 0x000000FF,
-        'thread0.rob1_cr_emon_fixed_ctr_ctrl' : 0x0000000000000FFF,## Thread0/Thread1 different
-        'thread0.rob1_cr_emon_gen_ctr0' : 0x0000000000000721,## Thread0/Thread1 different / duplicated
-        'thread0.rob1_cr_emon_perf_global_ctrl' : 0x00000007000000FF, ## Thread0/Thread1 different
-        'thread0.rob1_cr_fpctl' : 0x00000020,
-        'thread0.rob1_cr_pebs_enable' : 0x000000000000000F, ## Thread0/Thread1 different
-        'thread0.scp_cr_flow_details' : 0x00880000, ## Thread0/Thread1 different
-        'thread0.scp_cr_ibgenc_key_seam' : 0x00000000,
-        'thread0.scp_cr_inter_thread_misc' : 0x00000000,
-        'thread0.scp_cr_misc_flags' : 0x00000082, ## Thread0/Thread1 different
-        'thread0.scp_cr_misc_package_ctls_p2u_cmd' : 0x00000000,
-        'thread0.scp_cr_optin_feature_control' : 0x00000000,
-        'thread0.scp_cr_prng_ctr' : 0x00000000,
-        'thread0.scp_cr_psmi_ctrl' : 0x00000001,
-        'thread0.scp_cr_target_sleep_state' : 0x00020101, ## Thread0/Thread1 different
-        'thread1.ctap_cr_distributed_0' : 0x0000000000000000,
-        'thread1.ctap_cr_distributed_2' : 0x0000000000000000,
-        'thread1.ctap_cr_probe_mode_dr' : 0x0000000000000000,
-        'thread1.ctap_cr_ucode_iosf_control' : 0x00000000,
-        'thread1.ctap_cr_ucode_iosf_data' : 0x0000000000000000,
-        'thread1.dcu_cr_mc1_ctl' : 0x0000000000000000,
-        'thread1.dsbfe_cr_taenc_key' : 0x2C000004,
-        'thread1.ml3_cr_opd_control' : 0x00008051,
-        #'thread1.ml3_cr_pic_event_inhibit' : 0x0006227D, ## Thread0/Thread1 different / Hang
-        #'thread1.ml3_cr_pic_event_status' : 0x00000000, ## Thread0/Thread1 different / Hang
-        'thread1.ml3_cr_pic_lt_doorbell' : 0x00000000,
-        #'thread1.ml3_cr_pic_mail_box_address' : 0x00000000,
-        'thread1.ml3_cr_pic_piclet_state' : 0xA000000280010001,
-        #'thread1.ml3_cr_pic_sipi_vector' : 0x00000000,
-        'thread1.ml3_cr_pic_thread_config' : 0x00000400,
-        'thread1.ml3_cr_pic_timer_initial_count_reg' : 0x00000000,
-        'thread1.ml3_cr_pic_timer_status' : 0x00010000,
-        #'thread1.ml4_cr_bios_done' : 0x00000000,
-        'thread1.ml5_cr_pic_lvt_lint0' : 0x00010000,
-        'thread1.ml5_cr_pic_lvt_lint1' : 0x00010000,
-        'thread1.ml5_cr_pic_lvt_timer' : 0x00010000,
-        'thread1.ml5_cr_pic_spurious_interrupt' : 0x000000FF, # Using 0x1FF instead of 0xff, system bit can't be cleared.
-        'thread1.ms_cr_hw_mbb' : 0x0000004000000080,
-        #'thread1.ms_cr_mbb_pppe_exe_ctl' : 0x0000000000000000, # Issues with console
-        #'thread1.ms_cr_mbb_ucode_state' : 0x0002004080480110, # Issues with console
-        'thread1.ms_cr_micro_match_record_reg' : 0x00000000,
-        'thread1.ms_cr_mswrms_mbb' : 0x00000000,
-        'thread1.rat_cr_psegbits' : 0x00000000,
-        'thread1.rat_cr_tagword' : 0x000000FF,
-        'thread1.rob1_cr_emon_fixed_ctr_ctrl' : 0x0000000000000000,
-        'thread1.rob1_cr_emon_gen_ctr0' : 0x0000000000000000,
-        'thread1.rob1_cr_emon_perf_global_ctrl' : 0x00000000000000FF,
-        'thread1.rob1_cr_fpctl' : 0x00000020,
-        'thread1.rob1_cr_pebs_enable' : 0x0000000000000000,
-        'thread1.scp_cr_flow_details' : 0x008B0000,
-        'thread1.scp_cr_ibgenc_key_seam' : 0x00000000,
-        'thread1.scp_cr_inter_thread_misc' : 0x00000000,
-        'thread1.scp_cr_misc_flags' : 0x00000080,
-        'thread1.scp_cr_misc_package_ctls_p2u_cmd' : 0x00000000,
-        'thread1.scp_cr_optin_feature_control' : 0x00000000,
-        'thread1.scp_cr_prng_ctr' : 0x00000000,
-        'thread1.scp_cr_psmi_ctrl' : 0x00000001,
-        'thread1.scp_cr_target_sleep_state' : 0x00061101
+            key: int(reg_info.get('desired_value', '0x0'), 16)
+            for key, reg_info in json_data.items()
+            if key not in skip_keys
         }
+        
         return _s2t_reg
 
     @staticmethod

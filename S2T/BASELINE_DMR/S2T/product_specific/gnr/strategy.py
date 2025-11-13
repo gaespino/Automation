@@ -87,7 +87,11 @@ class GNRStrategy(ProductStrategy):
 	def has_hdc_at_core(self) -> bool:
 		"""GNR has HDC at uncore level."""
 		return False
-	
+
+	def has_mlc_at_core(self) -> bool:
+		"""GNR has HDC at uncore level."""
+		return False
+		
 	def supports_600w_config(self) -> bool:
 		"""GNR supports 600W configuration."""
 		return True

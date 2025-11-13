@@ -11,21 +11,58 @@ import os
 #import json
 #import re
 import Decoder.decoder as mcparse
+import re
 
 
 def init_select_data(product):
 		
 	atomlist = ['SRF','CWF']
+	dmrlist = ['DMR']
 	coretype = 'atom' if product in atomlist else 'bigcore'
 	reduced_data_cha = {}
 	reduced_data_core = {}
 	reduced_data_others = {}
 
-	if coretype == 'bigcore':## Declaring reduced data Information
+	if product in dmrlist:## Declaring reduced data Information for DMR
 		reduced_data_cha = {
-								'UTIL__MC_STATUS': '0X20000000000000',
+								'__MC_STATUS': r'0[xX]20000.00000000',
+								'__MC_ADDR':None, 
+								'__MCI_STATUS': r'0[xX]20000.00000000',
+								'__MCI_MISC':'0X80',
+								'__MCI_ADDR':None,
+								'__MC_MISC':'0X80',
+								'UBOX':None,
+								'FW_ERR_CAUSE': None,
+								'S3M_ERR_STS' : None,
+								#'I_CCF_ENV':None,  # DMR uses CCF instead of CHA
+								#'SCF__SCA':None,    # DMR uses SCA for LLC
+								'PTPCFSMS__MC_STATUS':None}
+		reduced_data_core = {
+								'ML2_CR_MC3': '0X7F', # ML2 MCAs 
+								'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
+								'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
+								'DCU_CR_MC1':'0X1F', # DCU MCAs 
+								'DTLB_CR_MC2':'0X3F', # DTLB MCAs 
+								'ROB1_CR_MC':None, # ROB1 MCAs -- to be included in excel dashboard
+								'C6SRAM_MCA_STATUS':None, # C6SRAM MCAs -- to be included in excel dashboard
+								'PMSB':None}
+		reduced_data_others = {
+								'__ULA_MC_ST': '0X20000000000000',
+								'__ULA_MC_AD': None,
+								'MEMSS__B2CMI': '0X7F', # Memory errors
+								'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
+								'IFU_CR_MC0':'0X1FFF',
+								'DCU_CR_MC1':'0X1F',
+								'DTLB_CR_MC2':'0X3F',
+								'ROB1_CR_MC':None,
+								'C6SRAM_MCA_STATUS':None,
+								'PMSB':None}
+
+	elif coretype == 'bigcore':## Declaring reduced data Information
+		reduced_data_cha = {
+								'UTIL__MC_STATUS': r'0[xX]20000.00000000',
 								'UTIL__MC_ADDR':None, 
-								'__MCI_STATUS':'0X20000000000000',
+								'__MCI_STATUS': r'0[xX]20000.00000000',
 								'__MCI_MISC':'0X80',
 								'__MCI_ADDR':None,
 								'UTIL__MC_MISC':'0X80',
@@ -55,11 +92,11 @@ def init_select_data(product):
 								'C6SRAM_MCA_STATUS':None, # DTLB MCAs
 								'PMSB':None}
 		
-	if coretype == 'atom':## Declaring reduced data Information
+	elif coretype == 'atom':## Declaring reduced data Information
 		reduced_data_cha = {
-								'UTIL__MC_STATUS': '0X20000000000000',
+								'UTIL__MC_STATUS': r'0[xX]20000.00000000',
 								'UTIL__MC_ADDR':None, 
-								'__MCI_STATUS':'0X20000000000000',
+								'__MCI_STATUS': r'0[xX]20000.00000000',
 								'__MCI_MISC':'0X80',
 								'__MCI_ADDR':None,
 								'UTIL__MC_MISC':'0X80',
@@ -295,7 +332,13 @@ class ppv_report():
 				keyisthere = source_data['TestName'].str.contains(key)
 				if len(keyisthere) > 0:
 					if data_to_port[key] is not None:
-						_filtered_data = source_data[(source_data['TestName'].str.contains(key)) & (source_data['TestValue'] != data_to_port[key])]
+						# Check if the filter value is a regex pattern (starts with raw string format)
+						if isinstance(data_to_port[key], str) and data_to_port[key].startswith('0[xX]'):
+							# Use regex matching for pattern-based filters
+							_filtered_data = source_data[(source_data['TestName'].str.contains(key)) & (~source_data['TestValue'].str.match(data_to_port[key], case=False))]
+						else:
+							# Use exact matching for non-pattern filters
+							_filtered_data = source_data[(source_data['TestName'].str.contains(key)) & (source_data['TestValue'] != data_to_port[key])]
 						filtered_data = pd.concat([filtered_data, _filtered_data])
 					else:
 						_filtered_data = source_data[(source_data['TestName'].str.contains(key))]
@@ -473,25 +516,44 @@ class ppv_report():
 		
 		mcas = pd.read_excel(source_file, sheet_name=source_sheet)
 
-		
 		# Call decoder
 		mc = mcparse.decoder(data= mcas, product=self.product)
 		
-		cha_df = mc.cha()
-		llc_df = mc.llc()
-		ubox_df = mc.portids()
-
-		# Save the new dataframe to a new worksheet named "CHA_MCAS"
-		with pd.ExcelWriter(source_file, engine='openpyxl', mode='a') as writer:
-			cha_df.to_excel(writer, sheet_name='CHA_MCAS', index=False)
-			llc_df.to_excel(writer, sheet_name='LLC_MCAS', index=False)
-			ubox_df.to_excel(writer, sheet_name='UBOX', index=False)
-		#with pd.ExcelWriter(source_file, engine='openpyxl', mode='a') as writer:
-			
+		# Decode different IP blocks
+		cha_df = mc.cha()  # CCF for DMR (includes LLC), CHA for GNR/CWF
+		llc_df = mc.llc()  # Empty for DMR (LLC is in CCF), LLC for GNR/CWF
+		sca_df = mc.sca()  # SCA for DMR (IO caching agent), Empty for GNR/CWF
+		ubox_df = mc.portids()  # Port ID decoding
 		
-		addtable(df=cha_df, excel_file=source_file, sheet='CHA_MCAS', table_name='chadecode')
-		addtable(df=llc_df, excel_file=source_file, sheet='LLC_MCAS', table_name='llcdecode')
-		addtable(df=ubox_df, excel_file=source_file, sheet='UBOX', table_name='uboxdecode')
+		print(f' -- DataFrame sizes: CHA={len(cha_df)}, LLC={len(llc_df)}, SCA={len(sca_df)}, UBOX={len(ubox_df)}')
+
+		# Save dataframes to Excel only if they contain data
+		sheets_to_create = {}
+		if not cha_df.empty:
+			sheets_to_create['CHA_MCAS'] = cha_df
+		if not llc_df.empty:
+			sheets_to_create['LLC_MCAS'] = llc_df
+		if not sca_df.empty:
+			sheets_to_create['SCA_MCAS'] = sca_df
+		if not ubox_df.empty:
+			sheets_to_create['UBOX'] = ubox_df
+		
+		# Write all non-empty dataframes to Excel
+		if sheets_to_create:
+			with pd.ExcelWriter(source_file, engine='openpyxl', mode='a') as writer:
+				for sheet_name, df in sheets_to_create.items():
+					print(f' -- Writing {sheet_name} sheet with {len(df)} rows')
+					df.to_excel(writer, sheet_name=sheet_name, index=False)
+		
+		# Add tables for each created sheet
+		if not cha_df.empty:
+			addtable(df=cha_df, excel_file=source_file, sheet='CHA_MCAS', table_name='chadecode')
+		if not llc_df.empty:
+			addtable(df=llc_df, excel_file=source_file, sheet='LLC_MCAS', table_name='llcdecode')
+		if not sca_df.empty:
+			addtable(df=sca_df, excel_file=source_file, sheet='SCA_MCAS', table_name='scadecode')
+		if not ubox_df.empty:
+			addtable(df=ubox_df, excel_file=source_file, sheet='UBOX', table_name='uboxdecode')
 
 	def parse_CORE_mcas(self, source_file, source_sheet):
     		

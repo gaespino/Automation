@@ -130,7 +130,6 @@ from ExecutionHandler.Configurations import (DragonConfiguration, LinuxConfigura
 ULX_CPU_DICT = {'GNR': 'GNR_B0',
 		   'CWF': 'CWF -gsv'}
 
-print(s2t.config.SELECTED_PRODUCT)
 class ContentValues(Enum):
 	PRODUCT = s2t.config.SELECTED_PRODUCT
 	ULX_CPU = ULX_CPU_DICT[PRODUCT]
@@ -681,7 +680,8 @@ class TestExecutor:
 					debug=False,
 					boot_postcode=(self.config.content == ContentType.BOOTBREAKS),
 					extMask=self.config.extMask,
-					execution_state = self.execution_state
+					u600w=self.config.u600w,
+					execution_state=self.execution_state
 				)
 			debug_log("MESH S2T flow completed", 1, "MESH_COMPLETE")
 		elif self.config.target == TestTarget.SLICE:
@@ -702,7 +702,8 @@ class TestExecutor:
 					volttype=self.config.volt_type.value,
 					debug=False,
 					boot_postcode=(self.config.content == ContentType.BOOTBREAKS),
-					execution_state = self.execution_state
+					u600w=self.config.u600w,
+					execution_state=self.execution_state
 				)
 			debug_log("SLICE S2T flow completed", 1, "SLICE_COMPLETE")
 		
