@@ -80,12 +80,14 @@ import namednodes
 import math
 import ipccli
 import sys
+import os
 from ipccli import BitData
 import json
 import importlib
 import os 
 import time
 from tabulate import tabulate
+from importlib import import_module
 
 ipc = ipccli.baseaccess()
 itp = ipc
@@ -96,35 +98,58 @@ sv.refresh()
 verbose = False
 debug = False
 
-## Imports from S2T Folder
-import users.gaespino.dev.S2T.CoreManipulation as scm
-import users.gaespino.dev.S2T.GetTesterCurves as stc
-import users.gaespino.dev.S2T.dpmChecks as dpm
-from users.gaespino.dev.S2T.ConfigsLoader import config
+
+# Append the Main Scripts Path
+MAIN_PATH = os.path.abspath(os.path.dirname(__file__))
+MANAGERS_PATH = os.path.join(MAIN_PATH, 'managers')
+
+## Imports from S2T Folder  -- ADD Product on Module Name for Production
+sys.path.append(MAIN_PATH)
+import ConfigsLoader as cfl
+config = cfl.config
+
+# Set Used product Variable -- Called by Framework
+SELECTED_PRODUCT = config.SELECTED_PRODUCT
+BASE_PATH = config.BASE_PATH
+LEGACY_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 'CWF'] else ''
+THR_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 'CWF', 'DMR'] else ''
+
+if cfl.DEV_MODE:
+	import CoreManipulation as scm
+	import GetTesterCurves as stc
+	import dpmChecks as dpm
+else:
+	scm = import_module(f'{BASE_PATH}.S2T.{LEGACY_NAMING}CoreManipulation')
+	stc = import_module(f'{BASE_PATH}.S2T.{LEGACY_NAMING}GetTesterCurves')
+	dpm = import_module(f'{BASE_PATH}.S2T.dpmChecks{LEGACY_NAMING}')
 
 ## UI Calls
-import users.gaespino.dev.S2T.UI.System2TesterUI as UI
+import UI.System2TesterUI as UI
 
-## Imports from THR folder -
+## Imports from THR folder - These are external scripts, always use same path
+CoreDebugUtils = None
 try:
-	import users.THR.PythonScripts.thr.GNRCoreDebugUtils as CoreDebugUtils 
-except:
-	import users.THR.PythonScripts.thr.CWFCoreDebugUtils as CoreDebugUtils 
+	CoreDebugUtils = import_module(f'{BASE_PATH}.THR.{THR_NAMING}CoreDebugUtils')
+	print(' [+] CoreDebugUtils imported successfully')
+except Exception as e:
+	print(f' [x] Could not import CoreDebugUtils, some features may be limited: {e}')
 
 ## Import Managers and Strategy
-sys.path.append(os.path.join(os.path.dirname(__file__), 'managers'))
+sys.path.append(MANAGERS_PATH)
 import voltage_manager as vmgr
 import frequency_manager as fmgr
 
 ## Reload of all imported scripts
-importlib.reload(scm)
-importlib.reload(CoreDebugUtils)
-importlib.reload(stc)
-importlib.reload(dpm)
-importlib.reload(UI)
-importlib.reload(vmgr)
-importlib.reload(fmgr)
-config.reload()
+if cfl.DEV_MODE:
+	importlib.reload(scm)
+	if CoreDebugUtils is not None:
+		importlib.reload(CoreDebugUtils)
+	importlib.reload(stc)
+	importlib.reload(dpm)
+	importlib.reload(UI)
+	importlib.reload(vmgr)
+	importlib.reload(fmgr)
+	config.reload()
 
 bullets = '>>>'
 s2tflow = None
@@ -150,9 +175,6 @@ if strategy is None:
 	raise ValueError("Could not load product strategy. Check product configuration.")
 
 pf.display_banner(revision, date, engineer)
-
-# Set Used product Variable -- Called by Framework
-SELECTED_PRODUCT = config.SELECTED_PRODUCT
 
 #========================================================================================================#
 

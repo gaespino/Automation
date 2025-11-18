@@ -37,13 +37,44 @@ import importlib
 import os
 from tabulate import tabulate
 from typing import Dict, List, Optional, Union
-
+from importlib import import_module
 
 ## Custom Modulesimport
 
 import toolext.bootscript.boot as b
-import users.gaespino.dev.S2T.dpmChecks as dpm
 
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#========================================================================================================#
+#=============== DIRECT CONFIG ACCESS (Single Source of Truth) ==========================================#
+#========================================================================================================#
+
+# All configuration accessed directly via config object - no redundant declarations
+# This provides a true single source of truth for all product configuration
+
+# Append the Main Scripts Path
+MAIN_PATH = os.path.abspath(os.path.dirname(__file__))
+
+## Imports from S2T Folder  -- ADD Product on Module Name for Production
+sys.path.append(MAIN_PATH)
+import ConfigsLoader as LoadConfig
+config = LoadConfig.config
+
+# Set Used product Variable -- Called by Framework
+SELECTED_PRODUCT = config.SELECTED_PRODUCT
+BASE_PATH = config.BASE_PATH
+LEGACY_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 'CWF'] else ''
+THR_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 'CWF', 'DMR'] else ''
+
+if LoadConfig.DEV_MODE:
+	import dpmChecks as dpm
+	config.reload()
+else:
+	dpm = import_module(f'{BASE_PATH}.S2T.dpmChecks{LEGACY_NAMING}')
+
+pf = config.get_functions()
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -93,21 +124,6 @@ sv_refreshed = True
 verbose = False
 debug = False
 
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-#========================================================================================================#
-#=============== DIRECT CONFIG ACCESS (Single Source of Truth) ==========================================#
-#========================================================================================================#
-
-# All configuration accessed directly via config object - no redundant declarations
-# This provides a true single source of truth for all product configuration
-from users.gaespino.dev.S2T.ConfigsLoader import config
-
-config.reload()
-
-pf = config.get_functions()
-
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 #========================================================================================================#
 #=============== CONSTANTS AND GLOBAL VARIABLES =========================================================#

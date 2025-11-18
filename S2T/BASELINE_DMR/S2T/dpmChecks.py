@@ -54,28 +54,60 @@ import re
 import datetime
 import json
 import importlib
+from importlib import import_module
 
 # Tools and libraries from pythonsv
 import toolext.bootscript.boot as b
 import toolext.bootscript.toolbox.fuse_utility as fu
 import pm.pmutils.tools as cvt
 
-# Imports from THR S2T scripts  - FUSE Override is product dependant
+# Append the Main Scripts Path
+MAIN_PATH = os.path.abspath(os.path.dirname(__file__))
+
+## Imports from S2T Folder  -- ADD Product on Module Name for Production
+sys.path.append(MAIN_PATH)
+import ConfigsLoader as cfl
+config = cfl.config
+config.reload()
+
+# Set Used product Variable -- Called by Framework
+SELECTED_PRODUCT = config.SELECTED_PRODUCT
+BASE_PATH = config.BASE_PATH
+LEGACY_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 'CWF'] else ''
+THR_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 'CWF', 'DMR'] else ''
+
+if cfl.DEV_MODE:
+	import CoreManipulation as gcm
+	import Logger.ErrorReport as dpmtileview
+	import Logger.logger as dpmlog
+	import Tools.portid2ip as p2ip
+	import Tools.requests_unit_info as reqinfo
+	import ConfigsLoader as LoadConfig
+else:
+	gcm = import_module(f'{BASE_PATH}.S2T.{LEGACY_NAMING}CoreManipulation')
+	dpmtileview = import_module(f'{BASE_PATH}.S2T.Logger.ErrorReport')
+	dpmlog = import_module(f'{BASE_PATH}.S2T.Logger.logger')
+	p2ip = import_module(f'{BASE_PATH}.S2T.Tools.portid2ip')
+	reqinfo = import_module(f'{BASE_PATH}.S2T.Tools.requests_unit_info')
+	LoadConfig = import_module(f'{BASE_PATH}.S2T.ConfigsLoader')
+
+## Imports from THR folder - These are external scripts, always use same path
+f = None
 try:
-	import users.THR.PythonScripts.thr.CWFFuseOverride as f
-except:
-	import users.THR.PythonScripts.thr.GNRFuseOverride as f
+	f = import_module(f'{BASE_PATH}.THR.{THR_NAMING}FuseOverride')
+	print(' [+] FuseOverride imported successfully')
+except Exception as e:
+	print(f' [x] Could not import FuseOverride, some features may be limited: {e}')
 
-import users.gaespino.dev.S2T.CoreManipulation as gcm
-import users.gaespino.dev.S2T.Logger.ErrorReport as dpmtileview
-import users.gaespino.dev.S2T.Logger.logger as dpmlog
-import users.gaespino.dev.S2T.Tools.portid2ip as p2ip
-import users.gaespino.dev.S2T.Tools.requests_unit_info as reqinfo
-
-importlib.reload(dpmlog)
-importlib.reload(dpmtileview)
-
-importlib.reload(f)
+## Reload of all imported scripts
+if cfl.DEV_MODE:
+	importlib.reload(gcm)
+	importlib.reload(dpmlog)
+	importlib.reload(dpmtileview)
+	importlib.reload(LoadConfig)
+	if f is not None:
+		importlib.reload(f)
+	config.reload()
 
 verbose = False
 
@@ -1971,7 +2003,7 @@ def read_fuse_array(fuse_array, skip_init=False):
 	f.read_array(fuse_array=fuse_array, skip_init=skip_init, load_fuses=False)
 
 ## Uses USB Splitter controller to power cycle / on / off the unit -- 
-def powercycle(stime = 10, ports = [1]):
+def powercycle(stime = 10, ports = [1,2]):
 	import toolext.bootscript.toolbox.power_control.USBPowerSplitterFullControl as pwsc
 
 	print('Power cycling the unit using USB...')

@@ -35,13 +35,30 @@ from colorama import Fore, Style, Back
 import importlib
 import os
 from tabulate import tabulate
-
+from importlib import import_module
 
 ## Custom Modules
 
 import toolext.bootscript.boot as b
-import users.gaespino.dev.S2T.dpmChecks as dpm
-import users.gaespino.dev.S2T.ConfigsLoader as LoadConfig
+
+# Append the Main Scripts Path
+MAIN_PATH = os.path.abspath(os.path.dirname(__file__))
+
+## Imports from S2T Folder  -- ADD Product on Module Name for Production
+sys.path.append(MAIN_PATH)
+import ConfigsLoader as LoadConfig
+config = LoadConfig.config
+
+# Set Used product Variable -- Called by Framework
+SELECTED_PRODUCT = config.SELECTED_PRODUCT
+BASE_PATH = config.BASE_PATH
+LEGACY_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 'CWF'] else ''
+THR_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 'CWF', 'DMR'] else ''
+
+if LoadConfig.DEV_MODE:
+	import dpmChecks as dpm
+else:
+	dpm = import_module(f'{BASE_PATH}.S2T.dpmChecks{LEGACY_NAMING}')
 
 importlib.reload(LoadConfig)
 
