@@ -59,6 +59,7 @@ class configurations:
 		# System Specific Configurations based on product		
 		ConfigFile = f'{product}FuseFileConfigs.json'
 		CORESTRING = 'MODULE'
+		CHASTRING = 'CHA'
 		CORETYPES = {	'CWFAP':{'core':'atomcore','config':'AP', 'maxcores': 180, 'maxlogcores': 72},
 						'CWFSP':{'core':'atomcore','config':'SP', 'maxcores': 120, 'maxlogcores': 48}}
 		MAXLOGICAL = 24
@@ -77,6 +78,7 @@ class configurations:
 		CONFIG = { 'PRODUCT':product,
 				'CONFIGFILE': ConfigFile,
 				'CORESTRING': CORESTRING,
+				'CHASTRING': CHASTRING,
 				'CORETYPES': CORETYPES,
 				'MAXLOGICAL': MAXLOGICAL,
 				'MAXPHYSICAL': MAXPHYSICAL,
@@ -168,6 +170,9 @@ class configurations:
 		# Product config
 		product = self.product
 		
+		# Path of All S2T scripts
+		BASE_PATH = 'users.THR.PythonScript.thr'
+
 		## System 2 Tester and bootscript Initialization data 
 		bootscript_data = {	'CWFAP':{'segment':'CWFXDCC','config':['compute0', 'compute1', 'compute2'], 'compute_config':'x3',},
 								'CWFSP':{'segment':'CWFHDCC','config':['compute0', 'compute1'], 'compute_config':'x2',}}
@@ -256,6 +261,7 @@ class configurations:
 							'ValidRows' : ValidRows,
 							'ValidCols' : ValidCols,
 							'bootscript_data' : bootscript_data,
+							'base_path': BASE_PATH,
 			}
 		
 		return FrameworkVars

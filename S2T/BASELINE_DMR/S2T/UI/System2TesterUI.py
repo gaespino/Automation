@@ -687,7 +687,8 @@ class QuickDefeatureTool:
 			return default
 		
 		if isinstance(value, str):
-			return hex(int(value, 0))
+			return int(value, 0)
+		
 		return value
 	
 	def updates2t(self, options):

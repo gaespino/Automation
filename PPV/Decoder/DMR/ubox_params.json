@@ -1,0 +1,209 @@
+{
+    "NUM_MAX_SOCKETS": 16,
+    "NUM_IMH_PER_SOCKET_MAX": 2,
+    "NUM_CBB_PER_SOCKET_MAX": 4,
+    "NUM_RACU_ENTRIES": 8,
+
+    "SUBUNIT_BY_VAL": {
+        "0": "SMI",
+        "1": "GLOB_INT",
+        "2": "LOC_LOCK",
+        "3": "GLOB_LOCK",
+        "4": "SYS_LOCK",
+        "5": "COMP_ERR",
+        "6": "GLOB_NCS",
+        "7": "RACU",
+        "8": "PMREQ",
+        "9": "LOC_NCS",
+        "10": "LOC_INT",
+        "11": "VCR_MCAST",
+        "12": "USRAM"
+    },
+
+    "SUBUNIT_BY_NAME": {
+        "SMI": 0,
+        "GLOB_INT": 1,
+        "LOC_LOCK": 2,
+        "GLOB_LOCK": 3,
+        "SYS_LOCK": 4,
+        "COMP_ERR": 5,
+        "GLOB_NCS": 6,
+        "RACU": 7,
+        "PMREQ": 8,
+        "LOC_NCS": 9,
+        "LOC_INT": 10,
+        "VCR_MCAST": 11,
+        "USRAM": 12
+    },
+
+    "NCSLOC_FSM": {
+        "0": "IDLE",
+        "1": "RQST",
+        "2": "AKRDY",
+        "3": "SGX_ERR"
+    },
+    "NCSGLB_FSM": {
+        "0": "IDLE",
+        "1": "RQST",
+        "2": "AKRDY"
+    },
+    "USRAM_CMD_FSM": {
+        "0": "IDLE",
+        "1": "READ",
+        "2": "WRITE",
+        "3": "DELAY"
+    },
+    "USRAM_RSP_FSM": {
+        "0": "IDLE",
+        "1": "DRS",
+        "2": "NDR",
+        "3": "DELAY"
+    },
+    "STARTREQ_FSM": {
+        "0": "IDLE",
+        "1": "START_CBB",
+        "2": "AKRDY"
+    },
+    "STOPREQ_FSM": {
+        "0": "IDLE",
+        "1": "STOP_CBB",
+        "2": "AKRDY"
+    },
+    "GLBLOCK_FSM": {
+        "0": "IDLE",
+        "1": "RQST",
+        "3": "AKRDY",
+        "2": "LK_CMP",
+        "6": "RQST2",
+        "4": "AKRDY2"
+    },
+    "MSTRLOCK_FSM": {
+        "0": "IDLE",
+        "1": "STOP",
+        "3": "AKRDY1",
+        "2": "LOCK",
+        "6": "START",
+        "4": "AKRDY2",
+        "5": "WAIT"
+    },
+    "SMI_FSM": {
+        "0": "IDLE",
+        "1": "START",
+        "2": "RQST",
+        "3": "SEND",
+        "4": "SEND_CMP"
+    },
+    "PMREQ_FSM": {
+        "0": "IDLE",
+        "1": "START",
+        "2": "RQST",
+        "3": "SEND",
+        "4": "CMP"
+    },
+    "LOCINT_FSM": {
+        "0": "IDLE",
+        "1": "RQST",
+        "2": "AKRDY",
+        "3": "AGNT_ERR"
+    },
+    "GLBINT_FSM": {
+        "0": "IDLE",
+        "1": "START",
+        "2": "RQST",
+        "3": "SEND",
+        "4": "AKRDY",
+        "5": "CMP",
+        "6": "AGNT_ERR"
+    },
+    "VCR_MCAST_FSM": {
+        "0": "IDLE",
+        "1": "RQST",
+        "3": "DATA",
+        "2": "CMP"
+    },
+    "CFE_FSM": {
+        "0": "IDLE",
+        "1": "START",
+        "2": "COUNT",
+        "3": "SEND"
+    },
+    "RACU": {
+        "0": "IDLE",
+        "1": "BUSY"
+    },
+    "COMPERR_FSM": {
+        "0": "IDLE",
+        "1": "NDR_AKRDY",
+        "2": "DRS_SEND"
+    },
+
+    "MSCOD": {
+        "32768": "POISON",
+        "32769": "UNSUPPORTED_OPCODE",
+        "32774": "MISALG_CFGRD_SMM",
+        "32775": "MISALG_MMIOWR_SMM",
+        "32776": "MISALG_MMIORD_NONSMM",
+        "32777": "MISALG_MMIOWR_NONSMM",
+        "32778": "SMI_TIMEOUT",
+        "32779": "LOCK_MASTER_TIMEOUT",
+        "32780": "AGENT_RETURN_ERR",
+        "32782": "SEMAPHORE_ERR",
+        "32783": "RF_OVERFLOW",
+        "32796": "SGX_DOORBELL_ERR",
+        "32797": "UCODE_SRAM_ERR",
+        "32798": "RF_ERR",
+        "32799": "BAD_FUSE_PULL"
+    },
+    "MCACOD": {
+        "1025": "XuCode",
+        "1029": "uCode shutdown",
+        "1030": "Sunpass error",
+        "1031": "Ubox general error",
+        "1032": "SAD errors",
+        "1035": "BIST error",
+        "1036": "Shutdown suppression"
+    },
+    "SHUTDOWN_ERR_MSCOD": {
+        "1": "MCE when CR4.MCE is clear",
+        "2": "MCE when MCIP bit is set",
+        "3": "MCE under WFS",
+        "4": "Unrecoverable error during security flow execution",
+        "5": "SW triple fault shutdown",
+        "6": "VMX exit consistency check failures",
+        "7": "RSM consistency check failures",
+        "8": "Invalid conditions on protected mode SMM entry",
+        "9": "Unrecoverable error during security flow execution"
+    },
+
+    "UBOX_SRC": {
+        "0": "CBB",
+        "1": "REMOTE_SKT",
+        "2": "IO",
+        "3": "UBOX"
+    },
+    "MSG_CLASS": {
+        "2": "RSP",
+        "6": "NCB",
+        "7": "NCS"
+    },
+    "UXI_OPCODE": {
+        "12": "NCWRPTL",
+        "13": "WCWRPTL",
+        "16": "NCMSGB",
+        "4": "NCRDPTL",
+        "16": "NCMSGS"
+    },
+
+    "BLBUF_DEC": {
+        "0": "UPI NCB 0",
+        "1": "UPI NCB 1",
+        "2": "UPI NCS 0",
+        "3": "UPI NCS 1",
+        "4": "UPI DRS 0",
+        "5": "UPI DRS 1",
+        "6": "COMMON  0",
+        "7": "COMMON  1"
+    },
+    "NUM_OUTBOUND_BUFFERS": 8
+
+}

@@ -4,6 +4,22 @@ import sys
 import os
 import importlib
 
+# Variable to define where the scripts are being taken from
+# Automatically determined based on file location
+_current_file_path = os.path.abspath(__file__)
+DEV_MODE = 'users.gaespino.dev' in _current_file_path.replace('\\', '.')
+
+# Print mode visibility
+if DEV_MODE:
+	print("=" * 80)
+	print(" " * 27 + "DEVELOPER MODE")
+	print("=" * 80)
+else:
+	print("=" * 80)
+	print(" " * 27 + "PRODUCTION MODE")
+	print("=" * 80)
+
+# Verbose flag for debugging
 verbose = False
 
 ipc = ipccli.baseaccess()
@@ -94,6 +110,7 @@ class ProductConfiguration:
 		# Configuration variables
 		self.ConfigFile = config_dict['CONFIGFILE']
 		self.CORESTRING = config_dict['CORESTRING']
+		self.CHASTRING = config_dict['CHASTRING']
 		self.CORETYPES = config_dict['CORETYPES']
 		self.CHIPCONFIG = config_dict['CORETYPES'][PRODUCT_CONFIG]['config']
 		self.MAXCORESCHIP = config_dict['CORETYPES'][PRODUCT_CONFIG]['maxcores']
@@ -155,6 +172,7 @@ class ProductConfiguration:
 		self.DIS1CPM_DICT = framework_dict['dis1cpm_dict']
 		self.RIGHT_HEMISPHERE = framework_dict['righthemisphere']
 		self.LEFT_HEMISPHERE = framework_dict['lefthemisphere']
+		self.BASE_PATH = framework_dict['base_path']
 		
 		# Framework features
 		self.FRAMEWORK_FEATURES = features_dict
@@ -230,6 +248,7 @@ config = ProductConfiguration(CONFIG, FUSES, FRAMEWORKVARS, FRAMEWORK_FEATURES)
 
 ConfigFile = config.ConfigFile
 CORESTRING = config.CORESTRING
+CHASTRING = config.CHASTRING
 CORETYPES = config.CORETYPES
 CHIPCONFIG = config.CHIPCONFIG
 MAXCORESCHIP = config.MAXCORESCHIP
@@ -289,6 +308,8 @@ DIS1CPM_DICT = config.DIS1CPM_DICT
 RIGHT_HEMISPHERE = config.RIGHT_HEMISPHERE
 LEFT_HEMISPHERE = config.LEFT_HEMISPHERE
 
+# Contains the Base Path for all S2T scripts -- Production Mode
+BASE_PATH = config.BASE_PATH
 
 def LoadFunctions():
 	"""Legacy function - use config.get_functions() instead"""

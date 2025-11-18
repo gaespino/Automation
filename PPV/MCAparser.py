@@ -66,6 +66,7 @@ def init_select_data(product):
 								'__MCI_MISC':'0X80',
 								'__MCI_ADDR':None,
 								'UTIL__MC_MISC':'0X80',
+								'__MC8_ADDR':None, # MCCHNL ADDR
 	#							'__MC_MISC3':None,
 	#							'BIOS':None,
 								'UBOX':None,
@@ -84,6 +85,7 @@ def init_select_data(product):
 			## Will use this for some misc fails, moving PM and MEM errors here
 		reduced_data_others = {
 								'MEMSS__B2CMI': '0X7F', # ML2 MCAs 
+								'__MC8_ADDR':None, # mcchnl
 								'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
 								'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
 								'DCU_CR_MC1':'0X1F', # DCU MCAs 
@@ -100,6 +102,7 @@ def init_select_data(product):
 								'__MCI_MISC':'0X80',
 								'__MCI_ADDR':None,
 								'UTIL__MC_MISC':'0X80',
+								'__MC8_ADDR':None, # MCCHNL ADDR
 	#							'__MC_MISC3':None,
 	#							'BIOS':None,
 								'UBOX':None,
@@ -148,6 +151,7 @@ class ppv_report():
 		#self.raw_data = 'raw_data'
 		self.table_cha = 'cha_mc'
 		self.table_core = 'core_mc'
+		self.table_mem = 'mem_mc'
 		self.table_ppv = 'ppv'
 		#self.data_core = data_core
 		#self.data_cha = data_cha
@@ -261,7 +265,7 @@ class ppv_report():
 		self.bucket_info()
 		options.append('PPV')
 		
-		# Add MCA data if selected --- CHA only for now
+		# Add MCA data if selected
 		if 'MESH' in options and decode:
 			print(' -- Parsing MCA Data for CHA in tab CHA_MCAs...')
 			self.parse_mcas(self.data_file, self.sheet_CHA)
@@ -522,10 +526,11 @@ class ppv_report():
 		# Decode different IP blocks
 		cha_df = mc.cha()  # CCF for DMR (includes LLC), CHA for GNR/CWF
 		llc_df = mc.llc()  # Empty for DMR (LLC is in CCF), LLC for GNR/CWF
-		sca_df = mc.sca()  # SCA for DMR (IO caching agent), Empty for GNR/CWF
+		mem_df = mc.mem()  # Memory Controller MCAs (MSE, MCCHAN, B2CMI, SCA for DMR)
+		io_df = mc.io()    # IO MCAs (UBOX, UPI, ULA, IOCACHE)
 		ubox_df = mc.portids()  # Port ID decoding
 		
-		print(f' -- DataFrame sizes: CHA={len(cha_df)}, LLC={len(llc_df)}, SCA={len(sca_df)}, UBOX={len(ubox_df)}')
+		print(f' -- DataFrame sizes: CHA={len(cha_df)}, LLC={len(llc_df)}, MEM={len(mem_df)}, IO={len(io_df)}, UBOX={len(ubox_df)}')
 
 		# Save dataframes to Excel only if they contain data
 		sheets_to_create = {}
@@ -533,11 +538,13 @@ class ppv_report():
 			sheets_to_create['CHA_MCAS'] = cha_df
 		if not llc_df.empty:
 			sheets_to_create['LLC_MCAS'] = llc_df
-		if not sca_df.empty:
-			sheets_to_create['SCA_MCAS'] = sca_df
+		if not mem_df.empty:
+			sheets_to_create['MEM_MCAS'] = mem_df
+		if not io_df.empty:
+			sheets_to_create['IO_MCAS'] = io_df
 		if not ubox_df.empty:
 			sheets_to_create['UBOX'] = ubox_df
-		
+
 		# Write all non-empty dataframes to Excel
 		if sheets_to_create:
 			with pd.ExcelWriter(source_file, engine='openpyxl', mode='a') as writer:
@@ -550,8 +557,10 @@ class ppv_report():
 			addtable(df=cha_df, excel_file=source_file, sheet='CHA_MCAS', table_name='chadecode')
 		if not llc_df.empty:
 			addtable(df=llc_df, excel_file=source_file, sheet='LLC_MCAS', table_name='llcdecode')
-		if not sca_df.empty:
-			addtable(df=sca_df, excel_file=source_file, sheet='SCA_MCAS', table_name='scadecode')
+		if not mem_df.empty:
+			addtable(df=mem_df, excel_file=source_file, sheet='MEM_MCAS', table_name='memdecode')
+		if not io_df.empty:
+			addtable(df=io_df, excel_file=source_file, sheet='IO_MCAS', table_name='iodecode')
 		if not ubox_df.empty:
 			addtable(df=ubox_df, excel_file=source_file, sheet='UBOX', table_name='uboxdecode')
 

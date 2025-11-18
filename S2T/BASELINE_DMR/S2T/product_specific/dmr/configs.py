@@ -59,6 +59,7 @@ class configurations:
 		# System Specific Configurations based on product
 		ConfigFile = f'{product}FuseFileConfigs.json'
 		CORESTRING = 'MODULE'
+		CHASTRING = 'CBO'
 		CORETYPES = {'DMR_CLTAP':{	'core':'bigcore',
 									'config':'AP', 
 									'mods_per_cbb':32, #DMR_TOTAL_MODULES_PER_CBB
@@ -94,6 +95,7 @@ class configurations:
 		CONFIG = { 'PRODUCT':product,
 				'CONFIGFILE': ConfigFile,
 				'CORESTRING': CORESTRING,
+				'CHASTRING': CHASTRING,
 				'CORETYPES': CORETYPES,
 				'MAXLOGICAL': MAXLOGICAL,
 				'MAXPHYSICAL': MAXPHYSICAL,
@@ -185,6 +187,9 @@ class configurations:
 		# Product config
 		product = self.product
 		
+		# Path of All S2T scripts
+		BASE_PATH = 'users.THR.PythonScript.thr'
+
 		## System 2 Tester and bootscript Initialization data 
 		bootscript_data = {	'DMR_CLTAP':{'segment':'CWFXDCC','config':['cbb0', 'cbb1', 'cbb2', 'cbb3'], 'compute_config':'x4',},
 								'DMR_CLTSP':{'segment':'CWFHDCC','config':['cbb0'], 'compute_config':'x1',}}
@@ -269,6 +274,7 @@ class configurations:
 							'ValidRows' : ValidRows,
 							'ValidCols' : ValidCols,
 							'bootscript_data' : bootscript_data,
+							'base_path': BASE_PATH,
 			}
 		
 		return FrameworkVars

@@ -52,7 +52,10 @@ class decoder_dmr():
 			inst: CBREGS_ALL instance number for CCF (00-77)
 			ptype: Pattern type
 		
-		ptype options: ccf, core_ifu, core_dcu, core_dtlb, core_ml2, sca, ha, hsf, punit_cbb, punit_imh, ncu, d2d_cbb, d2d_imh
+		ptype options: ccf, core_ifu, core_dcu, core_dtlb, core_ml2, punit_cbb, punit_imh, ncu, rasip
+		
+		Note: IO patterns (ULA, IOCACHE, D2D) are handled by io_lookup_pattern()
+		      Memory patterns (HA, HSF, SCA, SUBCHN, MSE) are handled by mem_lookup_pattern()
 		"""
 		
 		# CBB Domain Patterns
@@ -67,12 +70,6 @@ class decoder_dmr():
 			# NCU (Node Control Unit) - Bank 5
 			# Pattern: SOCKET0__CBB{x}__BASE__SNCU_TOP__SNCEVENTS__MC5_STATUS
 			pattern = f"SOCKET0__CBB{cbb}__BASE__SNCU_TOP__SNCEVENTS__MC5_{suffix}"
-		
-		elif ptype == 'd2d_cbb':
-			# D2D CBB side - Bank 7
-			# Pattern: SOCKET0__CBB{x}__BASE__D2D_STACK_{stack}__ULA_{ula}__ULA__ULA_MC_ST
-			# location = stack number, compute = ula number
-			pattern = f"SOCKET0__CBB{cbb}__BASE__D2D_STACK_{location}__ULA_{compute}__ULA__ULA_MC_{suffix}"
 		
 		elif ptype == 'punit_cbb':
 			# Power Unit CBB - Bank 4
@@ -100,39 +97,19 @@ class decoder_dmr():
 			pattern = f"SOCKET0__CBB{cbb}__COMPUTE{compute}__MODULE{module}__ML2_CR_MC3_{suffix}"
 		
 		# IMH Domain Patterns
-		elif ptype == 'sca':
-			# SCA (Scalable Caching Agent / IO Caching Agent) - Bank 14
-			# Pattern: SOCKET0__IMH{imh}__SCF__SCA__SCA{instance}__UTIL__MC_STATUS
-			# Note: SCA is for UIO device caching, NOT system LLC
-			# SCA = IOCA (IO Caching Agent) - provides IO-specific cache for multiple UIO devices
-			# location = IMH number, compute = SCA instance
-			pattern = f"SOCKET0__IMH{location}__SCF__SCA__SCA{compute}__UTIL__MC_{suffix}"
-		
-		elif ptype == 'ha':
-			# Home Agent - Bank 12 (merged 16 instances)
-			# Pattern: SOCKET0__IMH{imh}__SCF__HAMVF__HA_{instance}__MCI_STATUS
-			pattern = f"SOCKET0__IMH{location}__SCF__HAMVF__HA_{compute}__MCI_{suffix}"
-		
-		elif ptype == 'hsf':
-			# HSF (Home Snoop Filter) - Bank 13
-			# Pattern: SOCKET0__IMH{imh}__SCF__HAMVF__HSF_{instance}__UTIL__MCI_STATUS
-			pattern = f"SOCKET0__IMH{location}__SCF__HAMVF__HSF_{compute}__UTIL__MCI_{suffix}"
-		
 		elif ptype == 'punit_imh':
 			# Power Unit IMH - Bank 11
 			# Pattern: SOCKET0__IMH{imh}__PUNIT__RAS__GPSB__MC_STATUS
 			pattern = f"SOCKET0__IMH{location}__PUNIT__RAS__GPSB__MC_{suffix}"
 		
-		elif ptype == 'd2d_imh':
-			# D2D IMH side - Bank 15
-			# Pattern: SOCKET0__IMH{imh}__D2D_STACK__D2D_STACK_{stack}__UXI_{uxi}__ULA_MC_ST
-			# location = IMH number, module = stack number, compute = uxi number
-			pattern = f"SOCKET0__IMH{location}__D2D_STACK__D2D_STACK_{module}__UXI_{compute}__ULA_MC_{suffix}"
-		
 		elif ptype == 'rasip':
 			# RASIP - Bank 10
 			# Pattern: SOCKET0__IMH{imh}__RASIP__ROOT_RAS__RASIP_REGS_BLOCK__RASIP_REG_MSG_CR_RASIP_ERROR_HANDLER_CR__REG_CR_MCI_STATUS
 			pattern = f"SOCKET0__IMH{location}__RASIP__ROOT_RAS__RASIP_REGS_BLOCK__RASIP_REG_MSG_CR_RASIP_ERROR_HANDLER_CR__REG_CR_MCI_{suffix}"
+		
+		else:
+			# Default pattern if ptype is not recognized
+			pattern = ""
 		
 		return pattern
 
@@ -530,147 +507,628 @@ class decoder_dmr():
 		# If not found, return raw values
 		return f"MSCOD={mscod}, MCACOD={mcacod}"
 
-	def sca(self):
+	def io(self):
 		"""
-		SCA (Scalable Caching Agent / IO Caching Agent) MCA decoder - Bank 14
-		Pattern: SOCKET0__IMH{0-1}__SCF__SCA__SCA{0-15}__UTIL__MC_STATUS
+		IO MCA decoder for DMR - Includes ULA instances and IO caches
 		
-		Important: SCA is NOT the system LLC. SCA is an IO-specific caching agent
-		that supports multiple UIO devices. System LLC is part of CCF (Bank 6).
-		
-		SCA Features:
-		- Provides caching for UIO devices (Gen6, CXL, etc.)
-		- Reduces NodeID pressure by allowing UIO devices to share same NID
-		- Independent tag and data pipelines for higher throughput (32B/c vs 11B/c)
-		- 8 SCA instances in DMR iMH sustain 2 concurrent Gen6 read+write BW streams
+		IO Components:
+		- ula_uios: ULA for UIO devices (Bank 18)
+		  Pattern: SOCKET0__IMH{0-1}__ULA__ULA_UIO{0-n}__ULA_MC_ST
+		  Instance: ULA_UIO{n}
+		  
+		- ula_d2dio: ULA for D2D IMH side (Bank 15)
+		  Pattern: SOCKET0__IMH{0-1}__D2D_STACK__D2D_STACK_{0-5}__UXI_{0-1}__ULA_MC_ST
+		  Instance: IMH{n}_UXI{n}_STACK{n}
+		  
+		- ula_d2dcbb: ULA for D2D CBB side (Bank 7)
+		  Pattern: SOCKET0__CBB{0-n}__BASE__D2D_STACK_{0-1}__ULA_{0-1}__ULA__ULA_MC_ST
+		  Instance: CBB{n}_STACK{n}_ULA{n}
+		  
+		- iocaches: IO Cache instances (Bank 17)
+		  Pattern: SOCKET0__IMH{0-1}__SCF__SCA__IOCACHE{0-n}__UTIL__MCI_STATUS
+		  Instance: IOCACHE{n}
 		"""
 		mcdata = self.data
-		columns = ['VisualID', 'Run', 'Operation', 'SCA_MC', 'IMH', 'SCA_Instance',
-		           'MC_STATUS', 'MC DECODE', 'MC_ADDR', 'MC_MISC', 'Error_Type']
+		columns = ['VisualID', 'Run', 'Operation', 'Type', 'IO_MC', 'IMH_CBB', 'Instance', 
+		           'MC_STATUS', 'MCACOD', 'MC_DECODE', 'MC_ADDR', 'MC_MISC']
 		
 		data_dict = {k:[] for k in columns}
 		
+		# IO subsystem patterns
+		io_patterns = ['ULA__ULA_UIO', 'D2D_STACK__D2D_STACK', 'D2D_STACK_', 'IOCACHE']
+		
 		for visual_id in mcdata['VisualId'].unique():
-			# Split Data into required elements - look for SCF__SCA pattern
-			subset = mcdata[(mcdata['VisualId'] == visual_id) & 
-			                (mcdata['TestName'].str.contains('SCF__SCA'))]
+			# Filter for IO-related MCAs
+			io_filtered = pd.DataFrame()
+			for pattern in io_patterns:
+				pattern_data = self.extract_value(mcdata[mcdata['VisualId'] == visual_id], 'TestName', pattern)
+				if not pattern_data.empty:
+					io_filtered = pd.concat([io_filtered, pattern_data], ignore_index=True)
 			
-			mc_filtered = self.extract_value(subset, 'TestName', 'MC_STATUS')
-			addr_filtered = self.extract_value(subset, 'TestName', 'MC_ADDR')
-			misc_filtered = self.extract_value(subset, 'TestName', 'MC_MISC')
+			# Further filter for STATUS registers
+			mc_filtered = self.extract_value(io_filtered, 'TestName', '_STATUS|_MC_STATUS|_MCI_STATUS|_MC_ST')
 			
 			if mc_filtered.empty:
+				print(f' -- No IO MCA data found in VID: {visual_id}')
 				continue
 			
+			# Iterate over all IO MCAs
 			for i, data in mc_filtered.iterrows():
 				data_dict['VisualID'] += [visual_id]
 				LotsSeqKey = data['LotsSeqKey']
 				UnitTestingSeqKey = data['UnitTestingSeqKey']
-				
-				# Extract IMH and SCA instance
-				# Pattern: SOCKET0__IMH{0-1}__SCF__SCA__SCA{0-15}__UTIL__MC_STATUS
-				imh_match = re.search(r'IMH(\d+)', data['TestName'])
-				sca_match = re.search(r'__SCA__SCA(\d+)__', data['TestName'])
-				
-				imh = imh_match.group(1) if imh_match else '0'
-				sca_inst = sca_match.group(1) if sca_match else '0'
-				
 				operation = data['Operation']
-				
-				# Use exact IMH and SCA instance for precise matching
-				addr_lut = self.lookup_pattern(cbb='', compute=sca_inst, module='', location=imh, 
-				                                operation=operation, suffix="ADDR", ptype='sca')
-				misc_lut = self.lookup_pattern(cbb='', compute=sca_inst, module='', location=imh, 
-				                                operation=operation, suffix="MISC", ptype='sca')
-				
+				test_name = data['TestName']
 				mc_value = data['TestValue']
-				addr_value = self.xlookup(lookup_array=addr_filtered, testname=addr_lut,
-				                          LotsSeqKey=LotsSeqKey, UnitTestingSeqKey=UnitTestingSeqKey)
-				misc_value = self.xlookup(lookup_array=misc_filtered, testname=misc_lut,
-				                          LotsSeqKey=LotsSeqKey, UnitTestingSeqKey=UnitTestingSeqKey)
 				
+				# Determine IO type and extract instance information
+				io_type = ''
+				instance = ''
+				imh_cbb = ''
+				
+				if 'ULA__ULA_UIO' in test_name:
+					# ula_uios: SOCKET0__IMH{n}__ULA__ULA_UIO{n}__ULA_MC_ST
+					io_type = 'ULA_UIOS'
+					imh_match = re.search(r'IMH(\d+)', test_name)
+					uio_match = re.search(r'ULA_UIO(\d+)', test_name)
+					if imh_match and uio_match:
+						imh_cbb = f'IMH{imh_match.group(1)}'
+						instance = f'ULA_UIO{uio_match.group(1)}'
+					
+				elif 'IMH' in test_name and 'D2D_STACK__D2D_STACK' in test_name:
+					# ula_d2dio: SOCKET0__IMH{n}__D2D_STACK__D2D_STACK_{n}__UXI_{n}__ULA_MC_ST
+					io_type = 'ULA_D2DIO'
+					imh_match = re.search(r'IMH(\d+)', test_name)
+					stack_match = re.search(r'D2D_STACK__D2D_STACK_(\d+)', test_name)
+					uxi_match = re.search(r'UXI_(\d+)', test_name)
+					if imh_match:
+						imh_num = imh_match.group(1)
+						imh_cbb = f'IMH{imh_num}'
+						stack_num = stack_match.group(1) if stack_match else '0'
+						uxi_num = uxi_match.group(1) if uxi_match else '0'
+						instance = f'IMH{imh_num}_UXI{uxi_num}_STACK{stack_num}'
+					
+				elif 'CBB' in test_name and 'D2D_STACK_' in test_name:
+					# ula_d2dcbb: SOCKET0__CBB{n}__BASE__D2D_STACK_{n}__ULA_{n}__ULA__ULA_MC_ST
+					io_type = 'ULA_D2DCBB'
+					cbb_match = re.search(r'CBB(\d+)', test_name)
+					stack_match = re.search(r'D2D_STACK_(\d+)', test_name)
+					ula_match = re.search(r'__ULA_(\d+)__ULA', test_name)
+					if cbb_match:
+						cbb_num = cbb_match.group(1)
+						imh_cbb = f'CBB{cbb_num}'
+						stack_num = stack_match.group(1) if stack_match else '0'
+						ula_num = ula_match.group(1) if ula_match else '0'
+						instance = f'CBB{cbb_num}_STACK{stack_num}_ULA{ula_num}'
+					
+				elif 'IOCACHE' in test_name:
+					# iocaches: SOCKET0__IMH{n}__SCF__SCA__IOCACHE{n}__UTIL__MCI_STATUS
+					io_type = 'IOCACHE'
+					imh_match = re.search(r'IMH(\d+)', test_name)
+					cache_match = re.search(r'IOCACHE(\d+)', test_name)
+					if imh_match and cache_match:
+						imh_cbb = f'IMH{imh_match.group(1)}'
+						instance = f'IOCACHE{cache_match.group(1)}'
+				
+				# Extract MCACOD (bits 15:0) from MC_STATUS
+				mcacod = extract_bits(hex_value=mc_value, min_bit=0, max_bit=15)
+				
+				# Decode MSCOD based on IO type
+				if io_type in ['ULA_UIOS', 'ULA_D2DIO', 'ULA_D2DCBB']:
+					mc_decode = self.io_ula_decoder(value=mc_value)
+				elif io_type == 'IOCACHE':
+					mc_decode = self.io_cache_decoder(value=mc_value)
+				else:
+					mscod = extract_bits(hex_value=mc_value, min_bit=16, max_bit=31)
+					mc_decode = f"MSCOD={mscod}"
+				
+				# Look up ADDR and MISC registers using proper lookup patterns
+				addr_value = ''
+				misc_value = ''
+				addr_pattern = ''
+				misc_pattern = ''
+				
+				# Build lookup patterns based on IO type using io_lookup_pattern method
+				if io_type == 'ULA_UIOS':
+					imh_match = re.search(r'IMH(\d+)', test_name)
+					uio_match = re.search(r'ULA_UIO(\d+)', test_name)
+					if imh_match and uio_match:
+						imh_num = imh_match.group(1)
+						uio_num = uio_match.group(1)
+						addr_pattern = self.io_lookup_pattern(imh=imh_num, uio=uio_num, suffix='AD', ptype='ula_uios')
+						misc_pattern = self.io_lookup_pattern(imh=imh_num, uio=uio_num, suffix='MS', ptype='ula_uios')
+				
+				elif io_type == 'ULA_D2DIO':
+					imh_match = re.search(r'IMH(\d+)', test_name)
+					stack_match = re.search(r'D2D_STACK__D2D_STACK_(\d+)', test_name)
+					uxi_match = re.search(r'UXI_(\d+)', test_name)
+					if imh_match and stack_match and uxi_match:
+						imh_num = imh_match.group(1)
+						stack_num = stack_match.group(1)
+						uxi_num = uxi_match.group(1)
+						addr_pattern = self.io_lookup_pattern(imh=imh_num, stack=stack_num, uxi=uxi_num, suffix='AD', ptype='ula_d2dio')
+						misc_pattern = self.io_lookup_pattern(imh=imh_num, stack=stack_num, uxi=uxi_num, suffix='MS', ptype='ula_d2dio')
+				
+				elif io_type == 'ULA_D2DCBB':
+					cbb_match = re.search(r'CBB(\d+)', test_name)
+					stack_match = re.search(r'D2D_STACK_(\d+)', test_name)
+					ula_match = re.search(r'__ULA_(\d+)__ULA', test_name)
+					if cbb_match and stack_match and ula_match:
+						cbb_num = cbb_match.group(1)
+						stack_num = stack_match.group(1)
+						ula_num = ula_match.group(1)
+						addr_pattern = self.io_lookup_pattern(cbb=cbb_num, stack=stack_num, ula=ula_num, suffix='AD', ptype='ula_d2dcbb')
+						misc_pattern = self.io_lookup_pattern(cbb=cbb_num, stack=stack_num, ula=ula_num, suffix='MS', ptype='ula_d2dcbb')
+				
+				elif io_type == 'IOCACHE':
+					imh_match = re.search(r'IMH(\d+)', test_name)
+					cache_match = re.search(r'IOCACHE(\d+)', test_name)
+					if imh_match and cache_match:
+						imh_num = imh_match.group(1)
+						cache_num = cache_match.group(1)
+						addr_pattern = self.io_lookup_pattern(imh=imh_num, iocache=cache_num, suffix='ADDR', ptype='iocache')
+						misc_pattern = self.io_lookup_pattern(imh=imh_num, iocache=cache_num, suffix='MISC', ptype='iocache')
+				
+				else:
+					# Fallback to simple replacement
+					addr_pattern = test_name.replace('_MC_ST', '_MC_AD').replace('_MCI_STATUS', '_MCI_ADDR').replace('_MC_STATUS', '_MC_ADDR')
+					misc_pattern = test_name.replace('_MC_ST', '_MC_MS').replace('_MCI_STATUS', '_MCI_MISC').replace('_MC_STATUS', '_MC_MISC')
+				
+				addr_value = self.xlookup(lookup_array=io_filtered, testname=addr_pattern,
+				                         LotsSeqKey=LotsSeqKey, UnitTestingSeqKey=UnitTestingSeqKey)
+				misc_value = self.xlookup(lookup_array=io_filtered, testname=misc_pattern,
+				                         LotsSeqKey=LotsSeqKey, UnitTestingSeqKey=UnitTestingSeqKey)
+				
+				# Get Run Info
 				run = str(LotsSeqKey) + "-" + str(UnitTestingSeqKey)
 				data_dict['Run'] += [run]
 				data_dict['Operation'] += [str(operation)]
-				data_dict['SCA_MC'] += [data['TestName']]
-				data_dict['IMH'] += [f'IMH{imh}']
-				data_dict['SCA_Instance'] += [f'SCA{sca_inst}']
+				data_dict['Type'] += [io_type]
+				data_dict['IO_MC'] += [test_name]
+				data_dict['IMH_CBB'] += [imh_cbb]
+				data_dict['Instance'] += [instance]
+				data_dict['MCACOD'] += [hex(mcacod)]
+				data_dict['MC_DECODE'] += [mc_decode]
 				data_dict['MC_STATUS'] += [mc_value]
 				data_dict['MC_ADDR'] += [addr_value]
 				data_dict['MC_MISC'] += [misc_value]
-				
-				# Decode using SCA decoder logic (IO caching agent, not LLC)
-				data_dict['MC DECODE'] += [self.sca_decoder(value=mc_value)]
-				data_dict['Error_Type'] += [self.sca_error_type(value=mc_value)]
 		
 		new_df = pd.DataFrame(data_dict)
 		return new_df
 
-	def sca_decoder(self, value):
+	def io_lookup_pattern(self, imh='', cbb='', stack='', ula='', uxi='', uio='', iocache='', suffix='ADDR', ptype='ula_uios'):
 		"""
-		SCA (IO Caching Agent) MCA decoder for DMR
-		Note: SCA uses similar MSCOD encoding as LLC but is for IO device caching
+		Build register path patterns for DMR IO MCA ADDR/MISC lookup
+		
+		Args:
+			imh: IMH number (string)
+			cbb: CBB number (string)
+			stack: Stack number (string)
+			ula: ULA number (string)
+			uxi: UXI number (string)
+			uio: UIO number (string)
+			iocache: IOCACHE number (string)
+			suffix: 'ADDR' or 'MISC' or 'AD' or 'MS'
+			ptype: Pattern type
+		
+		Pattern types:
+			- ula_uios: SOCKET0__IMH{n}__ULA__ULA_UIO{n}__ULA_MC_{AD/MS}
+			- ula_d2dio: SOCKET0__IMH{n}__D2D_STACK__D2D_STACK_{n}__UXI_{n}__ULA_MC_{AD/MS}
+			- ula_d2dcbb: SOCKET0__CBB{n}__BASE__D2D_STACK_{n}__ULA_{n}__ULA__ULA_MC_{AD/MS}
+			- iocache: SOCKET0__IMH{n}__SCF__SCA__IOCACHE{n}__UTIL__MCI_{ADDR/MISC}
 		"""
-		if value == '':
-			return value
+		if ptype == 'ula_uios':
+			# ULA_UIOS pattern: SOCKET0__IMH{n}__ULA__ULA_UIO{n}__ULA_MC_AD/MS
+			if suffix in ['ADDR', 'AD']:
+				pattern = f'SOCKET0__IMH{imh}__ULA__ULA_UIO{uio}__ULA_MC_AD'
+			elif suffix in ['MISC', 'MS']:
+				pattern = f'SOCKET0__IMH{imh}__ULA__ULA_UIO{uio}__ULA_MC_MS'
+			else:
+				pattern = f'SOCKET0__IMH{imh}__ULA__ULA_UIO{uio}__ULA_MC_{suffix}'
 		
-		# Use the LLC data from mcadata (SCA uses similar error codes)
-		llc_json = self.mcadata.llc_data
+		elif ptype == 'ula_d2dio':
+			# ULA D2D IMH pattern: SOCKET0__IMH{n}__D2D_STACK__D2D_STACK_{n}__UXI_{n}__ULA_MC_AD/MS
+			if suffix in ['ADDR', 'AD']:
+				pattern = f'SOCKET0__IMH{imh}__D2D_STACK__D2D_STACK_{stack}__UXI_{uxi}__ULA_MC_AD'
+			elif suffix in ['MISC', 'MS']:
+				pattern = f'SOCKET0__IMH{imh}__D2D_STACK__D2D_STACK_{stack}__UXI_{uxi}__ULA_MC_MISC'
+			else:
+				pattern = f'SOCKET0__IMH{imh}__D2D_STACK__D2D_STACK_{stack}__UXI_{uxi}__ULA_MC_{suffix}'
 		
-		# Extract MSCOD from bits 31:16
-		mscod = extract_bits(hex_value=value, min_bit=16, max_bit=31)
+		elif ptype == 'ula_d2dcbb':
+			# ULA D2D CBB pattern: SOCKET0__CBB{n}__BASE__D2D_STACK_{n}__ULA_{n}__ULA__ULA_MC_AD/MS
+			if suffix in ['ADDR', 'AD']:
+				pattern = f'SOCKET0__CBB{cbb}__BASE__D2D_STACK_{stack}__ULA_{ula}__ULA__ULA_MC_AD'
+			elif suffix in ['MISC', 'MS']:
+				pattern = f'SOCKET0__CBB{cbb}__BASE__D2D_STACK_{stack}__ULA_{ula}__ULA__ULA_MC_MISC'
+			else:
+				pattern = f'SOCKET0__CBB{cbb}__BASE__D2D_STACK_{stack}__ULA_{ula}__ULA__ULA_MC_{suffix}'
 		
-		# Look up in MSCOD_BY_VAL table
-		mscod_table = llc_json.get('MSCOD_BY_VAL', {})
-		mscod_str = str(mscod)
+		elif ptype == 'iocache':
+			# IOCACHE pattern: SOCKET0__IMH{n}__SCF__SCA__IOCACHE{n}__UTIL__MCI_ADDR/MISC
+			pattern = f'SOCKET0__IMH{imh}__SCF__SCA__IOCACHE{iocache}__UTIL__MCI_{suffix}'
 		
-		if mscod_str in mscod_table:
-			return mscod_table[mscod_str]
 		else:
+			pattern = ''
+		
+		return pattern
+
+	def io_ula_decoder(self, value):
+		"""
+		ULA (UXI Link Agent) MCA decoder for DMR
+		Uses ula_params.json for MSCOD decoding
+		"""
+		if value == '' or value is None:
+			return ''
+		
+		try:
+			mscod = extract_bits(hex_value=value, min_bit=16, max_bit=31)
+			
+			# Use ULA parameters from JSON
+			ula_json = self.mcadata.ula_data if hasattr(self.mcadata, 'ula_data') else {}
+			
+			if 'ULA_MSCOD' in ula_json:
+				mscod_str = str(mscod)
+				if mscod_str in ula_json['ULA_MSCOD']:
+					return f"{ula_json['ULA_MSCOD'][mscod_str]} (MSCOD={mscod})"
+			
 			return f"MSCOD={mscod}"
+		
+		except Exception as e:
+			return f"Decode error: {str(e)}"
 
-	def sca_error_type(self, value):
+	def io_cache_decoder(self, value):
 		"""
-		Determine SCA error severity using JSON configuration
-		Note: SCA is IO caching agent, not system LLC
+		IO Cache MCA decoder for DMR
+		Uses cache_params.json for MSCOD decoding
 		"""
-		if value == '':
-			return 'N/A'
+		if value == '' or value is None:
+			return ''
 		
-		mscod = extract_bits(hex_value=value, min_bit=16, max_bit=31)
+		try:
+			mscod = extract_bits(hex_value=value, min_bit=16, max_bit=31)
+			
+			# Use cache parameters from JSON
+			cache_json = self.mcadata.cache_data if hasattr(self.mcadata, 'cache_data') else {}
+			
+			if 'MSCOD_BY_VAL' in cache_json:
+				mscod_str = str(mscod)
+				if mscod_str in cache_json['MSCOD_BY_VAL']:
+					return f"{cache_json['MSCOD_BY_VAL'][mscod_str]} (MSCOD={mscod})"
+			
+			# Fallback to LLC data if cache_params.json not available
+			llc_json = self.mcadata.llc_data
+			mscod_table = llc_json.get('MSCOD_BY_VAL', {})
+			
+			if str(mscod) in mscod_table:
+				return f"{mscod_table[str(mscod)]} (MSCOD={mscod})"
+			else:
+				return f"MSCOD={mscod}"
 		
-		# Use error type lists from JSON if available
-		llc_json = self.mcadata.llc_data
-		error_types = llc_json.get('ERROR_TYPES', {})
-		
-		correctable = error_types.get('CORRECTABLE', [7, 17, 18, 34, 35, 40, 49, 57, 60])
-		uncorrectable = error_types.get('UNCORRECTABLE', [1, 2, 8, 10, 19, 33, 36, 41, 50, 58, 59])
-		
-		if mscod in correctable:
-			return 'Correctable'
-		elif mscod in uncorrectable:
-			return 'Uncorrectable'
-		else:
-			return 'Unknown'
+		except Exception as e:
+			return f"Decode error: {str(e)}"
 
-	def memory(self):
+	def mem(self):
 		"""
-		Memory Controller MCA decoder - Banks 19-26 (8 channels, 2 sub-channels each)
-		NOTE: This pattern not observed in current DMR register paths
-		Keeping for future use if memory controller paths are identified
+		Memory MCA decoder for DMR - Includes HA, HSF, SUBCHN, MSE, SCA
+		
+		Memory Components:
+		- ha: Home Agent (Bank 12)
+		  Pattern: SOCKET0__IMH{0-1}__SCF__HAMVF__HA_{0-15}__MCI_STATUS
+		  Instance: HAMVF_HA{n}
+		  
+		- hsf: Home Snoop Filter (Bank 13)
+		  Pattern: SOCKET0__IMH{0-1}__SCF__HAMVF__HSF_{0-15}__UTIL__MCI_STATUS
+		  Instance: HSF{n}
+		  
+		- subchn: Memory Controller Subchannels (Banks 19-26)
+		  Pattern: SOCKET0__IMH{0-1}__MEMSS__MC{0-7}__SUBCH{0-1}__MCDATA__IMC0_MC_STATUS
+		  Instance: HA{n}
+		  
+		- mse: Memory Security Engine (Bank 16)
+		  Pattern: SOCKET0__IMH{0-1}__MEMSS__MC{0-7}__SUBCH{0-1}__MSE__MSE_MCI_STATUS
+		  Instance: MSE
+		  
+		- sca: Scalable Caching Agent (Bank 14)
+		  Pattern: SOCKET0__IMH{0-1}__SCF__SCA__SCA{0-n}__UTIL__MC_STATUS
+		  Instance: SCA{n}
 		"""
 		mcdata = self.data
-		columns = ['VisualID', 'Run', 'Operation', 'MC', 'IMH', 'Channel', 'SubChannel',
-		           'MC_STATUS', 'MC DECODE', 'MC_ADDR', 'MC_MISC', 'Error_Type']
+		columns = ['VisualID', 'Run', 'Operation', 'Type', 'MEM_MC', 'IMH', 'Instance', 
+		           'MC_STATUS', 'MCACOD', 'MC_DECODE', 'MC_ADDR', 'MC_MISC']
 		
 		data_dict = {k:[] for k in columns}
 		
-		# Memory controller pattern not yet identified in DMR
-		# Placeholder for future implementation
-		print("Memory controller decoder not yet implemented for DMR")
+		# Memory subsystem patterns
+		mem_patterns = ['HAMVF__HA_', 'HAMVF__HSF_', 'MEMSS__MC', 'MSE__MSE_MCI', 'SCF__SCA__SCA']
+		
+		for visual_id in mcdata['VisualId'].unique():
+			# Filter for memory-related MCAs
+			mem_filtered = pd.DataFrame()
+			for pattern in mem_patterns:
+				pattern_data = self.extract_value(mcdata[mcdata['VisualId'] == visual_id], 'TestName', pattern)
+				if not pattern_data.empty:
+					mem_filtered = pd.concat([mem_filtered, pattern_data], ignore_index=True)
+			
+			# Further filter for STATUS registers
+			mc_filtered = self.extract_value(mem_filtered, 'TestName', '_STATUS|_MC_STATUS|_MCI_STATUS')
+			
+			if mc_filtered.empty:
+				print(f' -- No Memory MCA data found in VID: {visual_id}')
+				continue
+			
+			# Iterate over all Memory MCAs
+			for i, data in mc_filtered.iterrows():
+				data_dict['VisualID'] += [visual_id]
+				LotsSeqKey = data['LotsSeqKey']
+				UnitTestingSeqKey = data['UnitTestingSeqKey']
+				operation = data['Operation']
+				test_name = data['TestName']
+				mc_value = data['TestValue']
+				
+				# Determine memory type and extract instance information
+				mem_type = ''
+				instance = ''
+				imh = ''
+				
+				if 'HAMVF__HA_' in test_name and 'HSF' not in test_name:
+					# ha: SOCKET0__IMH{n}__SCF__HAMVF__HA_{n}__MCI_STATUS
+					mem_type = 'HA'
+					imh_match = re.search(r'IMH(\d+)', test_name)
+					ha_match = re.search(r'HAMVF__HA_(\d+)', test_name)
+					if imh_match and ha_match:
+						imh = f'IMH{imh_match.group(1)}'
+						instance = f'HAMVF_HA{ha_match.group(1)}'
+					
+				elif 'HAMVF__HSF_' in test_name:
+					# hsf: SOCKET0__IMH{n}__SCF__HAMVF__HSF_{n}__UTIL__MCI_STATUS
+					mem_type = 'HSF'
+					imh_match = re.search(r'IMH(\d+)', test_name)
+					hsf_match = re.search(r'HAMVF__HSF_(\d+)', test_name)
+					if imh_match and hsf_match:
+						imh = f'IMH{imh_match.group(1)}'
+						instance = f'HSF{hsf_match.group(1)}'
+					
+				elif 'MEMSS__MC' in test_name and 'MSE' not in test_name:
+					# subchn: SOCKET0__IMH{n}__MEMSS__MC{n}__SUBCH{n}__MCDATA__IMC0_MC_STATUS
+					mem_type = 'SUBCHN'
+					imh_match = re.search(r'IMH(\d+)', test_name)
+					mc_match = re.search(r'MEMSS__MC(\d+)', test_name)
+					subch_match = re.search(r'SUBCH(\d+)', test_name)
+					if imh_match and mc_match:
+						imh = f'IMH{imh_match.group(1)}'
+						mc_num = mc_match.group(1)
+						subch_num = subch_match.group(1) if subch_match else '0'
+						instance = f'HA{mc_num}'  # Using HA{n} as instance per spec
+					
+				elif 'MSE__MSE_MCI' in test_name:
+					# mse: SOCKET0__IMH{n}__MEMSS__MC{n}__SUBCH{n}__MSE__MSE_MCI_STATUS
+					mem_type = 'MSE'
+					imh_match = re.search(r'IMH(\d+)', test_name)
+					if imh_match:
+						imh = f'IMH{imh_match.group(1)}'
+						instance = 'MSE'
+					
+				elif 'SCF__SCA__SCA' in test_name:
+					# sca: SOCKET0__IMH{n}__SCF__SCA__SCA{n}__UTIL__MC_STATUS
+					mem_type = 'SCA'
+					imh_match = re.search(r'IMH(\d+)', test_name)
+					sca_match = re.search(r'__SCA__SCA(\d+)__', test_name)
+					if imh_match and sca_match:
+						imh = f'IMH{imh_match.group(1)}'
+						instance = f'SCA{sca_match.group(1)}'
+				
+				# Extract MCACOD (bits 15:0) from MC_STATUS
+				mcacod = extract_bits(hex_value=mc_value, min_bit=0, max_bit=15)
+				
+				# Decode MSCOD based on memory type
+				mc_decode = self.mem_decoder(value=mc_value, mem_type=mem_type)
+				
+				# Look up ADDR and MISC registers using proper lookup patterns
+				addr_value = ''
+				misc_value = ''
+				addr_pattern = ''
+				misc_pattern = ''
+				
+				# Build lookup patterns based on memory type using mem_lookup_pattern method
+				if mem_type == 'HA':
+					imh_match = re.search(r'IMH(\d+)', test_name)
+					ha_match = re.search(r'HAMVF__HA_(\d+)', test_name)
+					if imh_match and ha_match:
+						imh_num = imh_match.group(1)
+						ha_num = ha_match.group(1)
+						addr_pattern = self.mem_lookup_pattern(imh=imh_num, ha=ha_num, suffix='ADDR', ptype='ha')
+						misc_pattern = self.mem_lookup_pattern(imh=imh_num, ha=ha_num, suffix='MISC', ptype='ha')
+				
+				elif mem_type == 'HSF':
+					imh_match = re.search(r'IMH(\d+)', test_name)
+					hsf_match = re.search(r'HAMVF__HSF_(\d+)', test_name)
+					if imh_match and hsf_match:
+						imh_num = imh_match.group(1)
+						hsf_num = hsf_match.group(1)
+						addr_pattern = self.mem_lookup_pattern(imh=imh_num, hsf=hsf_num, suffix='ADDR', ptype='hsf')
+						misc_pattern = self.mem_lookup_pattern(imh=imh_num, hsf=hsf_num, suffix='MISC', ptype='hsf')
+				
+				elif mem_type == 'SUBCHN':
+					imh_match = re.search(r'IMH(\d+)', test_name)
+					mc_match = re.search(r'MEMSS__MC(\d+)', test_name)
+					subch_match = re.search(r'SUBCH(\d+)', test_name)
+					if imh_match and mc_match:
+						imh_num = imh_match.group(1)
+						mc_num = mc_match.group(1)
+						subch_num = subch_match.group(1) if subch_match else '0'
+						addr_pattern = self.mem_lookup_pattern(imh=imh_num, mc=mc_num, subch=subch_num, suffix='ADDR', ptype='subchn')
+						misc_pattern = self.mem_lookup_pattern(imh=imh_num, mc=mc_num, subch=subch_num, suffix='MISC', ptype='subchn')
+				
+				elif mem_type == 'MSE':
+					imh_match = re.search(r'IMH(\d+)', test_name)
+					mc_match = re.search(r'MEMSS__MC(\d+)', test_name)
+					subch_match = re.search(r'SUBCH(\d+)', test_name)
+					if imh_match and mc_match:
+						imh_num = imh_match.group(1)
+						mc_num = mc_match.group(1)
+						subch_num = subch_match.group(1) if subch_match else '0'
+						addr_pattern = self.mem_lookup_pattern(imh=imh_num, mc=mc_num, subch=subch_num, suffix='ADDR', ptype='mse')
+						misc_pattern = self.mem_lookup_pattern(imh=imh_num, mc=mc_num, subch=subch_num, suffix='MISC', ptype='mse')
+				
+				elif mem_type == 'SCA':
+					imh_match = re.search(r'IMH(\d+)', test_name)
+					sca_match = re.search(r'__SCA__SCA(\d+)__', test_name)
+					if imh_match and sca_match:
+						imh_num = imh_match.group(1)
+						sca_num = sca_match.group(1)
+						addr_pattern = self.mem_lookup_pattern(imh=imh_num, sca=sca_num, suffix='ADDR', ptype='sca')
+						misc_pattern = self.mem_lookup_pattern(imh=imh_num, sca=sca_num, suffix='MISC', ptype='sca')
+				
+				else:
+					# Fallback to simple replacement
+					if 'MCI_STATUS' in test_name:
+						addr_pattern = test_name.replace('_MCI_STATUS', '_MCI_ADDR')
+						misc_pattern = test_name.replace('_MCI_STATUS', '_MCI_MISC')
+					elif 'MC_STATUS' in test_name:
+						addr_pattern = test_name.replace('_MC_STATUS', '_MC_ADDR').replace('IMC0_MC_STATUS', 'IMC0_MC8_ADDR')
+						misc_pattern = test_name.replace('_MC_STATUS', '_MC_MISC')
+				
+				addr_value = self.xlookup(lookup_array=mem_filtered, testname=addr_pattern,
+				                         LotsSeqKey=LotsSeqKey, UnitTestingSeqKey=UnitTestingSeqKey)
+				misc_value = self.xlookup(lookup_array=mem_filtered, testname=misc_pattern,
+				                         LotsSeqKey=LotsSeqKey, UnitTestingSeqKey=UnitTestingSeqKey)
+				
+				# Get Run Info
+				run = str(LotsSeqKey) + "-" + str(UnitTestingSeqKey)
+				data_dict['Run'] += [run]
+				data_dict['Operation'] += [str(operation)]
+				data_dict['Type'] += [mem_type]
+				data_dict['MEM_MC'] += [test_name]
+				data_dict['IMH'] += [imh]
+				data_dict['Instance'] += [instance]
+				data_dict['MCACOD'] += [hex(mcacod)]
+				data_dict['MC_DECODE'] += [mc_decode]
+				data_dict['MC_STATUS'] += [mc_value]
+				data_dict['MC_ADDR'] += [addr_value]
+				data_dict['MC_MISC'] += [misc_value]
 		
 		new_df = pd.DataFrame(data_dict)
 		return new_df
+
+	def mem_lookup_pattern(self, imh='', ha='', hsf='', mc='', subch='', sca='', suffix='ADDR', ptype='ha'):
+		"""
+		Build register path patterns for DMR Memory MCA ADDR/MISC lookup
+		
+		Args:
+			imh: IMH number (string)
+			ha: HA number (string)
+			hsf: HSF number (string)
+			mc: MC number (string)
+			subch: Subchannel number (string)
+			sca: SCA number (string)
+			suffix: 'ADDR' or 'MISC'
+			ptype: Pattern type
+		
+		Pattern types:
+			- ha: SOCKET0__IMH{n}__SCF__HAMVF__HA_{n}__MCI_{ADDR/MISC}
+			- hsf: SOCKET0__IMH{n}__SCF__HAMVF__HSF_{n}__UTIL__MCI_{ADDR/MISC}
+			- subchn: SOCKET0__IMH{n}__MEMSS__MC{n}__SUBCH{n}__MCDATA__IMC0_MC{8_ADDR or _MISC}
+			- mse: SOCKET0__IMH{n}__MEMSS__MC{n}__SUBCH{n}__MSE__MSE_MCI_{ADDR/MISC}
+			- sca: SOCKET0__IMH{n}__SCF__SCA__SCA{n}__UTIL__MC_{ADDR/MISC}
+		"""
+		if ptype == 'ha':
+			# HA pattern: SOCKET0__IMH{n}__SCF__HAMVF__HA_{n}__MCI_ADDR/MISC
+			pattern = f'SOCKET0__IMH{imh}__SCF__HAMVF__HA_{ha}__MCI_{suffix}'
+		
+		elif ptype == 'hsf':
+			# HSF pattern: SOCKET0__IMH{n}__SCF__HAMVF__HSF_{n}__UTIL__MCI_ADDR/MISC
+			pattern = f'SOCKET0__IMH{imh}__SCF__HAMVF__HSF_{hsf}__UTIL__MCI_{suffix}'
+		
+		elif ptype == 'subchn':
+			# SUBCHN pattern: SOCKET0__IMH{n}__MEMSS__MC{n}__SUBCH{n}__MCDATA__IMC0_MC{8_ADDR or _MISC}
+			# Special case: ADDR uses IMC0_MC8_ADDR, MISC uses IMC0_MC_MISC
+			if suffix == 'ADDR':
+				pattern = f'SOCKET0__IMH{imh}__MEMSS__MC{mc}__SUBCH{subch}__MCDATA__IMC0_MC8_ADDR'
+			else:
+				pattern = f'SOCKET0__IMH{imh}__MEMSS__MC{mc}__SUBCH{subch}__MCDATA__IMC0_MC_{suffix}'
+		
+		elif ptype == 'mse':
+			# MSE pattern: SOCKET0__IMH{n}__MEMSS__MC{n}__SUBCH{n}__MSE__MSE_MCI_ADDR/MISC
+			pattern = f'SOCKET0__IMH{imh}__MEMSS__MC{mc}__SUBCH{subch}__MSE__MSE_MCI_{suffix}'
+		
+		elif ptype == 'sca':
+			# SCA pattern: SOCKET0__IMH{n}__SCF__SCA__SCA{n}__UTIL__MC_ADDR/MISC
+			pattern = f'SOCKET0__IMH{imh}__SCF__SCA__SCA{sca}__UTIL__MC_{suffix}'
+		
+		else:
+			pattern = ''
+		
+		return pattern
+
+	def mem_decoder(self, value, mem_type):
+		"""
+		Memory MCA decoder for DMR
+		Routes to appropriate decoder based on memory component type
+		
+		Args:
+			value: MC_STATUS register value
+			mem_type: Type of memory component (HA, HSF, SUBCHN, MSE, SCA)
+		"""
+		if value == '' or value is None:
+			return ''
+		
+		try:
+			mscod = extract_bits(hex_value=value, min_bit=16, max_bit=31)
+			
+			# Route to appropriate JSON decoder
+			if mem_type == 'HA':
+				# Use hamvf_params.json
+				hamvf_json = self.mcadata.hamvf_data if hasattr(self.mcadata, 'hamvf_data') else {}
+				if 'MSCOD' in hamvf_json and str(mscod) in hamvf_json['MSCOD']:
+					return f"{hamvf_json['MSCOD'][str(mscod)]} (MSCOD={mscod})"
+				return f"MSCOD={mscod}"
+				
+			elif mem_type == 'HSF':
+				# Use cache_params.json for HSF (snoop filter cache)
+				cache_json = self.mcadata.cache_data if hasattr(self.mcadata, 'cache_data') else {}
+				if 'MSCOD_BY_VAL' in cache_json and str(mscod) in cache_json['MSCOD_BY_VAL']:
+					return f"{cache_json['MSCOD_BY_VAL'][str(mscod)]} (MSCOD={mscod})"
+				
+				# Fallback to LLC data
+				llc_json = self.mcadata.llc_data
+				mscod_table = llc_json.get('MSCOD_BY_VAL', {})
+				if str(mscod) in mscod_table:
+					return f"{mscod_table[str(mscod)]} (MSCOD={mscod})"
+				return f"MSCOD={mscod}"
+				
+			elif mem_type == 'SUBCHN':
+				# Use mc_subch_params.json
+				mc_subch_json = self.mcadata.mc_subch_data if hasattr(self.mcadata, 'mc_subch_data') else {}
+				if 'MSCOD' in mc_subch_json and str(mscod) in mc_subch_json['MSCOD']:
+					return f"{mc_subch_json['MSCOD'][str(mscod)]} (MSCOD={mscod})"
+				return f"MSCOD={mscod}"
+				
+			elif mem_type == 'MSE':
+				# Use mse_params.json (already exists in GNR structure)
+				mse_json = self.mcadata.mse_data if hasattr(self.mcadata, 'mse_data') else {}
+				if 'MSCOD' in mse_json and str(mscod) in mse_json['MSCOD']:
+					return f"{mse_json['MSCOD'][str(mscod)]} (MSCOD={mscod})"
+				return f"MSCOD={mscod}"
+				
+			elif mem_type == 'SCA':
+				# Use sca_params.json
+				sca_json = self.mcadata.sca_data if hasattr(self.mcadata, 'sca_data') else {}
+				if 'MSCOD_BY_VAL' in sca_json and str(mscod) in sca_json['MSCOD_BY_VAL']:
+					return f"{sca_json['MSCOD_BY_VAL'][str(mscod)]} (MSCOD={mscod})"
+				
+				# Fallback to LLC data
+				llc_json = self.mcadata.llc_data
+				mscod_table = llc_json.get('MSCOD_BY_VAL', {})
+				if str(mscod) in mscod_table:
+					return f"{mscod_table[str(mscod)]} (MSCOD={mscod})"
+				return f"MSCOD={mscod}"
+			
+			else:
+				return f"MSCOD={mscod}"
+		
+		except Exception as e:
+			return f"Decode error: {str(e)}"
 
 	def memory_decoder(self, value):
 		"""

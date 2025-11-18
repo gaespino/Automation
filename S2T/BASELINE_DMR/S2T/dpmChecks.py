@@ -688,7 +688,7 @@ def logger(visual = '', qdf = '', TestName='', Testnumber = 0, dr_dump = True, c
 	if qdf == '':
 		qdf = qdf_str()
 
-	product = product_str()
+	product = config.SELECTED_PRODUCT #product_str()
 	
 	if WW == '':
 		#currentdate = datetime.date.today()
@@ -1331,15 +1331,18 @@ def qdf_str():
 	return qdf
 
 def product_str(): # DMR will use device_name
-	product = sv.socket0.target_info["device_name"].upper()
+	#product = sv.socket0.target_info["device_name"].upper()
+	product = config.PRODUCT_CONFIG.upper()
 	return product
 
 def variant_str():
-	variant = sv.socket0.target_info["variant"].upper()
+	#variant = sv.socket0.target_info["variant"].upper()
+	variant = config.PRODUCT_VARIANT.upper()
 	return variant
 
 def chop_str():
-	chop = sv.socket0.target_info["chop"].upper()
+	#chop = sv.socket0.target_info["chop"].upper()
+	chop = config.PRODUCT_CHOP.upper()
 	return chop
 
 def get_compute_index(core=None):
@@ -2824,5 +2827,5 @@ BurnInFuses = dev_dict(f'{config.SELECTED_PRODUCT}BurnInFuses.json', selected_pr
 
 ## Bootscript Data
 
-COMPUTE_CONFIG = config.BOOTSCRIPT_DATA[product_str().upper()]['compute_config']
-SEGMENT = config.BOOTSCRIPT_DATA[product_str().upper()]['segment']
+COMPUTE_CONFIG = config.BOOTSCRIPT_DATA[config.PRODUCT_CONFIG.upper()]['compute_config']
+SEGMENT = config.BOOTSCRIPT_DATA[config.PRODUCT_CONFIG.upper()]['segment']

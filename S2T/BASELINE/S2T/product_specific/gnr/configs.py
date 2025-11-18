@@ -59,6 +59,7 @@ class configurations:
 		# System Specific Configurations based on product
 		ConfigFile = f'{product}FuseFileConfigs.json'
 		CORESTRING = 'CORE'
+		CHASTRING = 'CHA'
 		CORETYPES = {	'GNRAP':{'core':'bigcore','config':'AP', 'maxcores': 180, 'maxlogcores': 132},
 							'GNRSP':{'core':'bigcore','config':'SP', 'maxcores': 120, 'maxlogcores': 88}}
 		MAXLOGICAL = 44
@@ -76,6 +77,7 @@ class configurations:
 		CONFIG = { 'PRODUCT':product,
 				'CONFIGFILE': ConfigFile,
 				'CORESTRING': CORESTRING,
+				'CHASTRING': CHASTRING,
 				'CORETYPES': CORETYPES,
 				'MAXLOGICAL': MAXLOGICAL,
 				'MAXPHYSICAL': MAXPHYSICAL,
@@ -170,6 +172,9 @@ class configurations:
 		# Product config
 		product = self.product
 
+		# Path of All S2T scripts
+		BASE_PATH = 'users.THR.PythonScript.thr'
+
 		## System 2 Tester and bootscript Initialization data 
 
 		bootscript_data = {	'GNRAP':{'segment':'GNRUCC', 'config':['compute0', 'compute1', 'compute2'], 'compute_config':'x3',},
@@ -258,6 +263,7 @@ class configurations:
 							'ValidRows' : ValidRows,
 							'ValidCols' : ValidCols,
 							'bootscript_data' : bootscript_data,
+							'base_path': BASE_PATH,
 			}
 		
 		return FrameworkVars

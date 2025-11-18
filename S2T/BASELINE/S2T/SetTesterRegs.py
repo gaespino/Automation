@@ -244,8 +244,11 @@ def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_m
 	"""
 	s2tTest = S2TFlow(debug=debug, execution_state=execution_state)
 	product = config.SELECTED_PRODUCT
-	
+	qdf = dpm.qdf_str()
+
 	voltage_recipes = ['ppvc']
+	special_qdf = ['RVF5']
+
 	vtype = 3 if volttype == 'vbump' else 2 if volttype == 'fixed' else 4 if volttype == 'ppvc' else 1
 	
 	# Set Default Values of non used variables
@@ -270,8 +273,8 @@ def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_m
 	s2tTest.boot_postcode = boot_postcode
 	s2tTest.license_level = corelic
 	s2tTest.extMasks = extMask
-	s2tTest.u600w = u600w
-
+	s2tTest.u600w = u600w if qdf in special_qdf else False
+	s2tTest.fastboot = False if s2tTest.u600w == True else fastboot
 
 	# Set quickconfig variables
 	s2tTest.quick()
@@ -310,6 +313,10 @@ def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_m
 		s2tTest.targetTile = 4
 
 	# 1CPM Configuration
+	if pseudo != None:
+		s2tTest.dis_ht = pseudo
+
+	# 1CPM Configuration
 	if dis_1CPM != None:
 		s2tTest.dis_1CPM = dis_1CPM
 
@@ -323,14 +330,19 @@ def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_m
 	else:
 		# Frequency Conditions using FrequencyManager
 		if core_freq != None:
-			s2tTest.frequency_mgr.set_frequencies(core=core_freq)
+			s2tTest.core_freq = core_freq
 		if mesh_freq != None:
-			s2tTest.frequency_mgr.set_frequencies(mesh=mesh_freq)
+			s2tTest.mesh_freq = mesh_freq
 		
 		# Voltage Conditions using VoltageManager
 		if vtype > 1:
 			s2tTest.voltselect = vtype
+
+		if vbump_core != None and volttype not in voltage_recipes:	
+			s2tTest.qvbumps_core = vbump_core
 		
+		if vbump_mesh != None and volttype not in voltage_recipes:
+			s2tTest.qvbumps_mesh = vbump_mesh		
 		# Set voltage using manager
 		s2tTest.set_voltage()
 		
@@ -341,14 +353,17 @@ def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_m
 		# Save Configuration
 		s2tTest.save_config(file_path=s2tTest.defaultSave)
 
-def SliceQuickTest(Target_core = None, core_freq = None, mesh_freq = None, vbump_core = None, vbump_mesh = None, Reset = False, pseudo = False, dis_2CPM = None, GUI = True, fastboot = True, corelic = None,  volttype = 'fixed', debug= False, boot_postcode = False, u600w=None, execution_state=None):
+def SliceQuickTest(Target_core = None, core_freq = None, mesh_freq = None, vbump_core = None, vbump_mesh = None, Reset = False, pseudo = False, dis_1CPM = None, dis_2CPM = None, GUI = True, fastboot = True, corelic = None,  volttype = 'fixed', debug= False, boot_postcode = False, u600w=None, execution_state=None):
 	"""
 	Quick slice test using new manager architecture.
 	"""
 	s2tTest = S2TFlow(debug=debug, execution_state=execution_state)
 	product = config.SELECTED_PRODUCT
-	
+	qdf = dpm.qdf_str()
+
 	voltage_recipes = ['ppvc']
+	special_qdf = ['RVF5']
+	
 	vtype = 3 if volttype == 'vbump' else 2 if volttype == 'fixed' else 4 if volttype == 'ppvc' else 1
 
 	# Set Default Values of non used variables
@@ -372,10 +387,13 @@ def SliceQuickTest(Target_core = None, core_freq = None, mesh_freq = None, vbump
 	s2tTest.reset_start = Reset
 	s2tTest.boot_postcode = boot_postcode
 	s2tTest.targetLogicalCore = Target_core
-	s2tTest.u600w = u600w
-	
+	s2tTest.license_level = corelic
+	s2tTest.u600w = u600w if qdf in special_qdf else False
+	s2tTest.fastboot =  False if s2tTest.u600w == True else fastboot
+
 	# Set quickconfig variables
 	s2tTest.quick()
+		
 	
 	# Init System
 	s2tTest.slice_init()
@@ -386,14 +404,20 @@ def SliceQuickTest(Target_core = None, core_freq = None, mesh_freq = None, vbump
 	else:
 		# Frequency Conditions using FrequencyManager
 		if core_freq != None:
-			s2tTest.frequency_mgr.set_frequencies(core=core_freq)
+			s2tTest.core_freq = core_freq
 		if mesh_freq != None:
-			s2tTest.frequency_mgr.set_frequencies(mesh=mesh_freq)
+			s2tTest.mesh_freq = mesh_freq
 		
 		# Voltage Conditions using VoltageManager
 		if vtype > 1:
 			s2tTest.voltselect = vtype
+
+		if vbump_core != None and volttype not in voltage_recipes:	
+			s2tTest.qvbumps_core = vbump_core
 		
+		if vbump_mesh != None and volttype not in voltage_recipes:
+			s2tTest.qvbumps_mesh = vbump_mesh
+				
 		# Check for Target Core
 		if Target_core == None:
 			s2tTest.slice_core(s2tTest.array, s2tTest.core_dict)
@@ -1974,6 +1998,8 @@ def reboot_pm():
 
 ## Prints VVAR default configuration
 def vvars_call(slice = True, logCore=None, corestring = 'CORE'):
+	# GNR / CWF
+	VVAR2_DEFAULT = 0x1000002 if corestring == 'CORE' else 0x1000004 # 2 Threads
 
 	if slice:
 		targetLogicalCore = logCore
@@ -1983,9 +2009,10 @@ def vvars_call(slice = True, logCore=None, corestring = 'CORE'):
 			print('!!! Error Collecting APIC IDs Data --')
 			apic_0 = None
 			apic_1 = None
+		
 		vvars = {	0:0x04C4B40, 
 					1:0x80064000,
-					2:0x1000002,
+					2:VVAR2_DEFAULT,
 					3:0x10000,
 					4:apic_0,
 					5:apic_1}

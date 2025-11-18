@@ -1370,15 +1370,18 @@ def qdf_str():
 	return qdf
 
 def product_str():
-	product = sv.socket0.target_info["segment"].upper()
+	#product = sv.socket0.target_info["segment"].upper()
+	product = LoadConfig.PRODUCT_CONFIG.upper()
 	return product
 
 def variant_str():
-	variant = sv.socket0.target_info["variant"].upper()
+	#variant = sv.socket0.target_info["variant"].upper()
+	variant = LoadConfig.PRODUCT_VARIANT.upper()
 	return variant
 
 def chop_str():
-	chop = sv.socket0.target_info["chop"].upper()
+	#chop = sv.socket0.target_info["chop"].upper()
+	chop = LoadConfig.PRODUCT_CHOP.upper()
 	return chop
 
 def get_compute_index(core=None):

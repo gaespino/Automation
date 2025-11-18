@@ -2236,8 +2236,8 @@ class registers:
             # Load registers but skip specific ones
             regs = registers.s2t_reg(skip_keys=['ic_cr_mci_addr', 'mec_cr_mci_ctl'])
         """
+        # Registers: Not working / breaks the system
         not_ok_list = [
-                        "bus_cr_dlsm_tracker",
                         "bus_cr_pic_tsc",
                         "clpu_cr_misc0",
                         "fpc_cr_scmisr_result_0",
@@ -2264,14 +2264,63 @@ class registers:
                         "thread0.pic_cr_pic_timer_current_count_reg",
                         "thread0.pic_cr_queue_status",
                         "thread0.pic_cr_status",
-                        "thread0.pic_cr_tpr_update"
+                        "thread0.pic_cr_tpr_update",
+                        "thread0.pmg_cr_pst_acnt",
+                        "thread0.pmg_cr_pst_mcnt",
+                        "thread0.pmg_cr_pst_pcnt",
+                        # Registers: Different in SLC config / But are not ok and breaks the system
+                        "ag2_cr_tdx_pa_mask",
+                        "bus_cr_comparator_error",
+                        "bus_cr_dlsm_set_and_status",
+                        "bus_cr_dlsm_tracker",
+                        "bus_cr_dynamic_lockstep_ctl",
+                        "bus_cr_pic_core_pm_state_status",
+                        "pmh_cr_c6dramrr_base",
+                        "pmh_cr_c6dramrr_mask",
+                        "pmh_cr_emrr_base",
+                        "pmh_cr_emrr_mask",
+                        "pmh_cr_emxrr_base",
+                        "pmh_cr_emxrr_mask",
+                        "pmh_cr_seamrr_base",
+                        "pmh_cr_tdx_pa_mask",
+                        "pmh_cr_umrr_base",
+                        "pmh_cr_umrr_mask",
+                        "thread0.arr1_cr_cr0",
+                        "thread0.arr_cr_lbr_index",
+                        "thread0.bnl_cr_pppe",
+                        "thread0.fpc_cr_event_info",
+                        "thread0.ia32_cr_perf_global_ctrl_preserve_alias",
+                        "thread0.ic_cr_probe_mode_status"
                     ]
         
-        bad_list = []
+        # Registers: Issues with Raritan + Slow / Bad Performance
+        raritan_and_slow_list = [
+                        # Issues with Raritan
+                        "ia32_cr_smrr_physbase",
+                        "ia32_cr_smrr_physmask",
+                        "thread0.ag1_cr_efer",
+                        "thread0.arr1_cr_sys_flags",
+                        "thread0.bnl_cr_cs_l_d_bits",
+                        "thread0.bus_cr_pcpins",
+                        "thread0.ia32_cr_efer",
+                        "thread0.ms_cr_fast_branch_ucode",
+                        "thread0.x86_cr_apicbase",
+                        "thread0.x86_cr_cr0",
+                        "thread0.x86_cr_cr3",
+                        "x86_cr_mtrrphysbase0",
+                        "x86_cr_mtrrphysbase1",
+                        "x86_cr_mtrrphysbase2",
+                        "x86_cr_mtrrphysmask0",
+                        "x86_cr_mtrrphysmask1",
+                        "x86_cr_mtrrphysmask2",
+                        # Slow / Bad Performance after applying
+                        "thread0.ag2_cr_cr0",
+                        "thread0.id_cr_debug_defeature"
+                    ]
 
         # Initialize skip list
         if skip_keys is None:
-            skip_keys = not_ok_list + bad_list
+            skip_keys = not_ok_list + raritan_and_slow_list
         
         # Load the JSON data using the existing regs_dict method
         json_data = registers.regs_dict(jfile=SLICE_DICT, dictname='s2t_reg')
