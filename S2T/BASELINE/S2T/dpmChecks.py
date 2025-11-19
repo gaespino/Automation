@@ -61,6 +61,18 @@ import toolext.bootscript.boot as b
 import toolext.bootscript.toolbox.fuse_utility as fu
 import pm.pmutils.tools as cvt
 
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#========================================================================================================#
+#=============== DIRECT CONFIG ACCESS (No redundant declarations) =======================================#
+#========================================================================================================#
+
+# All configuration accessed directly via config.ATTRIBUTE
+# No legacy shortcuts - single source of truth pattern
+
+
 # Append the Main Scripts Path
 MAIN_PATH = os.path.abspath(os.path.dirname(__file__))
 
@@ -69,6 +81,9 @@ sys.path.append(MAIN_PATH)
 import ConfigsLoader as cfl
 config = cfl.config
 config.reload()
+
+# Product Functions
+pf = config.get_functions()
 
 # Set Used product Variable -- Called by Framework
 SELECTED_PRODUCT = config.SELECTED_PRODUCT
@@ -94,7 +109,7 @@ else:
 ## Imports from THR folder - These are external scripts, always use same path
 f = None
 try:
-	f = import_module(f'{BASE_PATH}.THR.{THR_NAMING}FuseOverride')
+	f = import_module(f'{BASE_PATH}.{THR_NAMING}FuseOverride')
 	print(' [+] FuseOverride imported successfully')
 except Exception as e:
 	print(f' [x] Could not import FuseOverride, some features may be limited: {e}')
@@ -111,6 +126,8 @@ if cfl.DEV_MODE:
 
 verbose = False
 
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 ipc = ipccli.baseaccess()
 itp = ipc
 sv = namednodes.sv #shortcut
@@ -118,21 +135,6 @@ sv.initialize()
 
 debug= False
 log_folder = "C:\\temp\\"
-
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-#========================================================================================================#
-#=============== DIRECT CONFIG ACCESS (No redundant declarations) =======================================#
-#========================================================================================================#
-
-# All configuration accessed directly via config.ATTRIBUTE
-# No legacy shortcuts - single source of truth pattern
-from users.gaespino.dev.S2T.ConfigsLoader import config
-config.reload()
-
-pf = config.get_functions()
-
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ## WIP
 def retry_on_exception(func, *args, **kwargs):

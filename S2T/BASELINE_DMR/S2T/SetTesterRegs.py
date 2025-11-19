@@ -118,10 +118,17 @@ if cfl.DEV_MODE:
 	import CoreManipulation as scm
 	import GetTesterCurves as stc
 	import dpmChecks as dpm
+	print("=" * 80)
+	print(" " * 27 + "DEVELOPER MODE")
+	print("=" * 80)
 else:
 	scm = import_module(f'{BASE_PATH}.S2T.{LEGACY_NAMING}CoreManipulation')
 	stc = import_module(f'{BASE_PATH}.S2T.{LEGACY_NAMING}GetTesterCurves')
 	dpm = import_module(f'{BASE_PATH}.S2T.dpmChecks{LEGACY_NAMING}')
+	print("=" * 80)
+	print(" " * 27 + "PRODUCTION MODE")
+	print("=" * 80)
+
 
 ## UI Calls
 import UI.System2TesterUI as UI
@@ -129,7 +136,7 @@ import UI.System2TesterUI as UI
 ## Imports from THR folder - These are external scripts, always use same path
 CoreDebugUtils = None
 try:
-	CoreDebugUtils = import_module(f'{BASE_PATH}.THR.{THR_NAMING}CoreDebugUtils')
+	CoreDebugUtils = import_module(f'{BASE_PATH}.{THR_NAMING}CoreDebugUtils')
 	print(' [+] CoreDebugUtils imported successfully')
 except Exception as e:
 	print(f' [x] Could not import CoreDebugUtils, some features may be limited: {e}')

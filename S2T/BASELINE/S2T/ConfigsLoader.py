@@ -9,16 +9,6 @@ import importlib
 _current_file_path = os.path.abspath(__file__)
 DEV_MODE = 'users.gaespino.dev' in _current_file_path.replace('\\', '.')
 
-# Print mode visibility
-if DEV_MODE:
-	print("=" * 80)
-	print(" " * 27 + "DEVELOPER MODE")
-	print("=" * 80)
-else:
-	print("=" * 80)
-	print(" " * 27 + "PRODUCTION MODE")
-	print("=" * 80)
-
 # Verbose flag for debugging
 verbose = False
 
@@ -67,10 +57,10 @@ CONFIG = _configs.init_product_specific()
 # This an optional INIT Method for products such as DMR
 
 if PRODUCT_CHOP == None:
-	PRODUCT_CHOP = _configs.get_chop(sv)
+	PRODUCT_CHOP = _configs._get_chop(sv)
 
 if PRODUCT_VARIANT == None:
-	PRODUCT_VARIANT = _configs.get_variant(sv)
+	PRODUCT_VARIANT = _configs._get_variant(sv)
 
 class ProductConfiguration:
 	"""

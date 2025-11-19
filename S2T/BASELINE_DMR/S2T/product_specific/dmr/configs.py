@@ -18,30 +18,33 @@ class configurations:
 		self.product_check(product)
 
 	def _get_chop(self, sv):
-		domains_size = len(sv.socket0.computes)
+		domains_size = len(sv.socket0.cbbs)
 		chop = None
 
-		if domains_size == 3:		
-			chop = 'UCC'
+		if domains_size == 4:		
+			chop = 'X4'
+		elif domains_size == 3:		
+			chop = 'X3'
 		elif domains_size == 2:
-			chop = 'XCC'
+			chop = 'X2'
 		elif domains_size == 1:
-			chop = 'HCC' # holder we don't really support GNR HCC 
+			chop = 'X1' # holder we don't really support GNR HCC 
 		else:
 			raise ValueError (f" Invalid Domains size: {domains_size}")
 		print(f' GNR Product configuration: {chop}')
 		return chop
 
 	def _get_variant(self, sv):
-		domains_size = len(sv.socket0.computes)
+		domains_size = len(sv.socket0.cbbs)
 		variant = None
-
-		if domains_size == 3:		
+		if domains_size == 4:		
+			variant = 'AP'
+		elif domains_size == 3:		
 			variant = 'AP'
 		elif domains_size == 2:
 			variant = 'SP'
 		elif domains_size == 1:
-			variant = 'LP' # holder we don't really support GNR HCC 
+			variant = 'SP' # holder we don't really support GNR HCC 
 		else:
 			raise ValueError (f" Invalid Domains size: {domains_size}")
 		print(f' GNR Product configuration: {variant}')
@@ -188,7 +191,7 @@ class configurations:
 		product = self.product
 		
 		# Path of All S2T scripts
-		BASE_PATH = 'users.THR.PythonScript.thr'
+		BASE_PATH = 'users.THR.dmr_debug_utilities' 
 
 		## System 2 Tester and bootscript Initialization data 
 		bootscript_data = {	'DMR_CLTAP':{'segment':'CWFXDCC','config':['cbb0', 'cbb1', 'cbb2', 'cbb3'], 'compute_config':'x4',},

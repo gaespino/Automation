@@ -3,6 +3,8 @@
 
 import sys
 import os
+from namednodes import sv
+import ipccli
 
 # Append the Main Scripts Path
 FILE_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -10,6 +12,7 @@ MAIN_PATH = os.path.join(FILE_PATH, '..')
 
 sys.path.append(MAIN_PATH)
 
+from importlib import import_module
 
 import Logger.ErrorReportClass as erg
 import ConfigsLoader as pe
@@ -18,9 +21,12 @@ import ConfigsLoader as pe
 core_manipulation = None
 file_handler = None
 dpm_checks = None
+ipccli = None
+namednodes = None
 
 # Flag to change the import to the development path
 dev_mode = pe.DEV_MODE
+BASE_PATH = pe.BASE_PATH
 
 try:
 	import CoreManipulation as core_manipulation
@@ -39,6 +45,12 @@ try:
 	import dpmChecks as dpm_checks
 except ImportError:
 	print(f"[!] dpmChecks module not available - fuse/voltage operations will be disabled")
+
+try:
+	import ipccli
+	import namednodes
+except ImportError:
+	print(f"[!] ipccli/namednodes not available - MCA dump features will be disabled")
 
 ErrorReportGenerator = erg.ErrorReportGenerator
 
@@ -161,7 +173,139 @@ def get_generator(product=None, variant=None, logger=None):
 		dpm_checks=dpm_checks
 	)
 
-__all__ = ['run', 'quick_run', 'get_decoder', 'list_decoders', 'get_generator', 'SELECTED_PRODUCT', 'SELECTED_VARIANT', 'FRAMEWORK_VARS']
+# ============================================================================
+# MCA Dump Wrapper Functions - Product Specific
+# ============================================================================
+
+def mca_init():
+	"""Initialize IPC connection for MCA operations"""
+
+	import ipccli
+	itp = ipccli.baseaccess()
+	unlock()
+	if not sv.sockets: sv.refresh()
+
+	return itp
+
+def unlock():
+	was_locked=False
+	import ipccli
+	base_ipc = ipccli.baseaccess()
+	for uncore in base_ipc.chipleveltaps:
+		if "MTP" in uncore.name: continue #filter out PCH for GNR-WS (MTP0_CLTAP0)
+		if base_ipc.islocked(uncore.name): 
+			was_locked=True
+			base_ipc.unlock(uncore.name)
+			if base_ipc.islocked(uncore.name): #ensure unlocked
+				print('Can not unlock %s..' % uncore.name)
+				raise 
+	return base_ipc, was_locked
+
+def mca_dump_gnr(verbose=True):
+	"""
+	GNR MCA dump wrapper - delegates to product-specific implementation
+	Performs unlock in ErrorReport, then calls product-specific mca_dump
+	
+	Args:
+		verbose (bool): If True, prints detailed register information
+		
+	Returns:
+		tuple: (mcadata dict, pysvdecode dict) from product-specific mca_dump
+	"""
+
+	if ipccli is None or namednodes is None:
+		print("[!] Required modules not available for MCA dump")
+		return {}, {}
+	
+	itp = mca_init()
+	if itp is None:
+		return {}, {}
+	
+	try:
+		
+		# Import and call product-specific mca_dump
+		SELECTED_PRODUCT = pe.SELECTED_PRODUCT
+		LEGACY_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 'CWF'] else ''
+		import product_specific.gnr.mca_banks as mca_banks
+
+		if mca_banks is None:
+			return {}, {}
+		
+		return mca_banks.mca_dump(sv, itp=itp, verbose=verbose)
+	except Exception as e:
+		print(f"[!] MCA dump failed: {e}")
+		return {}, {}
+
+def mca_dump_cwf(verbose=True):
+	"""
+	CWF MCA dump wrapper - delegates to product-specific implementation
+	Performs unlock in ErrorReport, then calls product-specific mca_dump
+	
+	Args:
+		verbose (bool): If True, prints detailed register information
+		
+	Returns:
+		tuple: (mcadata dict, pysvdecode dict) from product-specific mca_dump
+	"""
+	if ipccli is None or namednodes is None:
+		print("[!] Required modules not available for MCA dump")
+		return {}, {}
+	
+	itp = mca_init()
+	if itp is None:
+		return {}, {}
+	
+	try:
+		
+		# Import and call product-specific mca_dump
+		SELECTED_PRODUCT = pe.SELECTED_PRODUCT
+		LEGACY_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 'CWF'] else ''
+		import product_specific.cwf.mca_banks as mca_banks
+		
+		if mca_banks is None:
+			return {}, {}
+		
+		return mca_banks.mca_dump(sv, itp=itp, verbose=verbose)
+	except Exception as e:
+		print(f"[!] MCA dump failed: {e}")
+		return {}, {}
+
+def mca_dump_dmr(verbose=True):
+	"""
+	DMR MCA dump wrapper - delegates to product-specific implementation
+	Performs unlock in ErrorReport, then calls product-specific mca_dump
+	
+	Args:
+		verbose (bool): If True, prints detailed register information
+		
+	Returns:
+		tuple: (mcadata dict, pysvdecode dict) from product-specific mca_dump
+	"""
+	if ipccli is None or namednodes is None:
+		print("[!] Required modules not available for MCA dump")
+		return {}, {}
+	
+	itp = mca_init()
+	if itp is None:
+		return {}, {}
+	
+	try:
+		
+		# Import and call product-specific mca_dump
+		SELECTED_PRODUCT = pe.SELECTED_PRODUCT
+		import product_specific.dmr.mca_banks as mca_banks
+
+		if mca_banks is None:
+			return {}, {}
+		
+		return mca_banks.mca_dump(sv, itp=itp, verbose=verbose)
+	except Exception as e:
+		print(f"[!] MCA dump failed: {e}")
+		return {}, {}
+
+__all__ = ['run', 'quick_run', 'get_decoder', 'list_decoders', 'get_generator', 
+		   'mca_dump_gnr', 'mca_dump_cwf', 'mca_dump_dmr', 'mca_init',
+		   'SELECTED_PRODUCT', 'SELECTED_VARIANT', 'FRAMEWORK_VARS']
 
 if __name__ == '__main__':
 	if len(sys.argv) >= 4:
