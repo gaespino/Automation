@@ -33,6 +33,7 @@ class decoder_dmr():
 			pat = pattern
 		
 		regex_pat = '|'.join(pat)
+
 		filtered = df[(df[dfcol].str.contains(regex_pat, case=False, na=False))]
 		return filtered   
 	
@@ -545,11 +546,16 @@ class decoder_dmr():
 				if not pattern_data.empty:
 					io_filtered = pd.concat([io_filtered, pattern_data], ignore_index=True)
 			
+			# Check if io_filtered is empty before trying to filter further
+			if io_filtered.empty:
+				print(f' -- No IO MCA data found in VID: {visual_id}')
+				continue
+			
 			# Further filter for STATUS registers
 			mc_filtered = self.extract_value(io_filtered, 'TestName', '_STATUS|_MC_STATUS|_MCI_STATUS|_MC_ST')
 			
 			if mc_filtered.empty:
-				print(f' -- No IO MCA data found in VID: {visual_id}')
+				print(f' -- No IO MCA STATUS registers found in VID: {visual_id}')
 				continue
 			
 			# Iterate over all IO MCAs
@@ -850,11 +856,16 @@ class decoder_dmr():
 				if not pattern_data.empty:
 					mem_filtered = pd.concat([mem_filtered, pattern_data], ignore_index=True)
 			
+			# Check if mem_filtered is empty before trying to filter further
+			if mem_filtered.empty:
+				print(f' -- No Memory MCA data found in VID: {visual_id}')
+				continue
+			
 			# Further filter for STATUS registers
 			mc_filtered = self.extract_value(mem_filtered, 'TestName', '_STATUS|_MC_STATUS|_MCI_STATUS')
 			
 			if mc_filtered.empty:
-				print(f' -- No Memory MCA data found in VID: {visual_id}')
+				print(f' -- No Memory MCA STATUS registers found in VID: {visual_id}')
 				continue
 			
 			# Iterate over all Memory MCAs

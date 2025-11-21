@@ -31,6 +31,7 @@ class mcadata():
 		self.mcchnl_data = self.mcchnl()
 		self.b2cmi_data = self.b2cmi()
 		self.upi_data = self.upi()
+		self.ubox_data = self.ubox()
 		
 		# DMR-specific JSON files
 		if product.upper() == 'DMR':
@@ -119,6 +120,14 @@ class mcadata():
 		try:
 			upi_json = dev_dict('upi_params.json', filedir = self.jsfile_dir)
 			return upi_json
+		except:
+			return {}
+	
+	def ubox(self):
+		"""Load UBOX parameters JSON"""
+		try:
+			ubox_json = dev_dict('ubox_params.json', filedir = self.jsfile_dir)
+			return ubox_json
 		except:
 			return {}
 	
@@ -1258,14 +1267,11 @@ class decoder():
 					if upi_match:
 						upi_num = upi_match.group(1)
 						instance = f'UPI{upi_num}'
-					else:
-						instance = 'UPI'
+				else:
+					instance = 'UPI'
 				
-				# Extract MCACOD (bits 15:0) from MC_STATUS
-				mcacod = extract_bits(hex_value=mc_value, min_bit=0, max_bit=15)
-				
-				# Decode MSCOD based on IO type
-				mc_decode = self.io_decoder(value=mc_value, instance_type=io_type)
+				# Decode both MCACOD and MSCOD using io_decoder
+				mcacod_decoded, mscod_decoded = self.io_decoder(value=mc_value, instance_type=io_type)
 				
 				# Look up ADDR and MISC registers using lookup patterns
 				addr_value = ''
@@ -1300,8 +1306,8 @@ class decoder():
 				data_dict['IO_MC'] += [test_name]
 				data_dict['IO'] += [f'IO{io_num}' if io_num else '']
 				data_dict['Instance'] += [instance]
-				data_dict['MCACOD'] += [hex(mcacod)]
-				data_dict['MC_DECODE'] += [mc_decode]
+				data_dict['MCACOD'] += [mcacod_decoded]
+				data_dict['MC_DECODE'] += [mscod_decoded]
 				data_dict['MC_STATUS'] += [mc_value]
 				data_dict['MC_ADDR'] += [addr_value]
 				data_dict['MC_MISC'] += [misc_value]
@@ -1311,27 +1317,60 @@ class decoder():
 
 	def io_decoder(self, value, instance_type):
 		"""
-		Decode IO MCA MSCOD based on instance type and JSON configuration
-		Uses JSON data loaded from mcadata class for UPI
-		For UBOX, returns raw MSCOD value
+		Decode IO MCA MCACOD and MSCOD based on instance type and JSON configuration
+		Uses JSON data loaded from mcadata class for UPI and UBOX
+		
+		Special handling for UBOX based on MCACOD:
+		- MCACOD 1042 (SCF Bridge IP:CMS error): Use CMS_MSCOD table
+		- MCACOD 1043 (SCF Bridge IP:SBO error): Use SBO_MSCOD table
+		- MCACOD 1036 (Shutdown suppression): Use SHUTDOWN_ERR_MSCOD table
 		
 		Args:
 			value: MC_STATUS register value (hex string)
 			instance_type: Type of IO instance (UBOX, UPI)
 		
 		Returns:
-			Decoded MSCOD string from JSON or raw value
+			Tuple of (mcacod_decoded, mscod_decoded) strings
 		"""
 		if value == '' or value is None:
-			return ''
+			return ('', '')
 		
 		try:
-			# Extract MSCOD (bits 31:16) from MC_STATUS
+			# Extract MCACOD (bits 15:0) and MSCOD (bits 31:16) from MC_STATUS
+			mcacod = extract_bits(hex_value=value, min_bit=0, max_bit=15)
 			mscod = extract_bits(hex_value=value, min_bit=16, max_bit=31)
 			
-			# UBOX: Return raw MSCOD value (no JSON decode)
+			mcacod_decoded = hex(mcacod)  # Default to hex
+			mscod_decoded = f"MSCOD={mscod}"  # Default to raw MSCOD
+			
+			# UBOX: Use ubox_params.json with different MSCOD tables based on MCACOD
 			if 'UBOX' in instance_type:
-				return f"MSCOD={mscod}"
+				ubox_json = self.mcadata.ubox_data
+				if ubox_json:
+					# Decode MCACOD
+					if 'MCACOD' in ubox_json:
+						mcacod_str = str(mcacod)
+						if mcacod_str in ubox_json['MCACOD']:
+							mcacod_decoded = f"{ubox_json['MCACOD'][mcacod_str]} ({hex(mcacod)})"
+					
+					# Decode MSCOD - select table based on MCACOD value
+					mscod_str = str(mscod)
+					mscod_table = 'MSCOD'  # Default table
+					
+					# Special handling based on MCACOD value
+					if mcacod == 1042:  # SCF Bridge IP:CMS error
+						mscod_table = 'CMS_MSCOD'
+					elif mcacod == 1043:  # SCF Bridge IP:SBO error
+						mscod_table = 'SBO_MSCOD'
+					elif mcacod == 1036:  # Shutdown suppression
+						mscod_table = 'SHUTDOWN_ERR_MSCOD'
+					
+					# Look up MSCOD in the appropriate table
+					if mscod_table in ubox_json:
+						if mscod_str in ubox_json[mscod_table]:
+							mscod_decoded = f"{ubox_json[mscod_table][mscod_str]} (MSCOD={mscod})"
+						else:
+							mscod_decoded = f"Unknown {mscod_table} MSCOD={mscod}"
 			
 			# UPI: Use upi_params.json with UPI_MSCOD key
 			elif 'UPI' in instance_type:
@@ -1339,17 +1378,14 @@ class decoder():
 				if upi_json and 'UPI_MSCOD' in upi_json:
 					mscod_str = str(mscod)
 					if mscod_str in upi_json['UPI_MSCOD']:
-						return f"{upi_json['UPI_MSCOD'][mscod_str]} (MSCOD={mscod})"
+						mscod_decoded = f"{upi_json['UPI_MSCOD'][mscod_str]} (MSCOD={mscod})"
 					else:
-						return f"Unknown MSCOD={mscod}"
-				else:
-					return f"MSCOD={mscod}"
+						mscod_decoded = f"Unknown MSCOD={mscod}"
 			
-			else:
-				return f"MSCOD={mscod}"
+			return (mcacod_decoded, mscod_decoded)
 		
 		except Exception as e:
-			return f"Decode error: {str(e)}"
+			return (hex(0), f"Decode error: {str(e)}")
 
 	def io_lookup_pattern(self, io='', upi='', suffix='ADDR', ptype='upi'):
 		"""
