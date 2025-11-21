@@ -20,19 +20,20 @@ from typing import Optional, Dict, Any, List, Callable
 import importlib
 
 current_dir= os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 print(' -- Debug Framework Control Panel -- rev 1.7')
 
 sys.path.append(parent_dir)
 
-import FileHandler as fh
-import MaskEditor as gme
-import UI.StatusHandler as fs
+import DebugFramework.FileHandler as fh
+import DebugFramework.MaskEditor as gme
+import DebugFramework.UI.StatusHandler as fs
 
-from UI.StatusPanel import StatusExecutionPanel
+from DebugFramework.UI.StatusPanel import StatusExecutionPanel
 
-import ExecutionHandler.utils.ThreadsHandler as th
+import DebugFramework.ExecutionHandler.utils.ThreadsHandler as th
+
 importlib.reload(th)
 
 ExecutionCommand = th.ExecutionCommand

@@ -3,8 +3,6 @@
 
 import sys
 import os
-from namednodes import sv
-import ipccli
 
 # Append the Main Scripts Path
 FILE_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -23,6 +21,7 @@ file_handler = None
 dpm_checks = None
 ipccli = None
 namednodes = None
+sv = None
 
 # Flag to change the import to the development path
 dev_mode = pe.DEV_MODE
@@ -49,6 +48,8 @@ except ImportError:
 try:
 	import ipccli
 	import namednodes
+	sv = namednodes.sv
+	
 except ImportError:
 	print(f"[!] ipccli/namednodes not available - MCA dump features will be disabled")
 
@@ -179,27 +180,21 @@ def get_generator(product=None, variant=None, logger=None):
 
 def mca_init():
 	"""Initialize IPC connection for MCA operations"""
+	import namednodes
+	sv = namednodes.sv
+	ErrorReportGenerator.mca_init(sv)
 
+	return sv
+
+def unlock():
 	import ipccli
 	itp = ipccli.baseaccess()
-	unlock()
-	if not sv.sockets: sv.refresh()
+	ErrorReportGenerator.unlock(itp)
 
 	return itp
 
-def unlock():
-	was_locked=False
-	import ipccli
-	base_ipc = ipccli.baseaccess()
-	for uncore in base_ipc.chipleveltaps:
-		if "MTP" in uncore.name: continue #filter out PCH for GNR-WS (MTP0_CLTAP0)
-		if base_ipc.islocked(uncore.name): 
-			was_locked=True
-			base_ipc.unlock(uncore.name)
-			if base_ipc.islocked(uncore.name): #ensure unlocked
-				print('Can not unlock %s..' % uncore.name)
-				raise 
-	return base_ipc, was_locked
+def refresh_weakly_reference():
+	ErrorReportGenerator.refresh_weakly_reference()
 
 def mca_dump_gnr(verbose=True):
 	"""
@@ -213,24 +208,17 @@ def mca_dump_gnr(verbose=True):
 		tuple: (mcadata dict, pysvdecode dict) from product-specific mca_dump
 	"""
 
-	if ipccli is None or namednodes is None:
-		print("[!] Required modules not available for MCA dump")
-		return {}, {}
-	
-	itp = mca_init()
-	if itp is None:
-		return {}, {}
-	
 	try:
-		
 		# Import and call product-specific mca_dump
-		SELECTED_PRODUCT = pe.SELECTED_PRODUCT
-		LEGACY_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 'CWF'] else ''
 		import product_specific.gnr.mca_banks as mca_banks
 
 		if mca_banks is None:
 			return {}, {}
 		
+		itp = unlock()
+		sv = mca_init()
+		refresh_weakly_reference()
+
 		return mca_banks.mca_dump(sv, itp=itp, verbose=verbose)
 	except Exception as e:
 		print(f"[!] MCA dump failed: {e}")
@@ -247,24 +235,19 @@ def mca_dump_cwf(verbose=True):
 	Returns:
 		tuple: (mcadata dict, pysvdecode dict) from product-specific mca_dump
 	"""
-	if ipccli is None or namednodes is None:
-		print("[!] Required modules not available for MCA dump")
-		return {}, {}
-	
-	itp = mca_init()
-	if itp is None:
-		return {}, {}
-	
+
 	try:
 		
 		# Import and call product-specific mca_dump
-		SELECTED_PRODUCT = pe.SELECTED_PRODUCT
-		LEGACY_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 'CWF'] else ''
 		import product_specific.cwf.mca_banks as mca_banks
 		
 		if mca_banks is None:
 			return {}, {}
 		
+		itp = unlock()
+		sv = mca_init()
+		refresh_weakly_reference()
+
 		return mca_banks.mca_dump(sv, itp=itp, verbose=verbose)
 	except Exception as e:
 		print(f"[!] MCA dump failed: {e}")
@@ -281,23 +264,19 @@ def mca_dump_dmr(verbose=True):
 	Returns:
 		tuple: (mcadata dict, pysvdecode dict) from product-specific mca_dump
 	"""
-	if ipccli is None or namednodes is None:
-		print("[!] Required modules not available for MCA dump")
-		return {}, {}
-	
-	itp = mca_init()
-	if itp is None:
-		return {}, {}
 	
 	try:
 		
 		# Import and call product-specific mca_dump
-		SELECTED_PRODUCT = pe.SELECTED_PRODUCT
 		import product_specific.dmr.mca_banks as mca_banks
 
 		if mca_banks is None:
 			return {}, {}
 		
+		itp = unlock()
+		sv = mca_init()
+		refresh_weakly_reference()
+
 		return mca_banks.mca_dump(sv, itp=itp, verbose=verbose)
 	except Exception as e:
 		print(f"[!] MCA dump failed: {e}")

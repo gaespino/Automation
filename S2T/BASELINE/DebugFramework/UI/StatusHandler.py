@@ -10,12 +10,12 @@ import time
 
 
 current_dir= os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 print(' -- Framework Control Panel Status Handler -- rev 1.7')
 
 sys.path.append(parent_dir)
-from Interfaces.IFramework import IStatusReporter, IUIController, StatusType
+from DebugFramework.Interfaces.IFramework import IStatusReporter, IUIController, StatusType
 
 debug = False
 

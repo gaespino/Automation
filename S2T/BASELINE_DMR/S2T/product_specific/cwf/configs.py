@@ -171,7 +171,7 @@ class configurations:
 		product = self.product
 		
 		# Path of All S2T scripts
-		BASE_PATH = 'users.THR.PythonScript.thr'
+		BASE_PATH = 'users.THR.PythonScripts.thr'
 
 		## System 2 Tester and bootscript Initialization data 
 		bootscript_data = {	'CWFAP':{'segment':'CWFXDCC','config':['compute0', 'compute1', 'compute2'], 'compute_config':'x3',},

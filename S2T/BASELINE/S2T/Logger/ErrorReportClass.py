@@ -23,11 +23,14 @@ import contextlib
 import random
 from importlib import import_module
 
-from namednodes import sv
+from svtools.common import baseaccess
+import namednodes
+import ipccli
 from ipccli.stdiolog import log
 from ipccli.stdiolog import nolog
-import ipccli
 
+
+sv = namednodes.sv
 
 # ANSI Color codes for console output (Python 3.8+ compatible)
 class Colors:
@@ -90,14 +93,30 @@ class ErrorReportGenerator:
 		
 		# Initialize IPC connection
 		self.ipc = ipccli.baseaccess()
-		
+		self.sv = sv
 		# Load product-specific configurations and modules
 		self._load_product_configs()
 		self._load_product_modules()
 		
 		# Framework variables
 		self.framework_vars = self._init_framework_vars()
+
+		# Cell location cache
+		# Test Name Cell = B2 for GNR / CWF | B2 for DMR
+		# Test Errors Cell = X8 for GNR / CWF | P3 for DMR
+		# Test Status Cell = X2 for GNR / CWF | P2 for DMR
+		# PC / BS Cell = B66 for GNR / CWF | B70 for DMR
 		
+		if self.mca_banks is not None:
+			self.cell_locations = self.mca_banks.SPREADSHEET_DATA
+		
+		# FallBack Mode
+		else:
+			self.cell_locations = {	'name':'B2' if self.product in ['GNR', 'CWF'] else 'B2',
+									'errors':'X8' if self.product in ['GNR', 'CWF'] else 'P3',
+									'status':'X2' if self.product in ['GNR', 'CWF'] else 'P2', 
+									'pcbs':'B66' if self.product in ['GNR', 'CWF'] else 'B70'}
+
 		print(f'{"+"*20} ErrorReport initialized for {self.product}:{self.variant} {"+"*20}')
 
 	def _load_product_configs(self):
@@ -244,14 +263,14 @@ class ErrorReportGenerator:
 			error_color = "FFA3A3"  # light red
 			fill = PatternFill(start_color=error_color, end_color=error_color, fill_type="solid")
 			cell.fill = fill
-		
+		# X8 is cell for GNR / CWF -- DMR Uses
 		# Write error to error log cell
-		current_error_content = sheet["X8"].value
+		current_error_content = sheet[self.cell_locations['errors']].value
 		if not current_error_content:
-			sheet["X8"] = error
+			sheet[self.cell_locations['errors']] = error
 		else:
 			current_error_content += ("\n" + error)
-			sheet["X8"] = current_error_content
+			sheet[self.cell_locations['errors']] = current_error_content
 	
 	def mark_disable(self, cell, able=0):
 		"""Mark disabled IP's in the sheet."""
@@ -355,14 +374,7 @@ class ErrorReportGenerator:
 	# =================================================================
 	# MCA OPERATIONS
 	# =================================================================
-	
-	def mca_init(self):
-		"""Initialize MCA operations - unlock and refresh."""
-		self.ipc.unlock()
-		if not sv.sockets:
-			sv.refresh()
-		return self.ipc
-	
+
 	def mca_dump(self, verbose=True):
 		"""
 		Perform product-specific MCA dump.
@@ -373,8 +385,10 @@ class ErrorReportGenerator:
 			return {}, {}
 		
 		try:
-			itp = self.mca_init()
-			mcadata, pysvdecode = self.mca_dump_func(sv, itp=itp, verbose=verbose)
+			self.unlock(self.ipc)
+			self.mca_init(self.sv)
+			self.refresh_weakly_reference()
+			mcadata, pysvdecode = self.mca_dump_func(self.sv, itp=self.ipc, verbose=verbose)
 			return mcadata, pysvdecode
 		except Exception as e:
 			print(f"[X] Error during MCA dump: {e}")
@@ -499,7 +513,8 @@ class ErrorReportGenerator:
 			
 			if 'FOUND VALID MCA\n' in MCAs:
 				# Mark FAILED
-				sheet["X2"] = 'FAILED'
+				# X2 is cell used for GNR / CWF
+				sheet[self.cell_locations['status']] = 'FAILED'
 				cell_color = "FF0000"
 				
 				# Look for MCAs
@@ -520,14 +535,15 @@ class ErrorReportGenerator:
 							self.add_error(sheet, cell, line)
 			else:
 				# Mark PASS
-				sheet["X2"] = 'PASS'
+				sheet[self.cell_locations['status']] = 'PASS'
 				cell_color = "00B050"
 				print('Did not find valid MCA')
 		
 			# Color status cells
 			fill = PatternFill(start_color=cell_color, end_color=cell_color, fill_type="solid")
-			sheet["X2"].fill = fill
-			sheet["B66"].fill = fill
+			# X2 / B66 is cell used for GNR / CWF
+			sheet[self.cell_locations['status']].fill = fill
+			sheet[self.cell_locations['pcbs']].fill = fill
 			
 			print(f"  {Colors.success('[+]')} {Colors.BOLD}MCA WRITTEN SUCCESSFULLY{Colors.RESET}")
 				
@@ -705,30 +721,9 @@ class ErrorReportGenerator:
 	
 	def read_scratchpad(self):
 		"""Read scratchpad register value."""
-		try:
-			scratchpad = str(sv.socket0.io0.uncore.ubox.ncdecs.biosnonstickyscratchpad7_cfg)
-			return scratchpad
-		except Exception as e:
-			print(f"[X] Error reading scratchpad: {e}")
-			return "ERROR"
-	
-	def unlock(self):
-		"""Unlock all chip level taps."""
-		was_locked = False
-		base_ipc = self.ipc
-		
-		for uncore in base_ipc.chipleveltaps:
-			if "MTP" in uncore.name:
-				continue  # Filter out PCH for GNR-WS
-			if base_ipc.islocked(uncore.name):
-				was_locked = True
-				base_ipc.unlock(uncore.name)
-				if base_ipc.islocked(uncore.name):
-					print(f'Cannot unlock {uncore.name}')
-					raise Exception(f"Failed to unlock {uncore.name}")
-		
-		return was_locked
-	
+		if self.mca_banks is not None:
+			return self.mca_banks.read_scratchpad(self.sv)
+
 	# =================================================================
 	# PATH AND FILE OPERATIONS
 	# =================================================================
@@ -1039,7 +1034,7 @@ class ErrorReportGenerator:
 			return
 		
 		# Write PC to sheet
-		sheet["B66"] = 'PC - ' + PC
+		sheet[self.cell_locations['pcbs']] = 'PC - ' + PC
 		
 		# Check MCA
 		self.check_MCA(
@@ -1049,8 +1044,9 @@ class ErrorReportGenerator:
 		)
 		
 		# Write test name
-		test_name = sheet["B2"].value + ' ' + test
-		sheet["B2"] = test_name
+		# B2 is cell used for GNR / CWF
+		test_name = sheet[self.cell_locations['name']].value + ' ' + test
+		sheet[self.cell_locations['name']] = test_name
 		
 		# Create zip archive
 		self._create_log_archive(zip_path, mca_path, mca_debug_path, config_path)
@@ -1077,6 +1073,37 @@ class ErrorReportGenerator:
 		except Exception as e:
 			print(f"[X] WORKBOOK COULD NOT BE SAVED: {e}")
 			return False
+
+	# =================================================================
+	# STATIC METHODS
+	# =================================================================
+		
+	@staticmethod
+	def mca_init(sv) -> None:
+		"""Initialize MCA operations - unlock and refresh."""
+		if not sv.sockets:
+			sv.refresh()
+	
+	@staticmethod	
+	def unlock(base_ipc) -> bool:
+		"""Unlock all chip level taps."""
+		was_locked = False		
+		for uncore in base_ipc.chipleveltaps:
+			if "MTP" in uncore.name:
+				continue  # Filter out PCH for GNR-WS
+			if base_ipc.islocked(uncore.name):
+				was_locked = True
+				base_ipc.unlock(uncore.name)
+				if base_ipc.islocked(uncore.name):
+					print(f'Cannot unlock {uncore.name}')
+					raise Exception(f"Failed to unlock {uncore.name}")
+		
+		return was_locked
+	
+	@staticmethod
+	def refresh_weakly_reference():
+		
+		baseaccess.getglobalbase(refresh=True)
 
 # =================================================================
 # BACKWARD COMPATIBILITY WRAPPER

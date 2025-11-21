@@ -4,8 +4,6 @@ import subprocess
 import threading
 
 
-#import pyautogui
-#import pygetwindow as gw
 try:
 	import users.gaespino.dev.S2T.Logger.ErrorReport as ereport
 	import users.gaespino.dev.S2T.dpmChecks as dpm

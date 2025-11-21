@@ -173,7 +173,7 @@ class configurations:
 		product = self.product
 
 		# Path of All S2T scripts
-		BASE_PATH = 'users.THR.PythonScript.thr'
+		BASE_PATH = 'users.THR.PythonScripts.thr'
 
 		## System 2 Tester and bootscript Initialization data 
 

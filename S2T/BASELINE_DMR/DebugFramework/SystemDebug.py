@@ -23,29 +23,24 @@ from enum import Enum
 from abc import ABC, abstractmethod
 import queue
 import threading
-
-# S2T scripts
-import users.gaespino.dev.S2T.CoreManipulation as gcm
-import users.gaespino.dev.S2T.dpmChecks as dpm
-import users.gaespino.dev.S2T.SetTesterRegs as s2t
-import users.gaespino.dev.DebugFramework.SerialConnection as ser
-import users.gaespino.dev.DebugFramework.FileHandler as fh
-
-try:
-	import users.gaespino.dev.DebugFramework.MaskEditor as gme
-	import users.gaespino.dev.DebugFramework.UI.ControlPanel as fcp
-	import users.gaespino.dev.DebugFramework.Automation_Flow.AutomationHandler as acp
-	import users.gaespino.dev.DebugFramework.ExecutionHandler.utils.ThreadsHandler as th
-except:
-	import MaskEditor as gme
-	import UI.ControlPanel as fcp
-	import Automation_Flow.AutomationHandler as acp
-	import ExecutionHandler.utils.ThreadsHandler as th
-
-# Utils 
-import users.gaespino.dev.S2T.Tools.utils as s2tutils
-
 import importlib
+
+# Append the Main Scripts Path
+MAIN_PATH = os.path.abspath(os.path.dirname(__file__))
+ROOT_PATH = os.path.abspath(os.path.join(MAIN_PATH, '..'))
+
+sys.path.append(ROOT_PATH)
+
+# Check for DEV path
+DEV_MODE = 'users.gaespino.dev' in MAIN_PATH.replace('\\', '.')
+
+import DebugFramework.SerialConnection as ser
+import DebugFramework.FileHandler as fh
+import DebugFramework.MaskEditor as gme
+import DebugFramework.UI.ControlPanel as fcp
+import DebugFramework.Automation_Flow.AutomationHandler as acp
+import DebugFramework.ExecutionHandler.utils.ThreadsHandler as th
+
 
 #from ExecutionHandler.utils.ThreadsHandler import execution_state, ExecutionCommand
 
@@ -107,22 +102,50 @@ macro_cmds = macros_path(ttl_dest)
 ######		Framework Utils
 #########################################################
 
-import ExecutionHandler.utils.FrameworkUtils as fut
+import DebugFramework.ExecutionHandler.utils.FrameworkUtils as fut
 importlib.reload(fut)
 FrameworkUtils = fut.FrameworkUtils
+
+# Load modules from FrameworkUtils
+#gcm = fut.gcm
+#dpm = fut.dpm
+#s2t = fut.s2t
+#s2tutils = fut.s2tutils
+
+# S2T scripts
+if DEV_MODE:
+	import S2T.CoreManipulation as gcm
+	import S2T.dpmChecks as dpm
+	import S2T.SetTesterRegs as s2t
+
+	# Utils 
+	import S2T.Tools.utils as s2tutils
+else:
+	# Paths -- Hardcoded for now
+	# GNR/CWF = users.THR.PythonScripts.thr
+	# DMR = users.THR.dmr_debug_utilities
+	
+	import users.THR.PythonScripts.thr.S2T.CoreManipulation as gcm
+	import users.THR.PythonScripts.thr.S2T.dpmChecks as dpm
+	import users.THR.PythonScripts.thr.S2T.SetTesterRegs as s2t
+
+	# Utils 
+	import users.THR.PythonScripts.thr.S2T.Tools.utils as s2tutils	
+
+
 
 #########################################################
 ######		Interfaces
 #########################################################
 
-from Interfaces.IFramework import IStatusReporter
+from DebugFramework.Interfaces.IFramework import IStatusReporter
 
 #########################################################
 ######		Configurations
 #########################################################
 
 #from ExecutionHandler.Enums import ContentType, TestTarget, VoltageType, TestType
-from ExecutionHandler.Configurations import (DragonConfiguration, LinuxConfiguration, 
+from DebugFramework.ExecutionHandler.Configurations import (DragonConfiguration, LinuxConfiguration, 
 											 ConfigurationMapping, TestConfiguration, 
 											 SystemToTesterConfig, TestResult, ContentType,
 											 TestTarget, VoltageType, TestType, TestStatus)
@@ -138,7 +161,7 @@ class ContentValues(Enum):
 ######		Code Debug Logger
 #########################################################
 
-from ExecutionHandler.utils.DebugLogger import (
+from DebugFramework.ExecutionHandler.utils.DebugLogger import (
 	debug_log, 
 	set_global_debug_enabled, 
 	set_global_debug_file,
@@ -150,13 +173,13 @@ from ExecutionHandler.utils.DebugLogger import (
 ######		Exception Handling -- WIP
 #########################################################
 
-from ExecutionHandler.Exceptions import BootFailureType, TestExecutionError
+from DebugFramework.ExecutionHandler.Exceptions import BootFailureType, TestExecutionError
 
 #########################################################
 ######		Status Manager
 #########################################################
 
-from ExecutionHandler.StatusManager import StatusEventType, StatusContext, StatusUpdateManager
+from DebugFramework.ExecutionHandler.StatusManager import StatusEventType, StatusContext, StatusUpdateManager
 
 #########################################################
 ######		Debug Framework Execution Code

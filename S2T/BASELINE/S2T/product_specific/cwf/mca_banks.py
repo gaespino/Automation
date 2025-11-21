@@ -216,6 +216,11 @@ CWF_MODULE_INFO = {
     'total_module_banks': 11  # 4*2 (core banks) + 3 (module banks)
 }
 
+# Tileview Locations (Spreadsheet)
+SPREADSHEET_DATA = {    'name':'B2' ,
+							'errors':'X8',
+							'status':'X2' , 
+							'pcbs':'B66' }
 
 def get_bank_info(bank_id):
     """
@@ -866,7 +871,15 @@ def mca_dump(sv, itp, verbose=True):
     sv.sockets.computes.cpu.modules.setaccess('default') #restore
     return mcadata, pysvdecode
 
-
+def read_scratchpad(sv):
+	"""Read scratchpad register value."""
+	try:
+		scratchpad = str(sv.socket0.io0.uncore.ubox.ncdecs.biosnonstickyscratchpad7_cfg)
+		return scratchpad
+	except Exception as e:
+		print(f"[X] Error reading scratchpad: {e}")
+		return "ERROR"  
+    
 if __name__ == '__main__':
     # Example usage
     print_bank_table()

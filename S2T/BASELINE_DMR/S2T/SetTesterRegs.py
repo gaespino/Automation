@@ -101,11 +101,14 @@ debug = False
 
 # Append the Main Scripts Path
 MAIN_PATH = os.path.abspath(os.path.dirname(__file__))
-MANAGERS_PATH = os.path.join(MAIN_PATH, 'managers')
+ROOT_PATH = os.path.abspath(os.path.join(MAIN_PATH, '..'))
+
+#MANAGERS_PATH = os.path.join(MAIN_PATH, 'managers')
 
 ## Imports from S2T Folder  -- ADD Product on Module Name for Production
-sys.path.append(MAIN_PATH)
-import ConfigsLoader as cfl
+sys.path.append(ROOT_PATH)
+
+import S2T.ConfigsLoader as cfl
 config = cfl.config
 
 # Set Used product Variable -- Called by Framework
@@ -115,9 +118,10 @@ LEGACY_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 
 THR_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 'CWF', 'DMR'] else ''
 
 if cfl.DEV_MODE:
-	import CoreManipulation as scm
-	import GetTesterCurves as stc
-	import dpmChecks as dpm
+	import S2T.CoreManipulation as scm
+	import S2T.GetTesterCurves as stc
+	import S2T.dpmChecks as dpm
+
 	print("=" * 80)
 	print(" " * 27 + "DEVELOPER MODE")
 	print("=" * 80)
@@ -131,7 +135,7 @@ else:
 
 
 ## UI Calls
-import UI.System2TesterUI as UI
+import S2T.UI.System2TesterUI as UI
 
 ## Imports from THR folder - These are external scripts, always use same path
 CoreDebugUtils = None
@@ -142,9 +146,8 @@ except Exception as e:
 	print(f' [x] Could not import CoreDebugUtils, some features may be limited: {e}')
 
 ## Import Managers and Strategy
-sys.path.append(MANAGERS_PATH)
-import voltage_manager as vmgr
-import frequency_manager as fmgr
+import S2T.managers.voltage_manager as vmgr
+import S2T.managers.frequency_manager as fmgr
 
 ## Reload of all imported scripts
 if cfl.DEV_MODE:

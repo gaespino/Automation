@@ -418,6 +418,11 @@ DMR_NOTES = {
 	'imh_domain': 'IMH (Integrated Memory Hub) is separate domain for memory and IO'
 }
 
+# Tileview Locations (Spreadsheet)
+SPREADSHEET_DATA = {    'name':'B2' ,
+							'errors':'P3',
+							'status':'P2' , 
+							'pcbs':'B70' }
 
 def get_bank_info(bank_id):
 	"""
@@ -1258,6 +1263,15 @@ def mca_dump(sv, itp, verbose=True):
 	#sv.sockets.cbbs.computes.modules.cores.setaccess('default') #restore
 	return mcadata, pysvdecode
 
+def read_scratchpad(sv):
+	"""Read scratchpad register value."""
+	try:
+		scratchpad = str(sv.socket0.imh0.ubox.ncdecs.biosnonstickyscratchpad_mem[7])
+		return scratchpad
+	except Exception as e:
+		print(f"[X] Error reading scratchpad: {e}")
+		return "ERROR"  
+	
 if __name__ == '__main__':
 	# Example usage
 	print_bank_table()
