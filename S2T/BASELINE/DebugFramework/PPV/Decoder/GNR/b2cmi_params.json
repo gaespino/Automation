@@ -1,0 +1,134 @@
+{
+  "ERROR_STATE": {
+    "0": "IDLE",
+    "1": "DRAIN",
+    "2": "PROBE",
+    "3": "RETRY",
+    "4": "FLUSH"
+  },
+  "ERROR_SUBSTATE": {
+    "DRAIN": {
+      "0": "NOCMI",
+      "1": "CMI",
+      "2": "QUIESCE"
+    },
+    "PROBE": {
+      "0": "PICK",
+      "1": "REVERT",
+      "2": "ISSUE"
+    },
+    "RETRY": {
+      "0": "ORIGINAL_RD",
+      "1": "SETUP_SCRUB",
+      "2": "REDUNDANT_RD",
+      "3": "FIX_SCRUB",
+      "4": "UNBLOCK_RD",
+      "5": "SYNC_RD"
+    }
+  },
+  "MSCOD": {
+    "0": "NO_ERR",
+    "1": "READ_ECC",
+    "2": "BUCKET1",
+    "3": "TRKR_PAR",
+    "4": "SECURE",
+    "7": "RD_CMP_PAR",
+    "8": "WR_RSP_PAR",
+    "9": "TIMEOUT",
+    "10": "ADDR_PAR",
+    "12": "CMI_OVERSUB",
+    "13": "SAIMISMATCH"
+  },
+  "MSCOD_DDR_TYPE": {
+    "0": "NOT_LOGGED",
+    "1": "DDR5",
+    "2": "DDRT2",
+    "3": "DDR5_AND_DDRT2"
+  },
+  "BUCKET1_SUBTYPE": {
+    "16": "trkrcrdt_pool_err",
+    "15": "trkrdb_dealloc_err",
+    "14": "akrsp_tid_err",
+    "13": "wrcmp_tid_err",
+    "12": "rdcmp_tid_err",
+    "11": "miss_on_inclwr",
+    "10": "errfsm_reject",
+    "9": "ak_nip_crdt_ovf", 
+    "8": "bl_nip_crdt_ovf", 
+    "7": "ad_nip_crdt_ovf", 
+    "6": "req_fab_crdt_ovf",
+    "5": "req_vc_crdt_ovf",
+    "4": "rdcmp_fifo_ovf",
+    "3": "trkrdb_ovf",
+    "2": "trkr_ovf",
+    "1": "bling_ovf", 
+    "0": "ading_ovf"
+  },
+  "t_b2cmi_cmi_opcode": {
+    "0": "MRD",
+    "1": "MWR",
+    "3": "MWRPTL",
+    "5": "MPCMT",
+    "6": "NDTC"
+  },
+  "t_nip_opcode": {
+    "REQ": {
+         "1": "MEMRD",
+         "5": "MEMRDPTL",
+         "8": "MEMSPECRD",
+         "2": "MEMRDDATA",
+         "0": "MEMINV",
+         "7": "MEMINVNOFILL",
+         "6": "MEMRDFILLONLY"
+    },
+    "WB": {
+         "1": "MEMWR",
+         "2": "MEMWRPTL",
+         "5": "MEMWRNI",
+         "6": "MEMWRPTLNI",
+         "0": "MEMWRDIRONLY",
+         "8": "MEMWRPTLDIRONLY",
+         "9": "MEMWRPTLNIDIRONLY",
+         "7": "MEMWRBYPENC"
+    },
+    "DRS": {
+         "0": "MEMDATA",
+         "1": "MEMDATANMCLEAN"
+    },
+    "NDR": {
+         "0": "CMP",
+         "3": "CMPNMCLEAN"
+    }
+  },
+  "t_b2cmi_opcode": {
+    "rd": {
+      "0": "MemRd", 
+      "1": "MemSpecRd",
+      "2": "MemRdData",
+      "3": "MemRdPtl",
+      "4": "MemRdXtoS",
+      "5": "MemRdXtoI",
+      "6": "MemRdXtoA",
+      "7": "MemRdFillOnly",
+      "8": "MemInv",
+      "9": "MemInvXtoI",
+      "10": "MemInvXtoA",
+      "11": "MemInvItoX",
+      "12": "MemInvXtoS",
+      "13": "MemRdPtlXtoI",
+      "14": "MemRdPtlXtoA",
+      "15": "MemRdPtlXtoS"
+    },
+    "wr": {
+      "0": "MemWr",
+      "1": "MemWrDirOnly",
+      "2": "MemWrBypEnc",
+      "3": "MemWrFlush",
+      "4": "MemWrPtl",
+      "5": "MemWrPtlDirOnly",
+      "8": "MemWrNI",
+      "12": "MemWrPtlNI",
+      "13": "MemWrPtlNIDirOnly"
+    }
+  }
+}

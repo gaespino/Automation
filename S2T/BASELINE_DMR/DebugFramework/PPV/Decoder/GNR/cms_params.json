@@ -1,0 +1,511 @@
+{
+  "MCACOD": 1042,
+  "MSCOD": {
+    "16"    : "TGR_INGR_AD_PLD_ERR",
+    "32"    : "TA_AD_PLD_ERR",
+    "64"    : "AGT0_AD_PLD_ERR",
+    "128"   : "AGT1_AD_PLD_ERR",
+    "4096"  : "TGR_INGR_BL_PLD_ERR",
+    "8192"  : "AGT_BL_PLD_ERR",
+    "16384" : "TA_BL_PLD_ERR",
+    "131072": "AGT0_AK_PLD_ERR",
+    "262144": "AGT1_AK_PLD_ERR"
+  },
+  "IO0_CMS_MAP": {
+    "scf_cms0": {
+      "die": "io0",
+      "ip": "b2upi0",
+      "meshid": 224,
+      "row": 0,
+      "col": 0
+    },
+    "scf_cms1": {
+      "die": "io0",
+      "ip": "b2cxl0",
+      "meshid": 192,
+      "row": 1,
+      "col": 0
+    },
+    "scf_cms2": {
+      "die": "io0",
+      "ip": "b2hot0(UPI)",
+      "meshid": 151,
+      "row": 2,
+      "col": 0
+    },
+    "scf_cms3": {
+      "die": "io0",
+      "ip": "dummy0",
+      "meshid": 150,
+      "row": 0,
+      "col": 1
+    },
+    "scf_cms4": {
+      "die": "io0",
+      "ip": "b2cxl1",
+      "meshid": 193,
+      "row": 1,
+      "col": 1
+    },
+    "scf_cms5": {
+      "die": "io0",
+      "ip": "b2hot1(HIOP)",
+      "meshid": 209,
+      "row": 2,
+      "col": 1
+    },
+    "scf_cms6": {
+      "die": "io0",
+      "ip": "b2idi0(spk)",
+      "meshid": 240,
+      "row": 0,
+      "col": 2
+    },
+    "scf_cms7": {
+      "die": "io0",
+      "ip": "dummy1",
+      "meshid": 150,
+      "row": 1,
+      "col": 2
+    },
+    "scf_cms8": {
+      "die": "io0",
+      "ip": "dummy2",
+      "meshid": 150,
+      "row": 2,
+      "col": 2
+    },
+    "scf_cms9": {
+      "die": "io0",
+      "ip": "b2cxl2",
+      "meshid": 194,
+      "row": 0,
+      "col": 3
+    },
+    "scf_cms10": {
+      "die": "io0",
+      "ip": "b2upi1",
+      "meshid": 225,
+      "row": 1,
+      "col": 3
+    },
+    "scf_cms11": {
+      "die": "io0",
+      "ip": "b2hot2(HIOP)",
+      "meshid": 210,
+      "row": 2,
+      "col": 3
+    },
+    "scf_cms12": {
+      "die": "io0",
+      "ip": "dummy3",
+      "meshid": 150,
+      "row": 0,
+      "col": 4
+    },
+    "scf_cms13": {
+      "die": "io0",
+      "ip": "b2cxl3",
+      "meshid": 195,
+      "row": 1,
+      "col": 4
+    },
+    "scf_cms14": {
+      "die": "io0",
+      "ip": "b2hot3(HIOP)",
+      "meshid": 211,
+      "row": 2,
+      "col": 4
+    },
+    "scf_cms15": {
+      "die": "io0",
+      "ip": "b2cxl4",
+      "meshid": 196,
+      "row": 0,
+      "col": 5
+    },
+    "scf_cms16": {
+      "die": "io0",
+      "ip": "dummy4",
+      "meshid": 150,
+      "row": 1,
+      "col": 5
+    },
+    "scf_cms17": {
+      "die": "io0",
+      "ip": "b2hot4(HIOP)",
+      "meshid": 212,
+      "row": 2,
+      "col": 5
+    },
+    "scf_cms18": {
+      "die": "io0",
+      "ip": "b2upi2",
+      "meshid": 226,
+      "row": 0,
+      "col": 6
+    },
+    "scf_cms19": {
+      "die": "io0",
+      "ip": "b2cxl5",
+      "meshid": 197,
+      "row": 1,
+      "col": 6
+    },
+    "scf_cms20": {
+      "die": "io0",
+      "ip": "b2hot5(HIOP)",
+      "meshid": 213,
+      "row": 2,
+      "col": 6
+    },
+    "scf_cms21": {
+      "die": "io0",
+      "ip": "b2ubox",
+      "meshid": 255,
+      "row": 0,
+      "col": 7
+    },
+    "scf_cms22": {
+      "die": "io0",
+      "ip": "b2hot9(CS)",
+      "meshid": 128,
+      "row": 1,
+      "col": 7
+    },
+    "scf_cms23": {
+      "die": "io0",
+      "ip": "b2hot8(R)",
+      "meshid": 148,
+      "row": 2,
+      "col": 7
+    },
+    "scf_cms24": {
+      "die": "io0",
+      "ip": "dummy5",
+      "meshid": 150,
+      "row": 0,
+      "col": 8
+    },
+    "scf_cms25": {
+      "die": "io0",
+      "ip": "b2cxl6",
+      "meshid": 198,
+      "row": 1,
+      "col": 8
+    },
+    "scf_cms26": {
+      "die": "io0",
+      "ip": "b2hot6(HIOP)",
+      "meshid": 214,
+      "row": 2,
+      "col": 8
+    },
+    "scf_cms27": {
+      "die": "io0",
+      "ip": "b2upi3",
+      "meshid": 227,
+      "row": 0,
+      "col": 9
+    },
+    "scf_cms28": {
+      "die": "io0",
+      "ip": "b2cxl7",
+      "meshid": 199,
+      "row": 1,
+      "col": 9
+    },
+    "scf_cms29": {
+      "die": "io0",
+      "ip": "b2hot7(UPI)",
+      "meshid": 152,
+      "row": 2,
+      "col": 9
+    }
+  },
+  "IO1_CMS_MAP": {
+    "scf_cms0": {
+      "die": "io1",
+      "ip": "b2hot0(UPI)",
+      "meshid": 156,
+      "row": 2,
+      "col": 9
+    },
+    "scf_cms1": {
+      "die": "io1",
+      "ip": "b2cxl0",
+      "meshid": 200,
+      "row": 1,
+      "col": 9
+    },
+    "scf_cms2": {
+      "die": "io1",
+      "ip": "b2upi0",
+      "meshid": 228,
+      "row": 0,
+      "col": 9
+    },
+    "scf_cms3": {
+      "die": "io1",
+      "ip": "b2hot1(HIOP)",
+      "meshid": 222,
+      "row": 2,
+      "col": 8
+    },
+    "scf_cms4": {
+      "die": "io1",
+      "ip": "b2cxl1",
+      "meshid": 201,
+      "row": 1,
+      "col": 8
+    },
+    "scf_cms5": {
+      "die": "io1",
+      "ip": "dummy0",
+      "meshid": 150,
+      "row": 0,
+      "col": 8
+    },
+    "scf_cms6": {
+      "die": "io1",
+      "ip": "b2hot8(R)",
+      "meshid": 149,
+      "row": 2,
+      "col": 7
+    },
+    "scf_cms7": {
+      "die": "io1",
+      "ip": "b2hot9(CS)",
+      "meshid": 138,
+      "row": 1,
+      "col": 7
+    },
+    "scf_cms8": {
+      "die": "io1",
+      "ip": "b2ubox",
+      "meshid": 248,
+      "row": 0,
+      "col": 7
+    },
+    "scf_cms9": {
+      "die": "io1",
+      "ip": "b2hot2(UPI)",
+      "meshid": 155,
+      "row": 2,
+      "col": 6
+    },
+    "scf_cms10": {
+      "die": "io1",
+      "ip": "b2cxl2",
+      "meshid": 202,
+      "row": 1,
+      "col": 6
+    },
+    "scf_cms11": {
+      "die": "io1",
+      "ip": "b2upi1",
+      "meshid": 229,
+      "row": 0,
+      "col": 6
+    },
+    "scf_cms12": {
+      "die": "io1",
+      "ip": "b2hot3(HIOP)",
+      "meshid": 220,
+      "row": 2,
+      "col": 5
+    },
+    "scf_cms13": {
+      "die": "io1",
+      "ip": "dummy1",
+      "meshid": 150,
+      "row": 1,
+      "col": 5
+    },
+    "scf_cms14": {
+      "die": "io1",
+      "ip": "b2cxl3",
+      "meshid": 203,
+      "row": 0,
+      "col": 5
+    },
+    "scf_cms15": {
+      "die": "io1",
+      "ip": "b2hot4(HIOP)",
+      "meshid": 219,
+      "row": 2,
+      "col": 4
+    },
+    "scf_cms16": {
+      "die": "io1",
+      "ip": "b2cxl4",
+      "meshid": 204,
+      "row": 1,
+      "col": 4
+    },
+    "scf_cms17": {
+      "die": "io1",
+      "ip": "dummy2",
+      "meshid": 150,
+      "row": 0,
+      "col": 4
+    },
+    "scf_cms18": {
+      "die": "io1",
+      "ip": "b2hot5(UPI)",
+      "meshid": 154,
+      "row": 2,
+      "col": 3
+    },
+    "scf_cms19": {
+      "die": "io1",
+      "ip": "b2upi2",
+      "meshid": 230,
+      "row": 1,
+      "col": 3
+    },
+    "scf_cms20": {
+      "die": "io1",
+      "ip": "b2cxl5",
+      "meshid": 205,
+      "row": 0,
+      "col": 3
+    },
+    "scf_cms21": {
+      "die": "io1",
+      "ip": "dummy3",
+      "meshid": 150,
+      "row": 2,
+      "col": 2
+    },
+    "scf_cms22": {
+      "die": "io1",
+      "ip": "dummy4",
+      "meshid": 150,
+      "row": 1,
+      "col": 2
+    },
+    "scf_cms23": {
+      "die": "io1",
+      "ip": "b2idi1(spk)",
+      "meshid": 243,
+      "row": 0,
+      "col": 2
+    },
+    "scf_cms24": {
+      "die": "io1",
+      "ip": "b2hot6(HIOP)",
+      "meshid": 217,
+      "row": 2,
+      "col": 1
+    },
+    "scf_cms25": {
+      "die": "io1",
+      "ip": "b2cxl6",
+      "meshid": 206,
+      "row": 1,
+      "col": 1
+    },
+    "scf_cms26": {
+      "die": "io1",
+      "ip": "dummy5",
+      "meshid": 150,
+      "row": 0,
+      "col": 1
+    },
+    "scf_cms27": {
+      "die": "io1",
+      "ip": "b2hot7(UPI)",
+      "meshid": 153,
+      "row": 2,
+      "col": 0
+    },
+    "scf_cms28": {
+      "die": "io1",
+      "ip": "b2cxl7",
+      "meshid": 207,
+      "row": 1,
+      "col": 0
+    },
+    "scf_cms29": {
+      "die": "io1",
+      "ip": "b2upi3",
+      "meshid": 231,
+      "row": 0,
+      "col": 0
+    }
+  },
+  "SCF_CMS_MAP": {
+    "scf_cms0": {
+      "die": "comp",
+      "ip": "b2cmi",
+      "meshid": 150,
+      "row": 3,
+      "col": 0
+    },
+    "scf_cms1": {
+      "die": "comp",
+      "ip": "b2cmi",
+      "meshid": 150,
+      "row": 4,
+      "col": 0
+    },
+    "scf_cms2": {
+      "die": "comp",
+      "ip": "b2cmi0",
+      "meshid": 160,
+      "row": 5,
+      "col": 0
+    },
+    "scf_cms3": {
+      "die": "comp",
+      "ip": "b2cmi1",
+      "meshid": 161,
+      "row": 6,
+      "col": 0
+    },
+    "scf_cms4": {
+      "die": "comp",
+      "ip": "b2idi0(spk)",
+      "meshid": 241,
+      "row": 7,
+      "col": 0
+    },
+    "scf_cms5": {
+      "die": "b2cmi",
+      "ip": "",
+      "meshid": 150,
+      "row": 3,
+      "col": 9
+    },
+    "scf_cms6": {
+      "die": "b2cmi",
+      "ip": "",
+      "meshid": 150,
+      "row": 4,
+      "col": 9
+    },
+    "scf_cms7": {
+      "die": "comp",
+      "ip": "b2cmi6",
+      "meshid": 162,
+      "row": 5,
+      "col": 9
+    },
+    "scf_cms8": {
+      "die": "comp",
+      "ip": "b2cmi7",
+      "meshid": 163,
+      "row": 6,
+      "col": 9
+    },
+    "scf_cms9": {
+      "die": "comp",
+      "ip": "b2idi1(spk)",
+      "meshid": 242,
+      "row": 7,
+      "col": 9
+    }
+  }
+}
+

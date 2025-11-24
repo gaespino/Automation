@@ -32,8 +32,8 @@ except Exception as e:
 
 #from PPV import MCAparser as parser
 #from PPV import PPVReportMerger as merger
-import PPV.MCAparser as parser
-import PPV.PPVReportMerger as merger
+import PPV.parsers.MCAparser as parser
+import PPV.utils.PPVReportMerger as merger
 
 importlib.reload(parser)
 importlib.reload(merger)
