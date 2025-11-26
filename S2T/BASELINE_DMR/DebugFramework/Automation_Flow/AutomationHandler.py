@@ -14,15 +14,16 @@ import queue
 import importlib
 
 current_dir= os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 print(' Framework Automation Panel -- rev 1.7')
+# Note: parent_dir path not printed to avoid console clutter
 
 sys.path.append(parent_dir)
 
 
 # Import all the builder classes
-from Automation_Flow.AutomationBuilder import (
+from DebugFramework.Automation_Flow.AutomationBuilder import (
 	FlowConfiguration,
 	NodeDrawer,
 	ConnectionDrawer,
@@ -33,19 +34,19 @@ from Automation_Flow.AutomationBuilder import (
 )
 
 # Import all the flow/executor classes
-from Automation_Flow.AutomationFlows import (
+from DebugFramework.Automation_Flow.AutomationFlows import (
 	FlowTestBuilder,
 )
 # Optional: Import shared status panel if it exists
 try:
-	from UI.StatusPanel import StatusExecutionPanel
+	from DebugFramework.UI.StatusPanel import StatusExecutionPanel
 	HAS_STATUS_PANEL = True
 except ImportError:
 	print("Warning: StatusExecutionPanel not found. Using basic status display.")
 	HAS_STATUS_PANEL = False
 
-import UI.StatusHandler as fs
-import ExecutionHandler.utils.ThreadsHandler as th
+import DebugFramework.UI.StatusHandler as fs
+import DebugFramework.ExecutionHandler.utils.ThreadsHandler as th
 importlib.reload(th)
 
 ExecutionCommand = th.ExecutionCommand

@@ -13,17 +13,17 @@ import threading
 import json
 
 current_dir= os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 sys.path.append(parent_dir)
 
 
 # Import FileHandler module for loading JSON files
-import FileHandler as fh  # Assuming FileHandler contains functions for loading JSON
-from ExecutionHandler.StatusManager import StatusEventType
-from Automation_Flow.AutomationTracker import ExperimentTracker
-from ExecutionHandler.Enums import TestStatus
-import ExecutionHandler.utils.ThreadsHandler as th
+import DebugFramework.FileHandler as fh  # Assuming FileHandler contains functions for loading JSON
+from DebugFramework.ExecutionHandler.StatusManager import StatusEventType
+from DebugFramework.Automation_Flow.AutomationTracker import ExperimentTracker
+from DebugFramework.ExecutionHandler.Enums import TestStatus
+import DebugFramework.ExecutionHandler.utils.ThreadsHandler as th
 ExecutionCommand = th.ExecutionCommand
 
 # Default configuration for System-to-Tester communication
@@ -105,6 +105,7 @@ class FlowInstance(ABC):
 	def __init__(self, ID, Name, Framework, framework_utils, Experiment, outputNodeMap, experiment_tracker = None, logger=None):
 		self.ID = ID
 		self.Name = Name
+		self.Type = self.__class__.__name__.replace('FlowInstance', '')  # Node type from class name
 		self.Framework = Framework
 		self.Experiment = Experiment
 		self.outputNodeMap = outputNodeMap

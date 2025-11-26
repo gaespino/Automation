@@ -4,8 +4,6 @@ import subprocess
 import threading
 
 
-#import pyautogui
-#import pygetwindow as gw
 try:
 	import users.gaespino.dev.S2T.Logger.ErrorReport as ereport
 	import users.gaespino.dev.S2T.dpmChecks as dpm
@@ -301,7 +299,7 @@ class teraterm():
 				if self.search_in_file(lines=total_lines, string=[self.ttendfail], casesens=False, search_up_to_line=10, reverse=True):
 					return False
 				if unchanged_checks >= 20:
-					return False
+					print(f'Console looks stuck -- ignore if running TSL -- No Changes Count: {unchanged_checks}')#return False
 				#mcadata, pysvdecode = ereport.mca_dump_gnr(verbose=False)
 				#for k,v in pysvdecode.items():
 				#    if v == True:

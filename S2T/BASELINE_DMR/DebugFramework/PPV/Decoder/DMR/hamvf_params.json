@@ -1,0 +1,232 @@
+{
+    "TRKR_ENTRIES": 256,
+    "NUM_REQ_CLASSES": 2,
+    "NUM_MEM_VC": 6,
+    "t_hamvf_req_opcode":{
+        "0": "RDCUR",
+        "1": "RDCODE",
+        "2": "RDDATA",
+        "3": "RDDATAMIG",
+        "4": "RDINVOWN",
+        "5": "RDINV",
+        "6": "RDINVOWNPUSH",
+        "32": "WBMTOI",
+        "33": "WBMTOE",
+        "34": "WBMTOS",
+        "35": "WBETOI",
+        "36": "WBMTOIPTL",
+        "37": "WBMTOEPTL",
+        "38": "WBMTOIPUSH",
+        "16": "SARDCUR",
+        "17": "SARDCODE",
+        "18": "SARDDATA",
+        "19": "SAINVITOE",
+        "20": "SAINVITOX",
+        "21": "SAINVITOWR",
+        "8": "INVXTOI",
+        "9": "INVITOE",
+        "10": "INVITOEMIG",
+        "11": "INVITOM",
+        "14": "INVITOEMIGPUSH",
+        "15": "INVITOMPUSH",
+        "24": "BISNPCUR",
+        "25": "BISNPDATA",
+        "26": "BISNPINV",
+        "27": "BISNPMERGE",
+        "28": "BISNPCURBLK",
+        "29": "BISNPDATABLK",
+        "30": "BISNPINVBLK",
+        "44": "EVCTSHRD",
+        "45": "EVCTCLN",
+        "56": "REQFWDCNFLT",
+        "48": "NONSNPRD",
+        "49": "MEMRD",
+        "50": "NONSNPWR",
+        "54": "NONSNPWRPTL",
+        "51": "MEMWR",
+        "55": "MEMWRPTL",
+        "63": "VICTIM",
+        "57": "RDCODELP",
+        "58": "RDDATALP",
+        "59": "RDDATAMIGLP",
+        "60": "RDINVOWNLP",
+        "61": "RDDATAHP",
+        "62": "VICTIM_WB"
+    },
+    "t_nip_opcode_m2sreq": {
+        "0": "MEMINV",
+        "1": "MEMRD",
+        "2": "MEMRDDATA",
+        "3": "MEMRDFWD",
+        "4": "MEMWRFWD",
+        "5": "MEMRDTEE",
+        "6": "MEMRDDATATEE",
+        "7": "MEMINVNOFILL",
+        "8": "MEMSPECRD",
+        "10": "MEMCLNEVCT",
+        "12": "MEMSPECRDTEE",
+        "14": "MEMRDPTL",
+        "15": "MEMRDFILLONLY"
+    },
+    "t_nip_opcode_m2srwd": {
+        "1": "MEMWR",
+        "2": "MEMWRPTL",
+        "4": "BICONFLICT",
+        "5": "MEMRDFILL",
+        "9": "MEMWRTEE",
+        "10": "MEMWRPTLTEE",
+        "13": "MEMRDFILLTEE",
+        "0": "MEMWRDIRONLY",
+        "8": "MEMWRPTLDIRONLY",
+        "15": "MEMWRPTLNIDIRONLY",
+        "7": "MEMWRBYPENC",
+        "22": "MEMWRNI",
+        "23": "MEMWRPTLNI"
+    },
+    "t_nip_opcode_m2sbirsp": {
+        "0": "BIRSPI",
+        "1": "BIRSPS",
+        "2": "BIRSPE"
+    },
+    "t_nip_opcode_s2mbisnp": {
+        "0": "BISNPCUR",
+        "1": "BISNPDATA",
+        "2": "BISNPINV",
+        "4": "BISNPCURBLK",
+        "5": "BISNPDATABLK",
+        "6": "BISNPINVBLK"
+    },
+    "t_nip_opcode_s2mndr": {
+        "0": "CMP",
+        "1": "CMPS",
+        "2": "CMPE",
+        "3": "CMPM",
+        "4": "BICONFLICTACK",
+        "5": "CMPTEE",
+        "7": "CMPNMCLEAN"
+    },
+    "t_nip_opcode_s2mdrs": {
+        "0": "MEMDATA",
+        "1": "MEMDATANXM",
+        "2": "MEMDATATEE"
+    },
+    "MSCOD": {
+        "1": "READ_ECC",
+        "2": "BUCKET1",
+        "3": "TRKR_PAR",
+        "4": {
+            "1538": "security_error",
+            "1568": "tsp_missing_cmptee_ucna"
+        },
+        "6": "ILLEGAL_DIE_ID",
+        "7": "RD_CMP_PAR",
+        "8": "WR_RSP_PAR",
+        "9": "TIMEOUT",
+        "10": "ADDR_PAR",
+        "11": {
+            "1540": "hsf_illegal_multihit",
+            "1541": "hsf_parity"
+        },
+        "12": "CMI_OVERSUB",
+        "13": "SAIMISMATCH",
+        "14": {
+            "1544": "nxm_poison_ucna",
+            "1569": "tsp_poison_ucna"
+        },
+        "15": {
+            "1560": "cxl_illegal_opcode",
+            "1563": "cxl_invalid_opcode",
+            "1562": "cxl_invalid_rsp",
+            "1565": "cxl_multiple_bisnp",
+            "1564": "cxl_rspm",
+            "1561": "cxl_snpblk",
+            "1543": "uxi_iaca_push",
+            "1552": "uxi_illegal_opcode",
+            "1556": "uxi_illegal_wb",
+            "1557": "uxi_invalid_crnid",
+            "1553": "uxi_invalid_snp_rsp",
+            "1554": "uxi_rspcurdata"
+        }
+    },
+    "t_hamvf_mca_mscod_ddr_type": {
+        "0": "NOT_LOGGED",
+        "1": "DDR",
+        "2": "DDRT",
+        "3": "DDR_DDRT"
+    },
+    "TIMEOUT_ERROR_SUBTYPE": {
+        "0": "entry sleeping in conflict chain",
+        "1": "snoop response pending",
+        "2": "tracker data buffer timed out",
+        "3": "in wait state",
+        "4": "in write phase",
+        "5": "2LM miss",
+        "6": "write in progress to near memory",
+        "7": "write in progress to far memory",
+        "8": "inclusive",
+        "9": "all chunks of data received from CMI"
+    },
+    "BUCKET1_ERRORS": {
+        "0": ["ADING_OVF", "Overflow of AD ingress queue. Check credit programming of the fabric"],
+        "1": ["BLING_OVF", "Overflow of BL ingress queue. Check credit programming of the fabric"],
+        "2": ["TRKR_OVF", "Overflow of the tracker"],
+        "3": ["TRKRDB_OVF", "Overflow of the tracker data buffer"],
+        "4": ["RDCMP_FIFO_OVF", "Overflow of CMI interface read completion FIFO"],
+        "5": ["REQ_VC_CRDT_OVF", "Overflow of virtual channel credits for sending a CMI request"],
+        "6": ["REQ_FAB_CRDT_OVF", "Overflow of fabric credits for sending a NIP packet"],
+        "7": ["AD_NIP_CRDT_OVF", "Overflow of credits for sending a NIP AD packet"],
+        "8": ["BL_NIP_CRDT_OVF", "Overflow of credits for sending a NIP BL packet"],
+        "9": ["AK_NIP_CRDT_OVF", "Overflow of credits for sending a NIP AK packet"],
+        "10": ["ASF_OVF", "Overflow of FIFO between the HA and HSF"],
+        "11": ["MISS_ON_INCLWR", "An inclusive write morphed to non-inclusive (debug mode) which missed in near memory"],
+        "12": ["RDCMP_TID_ERR", "CMI read completion's TID did not match a valid tracker entry"],
+        "13": ["WRCMP_TID_ERR", "CMI write completion's TID did not match a valid tracker entry"],
+        "14": ["AKRSP_TID_ERR", "UXI snoop response's TID or CXL.Mem NDR's tag did not match a valid tracker entry"],
+        "15": ["TRKRDB_DEALLOC_ERR", "Deallocated the same data buffer more than once in a cycle, or deallocated an invalid entry"],
+        "16": ["TRKRCRDT_POOL_ERR", "Credits not reunded to the correct pool"],
+        "17": ["INV_BYTEEN_ENCODE", "Invalid byte-enable encode, when a group of bytes is marked as partial (IDBE=0) but ByteEn=0xFF"],
+        "18": ["HSF_REQFIFO_OVF", "HSF request FIFO overflow"],
+        "19": ["HSF_RESPFIFO_OVF", "HSF response FIFO overflow"],
+        "20": ["VICFIFO_OVF", "Overflow of internal queue of pending HSF victims"],
+        "21": ["SNPFIFO_OVF", "Overflow of internal queue of pending snoops"],
+        "22": ["NXMFIFO_OVF", "Overflow of internal queue of pending NXM requests"],
+        "23": ["CLVALID_OVF", "Overflow of the CAM storing the HSF response"]
+    },  
+    "ERR_STATE": {
+        "0": "IDLE",
+        "1": "DRAIN",
+        "2": "PROBE",
+        "3": "RETRY",
+        "4": "FLUSH"
+    },
+    "ERR_SUBSTATE": {
+        "IDLE": {
+            "0": "DRAIN_NOCMI"
+        },
+        "DRAIN": {
+            "0": "DRAIN_NOCMI",
+            "1": "DRAIN_CMI",
+            "2": "DRAIN_QUIESCE"
+        },
+        "PROBE": {
+            "0": "PROBE_PICK",
+            "1": "PROBE_REVERT",
+            "2": "PROBE_LOOKUP",
+            "3": "PROBE_EVAL",
+            "4": "PROBE_ISSUE"
+        },
+        "RETRY": {
+            "0": "ORIGINAL_RD",
+            "1": "SETUP_SCRUB",
+            "2": "REDUNDANT_RD",
+            "3": "FIX_SCRUB",
+            "4": "UNBLOCK_RD",
+            "5": "SYNC_RD"
+        },
+        "FLUSH": {
+            "0": "DRAIN_NOCMI",
+            "1": "DRAIN_CMI",
+            "2": "DRAIN_QUIESCE"
+        }
+    }
+}

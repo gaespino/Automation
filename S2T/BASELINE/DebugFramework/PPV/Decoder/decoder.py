@@ -10,8 +10,12 @@ from pathlib import Path
 import os
 import sys
 
+# Import DMR decoder
 
-validproducts = {'GNR':'bigcore', 'CWF':'atom'}
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from Decoder.decoder_dmr import decoder_dmr
+
+validproducts = {'GNR':'bigcore', 'CWF':'atom', 'DMR':'bigcore'}
 
 class mcadata():
 	def __init__(self, product):
@@ -23,10 +27,32 @@ class mcadata():
 		self.cha_data = self.cha()
 		self.core_data = self.core()
 		self.portid_data = self.portid()
+		self.mse_data = self.mse()
+		self.mcchnl_data = self.mcchnl()
+		self.b2cmi_data = self.b2cmi()
+		self.upi_data = self.upi()
+		self.ubox_data = self.ubox()
+		
+		# DMR-specific JSON files
+		if product.upper() == 'DMR':
+			self.ula_data = self.ula()
+			self.cache_data = self.cache()
+			self.hamvf_data = self.hamvf()
+			self.mc_subch_data = self.mc_subch()
+			self.sca_data = self.sca_dmr()
 
 
 	def llc(self):
-    		
+		# Load product-specific LLC data from JSON if available (DMR, future products)
+		# Otherwise use default GNR/CWF hardcoded data
+		try:
+			llc_json = dev_dict('llc_params.json', filedir = self.jsfile_dir)
+			if llc_json:
+				return llc_json
+		except:
+			pass
+		
+		# Default LLC data for GNR/CWF (fallback)
 		llc_json = {'MSCOD_BY_VAL': {
 		"0": "MSCOD_NONE",
 		"2": "MSCOD_UNCORRECTABLE_TAG_ERROR",
@@ -64,16 +90,101 @@ class mcadata():
 	def portid(self):
 		portids_json = dev_dict('log_portid.json', filedir = self.jsfile_dir)
 		return portids_json
+	
+	def mse(self):
+		"""Load MSE (Memory Security Engine) parameters JSON"""
+		try:
+			mse_json = dev_dict('mse_params.json', filedir = self.jsfile_dir)
+			return mse_json
+		except:
+			return {}
+	
+	def mcchnl(self):
+		"""Load Memory Controller Channel (MCCHAN/iMC) parameters JSON"""
+		try:
+			mcchnl_json = dev_dict('mcchnl_params.json', filedir = self.jsfile_dir)
+			return mcchnl_json
+		except:
+			return {}
+	
+	def b2cmi(self):
+		"""Load B2CMI (B2C Memory Interface) parameters JSON"""
+		try:
+			b2cmi_json = dev_dict('b2cmi_params.json', filedir = self.jsfile_dir)
+			return b2cmi_json
+		except:
+			return {}
+	
+	def upi(self):
+		"""Load UPI (Ultra Path Interconnect) parameters JSON"""
+		try:
+			upi_json = dev_dict('upi_params.json', filedir = self.jsfile_dir)
+			return upi_json
+		except:
+			return {}
+	
+	def ubox(self):
+		"""Load UBOX parameters JSON"""
+		try:
+			ubox_json = dev_dict('ubox_params.json', filedir = self.jsfile_dir)
+			return ubox_json
+		except:
+			return {}
+	
+	def ula(self):
+		"""Load ULA (UXI Link Agent) parameters JSON for DMR"""
+		try:
+			ula_json = dev_dict('ula_params.json', filedir = self.jsfile_dir)
+			return ula_json
+		except:
+			return {}
+	
+	def cache(self):
+		"""Load cache parameters JSON for DMR (IOCACHE, HSF)"""
+		try:
+			cache_json = dev_dict('cache_params.json', filedir = self.jsfile_dir)
+			return cache_json
+		except:
+			return {}
+	
+	def hamvf(self):
+		"""Load HAMVF (Home Agent Memory Virtual Function) parameters JSON for DMR"""
+		try:
+			hamvf_json = dev_dict('hamvf_params.json', filedir = self.jsfile_dir)
+			return hamvf_json
+		except:
+			return {}
+	
+	def mc_subch(self):
+		"""Load Memory Controller Subchannel parameters JSON for DMR"""
+		try:
+			mc_subch_json = dev_dict('mc_subch_params.json', filedir = self.jsfile_dir)
+			return mc_subch_json
+		except:
+			return {}
+	
+	def sca_dmr(self):
+		"""Load SCA parameters JSON for DMR"""
+		try:
+			sca_json = dev_dict('sca_params.json', filedir = self.jsfile_dir)
+			return sca_json
+		except:
+			return {}
 
 
 class decoder():
 	
 	def __init__(self, data, product = 'GNR'):
 		self.data = data
+		self.product = product
 
 		if product in validproducts.keys():
 			self.mcadata = mcadata(product)
 			self.coretype = validproducts[product]
+			
+			# Instantiate DMR-specific decoder if product is DMR
+			if product == 'DMR':
+				self.dmr_decoder = decoder_dmr(data, self.mcadata)
 		else:
 			print(f' Not valid product selected use: {validproducts}')
 			sys.exit()
@@ -90,9 +201,9 @@ class decoder():
 
 		filtered= df[(df[dfcol].str.contains(regex_pat, case=False, na=False))]
 
-		if not filtered.empty:
-			return filtered   			
-		return None
+		#if not filtered.empty:
+		return filtered   			
+		#return None
 	
 	# Define the lookup pattern for each column
 	def lookup_pattern(self, compute, location, operation, suffix, thread = '', ptype = 'cha'):
@@ -142,8 +253,45 @@ class decoder():
 
 		return pattern
 
+	def mem_lookup_pattern(self, mc='', ch='', b2cmi='', imc='', suffix='ADDR', ptype='b2cmi'):
+		"""
+		Generate lookup patterns for memory subsystem registers
+		
+		Args:
+			mc: Memory Controller number
+			ch: Channel number
+			b2cmi: B2CMI instance number
+			imc: iMC instance number
+			suffix: Register suffix (ADDR, MISC, etc.)
+			ptype: Pattern type (b2cmi, mse, mcchan)
+		
+		Returns:
+			Lookup pattern string
+		"""
+		if ptype == 'b2cmi':
+			# Pattern: SOCKET0__SOC__MEMSS__B2CMI{n}__MCI_{suffix}
+			pattern = f"SOCKET0__SOC__MEMSS__B2CMI{b2cmi}__MCI_{suffix}"
+			
+		elif ptype == 'mse':
+			# Pattern: SOCKET0__SOC__MEMSS__MC{n}__CH{n}__MSE__MSE_MCI_{suffix}
+			pattern = f"SOCKET0__SOC__MEMSS__MC{mc}__CH{ch}__MSE__MSE_MCI_{suffix}"
+			
+		elif ptype == 'mcchan':
+			# Pattern: SOCKET0__SOC__MEMSS__MC{n}__CH{ch}__MCCHAN__IMC{imc}_MC_{suffix}
+			# Note: ADDR register is IMC0_MC8_ADDR (special case)
+			if suffix == 'ADDR':
+				pattern = f"SOCKET0__SOC__MEMSS__MC{mc}__CH{ch}__MCCHAN__IMC{imc}_MC8_ADDR"
+			else:
+				pattern = f"SOCKET0__SOC__MEMSS__MC{mc}__CH{ch}__MCCHAN__IMC{imc}_MC_{suffix}"
+		else:
+			pattern = ''
+		
+		return pattern
+
 	# XLOOKUP equivalent in pandas
 	def xlookup(self, lookup_array, testname, LotsSeqKey, UnitTestingSeqKey, if_not_found=""):
+		if lookup_array.empty:# == None:
+			return if_not_found
 		try:
 			result = lookup_array[(lookup_array['TestName'].str.contains(testname)) & (lookup_array['LotsSeqKey'] == LotsSeqKey) & (lookup_array['UnitTestingSeqKey'] == UnitTestingSeqKey)]
 			lutvalue = result['TestValue'].iloc[0] if not result.empty else if_not_found
@@ -153,6 +301,10 @@ class decoder():
 		return  lutvalue
 
 	def cha(self):
+		# Delegate to DMR CCF decoder if product is DMR
+		if self.product == 'DMR':
+			return self.dmr_decoder.ccf()
+		
 		mcdata = self.data
 		# Initialize the new dataframe
 		columns = ['VisualID', 'Run', 'Operation', 'CHA_MC', 'Compute', 'CHA', 'MC_STATUS', 'MC DECODE','MC_ADDR', 'MC_MISC', 'MC_MISC3','Orig Req','Opcode','cachestate','TorID','TorFSM','SrcID','ISMQ','Attribute','Result','Local Port']
@@ -280,6 +432,9 @@ class decoder():
 		return mc_value
 
 	def llc(self):
+		# LLC is included in the same bank as CHA for DMR
+		if self.product == 'DMR':
+			return pd.DataFrame()  # Return empty DataFrame for DMR (LLC is in CCF)
 		
 		mcdata = self.data
 		# Initialize the new dataframe
@@ -403,7 +558,19 @@ class decoder():
 		
 		return mc_value
 
+	def sca(self):
+		"""
+		SCA (Scalable Caching Agent) decoder - Deprecated
+		SCA was moved to mem() decoder for DMR (Bank 14)
+		This method now returns empty DataFrame for backward compatibility
+		"""
+		# SCA is now part of mem() decoder for DMR
+		return pd.DataFrame()  # Return empty DataFrame for all products
+
 	def core(self):
+		# Delegate to DMR core decoder if product is DMR
+		if self.product == 'DMR':
+			return self.dmr_decoder.core()
 		
 		coretype = self.coretype
 		mcdata = self.data
@@ -817,6 +984,438 @@ class decoder():
 				if v == 'SecondError - FromCore': portids_value[v] = secondcore
 
 		return portids_value
+
+	def mem(self):
+		"""
+		Memory Controller MCA decoder for MSE, MCCHAN (iMC), and B2CMI
+		Extracts instance name, MCACOD (numeric), and MC_DECODE (MSCOD value from JSON)
+		Similar structure to LLC decoder
+		
+		Register path patterns:
+		- B2CMI: SOCKET0__SOC__MEMSS__B2CMI{n}__MCI_STATUS
+		- MCCHAN: SOCKET0__SOC__MEMSS__MC{n}__CH{n}__MCCHAN__IMC0_MC_STATUS
+		- MSE: SOCKET0__SOC__MEMSS__MC{n}__CH{n}__MSE__MSE_MCI_STATUS
+		"""
+		# Delegate to DMR memory decoder if product is DMR
+		if self.product == 'DMR':
+			return self.dmr_decoder.mem()
+		
+		mcdata = self.data
+		# Initialize the new dataframe - Added Type column
+		columns = ['VisualID', 'Run', 'Operation', 'Type', 'MEM_MC', 'Instance', 'MC_STATUS', 'MCACOD', 'MC_DECODE', 'MC_ADDR', 'MC_MISC']
+		
+		data_dict = {k:[] for k in columns}
+		
+		# Memory subsystem patterns - looking for MSE, MCCHAN (iMC), and B2CMI
+		mem_patterns = ['MSE', 'MCCHAN', 'B2CMI', 'IMC']
+		
+		for visual_id in mcdata['VisualId'].unique():
+			# Split Data into required elements
+			subset = mcdata[(mcdata['VisualId'] == visual_id)]
+			
+			# Filter for memory-related MCAs
+			mem_filtered = pd.DataFrame()
+			for pattern in mem_patterns:
+				pattern_data = self.extract_value(subset, 'TestName', pattern)
+				if not pattern_data.empty:
+					mem_filtered = pd.concat([mem_filtered, pattern_data], ignore_index=True)
+			
+			# Further filter for STATUS registers
+			mc_filtered = self.extract_value(mem_filtered, 'TestName', '_STATUS|_MC_STATUS|_MCI_STATUS')
+			
+			# If no MCA is found move to the next VID
+			if mc_filtered.empty:
+				print(f' -- No Memory MCA data found in VID: {visual_id}')
+				continue
+			
+			# This will iterate over all the Memory MCAs
+			for i, data in mc_filtered.iterrows():
+				# Build new entry
+				data_dict['VisualID'] += [visual_id]
+				LotsSeqKey = data['LotsSeqKey']
+				UnitTestingSeqKey = data['UnitTestingSeqKey']
+				operation = data['Operation']
+				test_name = data['TestName']
+				mc_value = data['TestValue']
+				
+				# Extract instance information and type from the register path
+				# Patterns: SOCKET0__SOC__MEMSS__B2CMI8__MCI_STATUS
+				#           SOCKET0__SOC__MEMSS__MC0__CH0__MCCHAN__IMC0_MC_STATUS
+				#           SOCKET0__SOC__MEMSS__MC0__CH0__MSE__MSE_MCI_STATUS
+				
+				instance = ''
+				mem_type = ''
+				mc_num = ''
+				ch_num = ''
+				b2cmi_num = ''
+				imc_num = ''
+				
+				# Extract MC and CH numbers
+				mc_match = re.search(r'__MC(\d+)__', test_name)
+				ch_match = re.search(r'__CH(\d+)__', test_name)
+				
+				if 'B2CMI' in test_name:
+					mem_type = 'B2CMI'
+					# Extract B2CMI instance number
+					b2cmi_match = re.search(r'B2CMI(\d+)', test_name)
+					if b2cmi_match:
+						b2cmi_num = b2cmi_match.group(1)
+						instance = f'B2CMI{b2cmi_num}'
+					else:
+						instance = 'B2CMI'
+						
+				elif 'MSE' in test_name:
+					mem_type = 'MSE'
+					# MSE: indicate MC#CH#
+					if mc_match and ch_match:
+						mc_num = mc_match.group(1)
+						ch_num = ch_match.group(1)
+						instance = f'MC{mc_num}CH{ch_num}'
+					else:
+						instance = 'MSE'
+						
+				elif 'MCCHAN' in test_name or 'IMC' in test_name:
+					mem_type = 'MCCHAN'
+					# MCCHAN: indicate MC#CH#IMC#
+					imc_match = re.search(r'IMC(\d+)', test_name)
+					if mc_match and ch_match:
+						mc_num = mc_match.group(1)
+						ch_num = ch_match.group(1)
+						if imc_match:
+							imc_num = imc_match.group(1)
+							instance = f'MC{mc_num}CH{ch_num}IMC{imc_num}'
+						else:
+							instance = f'MC{mc_num}CH{ch_num}'
+					elif imc_match:
+						imc_num = imc_match.group(1)
+						instance = f'IMC{imc_num}'
+					else:
+						instance = 'iMC'
+				
+				# Extract MCACOD (bits 15:0) from MC_STATUS
+				mcacod = extract_bits(hex_value=mc_value, min_bit=0, max_bit=15)
+				
+				# Decode MSCOD based on memory type
+				mc_decode = self.mem_decoder(value=mc_value, instance_type=mem_type)
+				
+				# Look up ADDR and MISC registers using lookup patterns
+				addr_value = ''
+				misc_value = ''
+				
+				# Build lookup patterns based on memory type
+				if mem_type == 'B2CMI':
+					# Pattern: SOCKET0__SOC__MEMSS__B2CMI{n}__MCI_ADDR
+					addr_lut = self.mem_lookup_pattern(mc=mc_num, ch=ch_num, b2cmi=b2cmi_num, 
+					                                   imc=imc_num, suffix='ADDR', ptype='b2cmi')
+					misc_lut = self.mem_lookup_pattern(mc=mc_num, ch=ch_num, b2cmi=b2cmi_num, 
+					                                   imc=imc_num, suffix='MISC', ptype='b2cmi')
+				elif mem_type == 'MSE':
+					# Pattern: SOCKET0__SOC__MEMSS__MC{n}__CH{n}__MSE__MSE_MCI_ADDR
+					addr_lut = self.mem_lookup_pattern(mc=mc_num, ch=ch_num, b2cmi=b2cmi_num, 
+					                                   imc=imc_num, suffix='ADDR', ptype='mse')
+					misc_lut = self.mem_lookup_pattern(mc=mc_num, ch=ch_num, b2cmi=b2cmi_num, 
+					                                   imc=imc_num, suffix='MISC', ptype='mse')
+				elif mem_type == 'MCCHAN':
+					# Pattern: SOCKET0__SOC__MEMSS__MC{n}__CH{n}__MCCHAN__IMC0_MC8_ADDR
+					# Note: ADDR register for MCCHAN is IMC0_MC8_ADDR (different from STATUS)
+					addr_lut = self.mem_lookup_pattern(mc=mc_num, ch=ch_num, b2cmi=b2cmi_num, 
+					                                   imc=imc_num, suffix='ADDR', ptype='mcchan')
+					misc_lut = self.mem_lookup_pattern(mc=mc_num, ch=ch_num, b2cmi=b2cmi_num, 
+					                                   imc=imc_num, suffix='MISC', ptype='mcchan')
+				else:
+					addr_lut = ''
+					misc_lut = ''
+				
+				# Use xlookup to find corresponding ADDR and MISC values
+				if addr_lut:
+					addr_value = self.xlookup(lookup_array=mem_filtered, testname=addr_lut, 
+					                         LotsSeqKey=LotsSeqKey, UnitTestingSeqKey=UnitTestingSeqKey)
+				if misc_lut:
+					misc_value = self.xlookup(lookup_array=mem_filtered, testname=misc_lut, 
+					                         LotsSeqKey=LotsSeqKey, UnitTestingSeqKey=UnitTestingSeqKey)
+				
+				# Get Run Info
+				run = str(LotsSeqKey) + "-" + str(UnitTestingSeqKey)
+				data_dict['Run'] += [run]
+				data_dict['Operation'] += [str(operation)]
+				data_dict['Type'] += [mem_type]
+				data_dict['MEM_MC'] += [test_name]
+				data_dict['Instance'] += [instance]
+				data_dict['MCACOD'] += [hex(mcacod)]
+				data_dict['MC_DECODE'] += [mc_decode]
+				data_dict['MC_STATUS'] += [mc_value]
+				data_dict['MC_ADDR'] += [addr_value]
+				data_dict['MC_MISC'] += [misc_value]
+		
+		new_df = pd.DataFrame(data_dict)
+		return new_df
+
+	def mem_decoder(self, value, instance_type):
+		"""
+		Decode Memory MCA MSCOD based on instance type and JSON configuration
+		Uses JSON data loaded from mcadata class
+		
+		Args:
+			value: MC_STATUS register value (hex string)
+			instance_type: Type of memory instance (MSE, MCCHAN, B2CMI)
+		
+		Returns:
+			Decoded MSCOD string from JSON or raw value
+		"""
+		if value == '' or value is None:
+			return ''
+		
+		try:
+			# Extract MSCOD (bits 31:16) from MC_STATUS
+			mscod = extract_bits(hex_value=value, min_bit=16, max_bit=31)
+			
+			# Select appropriate JSON data from mcadata based on instance type
+			mem_json = None
+			if 'MSE' in instance_type:
+				mem_json = self.mcadata.mse_data
+			elif 'MCCHAN' in instance_type:
+				mem_json = self.mcadata.mcchnl_data
+			elif 'B2CMI' in instance_type:
+				mem_json = self.mcadata.b2cmi_data
+			
+			# Look up MSCOD in the JSON
+			if mem_json and 'MSCOD' in mem_json:
+				mscod_str = str(mscod)
+				if mscod_str in mem_json['MSCOD']:
+					return f"{mem_json['MSCOD'][mscod_str]} (MSCOD={mscod})"
+				else:
+					return f"Unknown MSCOD={mscod}"
+			else:
+				return f"MSCOD={mscod}"
+		
+		except Exception as e:
+			return f"Decode error: {str(e)}"
+
+	def io(self):
+		"""
+		IO MCA decoder for UBOX and UPI registers
+		Extracts instance name, IO#, MCACOD (numeric), and MC_DECODE (MSCOD from JSON or raw value)
+		
+		Register path patterns:
+		- UBOX: sv.sockets.io0.uncore.ubox.ncevents.ncevents_cr_ubox_mci_status
+		- UPI: sv.sockets.io0.uncore.upi.upi0.upi_regs.kti_mc_st
+		"""
+		# Delegate to DMR IO decoder if product is DMR
+		if self.product == 'DMR':
+			return self.dmr_decoder.io()
+		
+		mcdata = self.data
+		# Initialize the new dataframe - Added IO# column
+		columns = ['VisualID', 'Run', 'Operation', 'Type', 'IO_MC', 'IO', 'MC_STATUS', 'Instance', 'MCACOD', 'MC_DECODE', 'MC_ADDR', 'MC_MISC']
+		
+		data_dict = {k:[] for k in columns}
+		
+		# IO subsystem patterns - looking for UBOX and UPI
+		io_patterns = ['UBOX', 'UPI']
+		
+		for visual_id in mcdata['VisualId'].unique():
+			# Split Data into required elements
+			subset = mcdata[(mcdata['VisualId'] == visual_id)]
+			
+			# Filter for IO-related MCAs
+			io_filtered = pd.DataFrame()
+			for pattern in io_patterns:
+				pattern_data = self.extract_value(subset, 'TestName', pattern)
+				if not pattern_data.empty:
+					io_filtered = pd.concat([io_filtered, pattern_data], ignore_index=True)
+			
+			# Further filter for STATUS registers
+			mc_filtered = self.extract_value(io_filtered, 'TestName', '_STATUS|_MC_STATUS|_MCI_STATUS|_MC_ST')
+			
+			# If no MCA is found move to the next VID
+			if mc_filtered.empty:
+				print(f' -- No IO MCA data found in VID: {visual_id}')
+				continue
+			
+			# This will iterate over all the IO MCAs
+			for i, data in mc_filtered.iterrows():
+				# Build new entry
+				data_dict['VisualID'] += [visual_id]
+				LotsSeqKey = data['LotsSeqKey']
+				UnitTestingSeqKey = data['UnitTestingSeqKey']
+				operation = data['Operation']
+				test_name = data['TestName']
+				mc_value = data['TestValue']
+				
+				# Extract instance information and type from the register path
+				# Patterns: IO0__UNCORE__UBOX__NCEVENTS__NCEVENTS_CR_UBOX_MCI_STATUS
+				#           IO0__UNCORE__UPI__UPI0__UPI_REGS__KTI_MC_ST
+				
+				instance = ''
+				io_type = ''
+				io_num = ''
+				upi_num = ''
+				
+				# Extract IO number
+				io_match = re.search(r'IO(\d+)', test_name, re.IGNORECASE)
+				if io_match:
+					io_num = io_match.group(1)
+				
+				if 'UBOX' in test_name:
+					io_type = 'UBOX'
+					instance = 'UBOX'
+					
+				elif 'UPI' in test_name:
+					io_type = 'UPI'
+					# Extract UPI instance number
+					upi_match = re.search(r'UPI(\d+)', test_name, re.IGNORECASE)
+					if upi_match:
+						upi_num = upi_match.group(1)
+						instance = f'UPI{upi_num}'
+				else:
+					instance = 'UPI'
+				
+				# Decode both MCACOD and MSCOD using io_decoder
+				mcacod_decoded, mscod_decoded = self.io_decoder(value=mc_value, instance_type=io_type)
+				
+				# Look up ADDR and MISC registers using lookup patterns
+				addr_value = ''
+				misc_value = ''
+				
+				# Build lookup patterns based on IO type
+				if io_type == 'UBOX':
+					# Pattern: IO0__UNCORE__UBOX__NCEVENTS__NCEVENTS_CR_UBOX_MCI_ADDR
+					addr_lut = self.io_lookup_pattern(io=io_num, upi=upi_num, suffix='ADDR', ptype='ubox')
+					misc_lut = self.io_lookup_pattern(io=io_num, upi=upi_num, suffix='MISC', ptype='ubox')
+				elif io_type == 'UPI':
+					# Pattern: IO0__UNCORE__UPI__UPI0__UPI_REGS__KTI_MC_ADDR
+					addr_lut = self.io_lookup_pattern(io=io_num, upi=upi_num, suffix='ADDR', ptype='upi')
+					misc_lut = self.io_lookup_pattern(io=io_num, upi=upi_num, suffix='MISC', ptype='upi')
+				else:
+					addr_lut = ''
+					misc_lut = ''
+				
+				# Use xlookup to find corresponding ADDR and MISC values
+				if addr_lut:
+					addr_value = self.xlookup(lookup_array=io_filtered, testname=addr_lut, 
+					                         LotsSeqKey=LotsSeqKey, UnitTestingSeqKey=UnitTestingSeqKey)
+				if misc_lut:
+					misc_value = self.xlookup(lookup_array=io_filtered, testname=misc_lut, 
+					                         LotsSeqKey=LotsSeqKey, UnitTestingSeqKey=UnitTestingSeqKey)
+				
+				# Get Run Info
+				run = str(LotsSeqKey) + "-" + str(UnitTestingSeqKey)
+				data_dict['Run'] += [run]
+				data_dict['Operation'] += [str(operation)]
+				data_dict['Type'] += [io_type]
+				data_dict['IO_MC'] += [test_name]
+				data_dict['IO'] += [f'IO{io_num}' if io_num else '']
+				data_dict['Instance'] += [instance]
+				data_dict['MCACOD'] += [mcacod_decoded]
+				data_dict['MC_DECODE'] += [mscod_decoded]
+				data_dict['MC_STATUS'] += [mc_value]
+				data_dict['MC_ADDR'] += [addr_value]
+				data_dict['MC_MISC'] += [misc_value]
+		
+		new_df = pd.DataFrame(data_dict)
+		return new_df
+
+	def io_decoder(self, value, instance_type):
+		"""
+		Decode IO MCA MCACOD and MSCOD based on instance type and JSON configuration
+		Uses JSON data loaded from mcadata class for UPI and UBOX
+		
+		Special handling for UBOX based on MCACOD:
+		- MCACOD 1042 (SCF Bridge IP:CMS error): Use CMS_MSCOD table
+		- MCACOD 1043 (SCF Bridge IP:SBO error): Use SBO_MSCOD table
+		- MCACOD 1036 (Shutdown suppression): Use SHUTDOWN_ERR_MSCOD table
+		
+		Args:
+			value: MC_STATUS register value (hex string)
+			instance_type: Type of IO instance (UBOX, UPI)
+		
+		Returns:
+			Tuple of (mcacod_decoded, mscod_decoded) strings
+		"""
+		if value == '' or value is None:
+			return ('', '')
+		
+		try:
+			# Extract MCACOD (bits 15:0) and MSCOD (bits 31:16) from MC_STATUS
+			mcacod = extract_bits(hex_value=value, min_bit=0, max_bit=15)
+			mscod = extract_bits(hex_value=value, min_bit=16, max_bit=31)
+			
+			mcacod_decoded = hex(mcacod)  # Default to hex
+			mscod_decoded = f"MSCOD={mscod}"  # Default to raw MSCOD
+			
+			# UBOX: Use ubox_params.json with different MSCOD tables based on MCACOD
+			if 'UBOX' in instance_type:
+				ubox_json = self.mcadata.ubox_data
+				if ubox_json:
+					# Decode MCACOD
+					if 'MCACOD' in ubox_json:
+						mcacod_str = str(mcacod)
+						if mcacod_str in ubox_json['MCACOD']:
+							mcacod_decoded = f"{ubox_json['MCACOD'][mcacod_str]} ({hex(mcacod)})"
+					
+					# Decode MSCOD - select table based on MCACOD value
+					mscod_str = str(mscod)
+					mscod_table = 'MSCOD'  # Default table
+					
+					# Special handling based on MCACOD value
+					if mcacod == 1042:  # SCF Bridge IP:CMS error
+						mscod_table = 'CMS_MSCOD'
+					elif mcacod == 1043:  # SCF Bridge IP:SBO error
+						mscod_table = 'SBO_MSCOD'
+					elif mcacod == 1036:  # Shutdown suppression
+						mscod_table = 'SHUTDOWN_ERR_MSCOD'
+					
+					# Look up MSCOD in the appropriate table
+					if mscod_table in ubox_json:
+						if mscod_str in ubox_json[mscod_table]:
+							mscod_decoded = f"{ubox_json[mscod_table][mscod_str]} (MSCOD={mscod})"
+						else:
+							mscod_decoded = f"Unknown {mscod_table} MSCOD={mscod}"
+			
+			# UPI: Use upi_params.json with UPI_MSCOD key
+			elif 'UPI' in instance_type:
+				upi_json = self.mcadata.upi_data
+				if upi_json and 'UPI_MSCOD' in upi_json:
+					mscod_str = str(mscod)
+					if mscod_str in upi_json['UPI_MSCOD']:
+						mscod_decoded = f"{upi_json['UPI_MSCOD'][mscod_str]} (MSCOD={mscod})"
+					else:
+						mscod_decoded = f"Unknown MSCOD={mscod}"
+			
+			return (mcacod_decoded, mscod_decoded)
+		
+		except Exception as e:
+			return (hex(0), f"Decode error: {str(e)}")
+
+	def io_lookup_pattern(self, io='', upi='', suffix='ADDR', ptype='upi'):
+		"""
+		Build register path patterns for IO MCA ADDR/MISC lookup
+		
+		Args:
+			io: IO number (string)
+			upi: UPI number (string)
+			suffix: 'ADDR' or 'MISC'
+			ptype: 'ubox' or 'upi'
+		
+		Returns:
+			Register path pattern string
+		"""
+		if ptype == 'ubox':
+			# UBOX pattern: IO0__UNCORE__UBOX__NCEVENTS__NCEVENTS_CR_UBOX_MCI_ADDR
+			pattern = f'IO{io}__UNCORE__UBOX__NCEVENTS__NCEVENTS_CR_UBOX_MCI_{suffix}'
+		elif ptype == 'upi':
+			# UPI pattern: IO0__UNCORE__UPI__UPI0__UPI_REGS__KTI_MC_ADDR
+			# Note: Some products might use KTI_MC_AD or KTI_MC_MS instead
+			if suffix == 'ADDR':
+				pattern = f'IO{io}__UNCORE__UPI__UPI{upi}__UPI_REGS__KTI_MC_ADDR'
+			elif suffix == 'MISC':
+				pattern = f'IO{io}__UNCORE__UPI__UPI{upi}__UPI_REGS__KTI_MC_MISC'
+			else:
+				pattern = f'IO{io}__UNCORE__UPI__UPI{upi}__UPI_REGS__KTI_MC_{suffix}'
+		else:
+			pattern = ''
+		
+		return pattern
 
   	
 ## Extract bits from hex values decoding purposes and data extraction

@@ -20,19 +20,20 @@ from typing import Optional, Dict, Any, List, Callable
 import importlib
 
 current_dir= os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 print(' -- Debug Framework Control Panel -- rev 1.7')
 
 sys.path.append(parent_dir)
 
-import FileHandler as fh
-import MaskEditor as gme
-import UI.StatusHandler as fs
+import DebugFramework.FileHandler as fh
+import DebugFramework.MaskEditor as gme
+import DebugFramework.UI.StatusHandler as fs
 
-from UI.StatusPanel import StatusExecutionPanel
+from DebugFramework.UI.StatusPanel import StatusExecutionPanel
 
-import ExecutionHandler.utils.ThreadsHandler as th
+import DebugFramework.ExecutionHandler.utils.ThreadsHandler as th
+
 importlib.reload(th)
 
 ExecutionCommand = th.ExecutionCommand
@@ -2099,6 +2100,10 @@ class DebugFrameworkControlPanel:
 		self.root = root
 		self.root.title("Debug Framework Control Panel")
 
+		# Configure grid for header (matching AutomationDesigner)
+		self.root.rowconfigure(0, weight=0)
+		self.root.rowconfigure(1, weight=1)
+		self.root.columnconfigure(0, weight=1)
 		
 		# Initialize MainThreadHandler and ThreadIntegration
 		self.main_thread_handler = fs.MainThreadHandler(self.root, self)
@@ -2195,16 +2200,11 @@ class DebugFrameworkControlPanel:
 		self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 					
 	def setup_styles(self):
-		"""Configure ttk styles for better appearance"""
+		"""Configure ttk styles matching PPV AutomationDesigner theme"""
 		style = ttk.Style()
 		
-		# Use a darker theme - try 'alt', 'default', 'classic', or 'vista'
-		# 'alt' provides a nice darker appearance
-		try:
-			style.theme_use('alt')  # This gives a darker, more modern look
-		except:
-			# Fallback to clam if alt is not available
-			style.theme_use('clam')
+		# Use clam theme for modern flat design (matching AutomationDesigner)
+		style.theme_use('clam')
 			
 		# Overall progress bar style
 		style.configure("Overall.Horizontal.TProgressbar",
@@ -2263,9 +2263,14 @@ class DebugFrameworkControlPanel:
 		style.configure("EndActive.TButton", foreground="white", background="red", font=("Arial", 9, "bold"))
 
 	def create_widgets(self):
-		# Create main horizontal container using ttk.PanedWindow
+		# Header frame with teal color accent (matching AutomationDesigner)
+		header_frame = tk.Frame(self.root, bg='#1abc9c', height=12)
+		header_frame.grid(row=0, column=0, sticky="ew")
+		header_frame.grid_propagate(False)
+		
+		# Create main horizontal container using ttk.PanedWindow (placed at row=1)
 		self.main_paned = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
-		self.main_paned.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+		self.main_paned.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
 		
 		# Left side - Main UI (experiments, controls, etc.)
 		self.left_frame = ttk.Frame(self.main_paned)

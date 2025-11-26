@@ -54,32 +54,79 @@ import re
 import datetime
 import json
 import importlib
+from importlib import import_module
 
 # Tools and libraries from pythonsv
 import toolext.bootscript.boot as b
 import toolext.bootscript.toolbox.fuse_utility as fu
 import pm.pmutils.tools as cvt
 
-# Imports from THR S2T scripts  - FUSE Override is product dependant
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#========================================================================================================#
+#=============== DIRECT CONFIG ACCESS (No redundant declarations) =======================================#
+#========================================================================================================#
+
+# All configuration accessed directly via config.ATTRIBUTE
+# No legacy shortcuts - single source of truth pattern
+
+
+# Append the Main Scripts Path
+MAIN_PATH = os.path.abspath(os.path.dirname(__file__))
+
+## Imports from S2T Folder  -- ADD Product on Module Name for Production
+sys.path.append(MAIN_PATH)
+import ConfigsLoader as cfl
+config = cfl.config
+config.reload()
+
+# Product Functions
+pf = config.get_functions()
+
+# Set Used product Variable -- Called by Framework
+SELECTED_PRODUCT = config.SELECTED_PRODUCT
+BASE_PATH = config.BASE_PATH
+LEGACY_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 'CWF'] else ''
+THR_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 'CWF', 'DMR'] else ''
+
+if cfl.DEV_MODE:
+	import CoreManipulation as gcm
+	import Logger.ErrorReport as dpmtileview
+	import Logger.logger as dpmlog
+	import Tools.portid2ip as p2ip
+	import Tools.requests_unit_info as reqinfo
+	import ConfigsLoader as LoadConfig
+else:
+	gcm = import_module(f'{BASE_PATH}.S2T.{LEGACY_NAMING}CoreManipulation')
+	dpmtileview = import_module(f'{BASE_PATH}.S2T.Logger.ErrorReport')
+	dpmlog = import_module(f'{BASE_PATH}.S2T.Logger.logger')
+	p2ip = import_module(f'{BASE_PATH}.S2T.Tools.portid2ip')
+	reqinfo = import_module(f'{BASE_PATH}.S2T.Tools.requests_unit_info')
+	LoadConfig = import_module(f'{BASE_PATH}.S2T.ConfigsLoader')
+
+## Imports from THR folder - These are external scripts, always use same path
+f = None
 try:
-	import users.THR.PythonScripts.thr.CWFFuseOverride as f
-except:
-	import users.THR.PythonScripts.thr.GNRFuseOverride as f
+	f = import_module(f'{BASE_PATH}.{THR_NAMING}FuseOverride')
+	print(' [+] FuseOverride imported successfully')
+except Exception as e:
+	print(f' [x] Could not import FuseOverride, some features may be limited: {e}')
 
-import users.gaespino.dev.S2T.CoreManipulation as gcm
-import users.gaespino.dev.S2T.Logger.ErrorReport as dpmtileview
-import users.gaespino.dev.S2T.Logger.logger as dpmlog
-import users.gaespino.dev.S2T.Tools.portid2ip as p2ip
-import users.gaespino.dev.S2T.Tools.requests_unit_info as reqinfo
-import users.gaespino.dev.S2T.ConfigsLoader as LoadConfig
-
-
-importlib.reload(dpmlog)
-importlib.reload(dpmtileview)
-importlib.reload(LoadConfig)
-importlib.reload(f)
+## Reload of all imported scripts
+if cfl.DEV_MODE:
+	importlib.reload(gcm)
+	importlib.reload(dpmlog)
+	importlib.reload(dpmtileview)
+	importlib.reload(LoadConfig)
+	if f is not None:
+		importlib.reload(f)
+	config.reload()
 
 verbose = False
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ipc = ipccli.baseaccess()
 itp = ipc
@@ -89,59 +136,6 @@ sv.initialize()
 debug= False
 log_folder = "C:\\temp\\"
 
-# Product Data Collection needed to init variables on script --
-PRODUCT_CONFIG = LoadConfig.PRODUCT_CONFIG
-PRODUCT_CHOP  = LoadConfig.PRODUCT_CHOP
-PRODUCT_VARIANT = LoadConfig.PRODUCT_VARIANT
-SELECTED_PRODUCT = LoadConfig.SELECTED_PRODUCT
-
-CONFIG = LoadConfig.CONFIG
-
-# Configuration Variables Init
-ConfigFile = LoadConfig.ConfigFile
-CORESTRING = LoadConfig.CORESTRING
-CORETYPES = LoadConfig.CORETYPES
-CHIPCONFIG = LoadConfig.CHIPCONFIG
-MAXCORESCHIP = LoadConfig.MAXCORESCHIP
-MAXLOGICAL = LoadConfig.MAXLOGICAL
-MAXPHYSICAL = LoadConfig.MAXPHYSICAL
-classLogical2Physical = LoadConfig.classLogical2Physical
-physical2ClassLogical = LoadConfig.physical2ClassLogical
-Physical2apicIDAssignmentOrder10x5 = LoadConfig.Physical2apicIDAssignmentOrder10x5
-phys2colrow = LoadConfig.phys2colrow
-skip_cores_10x5 = LoadConfig.skip_cores_10x5
-
-# Product Fuses Init
-DEBUGMASK = LoadConfig.DEBUGMASK
-PSEUDOCONDFIGS = LoadConfig.PSEUDOCONDFIGS
-BURINFUSES = LoadConfig.BURINFUSES
-FUSE_INSTANCE = LoadConfig.FUSE_INSTANCE
-CFC_RATIO_CURVES = LoadConfig.CFC_RATIO_CURVES
-CFC_VOLTAGE_CURVES = LoadConfig.CFC_VOLTAGE_CURVES
-IA_RATIO_CURVES = LoadConfig.IA_RATIO_CURVES
-IA_RATIO_CONFIG = LoadConfig.IA_RATIO_CONFIG
-IA_VOLTAGE_CURVES = LoadConfig.IA_VOLTAGE_CURVES
-FUSES_600W_COMP = LoadConfig.FUSES_600W_COMP
-FUSES_600W_IO = LoadConfig.FUSES_600W_IO
-HIDIS_COMP = LoadConfig.HIDIS_COMP
-HTDIS_IO = LoadConfig.HTDIS_IO
-VP2INTERSECT = LoadConfig.VP2INTERSECT
-
-# Framework Variables Init
-FRAMEWORKVARS = LoadConfig.FRAMEWORKVARS
-LICENSE_DICT = LoadConfig.LICENSE_DICT
-LICENSE_S2T_MENU = LoadConfig.LICENSE_S2T_MENU
-LICENSE_LEVELS = LoadConfig.LICENSE_LEVELS
-SPECIAL_QDF = LoadConfig.SPECIAL_QDF
-VALIDCLASS = LoadConfig.VALIDCLASS
-CUSTOMS = LoadConfig.CUSTOMS
-VALIDROWS = LoadConfig.VALIDROWS
-VALIDCOLS = LoadConfig.VALIDCOLS
-BOOTSCRIPT_DATA = LoadConfig.BOOTSCRIPT_DATA
-
-
-## Product Specific Functions
-pf = LoadConfig.LoadFunctions()
 ## WIP
 def retry_on_exception(func, *args, **kwargs):
 	"""
@@ -314,7 +308,7 @@ class cfc():
 			#sv.sockets.computes.fuses.load_fuse_ram()
 			#sv.sockets.ios.fuses.load_fuse_ram()
 		
-		curves = CFC_VOLTAGE_CURVES
+		curves = config.CFC_VOLTAGE_CURVES
 				#{	'cfc_curve': ['pcode_cfc_vf_voltage_point0','pcode_cfc_vf_voltage_point1','pcode_cfc_vf_voltage_point2','pcode_cfc_vf_voltage_point3','pcode_cfc_vf_voltage_point4','pcode_cfc_vf_voltage_point5'],
 				#	#'hdc_curve': ['pcode_hdc_vf_voltage_point0','pcode_hdc_vf_voltage_point1','pcode_hdc_vf_voltage_point2','pcode_hdc_vf_voltage_point3','pcode_hdc_vf_voltage_point4','pcode_hdc_vf_voltage_point5'],
 				#	'hdc_curve': ['pcode_l2_vf_voltage_point0','pcode_l2_vf_voltage_point1','pcode_l2_vf_voltage_point2','pcode_l2_vf_voltage_point3','pcode_l2_vf_voltage_point4','pcode_l2_vf_voltage_point5'],
@@ -402,7 +396,7 @@ class cfc():
 			#sv.sockets.computes.fuses.load_fuse_ram()
 			#sv.sockets.ios.fuses.load_fuse_ram()
 		
-		curves = CFC_RATIO_CURVES
+		curves = config.CFC_RATIO_CURVES
 		#{	'cfc_curve': ['pcode_cfc_vf_ratio_point0','pcode_cfc_vf_ratio_point1','pcode_cfc_vf_ratio_point2','pcode_cfc_vf_ratio_point3','pcode_cfc_vf_ratio_point4','pcode_cfc_vf_ratio_point5'],
 		#			'hdc_curve': ['pcode_l2_vf_ratio_point0','pcode_l2_vf_ratio_point1','pcode_l2_vf_ratio_point2','pcode_l2_vf_ratio_point3','pcode_l2_vf_ratio_point4','pcode_l2_vf_ratio_point5'],
 		#			'pstates' : {	'p0':'pcode_sst_pp_0_cfc_p0_ratio', 
@@ -532,7 +526,7 @@ class ia():
 			fuseRAM()
 
 		#David - solo SSE license se usa, AVX no
-		curves = IA_RATIO_CURVES
+		curves = config.IA_RATIO_CURVES
 		
 		#{	'limits': [f'pcode_sst_pp_##profile##_turbo_ratio_limit_ratios_cdyn_index##idx##_ratio##ratio##'],
 		#			'p1': [f'pcode_sst_pp_##profile##_sse_p1_ratio'],
@@ -666,7 +660,7 @@ class ia():
 			#sv.sockets.computes.fuses.load_fuse_ram()
 			#sv.sockets.ios.fuses.load_fuse_ram()
 
-		curves = IA_VOLTAGE_CURVES
+		curves = config.IA_VOLTAGE_CURVES
 		#{	'vf_curve': ['pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point0','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point1','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point2','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point3','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point4','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point5'],
 		#		}
 
@@ -728,7 +722,7 @@ def logger(visual = '', qdf = '', TestName='', Testnumber = 0, dr_dump = True, c
 	if qdf == '':
 		qdf = qdf_str()
 
-	product = product_str()
+	product = config.SELECTED_PRODUCT #product_str()
 	
 	if WW == '':
 		#currentdate = datetime.date.today()
@@ -769,7 +763,7 @@ def find_portid(id=0x5808):
 
 ## HWLS Check -- CWF
 def hwls_miscompare(logger=None):
-	if SELECTED_PRODUCT == 'CWF':
+	if config.SELECTED_PRODUCT == 'CWF':
 		logger = print if logger == None else print
 		gcm.svStatus()
 		modules = sv.sockets.computes.cpu.modules
@@ -783,7 +777,7 @@ def hwls_miscompare(logger=None):
 			logger(f'Error reading bus_cr_lockstep_miscompare_status_core_pair for module: {e}')
 	
 	else:
-		logger(f'Function not available for this product: {SELECTED_PRODUCT}')
+		logger(f'Function not available for this product: {config.SELECTED_PRODUCT}')
 
 ## BIOS Knobs edit for bootscript usage
 def bsknobs(readonly = False, skipinit = False):
@@ -908,12 +902,12 @@ def fuseRAM(refresh = False):
 	if refresh: gcm.svStatus()
 	print ("Loading fuse data from ROM to RAM .... ")
 	sv.sockets.computes.fuses.load_fuse_ram()
-	if SELECTED_PRODUCT.upper() != 'CWF': sv.sockets.ios.fuses.load_fuse_ram()
+	if config.SELECTED_PRODUCT.upper() != 'CWF': sv.sockets.ios.fuses.load_fuse_ram()
 
 ## Tool for fuse checking of the unit
 def fuses(rdFuses = True, sktnum =[0], printFuse=False):
 	sv = _get_global_sv()
-	_fuse_instance = FUSE_INSTANCE#['hwrs_top_ram']
+	_fuse_instance = config.FUSE_INSTANCE#['hwrs_top_ram']
 	
 	# We can remove this by using the sv.sockets[sktnum].computes.names
 	#product = {	'gnrsp': 	['compute0', 'compute1'],
@@ -984,10 +978,11 @@ def pseudomask(combine = False, boot = False, Type = 'Class', ext_mask = None):
 	
 	sv = _get_global_sv()
 	syscomputes = sv.socket0.computes.name
-	product = PRODUCT_CONFIG.lower()
+	product = config.PRODUCT_CONFIG.lower()
 	ClassMask, ClassMask_sys, Masks_test = pseudo_type(Type, product)
 	
 	# Product Specific Function for Masking in pseudo Configuration
+	
 	ClassMask_sys = pf.pseudo_masking(ClassMask, ClassMask_sys, syscomputes)
 
 	if ext_mask is None:
@@ -1085,8 +1080,8 @@ def pseudo_bs(ClassMask = 'FirstPass', Custom = [], boot = True, use_core = Fals
 	vbump_enabled = vbump['enabled']
 
 	#sv = _get_global_sv()
-	product = PRODUCT_CONFIG.lower()
-	variant = PRODUCT_VARIANT
+	product = config.PRODUCT_CONFIG.lower()
+	variant = config.PRODUCT_VARIANT
 	syscomputes = sv.socket0.computes.name
 	if clusterCheck == None: clusterCheck = False
 
@@ -1369,20 +1364,23 @@ def qdf_str():
 	qdf = fu.get_qdf_str(socket=sv.socket0, die='compute0')
 	return qdf
 
-def product_str():
-	product = sv.socket0.target_info["segment"].upper()
+def product_str(): # DMR will use device_name
+	#product = sv.socket0.target_info["device_name"].upper()
+	product = config.PRODUCT_CONFIG.upper()
 	return product
 
 def variant_str():
-	variant = sv.socket0.target_info["variant"].upper()
+	#variant = sv.socket0.target_info["variant"].upper()
+	variant = config.PRODUCT_VARIANT.upper()
 	return variant
 
 def chop_str():
-	chop = sv.socket0.target_info["chop"].upper()
+	#chop = sv.socket0.target_info["chop"].upper()
+	chop = config.PRODUCT_CHOP.upper()
 	return chop
 
 def get_compute_index(core=None):
-	return int(core/MAXPHYSICAL)
+	return int(core/config.MAXPHYSICAL)
 
 def ppvc_option():
 	selection = None
@@ -2007,7 +2005,7 @@ def read_fuse_array(fuse_array, skip_init=False):
 	f.read_array(fuse_array=fuse_array, skip_init=skip_init, load_fuses=False)
 
 ## Uses USB Splitter controller to power cycle / on / off the unit -- 
-def powercycle(stime = 10, ports = [1]):
+def powercycle(stime = 10, ports = [1,2]):
 	import toolext.bootscript.toolbox.power_control.USBPowerSplitterFullControl as pwsc
 
 	print('Power cycling the unit using USB...')
@@ -2058,8 +2056,8 @@ def burnin(domains=['mesh'], level='mid', boot = True):
 
 	#sv = _get_global_sv()
 	gcm.svStatus()
-	product = PRODUCT_CONFIG
-	variant = PRODUCT_VARIANT
+	product = config.PRODUCT_CONFIG
+	variant = config.PRODUCT_VARIANT
 
 	_fuse_str_compute = []
 	_fuse_str_io = []
@@ -2187,7 +2185,7 @@ def bs_fuse_fix(fuse_str = [], bases = ['sv.sockets.computes.fuses.']):
 def masks_validation(masks, ClassMask, dies, product, _clusterCheck, _lsb = False):
 
 	## Assign Cluster values *can be taken from a pythonsv register, update later on
-	variant = PRODUCT_VARIANT
+	variant = config.PRODUCT_VARIANT
 	if variant == 'AP': cluster = 6
 	elif variant == 'SP': cluster = 4
 	else: cluster = 2
@@ -2855,13 +2853,13 @@ def getWW():
 ##
 ########################################################################################################################################################################
 
-pseudoConfigs = dev_dict(f'{SELECTED_PRODUCT}MasksConfig.json', selected_product= SELECTED_PRODUCT)
-DebugMasks = dev_dict(f'{SELECTED_PRODUCT}MasksDebug.json', selected_product = SELECTED_PRODUCT)
-FuseFileConfigs = dev_dict(f'{SELECTED_PRODUCT}FuseFileConfigs.json', selected_product = SELECTED_PRODUCT)
-BurnInFuses = dev_dict(f'{SELECTED_PRODUCT}BurnInFuses.json', selected_product = SELECTED_PRODUCT)
+pseudoConfigs = dev_dict(f'{config.SELECTED_PRODUCT}MasksConfig.json', selected_product= config.SELECTED_PRODUCT)
+DebugMasks = dev_dict(f'{config.SELECTED_PRODUCT}MasksDebug.json', selected_product = config.SELECTED_PRODUCT)
+FuseFileConfigs = dev_dict(f'{config.SELECTED_PRODUCT}FuseFileConfigs.json', selected_product = config.SELECTED_PRODUCT)
+BurnInFuses = dev_dict(f'{config.SELECTED_PRODUCT}BurnInFuses.json', selected_product = config.SELECTED_PRODUCT)
 
 
 ## Bootscript Data
 
-COMPUTE_CONFIG = BOOTSCRIPT_DATA[product_str().upper()]['compute_config']
-SEGMENT = BOOTSCRIPT_DATA[product_str().upper()]['segment']
+COMPUTE_CONFIG = config.BOOTSCRIPT_DATA[config.PRODUCT_CONFIG.upper()]['compute_config']
+SEGMENT = config.BOOTSCRIPT_DATA[config.PRODUCT_CONFIG.upper()]['segment']

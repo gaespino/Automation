@@ -1,4 +1,0 @@
-; stop_capture.ttl
-; Stop Capture and clear screen
-logclose
-clearscreen

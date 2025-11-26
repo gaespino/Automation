@@ -35,13 +35,30 @@ from colorama import Fore, Style, Back
 import importlib
 import os
 from tabulate import tabulate
-
+from importlib import import_module
 
 ## Custom Modules
 
 import toolext.bootscript.boot as b
-import users.gaespino.dev.S2T.dpmChecks as dpm
-import users.gaespino.dev.S2T.ConfigsLoader as LoadConfig
+
+# Append the Main Scripts Path
+MAIN_PATH = os.path.abspath(os.path.dirname(__file__))
+
+## Imports from S2T Folder  -- ADD Product on Module Name for Production
+sys.path.append(MAIN_PATH)
+import ConfigsLoader as LoadConfig
+config = LoadConfig.config
+
+# Set Used product Variable -- Called by Framework
+SELECTED_PRODUCT = config.SELECTED_PRODUCT
+BASE_PATH = config.BASE_PATH
+LEGACY_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 'CWF'] else ''
+THR_NAMING = SELECTED_PRODUCT.upper() if SELECTED_PRODUCT.upper() in ['GNR', 'CWF', 'DMR'] else ''
+
+if LoadConfig.DEV_MODE:
+	import dpmChecks as dpm
+else:
+	dpm = import_module(f'{BASE_PATH}.S2T.dpmChecks{LEGACY_NAMING}')
 
 importlib.reload(LoadConfig)
 
@@ -175,6 +192,7 @@ global_boot_stop_after_mrc=None
 global_boot_postcode=None
 global_ht_dis=None
 global_2CPM_dis=None
+global_1CPM_dis=None
 global_acode_dis=None
 global_fixed_core_freq=None
 global_ia_p0=None
@@ -231,6 +249,7 @@ def reset_globals():
 	global global_boot_postcode
 	global global_ht_dis
 	global global_2CPM_dis
+	global global_1CPM_dis
 	global global_acode_dis
 	global global_fixed_core_freq
 	global global_fixed_mesh_freq
@@ -252,6 +271,7 @@ def reset_globals():
 	global_boot_postcode=None
 	global_ht_dis=None
 	global_2CPM_dis=None
+	global_1CPM_dis=None
 	global_acode_dis=None
 	global_fixed_core_freq=None
 	global_fixed_mesh_freq=None
@@ -283,7 +303,7 @@ def reset_globals():
 ## S2T main Class, includes the different masking mode and boot options
 class System2Tester():
 
-	def __init__(self, target, masks = None, coremask=None, slicemask=None, boot = True, ht_dis = False, dis_2CPM = None, fresh_state = True, readFuse = False, clusterCheck = True , fastboot = True, ppvc_fuses = None, execution_state = None):
+	def __init__(self, target, masks = None, coremask=None, slicemask=None, boot = True, ht_dis = False, dis_2CPM = None, dis_1CPM = None, fresh_state = True, readFuse = False, clusterCheck = True , fastboot = True, ppvc_fuses = None, execution_state = None):
 		
 		# Python SV Variables
 		from namednodes import sv
@@ -327,7 +347,8 @@ class System2Tester():
 		self.fuse_str_io_0 = []
 		self.fuse_str_io_1 = []
 		self.fuse_2CPM = dpm.fuses_dis_2CPM(dis_2CPM, bsformat = (not fastboot)) if dis_2CPM != None else []
-		
+		self.fuse_1CPM = [] ## Not available for versions on GNR / CWF -- Placeholder for DMR compatbibility on S2T
+
 		#self.fuse_str_compute_0 = []
 		self.ppvc_fuses = ppvc_fuses
 		## Option to bring preconfigured Mask
@@ -1899,6 +1920,8 @@ def coresEnabled(coreslicemask=None, logical=False, die = None, skip = False, pr
 	logicalStringCore = 0
 	logicalStringLLC = 0
 
+	chop_size = len(computes_tile)
+
 	# use this matrix -> sv.socket._core_phy2log_matrixes['socket0'][0].cha_list[1].get_details()
 	# Use as base the GNR phy2log, this can be checked later -- Need to fix this to also show current system logical if wanted, either class or system
 	if skip:
@@ -1981,17 +2004,18 @@ def coresEnabled(coreslicemask=None, logical=False, die = None, skip = False, pr
 		#tile_compute2 =[]
 
 		t0 = coreslicemask[f'ia_compute_{0}']# & 0x7fff
-		t1 = coreslicemask[f'ia_compute_{1}']# & 0x7fff
 		l0 = coreslicemask[f'llc_compute_{0}']
-		l1 = coreslicemask[f'llc_compute_{1}']
-
 		cores_en_c0 = MAXPHYSICAL - _bitsoncount(t0)
-		cores_en_c1 = MAXPHYSICAL - _bitsoncount(t1)
 		llc_en_c0 = MAXPHYSICAL - _bitsoncount(l0)
-		llc_en_c1 = MAXPHYSICAL - _bitsoncount(l1)
-
-
-		if (chip_config =="AP"): 
+				
+		if chop_size > 1:
+			t1 = coreslicemask[f'ia_compute_{1}']# & 0x7fff
+			l1 = coreslicemask[f'llc_compute_{1}']
+			cores_en_c1 = MAXPHYSICAL - _bitsoncount(t1)
+			llc_en_c1 = MAXPHYSICAL - _bitsoncount(l1)
+			cores_en_c1 = MAXPHYSICAL - _bitsoncount(t1)
+		
+		if chop_size > 2:
 			t2 = coreslicemask[f'ia_compute_{2}']# & 0x7fff
 			l2 = coreslicemask[f'llc_compute_{2}']
 			cores_en_c2 = MAXPHYSICAL - _bitsoncount(t2)
@@ -1999,10 +2023,12 @@ def coresEnabled(coreslicemask=None, logical=False, die = None, skip = False, pr
 						
 		print  (f">>> COMPUTE0: {CORESTRING}s {cores_en_c0} enabled: 0x{t0:#x}" )
 		print  (f">>> COMPUTE0: {llc_en_c0} LLCs enabled:  0x{l0:#x}")
-		print  (f">>> COMPUTE1: {CORESTRING}s {cores_en_c1} enabled: 0x{t1:#x}")
-		print  (f">>> COMPUTE1: {llc_en_c1} LLCs enabled:  0x{l1:#x}")
-			
-		if (chip_config =="AP"): 
+		
+		if chop_size > 1:
+			print  (f">>> COMPUTE1: {CORESTRING}s {cores_en_c1} enabled: 0x{t1:#x}")
+			print  (f">>> COMPUTE1: {llc_en_c1} LLCs enabled:  0x{l1:#x}")
+				
+		if chop_size > 2:
 			print  (f">>> COMPUTE2: {CORESTRING}s {cores_en_c2} enabled: 0x{t2:#x}")
 			print  (f">>> COMPUTE2: {llc_en_c2} LLCs enabled:  0x{l2:#x}")
 			

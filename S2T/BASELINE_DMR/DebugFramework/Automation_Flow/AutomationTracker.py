@@ -22,7 +22,7 @@ class ExperimentDebugger:
 	def __init__(self, enabled: bool = True, debug_folder: str = None, verbose: bool = True):
 		self.enabled = enabled
 		self.verbose = verbose
-		self.debug_folder = debug_folder or "debug_logs"
+		self.debug_folder = debug_folder or "C:\\Temp"
 		self.debug_session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 		
 		if self.enabled:

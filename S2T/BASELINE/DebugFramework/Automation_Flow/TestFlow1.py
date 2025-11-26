@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 # Setup paths for current and parent directories, and add parent directory to system path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-print(parent_dir)
+# print(parent_dir)  # Commented out to avoid console clutter
 sys.path.append(parent_dir)
 
 # Test Variables

@@ -51,10 +51,12 @@ except ImportError:
 import re
 from lxml import etree
 import importlib
+MAIN_PATH = os.path.abspath(os.path.dirname(__file__))
 
 # iMPORT OF SELECTED PRODUCT CONFIGURATION
 try:
-	import users.gaespino.dev.S2T.ConfigsLoader as LoadConfig
+	sys.path.append(MAIN_PATH)
+	import ConfigsLoader as LoadConfig
 	SELECTED_PRODUCT = LoadConfig.SELECTED_PRODUCT
 	PRODUCT_CONFIG = LoadConfig.PRODUCT_CONFIG
 except:

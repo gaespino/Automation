@@ -12,17 +12,19 @@ import time
 from datetime import datetime
 import queue
 import importlib
+import json
 
 current_dir= os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 print(' Framework Automation Panel -- rev 1.7')
+# Note: parent_dir path not printed to avoid console clutter
 
 sys.path.append(parent_dir)
 
 
 # Import all the builder classes
-from Automation_Flow.AutomationBuilder import (
+from DebugFramework.Automation_Flow.AutomationBuilder import (
 	FlowConfiguration,
 	NodeDrawer,
 	ConnectionDrawer,
@@ -33,23 +35,223 @@ from Automation_Flow.AutomationBuilder import (
 )
 
 # Import all the flow/executor classes
-from Automation_Flow.AutomationFlows import (
+from DebugFramework.Automation_Flow.AutomationFlows import (
 	FlowTestBuilder,
 )
 # Optional: Import shared status panel if it exists
 try:
-	from UI.StatusPanel import StatusExecutionPanel
+	from DebugFramework.UI.StatusPanel import StatusExecutionPanel
 	HAS_STATUS_PANEL = True
 except ImportError:
 	print("Warning: StatusExecutionPanel not found. Using basic status display.")
 	HAS_STATUS_PANEL = False
 
-import UI.StatusHandler as fs
-import ExecutionHandler.utils.ThreadsHandler as th
+import DebugFramework.UI.StatusHandler as fs
+import DebugFramework.ExecutionHandler.utils.ThreadsHandler as th
 importlib.reload(th)
 
 ExecutionCommand = th.ExecutionCommand
 execution_state = th.execution_state
+
+# ==================== TOOLTIP WINDOW CLASS ====================
+
+class ToolTipWindow:
+	"""Tooltip window for displaying node/experiment status information."""
+	
+	# ============ CONFIGURABLE FIELD LIST ============
+	# Add/remove fields from these lists as needed
+	BASIC_FIELDS = [
+		'Test Name',       # Test Name
+		'Visual ID',         # Visual ID
+		'Bucket',      # Bucket
+		'Content',     # Content name
+		'Test Mode',       # Test Mode
+		'Test Type'        # Test Type (Loops, Sweep, Shmoo)
+	]
+	
+	def __init__(self, widget, node, completed_nodes, failed_nodes, current_node, x, y):
+		"""
+		Initialize tooltip window with node information.
+		
+		Args:
+			widget: Parent widget (canvas)
+			node: FlowInstance node object
+			completed_nodes: Set of completed node IDs
+			failed_nodes: Set of failed node IDs
+			current_node: Currently executing node
+			x, y: Screen position for tooltip
+		"""
+		self.widget = widget
+		self.node = node
+		self.completed_nodes = completed_nodes
+		self.failed_nodes = failed_nodes
+		self.current_node = current_node
+		
+		# Build tooltip text
+		text = self._build_tooltip_text()
+		
+		# Create tooltip window
+		self.toplevel = tk.Toplevel(widget)
+		self.toplevel.wm_overrideredirect(True)
+		self.toplevel.wm_geometry(f"+{x}+{y}")
+		
+		# Create frame with border
+		frame = tk.Frame(self.toplevel, background="#2c3e50", relief="solid", borderwidth=2)
+		frame.pack(fill=tk.BOTH, expand=True)
+		
+		# Create label with text
+		self.label = tk.Label(
+			frame, text=text, 
+			background="#ecf0f1", 
+			foreground="#2c3e50",
+			justify="left", 
+			padx=10, pady=8,
+			font=("Consolas", 9)
+		)
+		self.label.pack()
+	
+	def _build_tooltip_text(self):
+		"""Build tooltip text with node and experiment information."""
+		try:
+			lines = []
+			
+			# Node basic info
+			lines.append(f"Node: {self.node.Name} ({self.node.ID})")
+			lines.append(f"Type: {self.node.Type}")
+			
+			
+			# Experiment info - only show name if it's a string
+			if hasattr(self.node, 'Experiment') and self.node.Experiment:
+				if isinstance(self.node.Experiment, str):
+					lines.append(f"Experiment: {self.node.Experiment}")
+				elif isinstance(self.node.Experiment, dict):
+					# If it's a dict, show the test name if available
+					exp_name = self.node.Experiment.get('Experiment', 'Configured')
+					lines.append(f"Experiment: {exp_name}")
+			else:
+				lines.append("Experiment: None")
+			
+			lines.append("-" * 40)
+			
+			# Current status
+			status = self._get_node_status()
+			lines.append(f"Status: {status}")
+			
+			# Get experiment data from node's Experiment attribute
+			if hasattr(self.node, 'Experiment') and self.node.Experiment:
+				if isinstance(self.node.Experiment, dict) and self.node.Experiment:
+					lines.append("-" * 40)
+					lines.append("Experiment Details:")
+					self._add_experiment_fields(lines)
+			
+			# Run history if available
+			if hasattr(self.node, 'runStatusHistory') and self.node.runStatusHistory:
+				lines.append("-" * 40)
+				lines.append("Run History:")
+				for idx, status in enumerate(self.node.runStatusHistory[-5:], 1):  # Last 5 statuses
+					lines.append(f"  {idx}. {status}")
+			
+			return "\n".join(lines)
+			
+		except Exception as e:
+			return f"Error building tooltip: {e}"
+	
+	def _get_node_status(self):
+		"""Get current status string for the node."""
+		node_id = self.node.ID
+		
+		# Check if this is the current node
+		if self.current_node and node_id == self.current_node.ID:
+			return "Executing"
+		
+		# Check completion status
+		if node_id in self.completed_nodes:
+			return "Completed (PASS)"
+		
+		if node_id in self.failed_nodes:
+			# Check if it's execution failure or test failure
+			if hasattr(self.node, 'runStatusHistory') and self.node.runStatusHistory:
+				last_status = self.node.runStatusHistory[-1]
+				if last_status in ['ExecutionFAIL', 'PythonFail', 'CANCELLED']:
+					return f"Failed ({last_status})"
+			return "Failed (FAIL)"
+		
+		return "Waiting"
+	
+	def _add_experiment_fields(self, lines):
+		"""Add experiment fields to tooltip based on configuration - reads directly from node.Experiment."""
+		# Get experiment dictionary from node
+		exp_dict = self.node.Experiment
+		
+		# Display basic fields
+		for field in self.BASIC_FIELDS:
+			if field in exp_dict and exp_dict[field] is not None:
+				field_label = field.replace('_', ' ').title()
+
+				value = self._format_value(exp_dict[field])
+				lines.append(f"{field_label}: {value}")
+		
+		# ============ TEST TYPE SPECIFIC DATA ============
+		test_type = str(exp_dict.get('ttype', '')).lower()
+		
+		# If test type is Loops, show loop count
+		if 'loop' in test_type:
+			if 'loops' in exp_dict and exp_dict['loops'] is not None:
+				value = self._format_value(exp_dict['loops'])
+				lines.append(f"Loops: {value}")
+		
+		# If test type is Sweep, show sweep parameters
+		elif 'sweep' in test_type:
+			lines.append("-" * 30)
+			lines.append("Sweep Parameters:")
+			sweep_fields = [
+				('sweep_type', 'Type'),
+				('sweep_domain', 'Domain'),
+				('sweep_start', 'Start'),
+				('sweep_end', 'End'),
+				('sweep_steps', 'Steps')
+			]
+			for field, label in sweep_fields:
+				if field in exp_dict and exp_dict[field] is not None:
+					value = self._format_value(exp_dict[field])
+					lines.append(f"  {label}: {value}")
+		
+		# If test type is Shmoo, show shmoo parameters
+		elif 'shmoo' in test_type:
+			lines.append("-" * 30)
+			lines.append("Shmoo Parameters:")
+			if 'ShmooFile' in exp_dict and exp_dict['ShmooFile']:
+				value = self._format_value(exp_dict['ShmooFile'])
+				lines.append(f"  Shmoo File: {value}")
+			if 'ShmooLabel' in exp_dict and exp_dict['ShmooLabel']:
+				value = self._format_value(exp_dict['ShmooLabel'])
+				lines.append(f"  Shmoo Label: {value}")
+	
+	def _format_value(self, value):
+		"""Format a value for display in tooltip, handling complex types."""
+		if value is None:
+			return "None"
+		elif isinstance(value, dict):
+			# For dictionaries, show key-value pairs on one line
+			items = [f"{k}={v}" for k, v in value.items()]
+			return ", ".join(items) if items else "{}"
+		elif isinstance(value, (list, tuple)):
+			# For lists/tuples, show comma-separated values
+			return ", ".join(str(v) for v in value)
+		elif isinstance(value, str):
+			return value
+		else:
+			# For other types, convert to string
+			return str(value)
+	
+	def destroy(self):
+		"""Destroy the tooltip window."""
+		if self.toplevel:
+			try:
+				self.toplevel.destroy()
+			except:
+				pass
+			self.toplevel = None
 
 # ==================== NEW INTERFACE FUNCTIONS ====================
 
@@ -123,6 +325,11 @@ class FlowProgressInterface:
 		# Dragging state variables (unchanged)
 		self.current_positions = {}
 		
+		# Tooltip tracking
+		self.tooltip_window = None
+		self.tooltip_delay_id = None
+		self.tooltip_delay_ms = 500  # 500ms delay before showing tooltip
+		
 		# Create main window (unchanged)
 		self.setup_main_window()
 		self.create_widgets()
@@ -146,49 +353,56 @@ class FlowProgressInterface:
 		self.root.geometry("1600x900")
 		self.root.minsize(1200, 700)
 		
-		# Configure styles to match ControlPanel
+		# Configure grid for header (matching AutomationDesigner)
+		self.root.rowconfigure(0, weight=0)
+		self.root.rowconfigure(1, weight=1)
+		self.root.columnconfigure(0, weight=1)
+		
+		# Header frame with teal color accent (matching AutomationDesigner)
+		header_frame = tk.Frame(self.root, bg='#1abc9c', height=12)
+		header_frame.grid(row=0, column=0, sticky="ew")
+		header_frame.grid_propagate(False)
+		
+		# Configure styles
 		self.setup_styles()
 
 	def setup_styles(self):
-		"""Configure ttk styles for consistent appearance with ControlPanel."""
+		"""Configure ttk styles matching PPV AutomationDesigner theme."""
 		self.style = ttk.Style()
 		
-		# Use same theme as ControlPanel
-		try:
-			self.style.theme_use('alt')
-		except:
-			self.style.theme_use('clam')
+		# Use clam theme for modern flat design (matching AutomationDesigner)
+		self.style.theme_use('clam')
 		
-		# Node status colors
+		# Node status colors - PPV theme matching AutomationDesigner
 		self.node_colors = {
-			'idle': '#E8E8E8',           # Light gray - waiting
-			'current': '#2196F3',        # Blue - currently executing
-			'running': '#FF5722',        # Red - experiment running
-			'completed': '#4CAF50',      # Green - completed successfully
-			'failed': '#F44336',         # Red - execution failed
-			'execution_fail': '#FFC107', # Yellow - execution failed
-			'skipped': '#FF9800',        # Orange - skipped
-			'cancelled': '#9E9E9E'       # Gray - cancelled
+			'idle': '#ecf0f1',           # Light gray - waiting (PPV theme)
+			'current': '#3498db',        # Blue - currently executing (PPV theme)
+			'running': '#e74c3c',        # Red - experiment running (PPV theme)
+			'completed': '#1abc9c',      # Turquoise - completed successfully (PPV theme)
+			'failed': '#e74c3c',         # Red - execution failed (PPV theme)
+			'execution_fail': '#f39c12', # Orange - execution failed (PPV theme)
+			'skipped': '#95a5a6',        # Gray - skipped (PPV theme)
+			'cancelled': '#7f8c8d'       # Dark gray - cancelled (PPV theme)
 		}
 		
-		# Text colors for better contrast
+		# Text colors for better contrast - PPV theme
 		self.node_text_colors = {
-			'idle': 'black',
+			'idle': '#2c3e50',
 			'current': 'white',
 			'running': 'white',
 			'completed': 'white',
 			'failed': 'white',
-			'execution_fail': 'black',
+			'execution_fail': 'white',
 			'skipped': 'white',
 			'cancelled': 'white'
 		}
 		
-		# Connection colors
+		# Connection colors - PPV theme matching AutomationDesigner
 		self.connection_colors = {
-			0: '#F44336',  # Red for failure path
-			1: '#4CAF50',  # Green for success path
-			2: '#FF9800',  # Orange for alternative path
-			3: '#9C27B0'   # Purple for special path
+			0: '#1abc9c',  # Turquoise for success path (PPV theme)
+			1: '#e74c3c',  # Red for failure path (PPV theme)
+			2: '#f39c12',  # Orange for alternative path (PPV theme)
+			3: '#9b59b6'   # Purple for error path (PPV theme)
 		}
 		
 		# Button styles (matching ControlPanel)
@@ -200,9 +414,9 @@ class FlowProgressInterface:
 
 	def create_widgets(self):
 		"""Create the main UI layout."""
-		# Main horizontal container
+		# Main horizontal container (placed below header at row=1, matching AutomationDesigner)
 		self.main_paned = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
-		self.main_paned.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+		self.main_paned.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
 		
 		# Left side - Flow diagram
 		self.left_frame = ttk.Frame(self.main_paned)
@@ -327,8 +541,8 @@ class FlowProgressInterface:
 		canvas_frame = ttk.Frame(self.left_frame)
 		canvas_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
 		
-		# Canvas with scrollbars
-		self.canvas = tk.Canvas(canvas_frame, bg='white', highlightthickness=0)
+		# Canvas with scrollbars (PPV theme background matching AutomationDesigner)
+		self.canvas = tk.Canvas(canvas_frame, bg='#f0f0f0', highlightthickness=0)
 		
 		v_scrollbar = ttk.Scrollbar(canvas_frame, orient="vertical", command=self.canvas.yview)
 		h_scrollbar = ttk.Scrollbar(canvas_frame, orient="horizontal", command=self.canvas.xview)
@@ -352,6 +566,10 @@ class FlowProgressInterface:
 		self.canvas.bind("<ButtonPress-1>", self.on_drag_start)
 		self.canvas.bind("<B1-Motion>", self.on_drag_motion)
 		self.canvas.bind("<ButtonRelease-1>", self.on_drag_end)
+		
+		# Tooltip bindings for hover
+		self.canvas.bind("<Motion>", self.on_canvas_motion)
+		self.canvas.bind("<Leave>", self.on_canvas_leave)
 		
 		# Initial message on canvas
 		self.show_canvas_message("Please select a flow folder to begin")
@@ -1165,6 +1383,9 @@ class FlowProgressInterface:
 
 			# FIXED: Reset execution tracking after new load
 			self._reset_execution_tracking()
+			
+			# Apply saved positions from FlowConfiguration to layout manager
+			self._apply_saved_positions_from_config()
 					
 			# Log flow summary
 			self.log_flow_summary()
@@ -1222,6 +1443,29 @@ class FlowProgressInterface:
 			self.progress_var.set(0)
 		if hasattr(self, 'progress_label'):
 			self.progress_label.configure(text="0%")
+	
+	def _apply_saved_positions_from_config(self):
+		"""Apply saved positions from FlowConfiguration to layout manager."""
+		if not hasattr(self, 'layout_manager') or not self.layout_manager:
+			return
+		
+		if not hasattr(self, 'flow_config') or not self.flow_config:
+			return
+		
+		# Get saved positions from FlowConfiguration
+		if hasattr(self.flow_config, 'saved_positions') and self.flow_config.saved_positions:
+			try:
+				# Apply saved positions to layout manager
+				for node_id, pos in self.flow_config.saved_positions.items():
+					if 'x' in pos and 'y' in pos:
+						self.layout_manager.set_custom_position(node_id, pos)
+				
+				self.log_status(f"Applied saved positions for {len(self.flow_config.saved_positions)} nodes", "success")
+				
+			except Exception as e:
+				self.log_status(f"Could not apply positions: {str(e)}", "warning")
+		else:
+			self.log_status("No saved positions found, using auto-layout")
 				
 	def show_canvas_message(self, message):
 		"""Show a message on the canvas when no flow is loaded."""
@@ -1242,10 +1486,12 @@ class FlowProgressInterface:
 		# Calculate positions using layout manager
 		calculated_positions = self.layout_manager.calculate_hierarchical_layout(self.builder)
 		
-		# Merge with custom positions
+		# Use positions from layout manager - prioritize custom positions over calculated
 		self.current_positions = {}
 		for node_id, calc_pos in calculated_positions.items():
-			self.current_positions[node_id] = self.layout_manager.get_node_position(node_id, {node_id: calc_pos})
+			# Check if there's a custom position for this node
+			custom_pos = self.layout_manager.get_node_position(node_id, calculated_positions)
+			self.current_positions[node_id] = custom_pos
 		
 		# Update drag handler with nodes and positions
 		nodes = list(self.builder.builtNodes.values())
@@ -2475,6 +2721,87 @@ class FlowProgressInterface:
 	def on_mousewheel(self, event):
 		"""Handle mouse wheel scrolling on canvas."""
 		self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+	
+	# ==================== TOOLTIP FUNCTIONALITY ====================
+	
+	def on_canvas_motion(self, event):
+		"""Handle mouse motion for tooltip display."""
+		# Cancel any pending tooltip
+		if self.tooltip_delay_id:
+			self.root.after_cancel(self.tooltip_delay_id)
+			self.tooltip_delay_id = None
+		
+		# Destroy existing tooltip
+		self._destroy_tooltip()
+		
+		# Only show tooltips if execution is active
+		if not self.is_running:
+			return
+		
+		# Find node under cursor
+		canvas_x = self.canvas.canvasx(event.x)
+		canvas_y = self.canvas.canvasy(event.y)
+		
+		node_id = self._find_node_at_position(canvas_x, canvas_y)
+		if node_id:
+			# Schedule tooltip to appear after delay
+			self.tooltip_delay_id = self.root.after(
+				self.tooltip_delay_ms, 
+				lambda: self._show_node_tooltip(node_id, event.x_root, event.y_root)
+			)
+	
+	def on_canvas_leave(self, event):
+		"""Handle mouse leaving canvas - hide tooltip."""
+		if self.tooltip_delay_id:
+			self.root.after_cancel(self.tooltip_delay_id)
+			self.tooltip_delay_id = None
+		self._destroy_tooltip()
+	
+	def _destroy_tooltip(self):
+		"""Destroy current tooltip if it exists."""
+		if self.tooltip_window:
+			self.tooltip_window.destroy()
+			self.tooltip_window = None
+	
+	def _find_node_at_position(self, x, y):
+		"""Find node ID at the given canvas position."""
+		try:
+			items = self.canvas.find_overlapping(x-5, y-5, x+5, y+5)
+			for item in items:
+				tags = self.canvas.gettags(item)
+				for tag in tags:
+					if tag.startswith("node_"):
+						return tag[5:]  # Remove "node_" prefix
+		except:
+			pass
+		return None
+	
+	def _show_node_tooltip(self, node_id, x, y):
+		"""Show tooltip with node/experiment status information."""
+		if not self.is_running or not self.builder:
+			return
+		
+		try:
+			# Get node from builder
+			node = self.builder.builtNodes.get(node_id)
+			if not node:
+				return
+			
+			# Create and show tooltip with node object
+			self.tooltip_window = ToolTipWindow(
+				self.canvas, 
+				node, 
+				self.completed_nodes,
+				self.failed_nodes,
+				self.current_node,
+				x + 15, 
+				y + 10
+			)
+				
+		except Exception as e:
+			self.log_status(f"Error showing tooltip: {e}", "error")
+	
+
 
 	# ==================== CLEANUP & SHUTDOWN ====================
 				

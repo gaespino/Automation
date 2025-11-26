@@ -1,0 +1,19 @@
+{
+  "MCACOD": 1042,
+  "MSCOD": {
+    "0": "core_RoB_dd_Parity",
+    "1": "core_RoL_dd_Parity",
+    "2": "core_RoB_da_Parity",
+    "3": "core_RoL_da_Parity",
+    "4": "RoB_sd_Parity",
+    "5": "RoL_sd_Parity",
+    "6": "RoB_sa_Parity",
+    "7": "RoL_sa_Parity",
+    "8": "non_p2p_bl_or_ak_txn"
+  },
+  "B2HOT_TYPE": {
+    "0": "LS",
+    "1": "R",
+    "2": "CS"
+  }
+}

@@ -1,0 +1,129 @@
+{
+    "MSCOD": {
+        "512": "PL_CERROR",
+        "512": "PL_ERROR",
+        "512": "PL_NFERROR",
+        "515": "LINK_DEGRADE_MODE",
+        "516": "RUNLP_ENTRY_TIMEOUT",
+        "517": "QSCD_ENTRY_TIMEOUT",
+        "518": "RESETPREP_TIMEOUT",
+        "519": "RUN_ENTRY_TIMEOUT",
+        "1": "RXQ_BUFF_PARITY_ERROR",
+        "2": "UFI_ADDR_PARITY_ERROR",
+        "5": "LPIF_FDI_PARITY_ERROR",
+        "8": "INGRESS_BUFFER_OVERFLOW",
+        "9": "RXQ_BUFFER_OVERFLOW",
+        "10": "INGRESS_BUFFER_UNDERFLOW",
+        "11": "RXQ_BUFFER_UNDERFLOW",
+        "12": "CREDIT_OVERFLOW",
+        "13": "LL_F2A_OVERFLOW",
+        "14": "LL_A2F_OVERFLOW",
+        "15": "LL_F2A_UNDERFLOW",
+        "16": "LL_A2F_UNDERFLOW",
+        "17": "STAGING_BUFF_F2A_OVERFLOW",
+        "18": "STAGING_BUFF_A2F_OVERFLOW",
+        "19": "STAGING_BUFF_F2A_UNDERFLOW",
+        "20": "STAGING_BUFF_A2F_UNDERFLOW",
+        "32": "UFI_INTERLEAVE_ERROR",
+        "33": "UFI_PROTOCOL_ERROR",
+        "34": "BLOCKING_ERROR",
+        "35": "INVALID_P2P_MSG",
+        "36": "UXI_PROTOCOL_ERRORS",
+        "37": "UXI_INTERLEAVE_ERROR",
+        "40": "LPIF_FDI_PROTOCOL_ERROR",
+        "41": "PL_ERROR",
+        "42": "RUNLP_ENTRY_TIMEOUT",
+        "43": "QSCD_ENTRY_TIMEOUT",
+        "44": "RESETPREP_TIMEOUT",
+        "45": "RUN_ENTRY_TIMEOUT",
+        "48": "POISON_ERROR",
+        "49": "PCHANNEL_ERROR"
+    },
+    "PSTATE": {
+        "0": "RESET",
+        "1": "FLUSH",
+        "2": "QSCD",
+        "3": "QSCDLV",
+        "4": "VOFF",
+        "5": "RESETPREP_WARM",
+        "6": "RESETPRE_COLD",
+        "7": "RUNLP"
+    },
+    "t_pmfsm_state": {
+        "1": "RESET",
+        "2": "RUN_TRAN",
+        "4": "RUN",
+        "12": "FLUSH",
+        "17": "QSCD_TRAN",
+        "20": "QSCD",
+        "28": "QSCDLV",
+        "36": "VOFF",
+        "41": "RESETPREP_TRAN",
+        "44": "RESETPREP",
+        "52": "RESETPREP_COLD",
+        "57": "RUNLP_X4TRAN",
+        "59": "RUNLP_X8TRAN",
+        "60": "RUNLP_X4",
+        "62": "RUNLP_X8",
+        "7": "ERROR"
+    },
+    "FDI_STATE_STATUS": {
+        "0": "RESET",
+        "1": "ACTIVE",
+        "3": "ACTIVEPMNAK",
+        "4": "L1",
+        "8": "L2",
+        "9": "LINKRESET",
+        "10": "LINKERROR",
+        "11": "RETRAIN",
+        "12": "DISABLED"
+    },
+    "PROTOCOL": {
+        "0": "CXL",
+        "1": "UPI"
+    },
+    "MSG_CLASS": {
+        "0": "REQ",
+        "1": "SNP",
+        "2": "RSP",
+        "5": "WB",
+        "6": "NCB",
+        "7": "NCS"
+    },
+    "UPI_OPCODE": {
+        "REQ": {
+
+        },
+        "SNP": {
+
+        },
+        "RSP": {
+
+        },
+        "WB": {
+
+        },
+        "NCB": {
+
+        },
+        "NCS": {
+
+        }
+    },
+    "DBG_FLITSM": {
+        "0": "IDLE",
+        "1": "SENDING_FLT",
+        "2": "SENT"
+    },
+    "TPSNSM_INBAND_ERR": {
+        "0": "IDLE",
+        "1": "SENDING_FLT0",
+        "2": "SENDING_FLT1",
+        "3": "SENT"
+    },
+    "TISM": {
+        "0": "NOT_RDY_FOR_INIT",
+        "1": "PARAM_SENDING_CHNK",
+        "2": "PARAM_SENT"
+    }
+}

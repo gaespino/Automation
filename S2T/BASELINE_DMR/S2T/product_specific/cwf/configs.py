@@ -6,7 +6,7 @@ Code migration to product specific features
 
 """
 
-CONFIG_PRODUCT = 'CWF'
+CONFIG_PRODUCT = ['CWF', 'CWF_CLTAP']
 
 print (f"Loading Configurations for {CONFIG_PRODUCT} || REV 0.1")
 
@@ -14,11 +14,41 @@ class configurations:
 
 	def __init__(self, product):
 		self.product: str = product
-		self.config_product: str = CONFIG_PRODUCT
+		self.config_product: list[str] = CONFIG_PRODUCT
 		self.product_check(product)
 
+	def _get_chop(self, sv):
+		domains_size = len(sv.socket0.computes)
+		chop = None
+
+		if domains_size == 3:		
+			chop = 'UCC'
+		elif domains_size == 2:
+			chop = 'XCC'
+		elif domains_size == 1:
+			chop = 'HCC' # holder we don't really support GNR HCC 
+		else:
+			raise ValueError (f" Invalid Domains size: {domains_size}")
+		print(f' GNR Product configuration: {chop}')
+		return chop
+
+	def _get_variant(self, sv):
+		domains_size = len(sv.socket0.computes)
+		variant = None
+
+		if domains_size == 3:		
+			variant = 'AP'
+		elif domains_size == 2:
+			variant = 'SP'
+		elif domains_size == 1:
+			variant = 'LP' # holder we don't really support GNR HCC 
+		else:
+			raise ValueError (f" Invalid Domains size: {domains_size}")
+		print(f' GNR Product configuration: {variant}')
+		return variant
+
 	def product_check(self, product):
-		if product != CONFIG_PRODUCT:
+		if product not in CONFIG_PRODUCT:
 			raise ValueError (f" Invalid Product, this function is only available for {CONFIG_PRODUCT}")
 
 	def init_product_specific(self):
@@ -29,6 +59,7 @@ class configurations:
 		# System Specific Configurations based on product		
 		ConfigFile = f'{product}FuseFileConfigs.json'
 		CORESTRING = 'MODULE'
+		CHASTRING = 'CHA'
 		CORETYPES = {	'CWFAP':{'core':'atomcore','config':'AP', 'maxcores': 180, 'maxlogcores': 72},
 						'CWFSP':{'core':'atomcore','config':'SP', 'maxcores': 120, 'maxlogcores': 48}}
 		MAXLOGICAL = 24
@@ -47,6 +78,7 @@ class configurations:
 		CONFIG = { 'PRODUCT':product,
 				'CONFIGFILE': ConfigFile,
 				'CORESTRING': CORESTRING,
+				'CHASTRING': CHASTRING,
 				'CORETYPES': CORETYPES,
 				'MAXLOGICAL': MAXLOGICAL,
 				'MAXPHYSICAL': MAXPHYSICAL,
@@ -138,6 +170,9 @@ class configurations:
 		# Product config
 		product = self.product
 		
+		# Path of All S2T scripts
+		BASE_PATH = 'users.THR.PythonScripts.thr'
+
 		## System 2 Tester and bootscript Initialization data 
 		bootscript_data = {	'CWFAP':{'segment':'CWFXDCC','config':['compute0', 'compute1', 'compute2'], 'compute_config':'x3',},
 								'CWFSP':{'segment':'CWFHDCC','config':['compute0', 'compute1'], 'compute_config':'x2',}}
@@ -195,10 +230,18 @@ class configurations:
 									'l3':('\t> 3. Disable (0x9): Core0 and Core3'),
 									'l4':('\t> 4. Disable (0xa): Core1 and Core3'),
 									'l5':('\t> 5. Disable (0x5): Core0 and Core2'),
-									'l5':('\t> 6. Disable (0x5): Core1 and Core2'),
+									'l6':('\t> 6. Disable (0x5): Core1 and Core2'),
 									'maxrng': 7},
 							}
 		dis2cpm_dict = {1:'HIGH',2:'LOW',3:0x9, 4:0xa, 5:0x5, 6:0x6}
+
+		dis1cpm_menu = 	{	
+							'main':{
+									'l1':('\t> 1. Not available for this product'),
+									'maxrng': 2},
+							}
+		
+		dis1cpm_dict = {1:None}
 
 		FrameworkVars = { 
 							'core_license_dict' : 	core_license_dict,
@@ -206,6 +249,8 @@ class configurations:
 							'core_license_levels' : core_license_levels,
 							'dis2cpm_menu': dis2cpm_menu,
 							'dis2cpm_dict': dis2cpm_dict,
+							'dis1cpm_menu': dis1cpm_menu,
+							'dis1cpm_dict': dis1cpm_dict,
 							'qdf600' : qdf600,
 							'ate_config' : ate_config,
 							'ate_masks' : ate_masks,
@@ -216,6 +261,7 @@ class configurations:
 							'ValidRows' : ValidRows,
 							'ValidCols' : ValidCols,
 							'bootscript_data' : bootscript_data,
+							'base_path': BASE_PATH,
 			}
 		
 		return FrameworkVars
@@ -245,6 +291,7 @@ class configurations:
 							'dis_acode':			{'default':False,'enabled':False,'disabled_value':False,},
 							'dis_ht':				{'default':None,'enabled':False,'disabled_value':False,},
 							'dis_2CPM':				{'default':None,'enabled':True,'disabled_value':0,},
+							'dis_1CPM':				{'default':None,'enabled':False,'disabled_value':None,},
 							'postBootS2T':			{'default':True,'enabled':True,'disabled_value':True,},
 							'clusterCheck':			{'default':None,'enabled':True,'disabled_value':None,},
 							'lsb':					{'default':False,'enabled':True,'disabled_value':False,},

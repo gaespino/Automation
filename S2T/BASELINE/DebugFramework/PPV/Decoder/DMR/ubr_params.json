@@ -1,0 +1,79 @@
+{
+    "MSCOD": {
+        "0": "addr_parity_error",
+        "3": "ufi_nip_protocol_error",
+        "6": "p2p_ufi_interleave_error",
+        "7": "p2p_nip_interleave_error",
+        "8": "p2p_invalid_length",
+        "11": "ingress_buff_parity_error",
+        "12": "egress_buff_parity_error",
+        "13": "ingress_buffer_overflow",
+        "14": "egress_buffer_overflow",
+        "17": "credit_overflow",
+        "18": "nip_credit_ring_error",
+        "21": "illegal_programming",
+        "24": "invalid_node_id",
+        "25": "invalid_ufi_port_id",
+        "26": "invalid_meshid",
+        "27": "illegal_sa_sld",
+        "31": "dram_decode_error"
+    },
+    "PROTOCOL_ID": {
+        "0": "IDI",
+        "1": "UXI.COH_OR_NC",
+        "2": "UXI.MEM"
+    },
+    "PROTOCOL_VC_MAP": {
+        "IDI": {
+            "REQ": {
+                "0": "REQ_OR_SNP"
+            },
+            "DATA": {
+                "0": "DATA"
+            },
+            "RSP": {
+                "0": "RSP"
+            }
+        },
+        "UXI.COH_OR_NC": {
+            "REQ": {
+                "0": "VN0_REQ",
+                "1": "VN0_SNP",
+                "3": "VN0_WB",
+                "4": "VN1_REQ",
+                "5": "VN1_SNP",
+                "7": "VN1_WB"
+            },
+            "DATA": {
+                "1": "VN0_SNP",
+                "2": "VN0_RSP",
+                "5": "VN0_WB",
+                "6": "VN0_NCB",
+                "7": "VN0_NCS",
+                "9": "VN1_SNP",
+                "10": "VN1_RSP",
+                "13": "VN1_WB",
+                "14": "VN1_NCB",
+                "15": "VN1_NCS"
+            },
+            "RSP": {
+                "0": "VN0_RSP",
+                "1": "VN1_RSP"
+            }
+        },
+        "UXI.MEM": {
+            "REQ": {
+                "0": "VC0_REQ_OR_BISNP",
+                "1": "VC1_REQ_OR_BISNP"
+            },
+            "DATA": {
+                "0": "VC0_RwD_OR_DRS",
+                "1": "VC1_RwD_OR_DRS"
+            },
+            "RSP": {
+                "0": "VC0_NDR_OR_BIRSP",
+                "1": "VC1_NDR_OR_BIRSP"
+            }
+        }
+    }
+}
