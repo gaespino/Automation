@@ -854,6 +854,9 @@ class MockCoreManipulation:
 
 # Mock DPMChecks
 class MockDPMChecks:
+        # Class-level attributes
+        FuseFileConfigs = {}  # Mock fuse configurations
+        
         @staticmethod
         def qdf_str():
             return "MOCK_QDF_12345"
@@ -887,12 +890,74 @@ class MockDPMChecks:
             }
         
         @staticmethod
+        def fuses_dis_2CPM(dis_2CPM, bsformat=True):
+            """Mock fuses_dis_2CPM function"""
+            print(f"[MOCK DPM] fuses_dis_2CPM called with dis_2CPM={dis_2CPM}, bsformat={bsformat}")
+            return []
+        
+        @staticmethod
         def get_compute_index(core):
             compute_map = {
                 0: 0, 1: 0, 2: 0, 3: 0,  # Compute 0
                 4: 1, 5: 1, 6: 1, 7: 1,  # Compute 1
             }
             return compute_map.get(core, 0)
+        
+        @staticmethod
+        def powercycle(ports=[1], stime=10):
+            """Mock power cycle"""
+            print(f"[MOCK DPM] Power cycle on ports {ports} with sleep time {stime}s")
+            import time
+            time.sleep(0.5)  # Short delay for testing
+            return True
+        
+        @staticmethod
+        def power_on(ports=[1]):
+            """Mock power on"""
+            print(f"[MOCK DPM] Power ON on ports {ports}")
+            return True
+        
+        @staticmethod
+        def power_off(ports=[1]):
+            """Mock power off"""
+            print(f"[MOCK DPM] Power OFF on ports {ports}")
+            return True
+        
+        @staticmethod
+        def power_status():
+            """Mock power status check"""
+            return True  # Always return True (powered on) in mock
+        
+        @staticmethod
+        def warm_reset():
+            """Mock warm reset"""
+            print("[MOCK DPM] Warm reset executed")
+            import time
+            time.sleep(0.5)  # Short delay for testing
+            return True
+        
+        @staticmethod
+        def reset_600w():
+            """Mock 600W reset"""
+            print("[MOCK DPM] 600W reset executed")
+            import time
+            time.sleep(0.5)  # Short delay for testing
+            return True
+        
+        @staticmethod
+        def fuseRAM(refresh=False):
+            """Mock fuse RAM operation"""
+            print(f"[MOCK DPM] FuseRAM called with refresh={refresh}")
+            return True
+        
+        @staticmethod
+        def pseudo_bs(ClassMask=None, Custom=None, boot=False, use_core=False, 
+                     htdis=None, dis_2CPM=None, fuse_read=None, s2t=True, 
+                     masks=None, clusterCheck=None, lsb=None, skip_init=False):
+            """Mock pseudo_bs function"""
+            print(f"[MOCK DPM] pseudo_bs called with ClassMask={ClassMask}, boot={boot}")
+            # Return: core_count, llc_count, Masks_test
+            return 8, 16, {"ia_compute_0": "0xFFFFFFFF", "llc_compute_0": "0xFFFFFFFF"}
         
         @staticmethod
         def dev_dict(file_path, print_data=False):
@@ -1892,12 +1957,48 @@ class MockSerialConnection:
 class MockS2TUtils:
     @staticmethod
     def formatException(e):
-        return f"MockFormatted: {str(e)}"
+        """Format exception for display."""
+        error_msg = str(e)
+        return f"MockFormatted: {error_msg}"
+
+
+# Mock ConfigsLoader
+class MockConfigsLoader:
+    """Mock for ConfigsLoader module"""
+    
+    @staticmethod
+    def load_config(config_file):
+        print(f"[MOCK ConfigsLoader] Loading config: {config_file}")
+        return {"mock": "config"}
+    
+    @staticmethod
+    def get_config(key, default=None):
+        print(f"[MOCK ConfigsLoader] Getting config key: {key}")
+        return default
 
 
 # Mock namednodes (simple mock)
 class MockNamedNodes:
     pass
+
+
+# Mock GNRCoreDebugUtils and CWFCoreDebugUtils (for users.THR module)
+class MockCoreDebugUtils:
+    """Mock for GNRCoreDebugUtils and CWFCoreDebugUtils"""
+    
+    @staticmethod
+    def get_core_info():
+        return {"cores": 128, "threads": 256}
+    
+    @staticmethod
+    def read_register(reg_name):
+        print(f"[MOCK GCD] Reading register: {reg_name}")
+        return 0xDEADBEEF
+    
+    @staticmethod
+    def write_register(reg_name, value):
+        print(f"[MOCK GCD] Writing register {reg_name} = {value}")
+        return True
 
 
 # Now apply all the mocks to sys.modules
@@ -1911,13 +2012,43 @@ sys.modules['ipccli'] = MockIPCCLI()
 sys.modules['ipccli.stdiolog'] = MockStdioLog()
 sys.modules['namednodes'] = MockNamedNodes()
 
+# Mock dpmChecks at root level (for 'import dpmChecks as dpm')
+sys.modules['dpmChecks'] = MockDPMChecks()
+sys.modules['CoreManipulation'] = MockCoreManipulation()
+sys.modules['ConfigsLoader'] = MockConfigsLoader()
+
+# Create S2T module hierarchy (for DEV_MODE imports like 'import S2T.dpmChecks as dpm')
+S2T = types.ModuleType('S2T')
+S2T.CoreManipulation = MockCoreManipulation()
+S2T.dpmChecks = MockDPMChecks()
+S2T.SetTesterRegs = MockSetTesterRegs()
+S2T.Tools = types.ModuleType('S2T.Tools')
+S2T.Tools.utils = MockS2TUtils()
+
+# Register S2T modules
+sys.modules['S2T'] = S2T
+sys.modules['S2T.CoreManipulation'] = S2T.CoreManipulation
+sys.modules['S2T.dpmChecks'] = S2T.dpmChecks
+sys.modules['S2T.SetTesterRegs'] = S2T.SetTesterRegs
+sys.modules['S2T.Tools'] = S2T.Tools
+sys.modules['S2T.Tools.utils'] = S2T.Tools.utils
+
 # Create users module hierarchy
 users = types.ModuleType('users')
+
+# Create users.gaespino hierarchy
 users.gaespino = types.ModuleType('users.gaespino')
 users.gaespino.dev = types.ModuleType('users.gaespino.dev')
 users.gaespino.dev.S2T = types.ModuleType('users.gaespino.dev.S2T')
 users.gaespino.dev.S2T.Tools = types.ModuleType('users.gaespino.dev.S2T.Tools')
 users.gaespino.dev.DebugFramework = types.ModuleType('users.gaespino.dev.DebugFramework')
+
+# Create users.THR hierarchy (for SerialConnection.py and SystemDebug.py imports)
+users.THR = types.ModuleType('users.THR')
+users.THR.PythonScripts = types.ModuleType('users.THR.PythonScripts')
+users.THR.PythonScripts.thr = types.ModuleType('users.THR.PythonScripts.thr')
+users.THR.PythonScripts.thr.S2T = types.ModuleType('users.THR.PythonScripts.thr.S2T')
+users.THR.PythonScripts.thr.S2T.Tools = types.ModuleType('users.THR.PythonScripts.thr.S2T.Tools')
 
 # Apply the mock classes
 users.gaespino.dev.S2T.CoreManipulation = MockCoreManipulation()
@@ -1927,8 +2058,18 @@ users.gaespino.dev.S2T.Tools.utils = MockS2TUtils()
 users.gaespino.dev.DebugFramework.SerialConnection = MockSerialConnection()
 users.gaespino.dev.DebugFramework.FileHandler = MockFileHandler()
 
+# Apply mocks for users.THR hierarchy
+users.THR.PythonScripts.thr.GNRCoreDebugUtils = MockCoreDebugUtils()
+users.THR.PythonScripts.thr.CWFCoreDebugUtils = MockCoreDebugUtils()
+users.THR.PythonScripts.thr.S2T.CoreManipulation = MockCoreManipulation()
+users.THR.PythonScripts.thr.S2T.dpmChecks = MockDPMChecks()
+users.THR.PythonScripts.thr.S2T.SetTesterRegs = MockSetTesterRegs()
+users.THR.PythonScripts.thr.S2T.Tools.utils = MockS2TUtils()
+
 # Register all modules in sys.modules
 sys.modules['users'] = users
+
+# Register users.gaespino hierarchy
 sys.modules['users.gaespino'] = users.gaespino
 sys.modules['users.gaespino.dev'] = users.gaespino.dev
 sys.modules['users.gaespino.dev.S2T'] = users.gaespino.dev.S2T
@@ -1941,8 +2082,28 @@ sys.modules['users.gaespino.dev.DebugFramework'] = users.gaespino.dev.DebugFrame
 sys.modules['users.gaespino.dev.DebugFramework.SerialConnection'] = users.gaespino.dev.DebugFramework.SerialConnection
 sys.modules['users.gaespino.dev.DebugFramework.FileHandler'] = users.gaespino.dev.DebugFramework.FileHandler
 
+# Register users.THR hierarchy
+sys.modules['users.THR'] = users.THR
+sys.modules['users.THR.PythonScripts'] = users.THR.PythonScripts
+sys.modules['users.THR.PythonScripts.thr'] = users.THR.PythonScripts.thr
+sys.modules['users.THR.PythonScripts.thr.GNRCoreDebugUtils'] = users.THR.PythonScripts.thr.GNRCoreDebugUtils
+sys.modules['users.THR.PythonScripts.thr.CWFCoreDebugUtils'] = users.THR.PythonScripts.thr.CWFCoreDebugUtils
+sys.modules['users.THR.PythonScripts.thr.S2T'] = users.THR.PythonScripts.thr.S2T
+sys.modules['users.THR.PythonScripts.thr.S2T.CoreManipulation'] = users.THR.PythonScripts.thr.S2T.CoreManipulation
+sys.modules['users.THR.PythonScripts.thr.S2T.dpmChecks'] = users.THR.PythonScripts.thr.S2T.dpmChecks
+sys.modules['users.THR.PythonScripts.thr.S2T.SetTesterRegs'] = users.THR.PythonScripts.thr.S2T.SetTesterRegs
+sys.modules['users.THR.PythonScripts.thr.S2T.Tools'] = users.THR.PythonScripts.thr.S2T.Tools
+sys.modules['users.THR.PythonScripts.thr.S2T.Tools.utils'] = users.THR.PythonScripts.thr.S2T.Tools.utils
+
 print("All mocks setup completed successfully!")
 print(f"SELECTED_PRODUCT mock value: {MockSetTesterRegs.SELECTED_PRODUCT}")
+print(f"dpmChecks mock registered at root level: {'dpmChecks' in sys.modules}")
+print(f"S2T.dpmChecks mock registered for DEV_MODE: {'S2T.dpmChecks' in sys.modules}")
+print(f"CoreManipulation mock registered at root level: {'CoreManipulation' in sys.modules}")
+print(f"ConfigsLoader mock registered at root level: {'ConfigsLoader' in sys.modules}")
+print(f"users.THR module hierarchy created: {users.THR}")
+print(f"users.THR.PythonScripts.thr.S2T module created: {users.THR.PythonScripts.thr.S2T}")
+print(f"GNRCoreDebugUtils mock available: {users.THR.PythonScripts.thr.GNRCoreDebugUtils}")
 
 
 # Call setup immediately when this module is imported

@@ -221,7 +221,7 @@ if __name__ == "__main__":
     
     elif mode == 'json_to_excel':
         # JSON to Excel conversion
-        json_file = r"c:\Git\Automation\Automation\S2T\BASELINE\S2T\product_specific\cwf\RegFiles\s2tregdata.json"
+        json_file = r"c:\Git\Automation\Automation\S2T\BASELINE\S2T\product_specific\cwf\RegFiles\crdict.json"
         output_file = None  # Will auto-generate name if None
         
         print("=" * 80)

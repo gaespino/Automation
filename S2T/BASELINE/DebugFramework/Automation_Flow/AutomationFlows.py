@@ -105,6 +105,7 @@ class FlowInstance(ABC):
 	def __init__(self, ID, Name, Framework, framework_utils, Experiment, outputNodeMap, experiment_tracker = None, logger=None):
 		self.ID = ID
 		self.Name = Name
+		self.Type = self.__class__.__name__.replace('FlowInstance', '')  # Node type from class name
 		self.Framework = Framework
 		self.Experiment = Experiment
 		self.outputNodeMap = outputNodeMap

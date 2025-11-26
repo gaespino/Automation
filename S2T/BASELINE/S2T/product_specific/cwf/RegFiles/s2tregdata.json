@@ -4899,6 +4899,125 @@
                   "numbits": 32,
                   "desired_value": "0x0",
                   "ref_value": "0x0"
+            },
+            "ucode_cr_probe_lt_spc_cyc": {
+                  "description": "This is special creg for Probe Mode, used for issuing LT Special Cycles to the chipset in RED unlocked part",
+                  "cr_offset": 8987,
+                  "numbits": 64,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "ia32_cr_probe_to_pdr": {
+                  "description": "This is special creg for Probe Mode, details later",
+                  "cr_offset": 8986,
+                  "numbits": 64,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "ia32_cr_uarch_misc_ctl": {
+                  "description": "CMT 14015767073: Use MEC bit, no need for SCP backup",
+                  "cr_offset": 273,
+                  "numbits": 8,
+                  "desired_value": "0x3440580000",
+                  "ref_value": "0x0"
+            },
+            "thread0.ia32_cr_ler_to_lip": {
+                  "description": "One of the 3 MSRs that make up the Last Exception Record i.e. the last branch instruction that the processor executed prior to the last exception that was generated or the last interrupt that was handled. This part of the stack has the LIP of the destination instruction",
+                  "cr_offset": 46,
+                  "numbits": 64,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "thread0.ia32_cr_ler_from_lip": {
+                  "description": "One of the 3 MSRs that make up the Last Exception Record i.e. the last branch instruction that the processor executed prior to the last exception that was generated or the last interrupt that was handled. This part of the stack has the LIP of the source instruction",
+                  "cr_offset": 45,
+                  "numbits": 64,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "thread0.ia32_cr_ler_info": {
+                  "description": "One of the 3 MSRs that make up the Last Exception Record i.e. the last branch instruction that the processor executed prior to the last exception that was generated or the last interrupt that was handled. This part of the LER contains flag and elapsed cycle information",
+                  "cr_offset": 51,
+                  "numbits": 64,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "thread0.ucode_cr_pic_msg_control": {
+                  "description": "MSR used to enable/disable TPR messages. See Nehalem-B bug 2425138.",
+                  "cr_offset": 8900,
+                  "numbits": 16,
+                  "desired_value": "0x801400",
+                  "ref_value": "0x1000"
+            },
+            "thread0.virt_cr_smm_clear_smi": {
+                  "description": "SMM Write only server MSR",
+                  "cr_offset": 8862,
+                  "numbits": 8,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "thread0.virt_cr_pppe_event_status": {
+                  "description": "    This is a virtual register to combine the PPPE-accessible    events into a single XuMSR. The bits are sourced from    BUS_CR_PENDING_* and ARR_CR_VMCTL",
+                  "cr_offset": 8863,
+                  "numbits": 64,
+                  "desired_value": "0x2000",
+                  "ref_value": "0x0"
+            },
+            "thread0.ucode_cr_bios_done": {
+                  "description": "BIOS Done MSR for Cannonlake i1351547. This replaces MSR 0x120 POWER_MISC[ENABLE_IA_UNTRUSTED_MODE]",
+                  "cr_offset": 9095,
+                  "numbits": 8,
+                  "desired_value": "0x0",
+                  "ref_value": "0x1"
+            },
+            "thread0.virt_cr_vmx_control": {
+                  "description": "    This MSR provides PPPE access to the POST_VMXON bit. No reserved bit checks currently to match Skylake.",
+                  "cr_offset": 1731,
+                  "numbits": 64,
+                  "desired_value": "0x1819",
+                  "ref_value": "0x1a1b"
+            },
+            "thread0.virt_cr_stlb_fill_translation": {
+                  "description": "STLB QoS MSR (Atom specific) to fill translations into STLB",
+                  "cr_offset": 1352,
+                  "numbits": 64,
+                  "desired_value": "0x3f",
+                  "ref_value": "0x3f"
+            },
+            "thread0.virt_cr_rtit_fup_data": {
+                  "description": "\n        Used by the RTIT FUP generating ucode and ARR HW\n      ",
+                  "cr_offset": 128,
+                  "numbits": 16,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "thread0.virt_cr_rtit_tip_data": {
+                  "description": "\n        Used by the RTIT FUP generating ucode and ARR HW\n      ",
+                  "cr_offset": 129,
+                  "numbits": 16,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "thread0.virt_cr_rtit_ptwrite32_command": {
+                  "description": "\n        Used by the PTWRITE32 ucode and ARR HW\n      ",
+                  "cr_offset": 130,
+                  "numbits": 16,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "thread0.virt_cr_rtit_generic_command": {
+                  "description": "\n        Used by the RTIT ucode packets and ARR HW\n      ",
+                  "cr_offset": 131,
+                  "numbits": 16,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "thread0.ucode_cr_unwind": {
+                  "description": "unwind creg.",
+                  "cr_offset": 0,
+                  "numbits": 32,
+                  "desired_value": "0x14",
+                  "ref_value": "0x14"
             }
       }
 }
