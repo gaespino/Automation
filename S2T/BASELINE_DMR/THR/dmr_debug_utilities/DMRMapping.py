@@ -116,14 +116,14 @@ def Run(log_path=None, verbose=0):
     print_itp = False
     print_whoami=False
     if(print_itp):
-        print(f"+"*38)
+        print("+"*38)
         print("| PRINT ITP IS CURRENTLY UNAVAILABLE |")
-        print(f"+"*38)
+        print("+"*38)
         print_itp=False
     if(print_whoami):
-        print(f"+"*41)
+        print("+"*41)
         print("| PRINT WHOAMI IS CURRENTLY UNAVAILABLE |")
-        print(f"+"*41)
+        print("+"*41)
         print_whoami=False
 
     global ipc
@@ -144,6 +144,7 @@ def Run(log_path=None, verbose=0):
     socket_id = 0 # Socket ID counter
     drg_vvar = VVAR_START
     for socket in sv.sockets: # For each socket
+        logical_module_id = 0
         for cbb in socket.cbbs: # For each cbb
             physical_to_col_row_array = {} # Physical : Column_Row
             physical_to_global_logical_module = {} # Physical : Local logical [0:59]
@@ -180,6 +181,7 @@ def Run(log_path=None, verbose=0):
 
             apic_id_t0 = APIC_ID_INCREASE_PER_CBB * cbb_instance # Offset per new cbb
             
+            
             for module_id, enabled in llc_is_enabled.items():
                 compute_N = (module_id % TOTAL_MODULES_PER_CBB) // TOTAL_MODULES_PER_COMPUTE
                 physical_module_id = module_id % TOTAL_MODULES_PER_CBB
@@ -190,10 +192,12 @@ def Run(log_path=None, verbose=0):
                 physical_to_vvars[physical_module_id] = []
 
                 if(physical_module_id in phys2ClassLog): 
-                    logical_module_id = '--'
                     if enabled:
-                        logical_module_id = int(cbb.pcode.vars.ccp_cfg.ccp_physical_to_logical_map[physical_module_id])
-                    physical_to_global_logical_module[physical_module_id] = logical_module_id # Global Logical             
+                        physical_to_global_logical_module[physical_module_id] = logical_module_id # Global Logical 
+                        logical_module_id += 1
+                    else:
+                        physical_to_global_logical_module[physical_module_id] = '--'
+                                
                     physical_to_global_class[physical_module_id] = phys2ClassLog[physical_module_id] + ACTIVE_MODULES_PER_CBB * cbb_instance # Global Class / Physical
                     physical_to_topdie[physical_module_id] = compute_N  # Top Die
                     
@@ -248,7 +252,7 @@ def Run(log_path=None, verbose=0):
             if verbose >= 2 : # Print dictionary contents
                 print(f"physical_to_local_logical: {physical_to_global_logical_module}")
                 print("#"*90+"\n")
-                print(f"\n\physical_to_global_logical: {physical_to_global_class}")
+                print(f"\nphysical_to_global_logical: {physical_to_global_class}")
                 print("#"*90+"\n")
                 print(f"physical_to_global_os: {physical_to_global_os}")
                 print("#"*90+"\n")

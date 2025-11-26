@@ -1,0 +1,82 @@
+{
+  "External": {
+    "dmr_cltsp": {
+      "ClassMask": {
+        "Mask": "00000000000000000000000000000000"
+      }
+    },
+    "dmr_cltap": {
+      "ClassMask": {
+        "Mask": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    "ClassMask_sys": {
+      "RowEvenPass": {
+        "cbb0": 0,
+        "cbb1": 0,
+        "cbb2": 0,
+        "cbb3": 0
+      },
+      "RowOddPass": {
+        "cbb0": 0,
+        "cbb1": 0,
+        "cbb2": 0,
+        "cbb3": 0
+      },
+      "ColumnEvenPass": {
+        "cbb0": 0,
+        "cbb1": 0,
+        "cbb2": 0,
+        "cbb3": 0
+      },
+      "ColumnOddPass": {
+        "cbb0": 0,
+        "cbb1": 0,
+        "cbb2": 0,
+        "cbb3": 0
+      }
+    },
+    "Masks_test": {
+      "RowEvenPass": {
+        "core_cbb_0": 0,
+        "core_cbb_1": 0,
+        "core_cbb_2": 0,
+        "core_cbb_3": 0,
+        "llc_cbb_0": 0,
+        "llc_cbb_1": 0,
+        "llc_cbb_2": 0,
+        "llc_cbb_3": 0
+      },
+      "RowOddPass": {
+        "core_cbb_0": 0,
+        "core_cbb_1": 0,
+        "core_cbb_2": 0,
+        "core_cbb_3": 0,
+        "llc_cbb_0": 0,
+        "llc_cbb_1": 0,
+        "llc_cbb_2": 0,
+        "llc_cbb_3": 0
+      },
+      "ColumnEvenPass": {
+        "core_cbb_0": 0,
+        "core_cbb_1": 0,
+        "core_cbb_2": 0,
+        "core_cbb_3": 0,
+        "llc_cbb_0": 0,
+        "llc_cbb_1": 0,
+        "llc_cbb_2": 0,
+        "llc_cbb_3": 0
+      },
+      "ColumnOddPass": {
+        "core_cbb_0": 0,
+        "core_cbb_1": 0,
+        "core_cbb_2": 0,
+        "core_cbb_3": 0,
+        "llc_cbb_0": 0,
+        "llc_cbb_1": 0,
+        "llc_cbb_2": 0,
+        "llc_cbb_3": 0
+      }
+    }
+  }
+}
