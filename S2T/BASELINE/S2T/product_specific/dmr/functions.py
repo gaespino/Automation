@@ -19,30 +19,55 @@ print (f"Loading Functions for {CONFIG_PRODUCT} || REV 0.1")
 class functions:
 	
 	@staticmethod
-	def pseudo_masking(ClassMask: dict, ClassMask_sys: dict, syscomputes: int):
+	def pseudo_masking(ClassMask: dict, ClassMask_sys: dict, syscbbs: int):
 
 		for key in ClassMask.keys():
 
 			ClassMask_fix = ClassMask[key][::-1]
-			computes = {'compute0':ClassMask_fix[0:24][::-1],'compute1':ClassMask_fix[24:48][::-1],'compute2':ClassMask_fix[48:72][::-1]}
+			cbbs = {'cbb0':ClassMask_fix[0:32][::-1],'cbb1':ClassMask_fix[32:64][::-1],'cbb2':ClassMask_fix[64:96][::-1],'cbb3':ClassMask_fix[96:128][::-1]}
 			
-			for compute in syscomputes:
-				bitcount = 0
-				bitarray = []
-				for bit in computes[compute]:
-					addbits = bitcount % 3 # there are 5 disabled after a set of 3 cores
-					# if addbits == 0 and bitcount != 0:
-					if bitcount == 0:
-						bitarray.append('11') # 5 cores are disabled starting at the core 0
-					elif addbits == 0:
-						bitarray.append('1111') 
-					bitarray.append(bit)
-					bitcount += 1
-				bitarray.append('111111')
-				bitstring = ''.join(bitarray)
-				ClassMask_sys[key][compute] = bitstring
+			for cbb in syscbbs:
+				# bitcount = 0
+				# bitarray = []
+				# for bit in cbbs[cbb]:
+				# 	addbits = bitcount % 3 # there are 5 disabled after a set of 3 cores
+				# 	# if addbits == 0 and bitcount != 0:
+				# 	if bitcount == 0:
+				# 		bitarray.append('11') # 5 cores are disabled starting at the core 0
+				# 	elif addbits == 0:
+				# 		bitarray.append('1111') 
+				# 	bitarray.append(bit)
+				# 	bitcount += 1
+				# bitarray.append('111111')
+				# bitstring = ''.join(bitarray)
+				ClassMask_sys[key][cbb] = cbbs[cbb]
 		
 		return ClassMask_sys
+
+	# def pseudo_masking(ClassMask: dict, ClassMask_sys: dict, syscomputes: int):
+
+	# 	for key in ClassMask.keys():
+
+	# 		ClassMask_fix = ClassMask[key][::-1]
+	# 		computes = {'compute0':ClassMask_fix[0:24][::-1],'compute1':ClassMask_fix[24:48][::-1],'compute2':ClassMask_fix[48:72][::-1]}
+			
+	# 		for compute in syscomputes:
+	# 			bitcount = 0
+	# 			bitarray = []
+	# 			for bit in computes[compute]:
+	# 				addbits = bitcount % 3 # there are 5 disabled after a set of 3 cores
+	# 				# if addbits == 0 and bitcount != 0:
+	# 				if bitcount == 0:
+	# 					bitarray.append('11') # 5 cores are disabled starting at the core 0
+	# 				elif addbits == 0:
+	# 					bitarray.append('1111') 
+	# 				bitarray.append(bit)
+	# 				bitcount += 1
+	# 			bitarray.append('111111')
+	# 			bitstring = ''.join(bitarray)
+	# 			ClassMask_sys[key][compute] = bitstring
+		
+	# 	return ClassMask_sys
 
 	@staticmethod
 	def core_apic_id(phys_module, cbb_index, compute_index, sv, id0, id1):

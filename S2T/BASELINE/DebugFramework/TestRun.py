@@ -21,10 +21,10 @@ print("="*70)
 # Uncomment ONE of the following to run:
 
 # Option 1: Test Control Panel (Main Framework UI)
-#TestFramework.run_control_panel_test(PRODUCT)
+TestFramework.run_control_panel_test(PRODUCT)
 
 # Option 2: Test Automation Panel (Flow Execution UI)
-TestFramework.run_automation_panel_test(PRODUCT)
+#TestFramework.run_automation_panel_test(PRODUCT)
 
 # Option 3: Interactive Test Menu (runs both and more)
 #TestFramework.main()

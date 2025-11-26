@@ -209,47 +209,48 @@ class decoder():
 	def lookup_pattern(self, compute, location, operation, suffix, thread = '', ptype = 'cha'):
 		
 		if ptype == 'cha':
-			pattern = f"SOCKET0__COMPUTE{compute}__UNCORE__CHA__CHA{location}__UTIL__MC_{suffix}"#_{operation}"
+			pattern = f"COMPUTE{compute}__UNCORE__CHA__CHA{location}__UTIL__MC_{suffix}"#_{operation}"
 		elif ptype == 'llc':
-			pattern = f"SOCKET0__COMPUTE{compute}__UNCORE__SCF__SCF_LLC__SCF_LLC{location}__MCI_{suffix}"#_{operation}"
+			pattern = f"COMPUTE{compute}__UNCORE__SCF__SCF_LLC__SCF_LLC{location}__MCI_{suffix}"#_{operation}"
 		#DPMB_SOCKET0__COMPUTE0__CPU__CORE0__ML2_CR_MC3_ADDR_8749
-		elif ptype == 'ubox':
-			pattern = f"SOCKET0__{compute}__UNCORE__{location}__NCEVENTS__{suffix}"#_{operation}"	
+		#elif ptype == 'ubox':
+		#	pattern = f"(SOCKET0|SOCKET1)__{compute}__UNCORE__{location}__NCEVENTS__{suffix}"#_{operation}"	
 
 		## Patterns for bigcore
 		elif ptype == 'core_ml2':
-				pattern = f"SOCKET0__COMPUTE{compute}__CPU__CORE{location}__ML2_CR_MC3_{suffix}"#_{operation}"		
+				pattern = f"COMPUTE{compute}__CPU__CORE{location}__ML2_CR_MC3_{suffix}"#_{operation}"		
 		#DPMB_SOCKET0__COMPUTE1__CPU__CORE68__THREAD0__DCU_CR_MC1_STATUS_8749
 		elif ptype == 'core_dcu':
-				pattern = f"SOCKET0__COMPUTE{compute}__CPU__CORE{location}__THREAD{thread}__DCU_CR_MC1_{suffix}"#_{operation}"	
+				pattern = f"COMPUTE{compute}__CPU__CORE{location}__THREAD{thread}__DCU_CR_MC1_{suffix}"#_{operation}"	
 		#DPMB_SOCKET0__COMPUTE0__CPU__CORE0__DTLB_CR_MC2_STATUS_*
 		elif ptype == 'core_dtlb':
-				pattern = f"SOCKET0__COMPUTE{compute}__CPU__CORE{location}__DTLB_CR_MC2_{suffix}"#_{operation}"	
+				pattern = f"COMPUTE{compute}__CPU__CORE{location}__DTLB_CR_MC2_{suffix}"#_{operation}"	
 		#DPMB_SOCKET0__COMPUTE0__CPU__CORE0__THREAD*__IFU_CR_MC0_STATUS_*
 		elif ptype == 'core_ifu':
-				pattern = f"SOCKET0__COMPUTE{compute}__CPU__CORE{location}__THREAD{thread}__IFU_CR_MC0_{suffix}"#_{operation}"	
+				pattern = f"COMPUTE{compute}__CPU__CORE{location}__THREAD{thread}__IFU_CR_MC0_{suffix}"#_{operation}"	
 
 
 		## Patterns for atomcore
 		elif ptype == 'core_l2':
-			pattern = f"SOCKET0__COMPUTE{compute}__CPU__MODULE{location}__L2_CR_MCI_{suffix}"#_{operation}"		
+			pattern = f"COMPUTE{compute}__CPU__MODULE{location}__L2_CR_MCI_{suffix}"#_{operation}"		
 		
 		elif ptype == 'core_bbl':
-			pattern = f"SOCKET0__COMPUTE{compute}__CPU__MODULE{location}__BBL_CR_MCI_{suffix}"#_{operation}"		
+			pattern = f"COMPUTE{compute}__CPU__MODULE{location}__BBL_CR_MCI_{suffix}"#_{operation}"		
 
 		elif ptype == 'core_bus':
-			pattern = f"SOCKET0__COMPUTE{compute}__CPU__MODULE{location}__BUS_CR_MCI_{suffix}"#_{operation}"	
+			pattern = f"COMPUTE{compute}__CPU__MODULE{location}__BUS_CR_MCI_{suffix}"#_{operation}"	
 
 		#DPMB_SOCKET0__COMPUTE1__CPU__CORE68__THREAD0__DCU_CR_MC1_STATUS_8749
 		elif ptype == 'core_mec':
-			pattern = f"SOCKET0__COMPUTE{compute}__CPU__MODULE{location}__CORE{thread}__MEC_CR_MCI_{suffix}"#_{operation}"	
+			pattern = f"COMPUTE{compute}__CPU__MODULE{location}__CORE{thread}__MEC_CR_MCI_{suffix}"#_{operation}"	
 		#DPMB_SOCKET0__COMPUTE0__CPU__CORE0__DTLB_CR_MC2_STATUS_*
 		elif ptype == 'core_agu':
-			pattern = f"SOCKET0__COMPUTE{compute}__CPU__MODULE{location}__CORE{thread}__AGU_CR_MCI_{suffix}"#_{operation}"	
+			pattern = f"COMPUTE{compute}__CPU__MODULE{location}__CORE{thread}__AGU_CR_MCI_{suffix}"#_{operation}"	
 		#DPMB_SOCKET0__COMPUTE0__CPU__CORE0__THREAD*__IFU_CR_MC0_STATUS_*
 		elif ptype == 'core_ic':
-			pattern = f"SOCKET0__COMPUTE{compute}__CPU__MODULE{location}__CORE{thread}__IC_CR_MCI_{suffix}"#_{operation}"	
-
+			pattern = f"COMPUTE{compute}__CPU__MODULE{location}__CORE{thread}__IC_CR_MCI_{suffix}"#_{operation}"	
+		else:
+			pattern = ''
 
 		return pattern
 
@@ -270,19 +271,19 @@ class decoder():
 		"""
 		if ptype == 'b2cmi':
 			# Pattern: SOCKET0__SOC__MEMSS__B2CMI{n}__MCI_{suffix}
-			pattern = f"SOCKET0__SOC__MEMSS__B2CMI{b2cmi}__MCI_{suffix}"
+			pattern = f"SOC__MEMSS__B2CMI{b2cmi}__MCI_{suffix}"
 			
 		elif ptype == 'mse':
 			# Pattern: SOCKET0__SOC__MEMSS__MC{n}__CH{n}__MSE__MSE_MCI_{suffix}
-			pattern = f"SOCKET0__SOC__MEMSS__MC{mc}__CH{ch}__MSE__MSE_MCI_{suffix}"
+			pattern = f"SOC__MEMSS__MC{mc}__CH{ch}__MSE__MSE_MCI_{suffix}"
 			
 		elif ptype == 'mcchan':
 			# Pattern: SOCKET0__SOC__MEMSS__MC{n}__CH{ch}__MCCHAN__IMC{imc}_MC_{suffix}
 			# Note: ADDR register is IMC0_MC8_ADDR (special case)
 			if suffix == 'ADDR':
-				pattern = f"SOCKET0__SOC__MEMSS__MC{mc}__CH{ch}__MCCHAN__IMC{imc}_MC8_ADDR"
+				pattern = f"SOC__MEMSS__MC{mc}__CH{ch}__MCCHAN__IMC{imc}_MC8_ADDR"
 			else:
-				pattern = f"SOCKET0__SOC__MEMSS__MC{mc}__CH{ch}__MCCHAN__IMC{imc}_MC_{suffix}"
+				pattern = f"SOC__MEMSS__MC{mc}__CH{ch}__MCCHAN__IMC{imc}_MC_{suffix}"
 		else:
 			pattern = ''
 		

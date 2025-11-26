@@ -13,11 +13,11 @@ Package Structure:
 - DebugScripts: Debugging and utility scripts
 
 Main Entry Point:
-    Run 'python run_ppv_tools.py' to start the PPV Tools Hub
+    Run 'python run.py' to start the PPV Tools Hub
 """
 
 __version__ = "2.0.0"
-__author__ = "PPV Tools Team"
+__author__ = "Gaespino"
 
 # Import main components for easy access
 from .gui import (

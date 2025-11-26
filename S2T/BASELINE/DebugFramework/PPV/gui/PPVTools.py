@@ -14,12 +14,14 @@ try:
     from ..api.dpmb import dpmbGUI
     from .PPVFileHandler import FileHandlerGUI
     from .PPVFrameworkReport import FrameworkReportBuilder
+    from .AutomationDesigner import start_automation_flow_designer
 except ImportError:
     from gui.PPVLoopChecks import PTCReportGUI
     from gui.PPVDataChecks import PPVReportGUI
     from api.dpmb import dpmbGUI
     from gui.PPVFileHandler import FileHandlerGUI
     from gui.PPVFrameworkReport import FrameworkReportBuilder
+    from gui.AutomationDesigner import start_automation_flow_designer
 #import pyfiglet
 
 def display_banner():
@@ -132,8 +134,14 @@ class Tools(tk.Frame):
 			"Create comprehensive reports from Debug Framework experiment data.",
 			"• Unit overview generation\n• Summary file merging\n• Multi-experiment analysis",
 			"#1abc9c",
-			self.open_frameworkreport,
-			colspan=2)
+			self.open_frameworkreport)
+		
+		self.create_tool_card(tools_container, 2, 1,
+			"Automation Flow Designer",
+			"Visual tool for designing and managing automation test flows.",
+			"• Drag-and-drop flow design\n• Experiment sequencing\n• Export automation configs",
+			"#16a085",
+			self.open_automation_designer)
 		
 		# Footer with close button
 		footer_frame = tk.Frame(self.scrollable_frame, bg='#f0f0f0', pady=20)
@@ -285,6 +293,10 @@ class Tools(tk.Frame):
 		root5.title('Framework Report Builder')
 		app5 = FrameworkReportBuilder(root5)
 		# Framework report is already maximized, no need to center
+	
+	def open_automation_designer(self):
+		"""Open Automation Flow Designer tool"""
+		start_automation_flow_designer(parent=self.root)
 	
 	def center_window(self, window):
 		"""Center a window on the screen"""

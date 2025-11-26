@@ -58,12 +58,6 @@ except:
 	print( '[WARNING] File Hanlder Module not imported, ignore if testing. ')
 	gme = None
 
-try:
-    from ExecutionHandler.utils.DebugLogger import FrameworkDebugger, ConsoleUtils
-except:
-	print( '[WARNING] Debugger Module not imported, ignore if testing. ')
-	FrameworkDebugger = None
-	ConsoleUtils = None
 
 class FrameworkUtils:
 

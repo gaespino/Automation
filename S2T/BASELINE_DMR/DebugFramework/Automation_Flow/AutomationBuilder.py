@@ -59,10 +59,12 @@ class FlowConfiguration:
 		self.structure_path = None
 		self.flows_path = None
 		self.ini_path = None
+		self.saved_positions = {}  # Store loaded positions
 		self.default_files = {
 			'structure': 'FrameworkAutomationStructure.json',
 			'flows': 'FrameworkAutomationFlows.json',
-			'ini': 'FrameworkAutomationInit.ini'
+			'ini': 'FrameworkAutomationInit.ini',
+			'positions': 'FrameworkAutomationPositions.json'
 		}
 		self.framework_api = framework_api
 		self.framework_utils = framework_utils
@@ -88,9 +90,65 @@ class FlowConfiguration:
 			# SINGLE PLACE: Create executor through builder with execution_state
 			self.executor = self.builder.build_flow(start_node_id, execution_state=execution_state)
 			
+			# Load saved positions if available
+			self._load_positions(logger)
+			
 			return True, None
 		except Exception as e:
 			return False, str(e)
+	
+	def _load_positions(self, logger=None):
+		"""Load saved node positions from FrameworkAutomationPositions.json."""
+		import json
+		import os
+		
+		self.saved_positions = {}
+		
+		if not self.flow_folder:
+			# Try to get folder from structure_path
+			if self.structure_path:
+				self.flow_folder = os.path.dirname(self.structure_path)
+		
+		if not self.flow_folder:
+			return
+		
+		positions_file = os.path.join(self.flow_folder, self.default_files['positions'])
+		
+		if os.path.exists(positions_file):
+			try:
+				with open(positions_file, 'r') as f:
+					positions_data = json.load(f)
+				
+				# Enhance positions with width, height, center_x, center_y
+				node_width = 160
+				node_height = 120
+				
+				for node_id, pos in positions_data.items():
+					if 'x' in pos and 'y' in pos:
+						x = pos['x']
+						y = pos['y']
+						
+						# Create complete position dict with all required fields
+						self.saved_positions[node_id] = {
+							'x': x,
+							'y': y,
+							'width': pos.get('width', node_width),
+							'height': pos.get('height', node_height),
+							'center_x': x + pos.get('width', node_width) // 2,
+							'center_y': y + pos.get('height', node_height) // 2,
+							'level': pos.get('level', 0)
+						}
+				
+				if logger:
+					logger(f"Loaded saved positions for {len(self.saved_positions)} nodes", "success")
+				else:
+					print(f"[FlowConfig] Loaded {len(self.saved_positions)} node positions")
+					
+			except Exception as e:
+				if logger:
+					logger(f"Could not load positions: {str(e)}", "warning")
+				else:
+					print(f"[FlowConfig] Could not load positions: {e}")
 	
 	def find_start_node(self):
 		"""Find the start node in the configuration."""

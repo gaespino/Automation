@@ -132,37 +132,10 @@ class teraterm():
 				return False           
 		   
 			numlines = len(total_lines)# if total_lines != None else 0
+			
+			# Function to collect Core Data if configured
+			self.get_core_data()
 
-			#print('Last line --> ', current_last_line)
-			if self.chkcore != None: 
-				#def print_current_core_info(core, compute=0, socket=0):
-				core = self.chkcore
-				compute=gcd.get_compute(core)
-				socket = 0
-
-				## Will return this from GCD as a better option - testing like this for now
-				
-				try:
-					if self.product == 'GNR':
-						iaR = gcd.read_current_core_ratio(core, compute, socket)
-						iaV = gcd.read_current_core_voltage(core, compute, socket)
-						iaL = gcd.read_current_license(core, compute, socket)
-						dcf_ratio = gcd.dcf_read_ratio(core, False)
-						#print( "core = %s, IA Ratio = %s, IA Volt = %f,  IALicense= %s" % (core, iaR, iaV, iaL))
-
-						self.DebugLog("phys_core = %s, IA Ratio = %s, IA Volt = %f, IALicense= %s, current_dcf_ratio = %d" % (core, iaR, iaV, iaL, dcf_ratio))
-					else:
-						phys_mod = core
-						moduleLog = gcd.get_moduleLog(core, compute, socket)
-						iaR = gcd.read_current_core_ratio(moduleLog, compute, socket)
-						iaV = gcd.read_current_core_voltage(moduleLog, compute, socket)
-						self.DebugLog( "PHYmodule = %s, LLmodule = %s, IA Ratio = %d, IA Volt = %f" % (phys_mod, moduleLog, iaR, iaV))
-				except:
-					self.DebugLog( f" Failed collecting data for --> Socket{socket} - Core / Module:{core} - Compute:{compute}")
-					self.DebugLog(F" Disablomg Check Core/Module routine for CORE/MOD: {self.chkcore}")
-					self.DebugLog(F" Check if your Module/Core is disabled or PythonSV is having issues")
-					self.chkcore = None
-					#return False
 			if current_last_line == last_line and prevlines == numlines:
 				unchanged_checks += 1
 				
@@ -181,18 +154,13 @@ class teraterm():
 					return False
 				if self.search_in_file(lines=total_lines, string=[self.ttendfail], casesens=False, search_up_to_line=10, reverse=True):
 					return False
-
-				#mcadata, pysvdecode = ereport.mca_dump_gnr(verbose=False)
-				#for k,v in pysvdecode.items():
-				#    if v == True:
-				#        print(f"MCE Found Unit Failed @ {k.upper()}")
-				#        return False
 			
 			if 'FS1:\EFI\>' in current_last_line and numlines >= 2:
 				previousline = total_lines[numlines-2]
 				self.DebugLog(f'Last line {-1} --times:{endcount} --> {previousline}', 1)
 				endcount += 1
-
+				mce = False
+				
 				if self.ttendw.lower() in previousline.lower() and endcount > 5:
 					self.DebugLog("Test Finished Succesfully")
 					return True
@@ -203,7 +171,10 @@ class teraterm():
 
 				if endcount > 5: 
 					mce = self.mca_checker()
-					return not mce
+				
+				if mce:
+					self.DebugLog("MCE Founds -- Ending Test")
+					return False
 				
 				if self.search_in_file(lines=total_lines, string=[self.ttendfail], casesens=False, search_up_to_line=10, reverse=True):
 					self.DebugLog("Test Failed -- Errors detected")
@@ -220,14 +191,22 @@ class teraterm():
 				#        return False
 			else:
 				endcount = 0
-
-			if self.ttendw in current_last_line:
-				self.DebugLog("Test Finished Succesfully")
-				return True
+			
 			if self.ttendfail.lower() in current_last_line.lower():
 				self.DebugLog("Test Failed -- Errors detected")
 				return False
 				#break
+
+			if self.ttendw in current_last_line:
+				# Last MCE Check before passing test
+				mce = self.mca_checker()
+				if mce:
+					self.DebugLog("MCE Founds at the end of Test")
+					return False
+
+				self.DebugLog("Test Finished Succesfully")
+				return True
+
 			prevlines = numlines
 			time.sleep(self.testtime)
 
@@ -247,35 +226,11 @@ class teraterm():
 				return False           
 		   
 			numlines = len(total_lines)# if total_lines != None else 0
-			try:
-				#print('Last line --> ', current_last_line)
-				if self.chkcore != None: 
-					#def print_current_core_info(core, compute=0, socket=0):
-					core = self.chkcore
-					compute=gcd.get_compute(core)
-					socket = 0
-
-					## Will return this from GCD as a better option - testing like this for now
-					if self.product == 'GNR':
-						iaR = gcd.read_current_core_ratio(core, compute, socket)
-						iaV = gcd.read_current_core_voltage(core, compute, socket)
-						iaL = gcd.read_current_license(core, compute, socket)
-						dcf_ratio = gcd.dcf_read_ratio(core, False)
-						#print( "core = %s, IA Ratio = %s, IA Volt = %f,  IALicense= %s" % (core, iaR, iaV, iaL))
-
-						self.DebugLog("phys_core = %s, IA Ratio = %s, IA Volt = %f, IALicense= %s, current_dcf_ratio = %d" % (core, iaR, iaV, iaL, dcf_ratio))
-					else:
-						phys_mod = core
-						moduleLog = gcd.get_moduleLog(core, compute, socket)
-						iaR = gcd.read_current_core_ratio(moduleLog, compute, socket)
-						iaV = gcd.read_current_core_voltage(moduleLog, compute, socket)
-						self.DebugLog( "PHYmodule = %s, LLmodule = %s, IA Ratio = %d, IA Volt = %f" % (phys_mod, moduleLog, iaR, iaV))
-			except:
-				self.DebugLog( f" Failed collecting data for --> Socket{socket} - Core / Module:{core} - Compute:{compute}")
-				self.DebugLog(F" Disablomg Check Core/Module routine for CORE/MOD: {self.chkcore}")
-				self.DebugLog(F" Check if your Module/Core is disabled or PythonSV is having issues")
-				self.chkcore = None	
-			   # self.DebugLog("phys_core = %s, IA Ratio = %s, IA Volt = %f, IALicense= %s, current_dcf_ratio = %d" % (core, iaR, iaV, iaL, dcf_ratio))
+			
+			# Function to collect Core Data if configured
+			self.get_core_data()
+			
+			# Ping Host to ensure connection is alive
 			wdtimer = self.ping_host(host=self.host, retries=10, interval=self.testtime)
 
 
@@ -310,15 +265,19 @@ class teraterm():
 				previousline = total_lines[numlines-2]
 				self.DebugLog(f'Last line {-1} --times:{endcount} --> {previousline}', 1)
 				endcount += 1
+				mce = False
 
 				if self.ttendw in previousline and endcount > 5:
 					self.DebugLog("Test Finished Succesfully")
 					return True
 				
+				# Check MCE at count 5
 				if endcount > 5: 
 					mce = self.mca_checker()
-					return not mce
 
+				if mce:
+					self.DebugLog("MCE Founds -- Ending Test")
+					return False
 				
 				if self.search_in_file(lines=total_lines, string=[self.ttendfail], casesens=False, search_up_to_line=10, reverse=True):
 					self.DebugLog("Test Failed -- Errors detected")
@@ -332,6 +291,12 @@ class teraterm():
 				endcount = 0
 
 			if self.ttendw in current_last_line:
+				# Last MCE Check before passing test
+				mce = self.mca_checker()
+				if mce:
+					self.DebugLog("MCE Founds at the end of Test")
+					return False
+			
 				self.DebugLog("Test Finished Succesfully")
 				return True
 				#break
@@ -357,6 +322,35 @@ class teraterm():
 				time.sleep(interval)
 		
 		self.DebugLog(f"Failed to connect to {host} after {retries} retries.")
+
+	def get_core_data(self):
+
+		if self.chkcore != None: 
+			
+			core = self.chkcore
+			socket = 0
+				
+			try:
+				compute=gcd.get_compute(core)
+				if self.product == 'GNR':
+					iaR = gcd.read_current_core_ratio(core, compute, socket)
+					iaV = gcd.read_current_core_voltage(core, compute, socket)
+					iaL = gcd.read_current_license(core, compute, socket)
+					dcf_ratio = gcd.dcf_read_ratio(core, False)
+					#print( "core = %s, IA Ratio = %s, IA Volt = %f,  IALicense= %s" % (core, iaR, iaV, iaL))
+
+					self.DebugLog("phys_core = %s, IA Ratio = %s, IA Volt = %f, IALicense= %s, current_dcf_ratio = %d" % (core, iaR, iaV, iaL, dcf_ratio))
+				else:
+					phys_mod = core
+					moduleLog = gcd.get_moduleLog(core, compute, socket)
+					iaR = gcd.read_current_core_ratio(moduleLog, compute, socket)
+					iaV = gcd.read_current_core_voltage(moduleLog, compute, socket)
+					self.DebugLog( "PHYmodule = %s, LLmodule = %s, IA Ratio = %d, IA Volt = %f" % (phys_mod, moduleLog, iaR, iaV))
+			except:
+				self.DebugLog( f" Failed collecting data for --> Socket{socket} - Core / Module:{core}")
+				self.DebugLog(F" Disablomg Check Core/Module routine for CORE/MOD: {core}")
+				self.DebugLog(F" Check if your Module/Core is disabled or PythonSV is having issues")
+				self.chkcore = None
 
 	def run_tera_term_macro(self):
 		macro_path = self.macro
