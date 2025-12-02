@@ -371,7 +371,9 @@ class registers:
                         "thread0.bnl_cr_pppe",
                         "thread0.fpc_cr_event_info",
                         "thread0.ia32_cr_perf_global_ctrl_preserve_alias",
-                        "thread0.ic_cr_probe_mode_status"
+                        "thread0.ic_cr_probe_mode_status",
+                        "ia32_cr_uarch_misc_ctl", # From last list included in CRDICT
+                        "thread0.virt_cr_pppe_event_status" # From last list included in CRDICT
                     ]
         
         # Registers: Issues with Raritan + Slow / Bad Performance
@@ -396,7 +398,8 @@ class registers:
                         "x86_cr_mtrrphysmask2",
                         # Slow / Bad Performance after applying
                         "thread0.ag2_cr_cr0",
-                        "thread0.id_cr_debug_defeature"
+                        "thread0.id_cr_debug_defeature",
+                        "thread0.virt_cr_vmx_control" ## Last List -- added in CRDICT
                     ]
 
         # Initialize skip list

@@ -312,7 +312,7 @@ class configurations:
 							'core_volt':			{'default':None,'enabled':True,'disabled_value':None,},
 							'u600w':				{'default':None,'enabled':False,'disabled_value':None,},
 							'extMasks':				{'default':None,'enabled':True,'disabled_value':None},
-							'reg_select':			{'default':None,'enabled':False,'disabled_value':1,}
+							'reg_select':			{'default':None,'enabled':True,'disabled_value':1,}
 							}
 		
 		return FrameworkFeatures

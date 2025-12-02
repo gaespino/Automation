@@ -286,6 +286,10 @@ class teraterm():
 				if self.search_in_file(lines=total_lines, string=[self.ttendw], casesens=False, search_up_to_line=10, reverse=True):
 					self.DebugLog("Test Finished Succesfully")
 					return True
+				
+				if endcount >=20:
+					self.DebugLog("Console looks stuck -- Ending Test")
+					return False
   
 			else:
 				endcount = 0
@@ -346,8 +350,8 @@ class teraterm():
 					iaR = gcd.read_current_core_ratio(moduleLog, compute, socket)
 					iaV = gcd.read_current_core_voltage(moduleLog, compute, socket)
 					self.DebugLog( "PHYmodule = %s, LLmodule = %s, IA Ratio = %d, IA Volt = %f" % (phys_mod, moduleLog, iaR, iaV))
-			except:
-				self.DebugLog( f" Failed collecting data for --> Socket{socket} - Core / Module:{core}")
+			except Exception as e:
+				self.DebugLog( f" Failed collecting data for --> Core / Module:{core} -- {e}")
 				self.DebugLog(F" Disablomg Check Core/Module routine for CORE/MOD: {core}")
 				self.DebugLog(F" Check if your Module/Core is disabled or PythonSV is having issues")
 				self.chkcore = None

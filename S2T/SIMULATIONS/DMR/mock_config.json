@@ -1,0 +1,148 @@
+{
+    "mock_config": {
+        "product": "DMR",
+        "variant": "AP",
+        "chop": "XCC",
+        "base_path": "BASELINE_DMR",
+        "max_physical_cores": 64,
+        "default_visual": "QVRX12345678",
+        "default_qdf": "L0_DMRAP_XCC",
+        "log_folder": "C:\\temp\\mock_logs\\"
+    },
+    "test_scenarios": {
+        "basic_test": {
+            "TestName": "BasicFunctionalTest",
+            "Testnumber": 1,
+            "Bucket": "UNCORE",
+            "description": "Basic functional test with minimal parameters"
+        },
+        "debug_test": {
+            "TestName": "DebugWithMCA",
+            "Testnumber": 2,
+            "debug_mca": 1,
+            "chkmem": 1,
+            "dr_dump": true,
+            "Bucket": "CORE",
+            "description": "Debug test with MCA and memory checking enabled"
+        },
+        "memory_test": {
+            "TestName": "MemoryStressTest",
+            "Testnumber": 3,
+            "chkmem": 1,
+            "Bucket": "MEMORY",
+            "folder": "C:\\temp\\memory_logs",
+            "description": "Memory stress test scenario"
+        },
+        "uncore_test": {
+            "TestName": "UncoreFunctional",
+            "Testnumber": 4,
+            "debug_mca": 1,
+            "Bucket": "UNCORE",
+            "description": "Uncore functional test with MCA debug"
+        },
+        "ui_test": {
+            "TestName": "UIMode",
+            "Testnumber": 5,
+            "UI": true,
+            "description": "Test logger in UI mode"
+        }
+    },
+    "mock_responses": {
+        "visual_ids": [
+            "QVRX12345678",
+            "QVRX87654321",
+            "QVRX11111111",
+            "QVRX99999999"
+        ],
+        "qdf_strings": [
+            "L0_DMRAP_XCC",
+            "L0_DMRAP_MCC",
+            "L0_DMRSP_XCC",
+            "L0_DMRSP_MCC"
+        ],
+        "products": [
+            "DMR",
+            "GNR",
+            "CWF"
+        ],
+        "variants": [
+            "AP",
+            "SP"
+        ],
+        "chops": [
+            "XCC",
+            "MCC",
+            "HCC"
+        ]
+    },
+    "mock_unit_info": {
+        "socket_count": 1,
+        "compute_count": 3,
+        "io_count": 2,
+        "cores_per_compute": 64,
+        "llc_per_compute": 60
+    },
+    "mock_fuses": {
+        "compute0": {
+            "ia_mask": "0xffffffffffffffff",
+            "llc_mask": "0xffffffffffffffff"
+        },
+        "compute1": {
+            "ia_mask": "0xffffffffffffffff",
+            "llc_mask": "0xffffffffffffffff"
+        },
+        "compute2": {
+            "ia_mask": "0xffffffffffffffff",
+            "llc_mask": "0xffffffffffffffff"
+        }
+    },
+    "logger_defaults": {
+        "visual": "",
+        "qdf": "",
+        "TestName": "",
+        "Testnumber": 0,
+        "dr_dump": true,
+        "chkmem": 0,
+        "debug_mca": 0,
+        "folder": null,
+        "WW": "",
+        "Bucket": "UNCORE",
+        "UI": false,
+        "refresh": false,
+        "logging": null,
+        "upload_to_disk": false,
+        "upload_to_danta": false
+    },
+    "test_buckets": [
+        "CORE",
+        "UNCORE",
+        "MEMORY",
+        "IO",
+        "MESH",
+        "FABRIC",
+        "POWER"
+    ],
+    "expected_results": {
+        "success": {
+            "status": "success",
+            "errors_found": 0,
+            "mca_decoded": false
+        },
+        "with_errors": {
+            "status": "success",
+            "errors_found": 2,
+            "mca_decoded": true
+        },
+        "failure": {
+            "status": "failure",
+            "errors_found": -1,
+            "mca_decoded": false
+        }
+    },
+    "notes": [
+        "This configuration file defines mock behavior for dpmChecks logger testing",
+        "Modify mock_responses to simulate different unit configurations",
+        "Test scenarios can be loaded and executed programmatically",
+        "Expected results define success criteria for automated testing"
+    ]
+}

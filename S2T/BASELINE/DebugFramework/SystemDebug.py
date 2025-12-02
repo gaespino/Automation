@@ -795,6 +795,10 @@ class TestExecutor:
 		seed = fh.extract_fail_seed(log_file_path=log_new_path, PassString=pass_strings, FailString=fail_strings) if os.path.exists(log_new_path) else "NA"
 		scratchpad = getattr(serial, 'scratchpad', '')
 		
+		
+		# Unit Specific Logs
+		self.product_specific()
+		
 		# Log results
 		self.gdflog.log(f'tdata_{self.config.tnumber}::{run_name}::{run_status}::{scratchpad}::{seed}')
 		self.gdflog.log(print_custom_separator(f'Test iteration summary'))
@@ -812,6 +816,13 @@ class TestExecutor:
 			config_path=s2t_config_path,
 			pysv_log_path=pysvlog_new_path
 		)
+
+	def product_specific(self):
+		try:
+			if ContentValues.PRODUCT == 'CWF':
+				dpm.hwls_miscompare(logger=self.gdflog.log)
+		except Exception as e:
+			self.gdflog.log(f"Error in product_specific log: {e}")
 
 class TestResultProcessor:
 	"""Utility class for processing and analyzing test results"""
