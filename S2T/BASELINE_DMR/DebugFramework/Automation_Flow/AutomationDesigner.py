@@ -122,7 +122,7 @@ class AutomationFlowDesigner:
             'COM Port': '',
             'IP Address': '',
             '600W Unit': False,
-            'Check Core': ''
+            'Check Core': None
         }
 
         # UI State
@@ -717,7 +717,7 @@ class AutomationFlowDesigner:
                 self.com_port_var.set(unit_config.get('COM Port', ''))
                 self.ip_address_var.set(unit_config.get('IP Address', ''))
                 self.unit_600w_var.set(unit_config.get('600W Unit', False))
-                self.check_core_var.set(unit_config.get('Check Core', ''))
+                self.check_core_var.set(unit_config.get('Check Core', None))
             
             # Update UI
             self.experiments_listbox.delete(0, tk.END)
@@ -1729,8 +1729,8 @@ class AutomationFlowDesigner:
             overrides['IP Address'] = self.ip_address_var.get().strip()
         if self.unit_600w_var.get():
             overrides['600W Unit'] = self.unit_600w_var.get()
-        if self.check_core_var.get().strip():
-            overrides['Check Core'] = self.check_core_var.get().strip()
+        if self.check_core_var.get():
+            overrides['Check Core'] = int(self.check_core_var.get())
         
         # If no overrides, return True (proceed without changes)
         if not overrides:
