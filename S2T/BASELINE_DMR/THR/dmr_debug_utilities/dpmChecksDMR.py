@@ -830,7 +830,7 @@ def pseudo_bs(ClassMask = 'RowEvenPass', Custom = [], boot = True, use_core = Fa
 
 	# htdis_comp = []
 	# htdis_io = []
-	dis_2CPM_cbb = []
+	dis_1CPM_cbb = []
 
 	# vbump_enabled = vbump['enabled']
 
