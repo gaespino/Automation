@@ -238,3 +238,6 @@ local/
 results/
 output/
 logs/
+
+# SIMULATIONS folder (test mocks and simulations)
+S2T/SIMULATIONS/

@@ -1012,6 +1012,7 @@ def pseudomask(combine = False, boot = False, Type = 'Class', ext_mask = None):
 	else:
 		## Used with the pseudo_bs function, wont print fuse data, just return the Mask values to be processed by the script
 		return Masks_test
+
 def getChipConfig():
 	from namednodes import sv
 	number_of_cbbs = len(sv.socket0.cbbs.names)

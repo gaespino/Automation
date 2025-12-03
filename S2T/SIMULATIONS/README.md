@@ -22,8 +22,50 @@ SIMULATIONS/
 
 ## Available Mocks
 
+### BASE (BASELINE) - GNR/CWF with FILE GENERATION
+**Status**: ✅ Complete with Actual File Generation  
+**Target**: `BASELINE/S2T/dpmChecks.py` - `logger()` function  
+**Features**:
+- ✨ **ACTUAL FILE GENERATION** - Creates real Excel, CSV, JSON files
+- 🖥️ **Working Tkinter UI** - Interactive form for data entry
+- 🔍 **MCA Bank Simulation** - Realistic error scenarios
+- 11 automated test cases with file verification
+- 8 example scenarios with file generation
+- Complete file content validation
+- JSON configuration
+- Full documentation
+
+**Quick Start**:
+```powershell
+cd BASE
+python verify.py           # Quick verification with file generation
+python test_logger.py      # Run all tests (creates test_output/)
+python examples.py --all   # Run all examples (creates example_output/)
+python examples.py --ui    # Try interactive UI
+```
+
+**Generated Files**:
+- 📊 Excel TileView Reports (formatted, with MCA data, error highlighting)
+- 📄 MCA CSV Data (complete bank information)
+- 🐉 Dragon Memory Dumps (simulated memory content)
+- ⚙️ Framework JSON (test configuration and results)
+- 📝 Memory Check Reports (validation output)
+
+**Key Features**:
+- `logger()` - Generates actual files (Excel, CSV, JSON, TXT)
+- `visual_str()` - Visual ID retrieval
+- `qdf_str()` - QDF string retrieval  
+- `getWW()` - Work week calculation
+- `request_unit_info()` - Unit information
+- `fuses()` - Fuse mask operations
+- `powercycle()` - Power control
+- Working Tkinter UI for interactive testing
+- MCA bank simulation with realistic errors
+- Complete pythonsv (sv) simulation
+- Complete IPC simulation
+
 ### DMR (BASELINE_DMR)
-**Status**: ✅ Complete  
+**Status**: ✅ Complete (Basic Mock)
 **Target**: `BASELINE_DMR/S2T/dpmChecks.py` - `logger()` function  
 **Features**:
 - Complete mock of all logger dependencies
@@ -42,7 +84,7 @@ python verify.py           # Quick verification
 ```
 
 **Key Mocks**:
-- `logger()` - Main logging function with error report generation
+- `logger()` - Main logging function simulation
 - `visual_str()` - Visual ID retrieval
 - `qdf_str()` - QDF string retrieval
 - `getWW()` - Work week calculation
@@ -52,11 +94,6 @@ python verify.py           # Quick verification
 - Complete pythonsv (sv) simulation
 - Complete IPC simulation
 - Configuration object
-
-### BASE (BASELINE) - Coming Soon
-**Status**: 🔜 Planned  
-**Target**: Future mocks for GNR and CWF products  
-**Note**: Structure is ready - copy DMR template and adapt for GNR/CWF
 
 ## Usage
 
@@ -191,11 +228,10 @@ import dpmChecks
 
 ## Current Status
 
-| Product | Module | Function | Status | Tests | Examples | Docs |
-|---------|--------|----------|--------|-------|----------|------|
-| DMR | dpmChecks | logger() | ✅ | 10 | 8 | ✅ |
-| GNR | TBD | TBD | 🔜 | - | - | - |
-| CWF | TBD | TBD | 🔜 | - | - | - |
+| Product | Module | Function | Status | Tests | Examples | Docs | File Gen |
+|---------|--------|----------|--------|-------|----------|------|----------|
+| GNR/CWF | dpmChecks | logger() | ✅ | 11 | 8 | ✅ | ✅ Real |
+| DMR | dpmChecks | logger() | ✅ | 10 | 8 | ✅ | ❌ Mock |
 
 ## Future Enhancements
 

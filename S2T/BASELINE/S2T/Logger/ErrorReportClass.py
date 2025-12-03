@@ -146,9 +146,11 @@ class ErrorReportGenerator:
 			self.max_logical = self.config.get('MAXLOGICAL', 60)
 			self.log2phy = self.config.get('LOG2PHY', {})
 			self.phy2log = self.config.get('PHY2LOG', {})
-			
+
 			print(f"  {Colors.success('[+]')} Loaded product configuration for {Colors.BOLD}{self.product}{Colors.RESET} (base: {self.base_path})")
-			
+			print("MAX PHYSICAL:", self.max_physical)
+			print("MAX LOGICAL:", self.max_logical)
+
 		except Exception as e:
 			print(f"  {Colors.error('[X]')} Error loading product configs: {e}")
 			# Set defaults
@@ -285,24 +287,35 @@ class ErrorReportGenerator:
 	# MASK OPERATIONS
 	# =================================================================
 	
-	def get_mask(self, mask1, mask2, mask3=None):
+	def get_mask(self, mask1, mask2, mask3=None, mask4=None):
 		"""Combine mask parts into binary and hex format."""
 		_mask1 = mask1 if mask1 is not None else 0xFFFFFFFFFFFFFFF
 		_mask2 = mask2 if mask2 is not None else 0xFFFFFFFFFFFFFFF
 		_mask3 = mask3 if mask3 is not None else 0xFFFFFFFFFFFFFFF
+		_mask4 = mask4 if mask4 is not None else 0xFFFFFFFFFFFFFFF
+
+		zerofill = 8 if self.product in ['DMR'] else 15
+
+		mask1_str = hex(_mask1)[2:].zfill(zerofill)
+		mask2_str = hex(_mask2)[2:].zfill(zerofill)
+		mask3_str = hex(_mask3)[2:].zfill(zerofill)
+		mask4_str = hex(_mask4)[2:].zfill(zerofill)
 		
-		mask1_str = hex(_mask1)[2:].zfill(15)
-		mask2_str = hex(_mask2)[2:].zfill(15)
-		mask3_str = hex(_mask3)[2:].zfill(15)
-		
+		print(f"  Mask Parts (Hex): {mask4_str} {mask3_str} {mask2_str} {mask1_str}")
 		# Combine all parts
-		mask = mask3_str + mask2_str + mask1_str
+		if self.product in ['DMR']:
+			mask = mask4_str + mask3_str + mask2_str + mask1_str 
+		
+		else:
+			mask = mask3_str + mask2_str + mask1_str
+
 		hex_mask = '0x' + mask
 		
+		print('Hex Mask:', hex_mask)
 		# Convert to binary
 		bin_mask = bin(int(mask, 16))[2:]
 		bin_mask = bin_mask.zfill(self.max_physical)
-		
+		print( 'Binary Mask:', bin_mask)
 		return bin_mask, hex_mask
 	
 	def common_mask(self, mask1, mask2):
@@ -322,54 +335,53 @@ class ErrorReportGenerator:
 		bin_m2iosf_mask = bin_m2iosf_mask.zfill(9)
 		return bin_m2iosf_mask
 	
+	def _get_product_ip_string(self):
+		"""
+		Get product-specific IP string for core naming.
+		
+		Returns 'MOD' for products using module-based naming (DMR, CWF),
+		'CORE' for products using core-based naming (GNR).
+		Extensible for future products.
+		"""
+		# Products that use 'MOD' naming convention
+		MOD_PRODUCTS = {'DMR', 'CWF'}
+		
+		return 'MOD' if self.product in MOD_PRODUCTS else self.core_string
+
 	def review_mask(self, mask, IP, sheet):
 		"""Review mask to find disabled IPs and mark them in sheet."""
-		# Get product-specific IP string
-		core_ip_map = {
-			'GNRAP': 'CORE', 
-			'CWFAP': 'MOD',
-			'GNRSP': 'CORE', 
-			'CWFSP': 'MOD',
-			'DMRAP': 'MOD',
-			'DMRSP': 'MOD'
-		}
-		product_key = f"{self.product}{self.variant}"
-		productip = core_ip_map.get(product_key, self.core_string)
+		# Get product-specific IP string (extensible for new products)
+		productip = self._get_product_ip_string()
 		
+		# Determine if this is a common cell (core_cha) case
+		common_cell = IP == 'core_cha'
+		
+		# Replace generic IP strings with product-specific ones
+		if IP in (self.core_string, 'core_cha'):
+			IP = productip
+		
+		# Handle M2IOSF special case
 		if IP == 'm2iosf':
-			ip_num = 0
 			cell_names = ['M2IOSF8', 'M2IOSF1', 'M2IOSF2', 'M2IOSF3', 'M2IOSF9', 
 						  'M2IOSF10', 'M2IOSF5', 'M2IOSF0', 'M2IOSF4', 'M2IOSF11']
 			
-			for ip_val in reversed(mask):
-				if ip_val == '1':
-					cell_name = cell_names[ip_num]
-					cell = self.find_value(sheet, cell_name)
-					if cell:
-						self.mark_disable(cell)
-				
-				ip_num += 1
-				if ip_num > 9:
+			for ip_num, ip_val in enumerate(reversed(mask)):
+				if ip_num >= len(cell_names):
 					break
-		
-		else:  # for core, cha and core/cha
-			ip_num = 0
-			
-			for ip_val in reversed(mask):
 				if ip_val == '1':
-					if IP == 'core_cha':
-						full_cell_name = productip + str(ip_num)
-						cell = self.find_value(sheet, full_cell_name)
-						if cell:
-							cell = cell.offset(row=0, column=-1)
-					else:
-						full_cell_name = IP + str(ip_num)
-						cell = self.find_value(sheet, full_cell_name)
-					
+					cell = self.find_value(sheet, cell_names[ip_num])
 					if cell:
 						self.mark_disable(cell)
-				
-				ip_num += 1
+		else:
+			# Handle core, cha, and core_cha masks
+			for ip_num, ip_val in enumerate(reversed(mask)):
+				if ip_val == '1':
+					cell = self.find_value(sheet, f"{IP}{ip_num}")
+					if cell:
+						# Offset for common_cell (core_cha case)
+						if common_cell:
+							cell = cell.offset(row=0, column=-1)
+						self.mark_disable(cell)
 	
 	# =================================================================
 	# MCA OPERATIONS
@@ -767,30 +779,65 @@ class ErrorReportGenerator:
 			upload_to_disk=upload_to_disk, upload_to_danta=upload_to_danta
 		)
 	
+	def _get_mask_prefix(self):
+		"""
+		Get product-specific mask prefixes for fuse registers.
+		Returns tuple of (ia_prefix, llc_prefix) for the current product.
+		Extensible for future products - add new product entries here.
+		"""
+		MASK_PREFIXES = {
+			'DMR': ('ia_cbb', 'llc_cbb'),
+			'CWF': ('ia_compute_', 'llc_compute_'),
+			'GNR': ('ia_compute_', 'llc_compute_'),
+		}
+		return MASK_PREFIXES.get(self.product, ('ia_compute_', 'llc_compute_'))
+	
+	def _extract_masks_from_dict(self, masks_dict, prefix, max_indices=4):
+		"""
+		Extract mask values from dictionary using prefix pattern.
+		
+		Args:
+			masks_dict: Dictionary containing mask values
+			prefix: Prefix string for mask keys (e.g., 'ia_cbb', 'llc_compute_')
+			max_indices: Maximum number of mask indices to extract (default 4)
+		
+		Returns:
+			Dictionary with mask values keyed by index (0-3)
+		"""
+		extracted = {}
+		for i in range(max_indices):
+			key = f'{prefix}{i}'
+			if key in masks_dict:
+				extracted[i] = masks_dict[key]
+		return extracted
+	
 	def _read_fuse_registers(self):
-		"""Read fuse registers and return masks and PC value."""
+		"""Read fuse registers and return masks dictionary and PC value."""
 		if self.dpm_checks is None:
 			print(f"  {Colors.warning('[!]')} dpmChecks module not provided - skipping fuse operations")
 			return None
 		
 		try:
+			# Get product-specific mask prefixes
+			ia_prefix, llc_prefix = self._get_mask_prefix()
+			
+			# Read all fuse registers
 			masks = self.dpm_checks.fuses()
 			
-			core_mask_c0 = masks['ia_compute_0']
-			core_mask_c1 = masks['ia_compute_1']
-			core_mask_c2 = masks['ia_compute_2']
+			# Extract masks by prefix into dictionaries
+			core_masks = self._extract_masks_from_dict(masks, ia_prefix)
+			cha_masks = self._extract_masks_from_dict(masks, llc_prefix)
 			
-			cha_mask_c0 = masks['llc_compute_0']
-			cha_mask_c1 = masks['llc_compute_1']
-			cha_mask_c2 = masks['llc_compute_2']
-			
+			# Read scratchpad
 			PC = self.read_scratchpad()
 			
 			print("[+] REGISTERS READ SUCCESSFULLY")
+			print(f"  Core masks found: {list(core_masks.keys())}")
+			print(f"  CHA masks found: {list(cha_masks.keys())}")
 			
 			return {
-				'core_masks': (core_mask_c0, core_mask_c1, core_mask_c2),
-				'cha_masks': (cha_mask_c0, cha_mask_c1, cha_mask_c2),
+				'core_masks': core_masks,
+				'cha_masks': cha_masks,
 				'PC': PC
 			}
 			
@@ -831,24 +878,23 @@ class ErrorReportGenerator:
 	def _save_registers_to_file(self, config_path, PC, core_masks, cha_masks):
 		"""Save register values to config file."""
 		try:
-			core_mask_c0, core_mask_c1, core_mask_c2 = core_masks
-			cha_mask_c0, cha_mask_c1, cha_mask_c2 = cha_masks
-			
 			with open(config_path, "a") as file:
 				file.write("PC\n")
 				file.write(f"sv.socket0.uncore.ubox.ncdecs.biosnonstickyscratchpad7_cfg = {PC}\n\n")
 				
 				file.write("\nConfig Registers\n")
 				
+				# Write CORE masks
 				file.write("CORE Mask\n")
-				file.write(f"sv.socket0.compute0.fuses.hwrs_top_rom.ip_disable_fuses_dword6_core_disable.read() = {core_mask_c0}\n")
-				file.write(f"sv.socket0.compute1.fuses.hwrs_top_rom.ip_disable_fuses_dword6_core_disable.read() = {core_mask_c1}\n")
-				file.write(f"sv.socket0.compute2.fuses.hwrs_top_rom.ip_disable_fuses_dword6_core_disable.read() = {core_mask_c2}\n\n")
+				for idx in sorted(core_masks.keys()):
+					file.write(f"sv.socket0.compute{idx}.fuses.hwrs_top_rom.ip_disable_fuses_dword6_core_disable.read() = {core_masks[idx]}\n")
+				file.write("\n")
 				
+				# Write CHA masks
 				file.write("CHA Mask\n")
-				file.write(f"sv.socket0.compute0.fuses.hwrs_top_rom.ip_disable_fuses_dword2_llc_disable.read() = {cha_mask_c0}\n")
-				file.write(f"sv.socket0.compute1.fuses.hwrs_top_rom.ip_disable_fuses_dword2_llc_disable.read() = {cha_mask_c1}\n")
-				file.write(f"sv.socket0.compute2.fuses.hwrs_top_rom.ip_disable_fuses_dword2_llc_disable.read() = {cha_mask_c2}\n\n")
+				for idx in sorted(cha_masks.keys()):
+					file.write(f"sv.socket0.compute{idx}.fuses.hwrs_top_rom.ip_disable_fuses_dword2_llc_disable.read() = {cha_masks[idx]}\n")
+				file.write("\n")
 			
 			print("[+] REGISTERS SAVED SUCCESSFULLY")
 			return True
@@ -857,26 +903,63 @@ class ErrorReportGenerator:
 			print(f"[X] REGISTERS COULD NOT BE SAVED: {e}")
 			return False
 	
+	def _combine_mask_dict(self, mask_dict):
+		"""
+		Combine mask dictionary values into a single binary and hex mask.
+		
+		Args:
+			mask_dict: Dictionary of mask values keyed by index (e.g., {0: 0xFF, 1: 0xFF, ...})
+		
+		Returns:
+			Tuple of (binary_mask_string, hex_mask_string)
+		"""
+		# Get masks in order, defaulting to None for missing indices
+		mask_values = [mask_dict.get(i) for i in range(4)]
+		return self.get_mask(*mask_values)
+	
 	def _process_masks(self, sheet, core_masks, cha_masks):
-		"""Process and review masks, marking them in the sheet."""
+		"""
+		Process and review masks, marking them in the sheet.
+		
+		Args:
+			sheet: Excel sheet to mark
+			core_masks: Dictionary of core mask values
+			cha_masks: Dictionary of CHA mask values
+		"""
 		try:
-			core_mask_c0, core_mask_c1, core_mask_c2 = core_masks
-			cha_mask_c0, cha_mask_c1, cha_mask_c2 = cha_masks
-			
-			bin_cha_mask, hex_cha_mask = self.get_mask(cha_mask_c0, cha_mask_c1, cha_mask_c2)
-			bin_core_mask, hex_core_mask = self.get_mask(core_mask_c0, core_mask_c1, core_mask_c2)
+			# Combine masks from dictionaries
+			bin_cha_mask, hex_cha_mask = self._combine_mask_dict(cha_masks)
+			bin_core_mask, hex_core_mask = self._combine_mask_dict(core_masks)
 			common_core_cha_mask = self.common_mask(bin_cha_mask, bin_core_mask)
 			
-			self.review_mask(bin_cha_mask, self.cha_string, sheet)
-			self.review_mask(bin_core_mask, self.core_string, sheet)
-			self.review_mask(common_core_cha_mask, 'core_cha', sheet)
+			# Product-specific masking logic
+			if self.product == 'DMR':
+				self.dmr_masking(sheet, bin_core_mask, bin_cha_mask)
+			elif self.product in ('GNR', 'CWF'):
+				self.gnr_cwf_masking(sheet, bin_core_mask, bin_cha_mask, common_core_cha_mask)
+			else:
+				# Default behavior for future products
+				print(f"  {Colors.warning('[!]')} Using default masking for product: {self.product}")
+				self.review_mask(bin_cha_mask, self.cha_string, sheet)
+				self.review_mask(bin_core_mask, self.core_string, sheet)
 			
 			print("[+] DISABLE SLICES WRITTEN SUCCESSFULLY")
 			return True
 		except Exception as e:
 			print(f"[X] COULD NOT WRITE DISABLE SLICES: {e}")
 			return False
+
+	def gnr_cwf_masking(self, sheet, core_masks, cha_masks, common_mask):
+		self.review_mask(cha_masks, self.cha_string, sheet)
+		self.review_mask(core_masks, self.core_string, sheet)
+		self.review_mask(common_mask, 'core_cha', sheet)
 	
+	def dmr_masking(self, sheet, core_masks, cha_masks):
+		self.review_mask(cha_masks, self.cha_string, sheet)
+		self.review_mask(core_masks, self.core_string, sheet)
+		
+	
+
 	def _create_log_archive(self, zip_path, mca_path, mca_debug_path, config_path):
 		"""Create zip archive from log files and clean up."""
 		try:
