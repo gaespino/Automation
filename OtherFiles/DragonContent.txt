@@ -1,0 +1,1308 @@
+Version 1.0;
+
+ContentGroup PPV_GNR128C_GNR128C_H_1UP_H_0E2
+{
+DragonContent "DH10a_PPVIsaOn_0Demo_0E200017"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-0Demo-0E200017.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.HVCPCellCheckout || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_0Sanity_CST_0E20005D"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-0Sanity-CST-0E20005D.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.HVCPCellCheckout || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsPmEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_0Sanity_ISA_0E20005E"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-0Sanity-ISA-0E20005E.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.HVCPCellCheckout || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsDragonAMXEnabled && ProductFeatures.IsMKTMEEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_0Sanity_MEM_0E20005F"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-0Sanity-MEM-0E20005F.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.HVCPCellCheckout  || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_0Sanity_MSR_0E200060"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-0Sanity-MSR-0E200060.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.HVCPCellCheckout || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_0Sanity_P23_0E200062"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-0Sanity-P23-0E200062.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.HVCPCellCheckout || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_0Sanity_PST_0E200063"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-0Sanity-PST-0E200063.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.HVCPCellCheckout || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_0Sanity_RNG_0E200064"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-0Sanity-RNG-0E200064.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.HVCPCellCheckout  || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_0Sanity_TSC_0E20005B"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-0Sanity-TSC-0E20005B.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.HVCPCellCheckout || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_0Sanity_VMX_0E20005C"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-0Sanity-VMX-0E20005C.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.HVCPCellCheckout || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_0SanityPR_P_0E200066"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-0SanityPR-P-0E200066.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.HVCPCellCheckout || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_0SanityPR_V_0E200065"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-0SanityPR-V-0E200065.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.HVCPCellCheckout || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_0Sanity_UFS_0E220000"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7851_0x0E22_PPV_UFS\\GNR128C\\DH10a-PPVIsaOn-0Sanity-UFS-0E220000.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.SPS_SingleSocket || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Skipper_Y_0E200075"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Skipper-Y-0E200075.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Cool || TestOperations.SPM_SingleSocket || TestOperations.SPS_Hot;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Cayley_DIB_0E200004"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Cayley-DIB-0E200004.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Cool|| TestOperations.SPS_LCC_Cool || TestOperations.SPS_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsDragonAMXEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Skipper_Z_0E200076"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Skipper-Z-0E200076.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Fireworx_Z_0E200024"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Fireworx-Z-0E200024.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_XCC_Cool || TestOperations.SPS_HCC_Cool ||TestOperations.SPS_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Cayley_DBFN_0E200005"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Cayley-DBFN-0E200005.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsDragonAMXEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1FireC_Z_0E200023"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1FireC-Z-0E200023.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_HCC_Cool || TestOperations.SPS_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_FRM_MMulSDZ_0E200038"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-FRM-MMulSDZ-0E200038.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket ||TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1DittoC_GX_0E20001C"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1DittoC-GX-0E20001C.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Frenzy_Z_0E200033"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Frenzy-Z-0E200033.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_XCC_Cool || TestOperations.SPS_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_PlusOne_Mhd_0E200058"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-PlusOne-Mhd-0E200058.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_HCC_Cool || TestOperations.SPS_Hot || TestOperations.SPM_SingleSocket || TestOperations.SPS_UCC_Cool || TestOperations.SPS_XCC_Cool;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Frenzy_Z_0E20002C"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Frenzy-Z-0E20002C.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_Hot || TestOperations.SPS_UCC_Cool ||TestOperations.SPS_XCC_Cool ||TestOperations.SPS_HCC_Cool || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1LeekC_X_0E200049"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1LeekC-X-0E200049.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_FRM_AddDZ_0E200040"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-FRM-AddDZ-0E200040.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPS_HCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_DittoMT_CZ_0E20001E"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-DittoMT-CZ-0E20001E.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPS_HCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Fireworx_Z_0E200026"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Fireworx-Z-0E200026.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_FRM_CMultSZ_0E20003B"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-FRM-CMultSZ-0E20003B.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPS_HCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Aes_FZ_0E200001"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Aes-FZ-0E200001.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Frenzy_Y_0E20002F"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Frenzy-Y-0E20002F.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_XCC_Cool || TestOperations.SPS_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Aes_DZ_0E200000"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Aes-DZ-0E200000.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPS_HCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Yakko_WsZ_0E20007E"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Yakko-WsZ-0E20007E.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_HCC_Cool || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPS_HCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1Aught_B7AZ_0E200002"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1Aught-B7AZ-0E200002.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_XCC_Hot || TestOperations.SPS_HCC_Hot || TestOperations.SPS_HCC_Cool ||TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1Loki_SM_0E200052"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1Loki-SM-0E200052.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Twiddle_3Y_0E200079"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Twiddle-3Y-0E200079.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_FRM_MMulSSZ_0E20003D"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-FRM-MMulSSZ-0E20003D.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_HCC_Hot || TestOperations.SPS_LCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Yakko_WhZ_0E20007D"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Yakko-WhZ-0E20007D.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Cool || TestOperations.SPS_LCC_Cool || TestOperations.SPS_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Frenzy_Y_0E200034"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Frenzy-Y-0E200034.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPS_HCC_Hot || TestOperations.SPM_SingleSocket || TestOperations.SPS_UCC_Cool;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Cayley_DBFC_0E20000A"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Cayley-DBFC-0E20000A.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPS_HCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsDragonAMXEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_DittoMT_CZ_0E20001F"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-DittoMT-CZ-0E20001F.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPS_HCC_Hot || TestOperations.SPM_SingleSocket || TestOperations.SPS_UCC_Cool;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Frenzy_X_0E200030"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Frenzy-X-0E200030.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_LCC_Cool || TestOperations.SPS_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_LeekSpin_Y_0E20004E"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-LeekSpin-Y-0E20004E.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_LCC_Cool || TestOperations.SPS_Hot || TestOperations.SPM_SingleSocket || TestOperations.SPS_UCC_Cool;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Cayley_WB1_0E200003"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Cayley-WB1-0E200003.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsDragonAMXEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_LeekSpin_Y_0E20004B"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-LeekSpin-Y-0E20004B.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_FRM_TranDZ_0E200039"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-FRM-TranDZ-0E200039.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_HCC_Hot || TestOperations.SPS_LCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Skipper_Y_0E200077"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Skipper-Y-0E200077.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_LCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1Fissure_M_0E200028"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1Fissure-M-0E200028.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Fireworx_Y_0E200025"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Fireworx-Y-0E200025.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_LCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Yakko_WdZ_0E20007F"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Yakko-WdZ-0E20007F.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Satsuma_Z_0E200068"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Satsuma-Z-0E200068.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Scylla_SQFY_0E20006F"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Scylla-SQFY-0E20006F.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Ditto_MACZ_0E20001B"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Ditto-MACZ-0E20001B.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_XCC_Cool || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPS_LCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Flipper_0E20002A"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Flipper-0E20002A.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:05:30";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1CayleyO_LS_0E20000E"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1CayleyO-LS-0E20000E.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsDragonAMXEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1FrenzyC_Z_0E200035"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1FrenzyC-Z-0E200035.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_HCC_Cool || TestOperations.SPS_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Twiddle_Y_0E20007A"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Twiddle-Y-0E20007A.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Yakko_WsZ_0E20007B"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Yakko-WsZ-0E20007B.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPS_HCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1CayleyO_VT_0E200011"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1CayleyO-VT-0E200011.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsDragonAMXEnabled && !ProductFeatures.IsQ3QK_Q38P;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Frenzy_Z_0E200032"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Frenzy-Z-0E200032.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_LCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Cayley_DIB_0E200009"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Cayley-DIB-0E200009.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsDragonAMXEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Cayley_DHC_0E20000B"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Cayley-DHC-0E20000B.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsDragonAMXEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Frenzy_Z_0E20002D"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Frenzy-Z-0E20002D.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1DittoC_Z_0E20001D"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1DittoC-Z-0E20001D.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_XCC_Hot || TestOperations.SPS_HCC_Hot || TestOperations.SPS_LCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1LeekC_Y_0E200048"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1LeekC-Y-0E200048.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_HCC_Hot || TestOperations.SPS_LCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1Loki_PM_0E200051"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1Loki-PM-0E200051.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_XCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Yakko_WdZ_0E20007C"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Yakko-WdZ-0E20007C.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_FRM_CMultHZ_0E20003F"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-FRM-CMultHZ-0E20003F.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPS_HCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_LeekSpin_X_0E20004F"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-LeekSpin-X-0E20004F.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Satsuma_Z_0E200067"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Satsuma-Z-0E200067.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_XCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Ditto_GCAG_0E200018"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Ditto-GCAG-0E200018.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_LCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Flipper_0E200029"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Flipper-0E200029.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:05:30";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_PlusOne_Mhs_0E200059"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-PlusOne-Mhs-0E200059.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Frenzy_X_0E20002B"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Frenzy-X-0E20002B.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Scylla_QCZ_0E200071"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Scylla-QCZ-0E200071.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1CayleyC_0E20000D"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1CayleyC-0E20000D.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsDragonAMXEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1FireC_Y_0E200021"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1FireC-Y-0E200021.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1LeekC_Z_0E20004A"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1LeekC-Z-0E20004A.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_FRM_TranSZ_0E20003E"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-FRM-TranSZ-0E20003E.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Fuso_0E200044"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Fuso-0E200044.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+DragonContent "DH10a_PPVIsaOn_1FrenzyC_X_0E200037"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1FrenzyC-X-0E200037.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_XCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+DragonContent "DH10a_PPVIsaOn_Yakko_WhZ_0E200080"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Yakko-WhZ-0E200080.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket || TestOperations.SPS_Hot;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+DragonContent "DH10a_PPVIsaOn_Cayley_WJ_0E20000C"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Cayley-WJ-0E20000C.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_HCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsDragonAMXEnabled;
+        Enabled = Operations && Features;
+    }
+DragonContent "DH10a_PPVIsaOn_FRM_CvtIHZ_0E20003A"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-FRM-CvtIHZ-0E20003A.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+DragonContent "DH10a_PPVIsaOn_Scylla_QCZ_0E20006B"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Scylla-QCZ-0E20006B.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+DragonContent "DH10a_PPVIsaOn_Scylla_SQCZ_0E20006D"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Scylla-SQCZ-0E20006D.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+DragonContent "DH10a_PPVIsaOn_1Eclipse_0E200020"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1Eclipse-0E200020.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1FireC_X_0E200022"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1FireC-X-0E200022.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_XCC_Hot || TestOperations.SPS_LCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1FrenzyC_Y_0E200036"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1FrenzyC-Y-0E200036.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1Loki_MM_0E200053"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1Loki-MM-0E200053.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPS_LCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Ditto_MAAZ_0E200019"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Ditto-MAAZ-0E200019.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket || TestOperations.SPS_UCC_Cool;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_LeekSpin_X_0E20004C"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-LeekSpin-X-0E20004C.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_FRM_SqrtSZ_0E20003C"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-FRM-SqrtSZ-0E20003C.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_LeekSpin_Z_0E20004D"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-LeekSpin-Z-0E20004D.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1CayleyO_VB_0E200012"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1CayleyO-VB-0E200012.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_HCC_Hot || TestOperations.SPS_LCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsDragonAMXEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1FRMC_Z_0E200042"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1FRMC-Z-0E200042.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Cayley_DHN_0E200006"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Cayley-DHN-0E200006.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_XCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsDragonAMXEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Kawachi_0E200047"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Kawachi-0E200047.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_XCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_LeekSpin_Z_0E200050"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-LeekSpin-Z-0E200050.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPS_XCC_Hot || TestOperations.SPS_LCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Oakley_RarX_0E200057"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Oakley-RarX-0E200057.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket || TestOperations.SPS_XCC_Hot;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Scylla_QFZ_0E20006A"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Scylla-QFZ-0E20006A.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Scylla_QFZ_0E200070"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Scylla-QFZ-0E200070.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Scylla_SQFZ_0E200072"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Scylla-SQFZ-0E200072.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Ditto_GCCG_0E20001A"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Ditto-GCCG-0E20001A.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Scylla_SQCZ_0E200073"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Scylla-SQCZ-0E200073.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1Charyb_QCZ_0E200013"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1Charyb-QCZ-0E200013.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1Charyb_QFY_0E200015"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1Charyb-QFY-0E200015.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Frenzy_Z_0E20002E"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Frenzy-Z-0E20002E.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_HCC_Cool || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Frenzy_Z_0E200031"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Frenzy-Z-0E200031.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Millet_CG_0E200054"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Millet-CG-0E200054.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_HCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Scylla_SQFX_0E20006E"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Scylla-SQFX-0E20006E.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPS_UCC_Hot || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+    DragonContent "DH10a_PPVIsaOn_0Sanity_TRB_0E230000"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7940_0x23_PPV\\GNR128C_H_1UP\\DH10a-PPVIsaOn-0Sanity-TRB-0E230000.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.HVCPCellCheckout || TestOperations.SPS_SingleSocket || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && !ProductFeatures.Is128CoresSkus;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_0Sanity_MUC_0E200061"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-0Sanity-MUC-0E200061.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.HVCPCellCheckout || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsSanityMucEnabled && ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_0Sanity_TRB_0E110000"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7474_0x0E_PPV_Sa-TRB\\GNR128C_H_1UP\\DH10a-PPVIsaOn-0Sanity-TRB-0E110000.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.HVCPCellCheckout || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsGnrAP && !ProductFeatures.IsGnrAPX3;#This seeds is only for GNR X1
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1CayleyO_VI_0E20000F"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1CayleyO-VI-0E20000F.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket || TestOperations.SPS_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsDragonAMXEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Oakley_LegX_0E200056"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Oakley-LegX-0E200056.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_FRM_DivDZ_0E200041"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-FRM-DivDZ-0E200041.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Skipper_Z_0E200078"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Skipper-Z-0E200078.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket || TestOperations.SPS_LCC_Hot || TestOperations.SPS_UCC_Cool;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Cayley_WI_0E200007"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Cayley-WI-0E200007.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsDragonAMXEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1Charyb_QFX_0E200014"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1Charyb-QFX-0E200014.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Scylla_SQFZ_0E20006C"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Scylla-SQFZ-0E20006C.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket || TestOperations.SPS_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Scylla_QFX_0E200074"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Scylla-QFX-0E200074.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Fireworx_Y_0E200027"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Fireworx-Y-0E200027.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket || TestOperations.SPS_HCC_Hot;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Scylla_QFY_0E200069"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Scylla-QFY-0E200069.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket || TestOperations.SPS_XCC_Hot;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Cayley_WT1_0E200008"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Cayley-WT1-0E200008.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket || TestOperations.SPS_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsDragonAMXEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1Charyb_QFZ_0E200016"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1Charyb-QFZ-0E200016.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket || TestOperations.SPS_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsSPMOrSPSHotboot;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1Geode_RF_0E200045"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1Geode-RF-0E200045.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Millet_RG_0E200055"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Millet-RG-0E200055.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Kawachi_0E200046"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Kawachi-0E200046.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_Fuso_0E200043"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-Fuso-0E200043.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket || TestOperations.SPS_XCC_Hot || TestOperations.SPS_HCC_Hot;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled;
+        Enabled = Operations && Features;
+    }
+
+DragonContent "DH10a_PPVIsaOn_1CayleyO_VJ_0E200010"
+    {
+        ObjectFilePath = "fs1:\\content\\Dragon\\7410_0x0E_PPV_MM\\GNR128C_H_1UP\\DH10a-PPVIsaOn-1CayleyO-VJ-0E200010.obj";
+        Vvars = BirchStreamDragonVars.GnrBsVvars;
+        Timeout = "00:03:00";
+        Operations = TestOperations.HVCP || TestOperations.SPM_SingleSocket;
+        Features = ProductFeatures.IsDrgBmGnrReleaseEnabled && ProductFeatures.IsDragonAMXEnabled;
+        Enabled = Operations && Features;
+    }
+
+}

@@ -901,17 +901,15 @@ def fuseRAM(refresh = False):
 	#sv = _get_global_sv()
 	if refresh: gcm.svStatus()
 	print ("Loading fuse data from ROM to RAM .... ")
-	sv.sockets.computes.fuses.load_fuse_ram()
-	if config.SELECTED_PRODUCT.upper() != 'CWF': sv.sockets.ios.fuses.load_fuse_ram()
+	pf.fusesUpdate(sv)
+	#sv.sockets.computes.fuses.load_fuse_ram()
+	#if config.SELECTED_PRODUCT.upper() != 'CWF': sv.sockets.ios.fuses.load_fuse_ram()
 
 ## Tool for fuse checking of the unit
 def fuses(rdFuses = True, sktnum =[0], printFuse=False):
 	sv = _get_global_sv()
 	_fuse_instance = config.FUSE_INSTANCE#['hwrs_top_ram']
 	
-	# We can remove this by using the sv.sockets[sktnum].computes.names
-	#product = {	'gnrsp': 	['compute0', 'compute1'],
-	#			'gnrap':	['compute0', 'compute1', 'compute2']}
 	computes = []
 	computes.extend(sv.socket0.computes.name)
 
@@ -919,11 +917,7 @@ def fuses(rdFuses = True, sktnum =[0], printFuse=False):
 
 	if rdFuses:
 		fuseRAM()
-		#print ("Loading fuse data from RAM to update Mask info")
-		#sv.sockets.computes.fuses.load_fuse_ram()
-		#sv.sockets.ios.fuses.load_fuse_ram()
-	
-	## This is to print the fuses in a table format
+
 	fusetable = [['Fuse','Value']]
 
 	masks = {	'ia_compute_0' : None,
@@ -949,27 +943,10 @@ def fuses(rdFuses = True, sktnum =[0], printFuse=False):
 		fusetable.append([f'ia_compute_{_computeN}',hex(iamask)])
 		fusetable.append([f'llc_compute_{_computeN}',hex(llcmask)])
 
-
-	
 	if printFuse:
 		print (f'\n>>> Current System fused masks:\n')
-		#print (f'orig_compute0 = {hex(int(mask_c0,2))}')
-		
-	#for value in product[system]:
-	#	_computeN = value.replace('compute','')
-	#	llcmask = _masks[value]['llc']
-	#	iamask = _masks[value]['ia']
-	#	masks[f'ia_compute_{_computeN}'] = iamask
-	#	masks[f'llc_compute_{_computeN}'] = llcmask
-	#	fusetable.append([f'ia_compute_{_computeN}',hex(iamask)])
-	#	fusetable.append([f'llc_compute_{_computeN}',hex(llcmask)])
-
-	if printFuse:		
 		print(tabulate(fusetable, headers="firstrow", tablefmt='grid'))
 
-		#	print (f'>>> system_llc_mask_compute{_computeN} = {llcmask}')
-		#	print (f'>>> system_core_mask_compute{_computeN} = {iamask}')
-	
 	return masks
 
 ## Tool for converting current unit fuses to a pseudo format, considers all three CLASS fuse configurations
@@ -1052,9 +1029,18 @@ def pseudomask(combine = False, boot = False, Type = 'Class', ext_mask = None):
 
 ## Uses pseudo Mask configurations to boot the unit, applying the HT disabled fuses to leave it ready for Dragon Pseudo
 ## Added a S2T key to work with the MESH S2T modes
-def pseudo_bs(ClassMask = 'FirstPass', Custom = [], boot = True, use_core = False, htdis = True, dis_2CPM = None, fuse_read = True, s2t = False, masks = None, clusterCheck = None, lsb = False, fuse_compute =None, fuse_io = None, fast =False, ppvcfuse = False, skip_init = False,  vbump = {'enabled':False, 'type':['cfc'],'offset': 0,'computes':['compute0', 'compute1', 'compute2']}):
+def pseudo_bs(ClassMask = 'FirstPass', Custom = [], boot = True, use_core = False, htdis = True, dis_2CPM = None, dis_1CPM = None, fuse_read = True, s2t = False, masks = None, clusterCheck = None, lsb = False, fuse_compute =None, fuse_io = None, fast =False, ppvcfuse = False, skip_init = False,  vbump = {'enabled':False, 'type':['cfc'],'offset': 0,'computes':['compute0', 'compute1', 'compute2']}):
 	#vbump = {'type':['cfc'],'offset': 0,'computes':['compute0', 'compute1', 'compute2']}
 	if not skip_init: gcm.svStatus(refresh=True)
+	
+	# Product Init
+	product = config.PRODUCT_CONFIG.lower()
+	variant = config.PRODUCT_VARIANT
+	syscomputes = sv.socket0.computes.name
+	if clusterCheck == None: clusterCheck = False
+
+	# Voltage bumps configuration
+	vbump_enabled = vbump['enabled']
 	vbump_target = vbump['computes']
 	vbump_type = vbump['type']
 	vbump_offset = vbump['offset']
@@ -1076,22 +1062,13 @@ def pseudo_bs(ClassMask = 'FirstPass', Custom = [], boot = True, use_core = Fals
 	htdis_comp = []
 	htdis_io = []
 	dis_2CPM_comp = []
-
-	vbump_enabled = vbump['enabled']
-
-	#sv = _get_global_sv()
-	product = config.PRODUCT_CONFIG.lower()
-	variant = config.PRODUCT_VARIANT
-	syscomputes = sv.socket0.computes.name
-	if clusterCheck == None: clusterCheck = False
+	dis_1CPM_comp = [] # Not used just for reference
 
 	## Assign Cluster values *can be taken from a pythonsv register, update later on
 	if variant == 'AP': cluster = 6
 	elif variant == 'SP': cluster = 4
 	else: cluster = 2
-	
-	#if product == 'gnrap':
-	
+
 	## Mask Type by default we use Class, but if Custom is used we change it to user, might remove this later on
 	mType = 'Class'	
 	if ClassMask == 'Custom':
@@ -1259,8 +1236,6 @@ def pseudo_bs(ClassMask = 'FirstPass', Custom = [], boot = True, use_core = Fals
 		if variant == 'AP':  fuse_str_2 = fuse_compute + vbump_array['compute2'] + htdis_comp + dis_2CPM_comp + ppvc_config['compute2']
 		fuse_io_0 = htdis_io + fuse_io + ppvc_config['io0']
 		fuse_io_1 = htdis_io + fuse_io + ppvc_config['io1']
-		#bscript_1 = f", fuse_str_compute = {htdis_comp + fuse_compute},fuse_str_io = {htdis_io + fuse_io}"
-
 
 		if variant == 'AP':
 			bscript_1 =f", fuse_str_compute_0 = {fuse_str_0},fuse_str_compute_1 = {fuse_str_1},fuse_str_compute_2 = {fuse_str_2},fuse_str_io_0 = {fuse_io_0},fuse_str_io_1 = {fuse_io_1}"

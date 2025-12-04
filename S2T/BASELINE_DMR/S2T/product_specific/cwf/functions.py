@@ -19,7 +19,7 @@ print (f"Loading Functions for {CONFIG_PRODUCT} || REV 0.1")
 class functions:
 	
 	@staticmethod
-	def pseudo_masking(ClassMask: dict, ClassMask_sys: dict, syscomputes: int):
+	def pseudo_masking(ClassMask: dict, ClassMask_sys: dict, syscomputes: list):
 
 		for key in ClassMask.keys():
 
@@ -240,6 +240,11 @@ class functions:
 			except Exception as e:
 				print (Fore.RED + f"Exception reading {key} on module{core} : {e}" + Fore.RESET)
 
+	@staticmethod
+	def fusesUpdate(sv):
+		sv.sockets.computes.fuses.load_fuse_ram()
+		#sv.sockets.ios.fuses.load_fuse_ram()
+	
 	@staticmethod
 	def display_banner(revision, date, engineer):
 			# Create the banner text

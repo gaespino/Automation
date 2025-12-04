@@ -123,7 +123,7 @@ class configurations:
 		DebugMasks = f'{product}MasksDebug.json'
 		ConfigFile = f'{product}FuseFileConfigs.json'
 		BurnInFuses = f'{product}BurnInFuses.json'
-		fuse_instance = ['hwrs_top_ram']
+		fuse_instance = ['base.fuses']
 		cfc_voltage_curves = {	'cfc_curve': ['pcode_cfc_vf_voltage_point0','pcode_cfc_vf_voltage_point1','pcode_cfc_vf_voltage_point2','pcode_cfc_vf_voltage_point3','pcode_cfc_vf_voltage_point4','pcode_cfc_vf_voltage_point5'],
 						#'hdc_curve': ['pcode_hdc_vf_voltage_point0','pcode_hdc_vf_voltage_point1','pcode_hdc_vf_voltage_point2','pcode_hdc_vf_voltage_point3','pcode_hdc_vf_voltage_point4','pcode_hdc_vf_voltage_point5'],
 						'hdc_curve': ['pcode_l2_vf_voltage_point0','pcode_l2_vf_voltage_point1','pcode_l2_vf_voltage_point2','pcode_l2_vf_voltage_point3','pcode_l2_vf_voltage_point4','pcode_l2_vf_voltage_point5'],
