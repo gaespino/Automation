@@ -463,17 +463,17 @@ class SystemBooter:
 		self.execution_state = system_config.get('execution_state', None)
 		self.fuse_2CPM = system_config.get('fuse_2CPM', [])
 		self.fuse_1CPM = system_config.get('fuse_1CPM', [])
-		
+		self.fastboot = system_config.get('fastboot', False)
 		# Boot configuration
 		self.config = BootConfiguration()
 		
 		# Fuse strings storage
 		self.fuse_str = []
 		self.fuse_str_cbb = []
-		self.fuse_str_cbb_0 = []
-		self.fuse_str_cbb_1 = []
-		self.fuse_str_cbb_2 = []
-		self.fuse_str_cbb_3 = []
+		self.fuse_str_cbb_0 = {}
+		self.fuse_str_cbb_1 = {}
+		self.fuse_str_cbb_2 = {}
+		self.fuse_str_cbb_3 = {}
 		self.fuse_str_imh = []
 		self.fuse_str_imh_0 = []
 		self.fuse_str_imh_1 = []
@@ -627,7 +627,6 @@ class SystemBooter:
 		"""Build all fuse configuration strings"""
 		_fuse_str_cbb = []
 		_fuse_str_imh = []
-		_fuse_str_io = []
 		
 		# HT disable
 		if self.config.ht_dis:
@@ -651,26 +650,27 @@ class SystemBooter:
 		if self.config.vp2intersect_en:
 			_fuse_str_cbb += config.VP2INTERSECT.get('bs', [])
 		
-		# Frequency configurations
-		self._apply_frequency_fuses(_fuse_str_cbb, _fuse_str_imh)
+		# Frequency configurations -- Full Path
+		_fuse_str_cbb, _fuse_str_imh = self._apply_frequency_fuses(_fuse_str_cbb, _fuse_str_imh)
 		
-		# License mode configuration
-		self._apply_license_mode(_fuse_str_cbb)
+		# License mode configuration -- Full Path
+		_fuse_str_cbb = self._apply_license_mode(_fuse_str_cbb)
 		
-		# Clean up fuse strings
-		if _fuse_str_cbb:
-			_fuse_str_cbb = [val.replace("sv.sockets.cbbs.base.", "") for val in _fuse_str_cbb]
-		
-		if _fuse_str_imh:
-			_fuse_str_imh = [val.replace("sv.sockets.imhs.", "") for val in _fuse_str_imh]
-		
-		# Apply PPVC fuses if configured
-		self._apply_ppvc_fuses(_fuse_str_cbb, _fuse_str_imh)
+		# If not fastboot, extend common fuses for bootscript usage
+		if not self.fastboot:
+			self._extend_common_fuses(_fuse_str_cbb, _fuse_str_imh)
+
+		# Apply PPVC fuses if configured - This comes in format from S2T
+		self._apply_ppvc_fuses()
 		
 		# Store fuse strings
-		self.fuse_str_cbb = _fuse_str_cbb
-		self.fuse_str_imh = _fuse_str_imh
-	
+		self.fuse_str_cbb.extend(_fuse_str_cbb)
+		self.fuse_str_imh.extend(_fuse_str_imh)
+
+		# Add to Fastboot Fuse String
+		self.fuse_str += self.fuse_str_cbb
+		self.fuse_str += self.fuse_str_imh
+
 	def _apply_frequency_fuses(self, fuse_str_cbb: List[str], fuse_str_imh: List[str]):
 		"""Apply frequency configuration to fuse strings"""
 		# CFC frequencies
@@ -731,6 +731,8 @@ class SystemBooter:
 			fuse_str_cbb.extend(self._assign_values_to_regs(
 				self.boot_fuses['IA']['fwFreq']['turbo'], self.config.ia_fw_pturbo))
 	
+		return fuse_str_cbb, fuse_str_imh
+	
 	def _apply_license_mode(self, fuse_str_cbb: List[str]):
 		"""Apply AVX license mode configuration"""
 		if self.config.avx_mode is None:
@@ -754,38 +756,49 @@ class SystemBooter:
 		
 		fuse_str_cbb.append(f'{ia_min_lic}=0x{int_mode:x}')
 		fuse_str_cbb.append(f'{ia_max_lic}=0x{int_mode:x}')
+
+		return fuse_str_cbb
 	
-	def _apply_ppvc_fuses(self, fuse_str_cbb: List[str], fuse_str_imh: List[str]):
+	def _apply_ppvc_fuses(self):
 		"""Apply PPVC fuse configurations"""
 		if not self.ppvc_fuses:
 			return
 		
+		# Updates Main Fuses with all PPVC fuses data
+	
+		if self.fastboot:
+			# Fastboot use complete register name
+
+			self.fuse_str_cbb.extend(self.ppvc_fuses.get('cbb0',[]))
+			self.fuse_str_cbb.extend(self.ppvc_fuses.get('cbb1',[]))
+			self.fuse_str_cbb.extend(self.ppvc_fuses.get('cbb2',[]))
+			self.fuse_str_cbb.extend(self.ppvc_fuses.get('cbb3',[]))
+			self.fuse_str_imh.extend(self.ppvc_fuses.get('imh0',[]))
+			self.fuse_str_imh.extend(self.ppvc_fuses.get('imh1',[]))
+			return
+
 		# Split fuse strings by CBB/IMH
 		for cbb in self.cbbs:
 			cbb_name = cbb.name.lower() if hasattr(cbb, 'name') else str(cbb).lower()
 			if 'cbb0' in cbb_name:
-				self.fuse_str_cbb_0.extend(self.ppvc_fuses.get('cbb0', []))
+				self._extend_cbb_fuses('fuse_str_cbb_0', self.ppvc_fuses.get('cbb0', {}))
+
 			if 'cbb1' in cbb_name:
-				self.fuse_str_cbb_1.extend(self.ppvc_fuses.get('cbb1', []))
+				self._extend_cbb_fuses('fuse_str_cbb_1', self.ppvc_fuses.get('cbb1', {}))
+
 			if 'cbb2' in cbb_name:
-				self.fuse_str_cbb_2.extend(self.ppvc_fuses.get('cbb2', []))
+				self._extend_cbb_fuses('fuse_str_cbb_2', self.ppvc_fuses.get('cbb2', {}))
+
 			if 'cbb3' in cbb_name:
-				self.fuse_str_cbb_3.extend(self.ppvc_fuses.get('cbb3', []))
-		
+				self._extend_cbb_fuses('fuse_str_cbb_3', self.ppvc_fuses.get('cbb3', {}))
+				
 		for imh in self.imhs:
 			imh_name = imh.name.lower() if hasattr(imh, 'name') else str(imh).lower()
 			if 'imh0' in imh_name or 'io0' in imh_name:
-				self.fuse_str_imh_0.extend(self.ppvc_fuses.get('imh0', []))
+				self._extend_imh_fuses('fuse_str_imh_0', self.ppvc_fuses.get('imh0', []))
+
 			if 'imh1' in imh_name or 'io1' in imh_name:
-				self.fuse_str_imh_1.extend(self.ppvc_fuses.get('imh1', []))
-		
-		# Append base fuse strings
-		self.fuse_str_cbb_0.extend(fuse_str_cbb)
-		self.fuse_str_cbb_1.extend(fuse_str_cbb)
-		self.fuse_str_cbb_2.extend(fuse_str_cbb)
-		self.fuse_str_cbb_3.extend(fuse_str_cbb)
-		self.fuse_str_imh_0.extend(fuse_str_imh)
-		self.fuse_str_imh_1.extend(fuse_str_imh)
+				self._extend_imh_fuses('fuse_str_imh_1', self.ppvc_fuses.get('imh1', []))
 	
 	def _build_mask_strings(self) -> tuple:
 		"""Build core and LLC mask disable strings for bootscript"""
@@ -818,13 +831,29 @@ class SystemBooter:
 		fuse_string = ''
 		
 		if cbbs_number >= 1:
-			fuse_string += f"'cbb_base0': {self.fuse_str_cbb_0},"
+			fuse_string += f"'cbb_base0': {self.fuse_str_cbb_0['base']},"
+			fuse_string += f"'cbb0_top0': {self.fuse_str_cbb_0['top0']},"
+			fuse_string += f"'cbb0_top1': {self.fuse_str_cbb_0['top1']},"
+			fuse_string += f"'cbb0_top2': {self.fuse_str_cbb_0['top2']},"
+			fuse_string += f"'cbb0_top3': {self.fuse_str_cbb_0['top3']},"
 		if cbbs_number >= 2:
-			fuse_string += f"'cbb_base1': {self.fuse_str_cbb_1},"
+			fuse_string += f"'cbb_base1': {self.fuse_str_cbb_1['base']},"
+			fuse_string += f"'cbb1_top0': {self.fuse_str_cbb_1['top0']},"
+			fuse_string += f"'cbb1_top1': {self.fuse_str_cbb_1['top1']},"
+			fuse_string += f"'cbb1_top2': {self.fuse_str_cbb_1['top2']},"
+			fuse_string += f"'cbb1_top3': {self.fuse_str_cbb_1['top3']},"
 		if cbbs_number >= 3:
-			fuse_string += f"'cbb_base2': {self.fuse_str_cbb_2},"
+			fuse_string += f"'cbb_base2': {self.fuse_str_cbb_2['base']},"
+			fuse_string += f"'cbb2_top0': {self.fuse_str_cbb_2['top0']},"
+			fuse_string += f"'cbb2_top1': {self.fuse_str_cbb_2['top1']},"
+			fuse_string += f"'cbb2_top2': {self.fuse_str_cbb_2['top2']},"
+			fuse_string += f"'cbb2_top3': {self.fuse_str_cbb_2['top3']},"
 		if cbbs_number >= 4:
-			fuse_string += f"'cbb_base3': {self.fuse_str_cbb_3},"
+			fuse_string += f"'cbb_base3': {self.fuse_str_cbb_3['base']},"
+			fuse_string += f"'cbb3_top0': {self.fuse_str_cbb_3['top0']},"
+			fuse_string += f"'cbb3_top1': {self.fuse_str_cbb_3['top1']},"
+			fuse_string += f"'cbb3_top2': {self.fuse_str_cbb_3['top2']},"
+			fuse_string += f"'cbb3_top3': {self.fuse_str_cbb_3['top3']},"
 		
 		if imhs_number >= 1:
 			fuse_string += f"'imh0': {self.fuse_str_imh_0},"
@@ -835,7 +864,25 @@ class SystemBooter:
 			fuse_string = f' fuse_str={{{fuse_string[:-1]}}},'
 		
 		return fuse_string
-	
+
+	def _ready_fuses_for_bootscript(self, fuses: List[str], base: List[str]) -> List[str]:
+		"""Remove base fuses from CBB fuse list"""
+		return dpm.bs_fuse_fix(fuses, base)
+
+	# Holder not sure if using yet
+	def _check_cbb_fuse_location(self, fuses: List[str]) -> tuple:
+		"""Check and return top and bottom fuse locations based on system configuration"""
+		top_fuses = []
+		base_fuses = []
+
+		for fuse in fuses:
+			if '.base.' in fuse:
+				base_fuses.append(fuse)
+			else:
+				top_fuses.append(fuse)
+
+		return base_fuses, top_fuses
+
 	def _build_fuse_files_string(self) -> str:
 		"""Build fuse files string for bootscript"""
 		_fuse_files_cbb = []
@@ -859,7 +906,76 @@ class SystemBooter:
 			fuse_files_str = f' fuse_files_str={{{fuse_files_str[:-1]}}},'
 		
 		return fuse_files_str
+
+	def _extend_common_fuses(self, fuse_str_cbb, fuse_str_imh):
+		
+		cbbs_common_string = '.cbbs.'
+		imhs_common_string = '.imhs.'
+
+		_base_cbb_fuses = []
+		_base_imh_fuses = []
+
+		for fuse in fuse_str_cbb:
+			if cbbs_common_string in fuse:
+				_base_cbb_fuses.append(fuse.replace('sv.sockets.cbbs.base.fuses', ''))
+
+		for fuse in fuse_str_imh:
+			if imhs_common_string in fuse:
+				_base_imh_fuses.append(fuse.replace('sv.sockets.imhs.fuses', ''))
+
+
+		for cbb in self.cbbs:
+			cbb_name = cbb.name.lower() if hasattr(cbb, 'name') else str(cbb).lower()
+			if 'cbb0' in cbb_name:
+				self._extend_cbb_fuses('fuse_str_cbb_0', _base_cbb_fuses, fuse_keys = ['base'])
+
+			if 'cbb1' in cbb_name:
+				self._extend_cbb_fuses('fuse_str_cbb_1', _base_cbb_fuses, fuse_keys = ['base'])
+
+			if 'cbb2' in cbb_name:
+				self._extend_cbb_fuses('fuse_str_cbb_2', _base_cbb_fuses, fuse_keys = ['base'])
+
+			if 'cbb3' in cbb_name:
+				self._extend_cbb_fuses('fuse_str_cbb_3', _base_cbb_fuses, fuse_keys = ['base'])
+				
+		for imh in self.imhs:
+			imh_name = imh.name.lower() if hasattr(imh, 'name') else str(imh).lower()
+			if 'imh0' in imh_name or 'io0' in imh_name:
+				self._extend_imh_fuses('fuse_str_imh_0', _base_imh_fuses)
+
+			if 'imh1' in imh_name or 'io1' in imh_name:
+				self._extend_imh_fuses('fuse_str_imh_1', _base_imh_fuses)
+
+	def _extend_cbb_fuses(self, target_attr_name, source_fuses_dict, fuse_keys = ['base', 'top0', 'top1', 'top2', 'top3']):
+		"""
+		Helper method to extend CBB fuse strings for all locations (base, top0-3)
+		
+		Args:
+			target_attr_name: Name of the target attribute (e.g., 'fuse_str_cbb_0')
+			source_fuses_dict: Dictionary with keys like 'base', 'top0', 'top1', 'top2', 'top3'
+		"""
+		if not hasattr(self, target_attr_name):
+			print(f'Warning: No attribute configured with name: {target_attr_name}')
+			return
+		
+		target_attr = getattr(self, target_attr_name)
+		for key in fuse_keys:
+			target_attr[key].extend(source_fuses_dict.get(key, []))
 	
+	def _extend_imh_fuses(self, target_attr_name, source_fuses_list):
+		"""
+		Helper method to extend IMH fuse strings
+		
+		Args:
+			target_attr_name: Name of the target attribute (e.g., 'fuse_str_imh_0')
+			source_fuses_list: List of fuses to extend
+		"""
+		if not hasattr(self, target_attr_name):
+			print(f'Warning: No attribute configured with name: {target_attr_name}')
+			return
+		
+		getattr(self, target_attr_name).extend(source_fuses_list)
+
 	def _assign_values_to_regs(self, list_regs: List[str], new_value: int) -> List[str]:
 		"""
 		Assign a value to a list of register strings
@@ -1096,7 +1212,8 @@ class System2Tester():
 			'ppvc_fuses': self.ppvc_fuses,
 			'execution_state': self.execution_state,
 			'fuse_2CPM': self.fuse_2CPM,
-			'fuse_1CPM': self.fuse_1CPM
+			'fuse_1CPM': self.fuse_1CPM,
+			'fastboot': self.Fastboot,
 		}
 		self.booter = SystemBooter(self.sv, self.ipc, system_config)
 		
@@ -1261,8 +1378,8 @@ class System2Tester():
 
 #=============== MAIN SYSTEM 2 TESTER FUNCTIONS =========================================================#
 	
-	# Sets up system to run with 1 enabled module per cbb
-	def setModule(self) -> None:
+	# Sets up system to run with 1 enabled module per cbb -- Name is legacy from previous versions
+	def setCore(self) -> None:
 		'''
 		Sets up system to run with 1 enabled module per cbb.
 
@@ -1798,7 +1915,27 @@ def fuse_cmd_override_check(fuse_cmd_array, showresults = False, skip_init= Fals
 					'cbb3'	:'sv.sockets.cbb3.base.fuses.',
 					'imh0'	:'sv.sockets.imh0.fuses.',
 					'imh1'	:'sv.sockets.imh1.fuses.',
-
+					'cbbstops':'sv.sockets.cbbs.computes.fuses.',
+					'cbb0tops':'sv.sockets.cbb0.computes.fuses.',
+					'cbb1tops':'sv.sockets.cbb1.computes.fuses.',
+					'cbb2tops':'sv.sockets.cbb2.computes.fuses.',
+					'cbb3tops':'sv.sockets.cbb3.computes.fuses.',
+					'cbb0top0':'sv.sockets.cbb0.compute0.fuses.',
+					'cbb0top1':'sv.sockets.cbb0.compute1.fuses.',
+					'cbb0top2':'sv.sockets.cbb0.compute2.fuses.',
+					'cbb0top3':'sv.sockets.cbb0.compute3.fuses.',
+					'cbb1top0':'sv.sockets.cbb1.compute0.fuses.',
+					'cbb1top1':'sv.sockets.cbb1.compute1.fuses.',
+					'cbb1top2':'sv.sockets.cbb1.compute2.fuses.',
+					'cbb1top3':'sv.sockets.cbb1.compute3.fuses.',
+					'cbb2top0':'sv.sockets.cbb2.compute0.fuses.',
+					'cbb2top1':'sv.sockets.cbb2.compute1.fuses.',
+					'cbb2top2':'sv.sockets.cbb2.compute2.fuses.',
+					'cbb2top3':'sv.sockets.cbb2.compute3.fuses.',
+					'cbb3top0':'sv.sockets.cbb3.compute0.fuses.',
+					'cbb3top1':'sv.sockets.cbb3.compute1.fuses.',
+					'cbb3top2':'sv.sockets.cbb3.compute2.fuses.',
+					'cbb3top3':'sv.sockets.cbb3.compute3.fuses.',
 				}
 
 	fuse_table = []

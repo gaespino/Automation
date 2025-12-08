@@ -1300,7 +1300,7 @@ def pseudo_bs(ClassMask = 'RowEvenPass', Custom = [], boot = True, use_core = Fa
 			#fast_fuses = []
 
 		elif boot: 
-			
+			fuse_str = {}
 			## Bootscript with or without htdis fuses
 			if chipConfig == 'X4': 
 				fuse_str_0 = dmr_fuse_fix(fuse_str = all_fuses, cbb_name= 'cbb0')
@@ -1309,47 +1309,47 @@ def pseudo_bs(ClassMask = 'RowEvenPass', Custom = [], boot = True, use_core = Fa
 				fuse_str_3 = dmr_fuse_fix(fuse_str = all_fuses, cbb_name= 'cbb3')
 
 				bscript_0 = ('pwrgoodmethod="usb", pwrgoodport=1, pwrgooddelay=30, fused_unit=True, enable_strap_checks=False,compute_config=%s,enable_pm=True, ia_core_disable={cbb_base0:%s, cbb_base1:%s, cbb_base2:%s, cbb_base3:%s}, llc_slice_disable={cbb_base0:%s, cbb_base1:%s, cbb_base2:%s, cbb_base3:%s}') % (chipConfig, core_cbb0, core_cbb1, core_cbb2, core_cbb3, llc_cbb0, llc_cbb1, llc_cbb2, llc_cbb3)
-			
+				
+				fuse_str = {
+							'cbb_base0':fuse_str_0['base'],
+							'cbb0_top0':fuse_str_0['top0'],
+							'cbb0_top1':fuse_str_0['top1'],
+							'cbb0_top2':fuse_str_0['top2'],
+							'cbb0_top3':fuse_str_0['top3'],
+							'cbb_base1':fuse_str_1['base'],
+							'cbb1_top0':fuse_str_1['top0'],
+							'cbb1_top1':fuse_str_1['top1'],
+							'cbb1_top2':fuse_str_1['top2'],
+							'cbb1_top3':fuse_str_1['top3'],
+							'cbb_base2':fuse_str_2['base'],
+							'cbb2_top0':fuse_str_2['top0'],
+							'cbb2_top1':fuse_str_2['top1'],
+							'cbb2_top2':fuse_str_2['top2'],
+							'cbb2_top3':fuse_str_2['top3'],
+							'cbb_base3':fuse_str_3['base'],
+							'cbb3_top0':fuse_str_3['top0'],
+							'cbb3_top1':fuse_str_3['top1'],
+							'cbb3_top2':fuse_str_3['top2'],
+							'cbb3_top3':fuse_str_3['top3']
+							}
+						
 			elif chipConfig == 'X1':
 				fuse_str_0 = dmr_fuse_fix(fuse_str = all_fuses, cbb_name= 'cbb0')
 				bscript_0 = ('pwrgoodmethod="usb", pwrgoodport=1, pwrgooddelay=30, fused_unit=True, enable_strap_checks=False,compute_config=%s,enable_pm=True, ia_core_disable={cbb_base0:%s}, llc_slice_disable={cbb_base0:%s}') % (chipConfig, core_cbb0, llc_cbb0)
-			
-			# Build bootscript fuse configuration string
-			if chipConfig == 'X4':
-				bscript_1 = (
-					f', fuse_str={{'
-					f'cbb_base0:{fuse_str_0['base']}, '
-					f'cbb0_top0:{fuse_str_0['top0']}, '
-					f'cbb0_top1:{fuse_str_0['top1']}, '
-					f'cbb0_top2:{fuse_str_0['top2']}, '
-					f'cbb0_top3:{fuse_str_0['top3']}, '
-					f'cbb_base1:{fuse_str_1['base']}, '
-					f'cbb1_top0:{fuse_str_1['top0']}, '
-					f'cbb1_top1:{fuse_str_1['top1']}, '
-					f'cbb1_top2:{fuse_str_1['top2']}, '
-					f'cbb1_top3:{fuse_str_1['top3']}, '
-					f'cbb_base2:{fuse_str_2['base']}, '
-					f'cbb2_top0:{fuse_str_2['top0']}, '
-					f'cbb2_top1:{fuse_str_2['top1']}, '
-					f'cbb2_top2:{fuse_str_2['top2']}, '
-					f'cbb2_top3:{fuse_str_2['top3']}, '
-					f'cbb_base3:{fuse_str_3['base']}, '
-					f'cbb3_top0:{fuse_str_3['top0']}, '
-					f'cbb3_top1:{fuse_str_3['top1']}, '
-					f'cbb3_top2:{fuse_str_3['top2']}, '
-					f'cbb3_top3:{fuse_str_3['top3']}, '
-					f'}},'# dynamic_fuse_inject={{"top":my_method}}'
-				)
-			elif chipConfig == 'X1':
-				bscript_1 = (f', fuse_str={{'
-					f'cbb_base0:{fuse_str_0['base']}, '
-					f'cbb0_top0:{fuse_str_0['top0']}, '
-					f'cbb0_top1:{fuse_str_0['top1']}, '
-					f'cbb0_top2:{fuse_str_0['top2']}, '
-					f'cbb0_top3:{fuse_str_0['top3']}'
-					f'}}, '#dynamic_fuse_inject={{"top":my_method}}'
-					)
 
+				fuse_str = {
+							'cbb_base0':fuse_str_0['base'],
+							'cbb0_top0':fuse_str_0['top0'],
+							'cbb0_top1':fuse_str_0['top1'],
+							'cbb0_top2':fuse_str_0['top2'],
+							'cbb0_top3':fuse_str_0['top3'],
+							}
+
+				bscript_1 = (
+				f', fuse_str={{'
+				f'{fuse_str}'
+				f'}},'# dynamic_fuse_inject={{"top":my_method}}'
+				)
 			## Display data on screen, showing configuration to be used based on selection
 			print (f'\n>>>  Bootscript configuration for {ClassMask} ')
 			print (f'>>>  {Class_help[ClassMask]}')
@@ -1374,12 +1374,28 @@ def pseudo_bs(ClassMask = 'RowEvenPass', Custom = [], boot = True, use_core = Fa
 
 			print (f'>>>  Boot option is selected - Starting Bootscript') 
 		#	if htdis:
-			if chipConfig == 'X1': b.go(pwrgoodmethod="usb", pwrgoodport=1, pwrgooddelay=30, fused_unit=True, enable_strap_checks=False,compute_config=chipConfig,enable_pm=True, ia_core_disable={"cbb_base0":core_cbb0, "cbb_base1":core_cbb1, "cbb_base2":core_cbb2, "cbb_base3":core_cbb3}, llc_slice_disable={"cbb_base0":llc_cbb0, "cbb_base1":llc_cbb1, "cbb_base2":llc_cbb2, "cbb_base3":llc_cbb3}, fuse_str={"cbb_base0":fuse_str_0, "cbb_base1":fuse_str_1, "cbb_base2":fuse_str_2, "cbb_base3":fuse_str_3})
-			if chipConfig == 'X4': b.go(pwrgoodmethod='usb', pwrgoodport=1, pwrgooddelay=30, fused_unit=True, enable_strap_checks=False,compute_config=chipConfig,enable_pm=True, ia_core_disable={"cbb_base0":core_cbb0}, llc_slice_disable={"cbb_base0":llc_cbb0}, fuse_str={"cbb_base0":fuse_str_0})
 			
-			# Waits for EFI and checks fuse application
-			# pending pereiras
-			# pseudo_efi_check(fuse_option)
+			if chipConfig == 'X1': b.go(pwrgoodmethod="usb", 
+							   			pwrgoodport=1, 
+										pwrgooddelay=30, 
+										fused_unit=True, 
+										enable_strap_checks=False,
+										compute_config=chipConfig,
+										enable_pm=True, 
+										ia_core_disable={"cbb_base0":core_cbb0, "cbb_base1":core_cbb1, "cbb_base2":core_cbb2, "cbb_base3":core_cbb3}, 
+										llc_slice_disable={"cbb_base0":llc_cbb0, "cbb_base1":llc_cbb1, "cbb_base2":llc_cbb2, "cbb_base3":llc_cbb3}, 
+										fuse_str=fuse_str)
+			
+			if chipConfig == 'X4': b.go(pwrgoodmethod='usb', 
+							   			pwrgoodport=1, 
+										pwrgooddelay=30, 
+										fused_unit=True, 
+										enable_strap_checks=False,
+										compute_config=chipConfig,
+										enable_pm=True, 
+										ia_core_disable={"cbb_base0":core_cbb0}, llc_slice_disable={"cbb_base0":llc_cbb0}, 
+										fuse_str=fuse_str)
+
 
 		else: 
 			print (f'\n>>>  Boot option not selected -- Copy bootscript code  above and edit if needed to run manually') 
@@ -1491,7 +1507,7 @@ def dmr_fuse_fix(fuse_str = {}, cbb_name = 'cbb0'):
 	bs_fuse_array = []
 
 	base_string = '.base.'
-	bases = [f'sv.socket0.{cbb_name}.base.'	]
+	bases = [f'sv.socket0.{cbb_name}.base.fuses.'	]
 
 	compute_string = ['s', '0', '1', '2', '3']
 
@@ -1505,8 +1521,9 @@ def dmr_fuse_fix(fuse_str = {}, cbb_name = 'cbb0'):
 				top_string = f'.compute{cs}.'
 				
 				if top_string in fuse:
-					if cs == 's':
-						fuses[f'top{cs}'] = bs_fuse_fix(fuse_str = fuse, bases = [f'sv.socket0.{cbb_name}.compute{cs}.'])
+					if cs != 's':
+						fuses[f'top{cs}'] = bs_fuse_fix(fuse_str = fuse, bases = [f'sv.socket0.{cbb_name}.compute{cs}.fuses.'])
+
 					else:
 						fstring = bs_fuse_fix(fuse_str = fuse, bases = [f'sv.socket0.{cbb_name}.compute{cs}.'])
 						
@@ -1587,13 +1604,18 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 	#ppvc_fuses = f.ppvc_rgb_reduction(boot=False)
 	## I have rebuilt the ppvc script here instead of using what is in GFO in case additional customization is needed
 	if updateram: fuseRAM(refresh = False)
-	#syscomputes = sv.socket0.computes.name
-	volt_confg = {	'compute0':[],
-			   		'compute1':[],
-					'compute2':[],
-					'io0':[],
-					'io1':[],}
-		
+	
+	# This is changing for DMR -- not compatible with previous products (GNR/CWF)
+	# Be careful when updating this section in older products
+
+	cbbs = config.MAX_CBBS
+	base_top_config = {'base':[], 'top0':[], 'top1':[], 'top2':[], 'top3':[]}
+	imh_config = {'imh0':[], 'imh1':[]}
+
+
+	volt_config = { f'cbb{c}': base_top_config for c in range(cbbs)}
+	volt_config.update(imh_config)
+	
 	#computes = len(syscomputes)
 	if fixed:
 		if volt_dict['core'] != None: volt_fuses+=f.ia_vbump_array(fixed_voltage = volt_dict['core']) # Adding IA fuses
@@ -1602,23 +1624,32 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 		if isinstance(volt_dict['cfc_die'], dict):
 			for k,v in volt_dict['cfc_die'].items():
 				if volt_dict['cfc_die'][k] != None:
-					volt_fuses+=f.cfc_vbump_array(fixed_voltage = v, target_compute=int(k[-1]))
+					volt_fuses+=f.cfc_vbump_array(fixed_voltage = v, target_cbb=int(k[-1]), include_cbbs=True, include_imhs=False)
 		else:
 			if volt_dict['cfc_die'] != None:
-				volt_fuses+=f.cfc_vbump_array(fixed_voltage = volt_dict['cfc_die']) # Adding CFC fuses
+				volt_fuses+=f.cfc_vbump_array(fixed_voltage = volt_dict['cfc_die'], include_cbbs=True, include_imhs=False) # Adding CFC fuses
 		
-		
+		if isinstance(volt_dict['core_mlc_volt'], dict):
+			for k,v in volt_dict['core_mlc_volt'].items():
+				if volt_dict['core_mlc_volt'][k] != None: 
+					volt_fuses+=f.mlc_vbump_array(fixed_voltage = v, target_cbb=int(k[-1]))
+		else:
+			if volt_dict['core_mlc_volt'] != None: 
+				volt_fuses+=f.hdc_vbump_array(fixed_voltage = volt_dict['core_mlc_volt']) # Adding HDC fuses
+
+		# No HDC in DMR -- Left for reference
 		if isinstance(volt_dict['hdc_die'], dict):
 			for k,v in volt_dict['hdc_die'].items():
 				if volt_dict['hdc_die'][k] != None: 
-					volt_fuses+=f.hdc_vbump_array(fixed_voltage = v, target_compute=int(k[-1]))
+					volt_fuses+=f.hdc_vbump_array(fixed_voltage = v, target_cbb=int(k[-1]))
 		else:
 			if volt_dict['hdc_die'] != None: 
 				volt_fuses+=f.hdc_vbump_array(fixed_voltage = volt_dict['hdc_die']) # Adding HDC fuses
-		
+
+
 		if volt_dict['ddrd'] != None:volt_fuses+=f.ddrd_vbump_array(fixed_voltage = volt_dict['ddrd']) # Adding DDRD fuses
 		#if volt_dict['ddra'] != None:volt_fuses+=f.ddra_vbump_array(fixed_voltage = volt_dict['ddra'], computes = computes) # Adding DDRA fuses -- WIP
-		if volt_dict['cfc_io'] != None:volt_fuses+=f.cfc_io_vbump_array(fixed_voltage = volt_dict['cfc_io']) # Adding CFCxIO fuses
+		if volt_dict['cfc_io'] != None:volt_fuses+=f.cfc_vbump_array(fixed_voltage = volt_dict['cfc_io'], include_cbbs=False, include_imhs=True) # Adding CFCxIO fuses
 	
 	elif vbump:
 		if volt_dict['core'] != None: volt_fuses+=f.ia_vbump_array(offset = volt_dict['core']) # Adding IA fuses
@@ -1628,16 +1659,25 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 		if isinstance(volt_dict['cfc_die'], dict):
 			for k,v in volt_dict['cfc_die'].items():
 				if volt_dict['cfc_die'][k] != None:
-					volt_fuses+=f.cfc_vbump_array(offset = v, target_compute=int(k[-1]))
+					volt_fuses+=f.cfc_vbump_array(offset = v, target_cbb=int(k[-1]), include_cbbs=True, include_imhs=False)
 		else:
 			if volt_dict['cfc_die'] != None:
-				volt_fuses+=f.cfc_vbump_array(offset = volt_dict['cfc_die']) # Adding CFC fuses
+				volt_fuses+=f.cfc_vbump_array(offset = volt_dict['cfc_die'], include_cbbs=True, include_imhs=False) # Adding CFC fuses
+
+		if isinstance(volt_dict['core_mlc_volt'], dict):
+			for k,v in volt_dict['core_mlc_volt'].items():
+				if volt_dict['core_mlc_volt'][k] != None: 
+					volt_fuses+=f.mlc_vbump_array(offset = v, target_cbb=int(k[-1]))
+		else:
+			if volt_dict['core_mlc_volt'] != None: 
+				volt_fuses+=f.mlc_vbump_array(offset = volt_dict['core_mlc_volt']) # Adding HDC fuses
 		
-		
+
+		# No HDC in DMR -- Left for reference
 		if isinstance(volt_dict['hdc_die'], dict):
 			for k,v in volt_dict['hdc_die'].items():
 				if volt_dict['hdc_die'][k] != None: 
-					volt_fuses+=f.hdc_vbump_array(offset = v, target_compute=int(k[-1]))
+					volt_fuses+=f.hdc_vbump_array(offset = v, target_cbb=int(k[-1]))
 		else:
 			if volt_dict['hdc_die'] != None: 
 				volt_fuses+=f.hdc_vbump_array(offset = volt_dict['hdc_die']) # Adding HDC fuses
@@ -1645,34 +1685,38 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 
 		if volt_dict['ddrd'] != None: volt_fuses+=f.ddrd_vbump_array(offset = volt_dict['ddrd']) # Adding DDRD fuses
 		#if volt_dict['ddra'] != None: volt_fuses+=f.ddra_vbump_array(offset = volt_dict['ddra'], computes = computes) # Adding DDRA fuses -- WIP
-		if volt_dict['cfc_io'] != None: volt_fuses+=f.cfc_io_vbump_array(offset = volt_dict['cfc_io']) # Adding CFCxIO fuses
+		if volt_dict['cfc_io'] != None: volt_fuses+=f.cfc_io_vbump_array(offset = volt_dict['cfc_io'], include_cbbs=False, include_imhs=True) # Adding CFCxIO fuses
    		
 	#ppvc_fuses+=f.cfn_vbump_array(fixed_voltage = volt_values['cfn']) # Adding CFN fuses
 	#ppvc_fuses+=f.vccinf_vbump_array(fixed_voltage = volt_values['core'], computes = computes) # Adding VCCINF fuses
 
 
-	fuses_compute0 = [f for f in volt_fuses if 'compute0' in f]
-	fuses_compute1 = [f for f in volt_fuses if 'compute1' in f]
-	fuses_compute2 = [f for f in volt_fuses if 'compute2' in f]
-	fuses_io0 = [f for f in volt_fuses if 'io0' in f]
-	fuses_io1 = [f for f in volt_fuses if 'io1' in f]
+	fuses_cbb0 = [f for f in volt_fuses if '.cbb0' in f]
+	fuses_cbb1 = [f for f in volt_fuses if '.cbb1' in f]
+	fuses_cbb2 = [f for f in volt_fuses if '.cbb2' in f]
+	fuses_cbb3 = [f for f in volt_fuses if '.cbb2' in f]
+	fuses_imh0 = [f for f in volt_fuses if '.imh0' in f]
+	fuses_imh1 = [f for f in volt_fuses if '.imh1' in f]
 
 	if bsformat:
 		print(f'\n {"*"*5} Modifying fuses to be usable in a bootscript array for each die {"*"*5}\n')
-		if fuses_compute0: fuses_compute0 = bs_fuse_fix(fuse_str = fuses_compute0, bases = ['sv.socket0.compute0.fuses.'])
-		if fuses_compute1: fuses_compute1 = bs_fuse_fix(fuse_str = fuses_compute1, bases = ['sv.socket0.compute1.fuses.'])
-		if fuses_compute2: fuses_compute2 = bs_fuse_fix(fuse_str = fuses_compute2, bases = ['sv.socket0.compute2.fuses.'])
-		if fuses_io0: fuses_io0 = bs_fuse_fix(fuse_str = fuses_io0, bases = ['sv.socket0.io0.fuses.'])
-		if fuses_io1: fuses_io1 = bs_fuse_fix(fuse_str = fuses_io1, bases = ['sv.socket0.io1.fuses.'])
+		if fuses_cbb0: fuses_cbb0 = dmr_fuse_fix(fuse_str = fuses_cbb0, cbb_name = 'cbb0')
+		if fuses_cbb1: fuses_cbb1 = dmr_fuse_fix(fuse_str = fuses_cbb1, cbb_name = 'cbb1')
+		if fuses_cbb2: fuses_cbb2 = dmr_fuse_fix(fuse_str = fuses_cbb2, cbb_name = 'cbb2')
+		if fuses_cbb3: fuses_cbb3 = dmr_fuse_fix(fuse_str = fuses_cbb3, cbb_name = 'cbb3')
+		if fuses_imh0: fuses_imh0 = bs_fuse_fix(fuse_str = fuses_imh0, bases = ['sv.socket0.imh0.fuses'])
+		if fuses_imh1: fuses_imh1 = bs_fuse_fix(fuse_str = fuses_imh1, bases = ['sv.socket0.imh0.fuses'])
 	
-	volt_confg = {	'compute0':fuses_compute0,
-			   		'compute1':fuses_compute1,
-					'compute2':fuses_compute2,
-					'io0':fuses_io0,
-					'io1':fuses_io1,}
+	volt_config = {	'cbb0':fuses_cbb0,
+			   		'cbb1':fuses_cbb1,
+					'cbb2':fuses_cbb2,
+					'cbb3':fuses_cbb3,
+					'imh0':fuses_imh0,
+					'imh1':fuses_imh1,}
+
 	print(f'Voltage configuration fuses collected, adding them to boot configuration')
 	print("***********************************v********************************************\n")
-	return volt_confg
+	return volt_config
 
 ## Type of avaiable masks for the pseudo Mask and pseudo bs
 ## Class uses the Column configuration that replicates Class scenario

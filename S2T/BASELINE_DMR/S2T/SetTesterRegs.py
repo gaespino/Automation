@@ -740,12 +740,12 @@ class S2TFlow():
 		self.frequency_mgr.io_freq = self.io_freq
 		self.frequency_mgr.use_ate_freq = self.use_ate_freq
 		self.frequency_mgr.flowid = self.flowid
-		self.frequency_mgr.volt_config = self.volt_config
 		
 		# Pass initial voltage values to manager
 		self.voltage_mgr.core_volt = self.core_volt
 		self.voltage_mgr.mesh_cfc_volt = self.mesh_cfc_volt if self.mesh_cfc_volt else {d: None for d in self.domains}
-		
+		self.voltage_mgr.volt_config = self.volt_config
+
 		# mesh_hdc_volt: only initialize if product supports it
 		if self.voltage_mgr.voltage_ips['mesh_hdc_volt']:
 			self.voltage_mgr.mesh_hdc_volt = self.mesh_hdc_volt if self.mesh_hdc_volt else {d: None for d in self.domains}
