@@ -1,0 +1,5 @@
+old_file,new_file,old_name,new_name,description,update_imports,enabled
+DebugFramework/SystemDebug.py,DebugFramework/DMRSystemDebug.py,SystemDebug.py,DMRSystemDebug.py,Rename SystemDebug to DMRSystemDebug,yes,yes
+DebugFramework/TestFramework.py,DebugFramework/DMRTestFramework.py,TestFramework.py,DMRTestFramework.py,Rename TestFramework to DMRTestFramework,yes,yes
+S2T/dpmChecks.py,S2T/DMRdpmChecks.py,dpmChecks.py,DMRdpmChecks.py,Rename dpmChecks to DMRdpmChecks,yes,yes
+S2T/CoreManipulation.py,S2T/DMRCoreManipulation.py,CoreManipulation.py,DMRCoreManipulation.py,Rename CoreManipulation to DMRCoreManipulation,yes,yes

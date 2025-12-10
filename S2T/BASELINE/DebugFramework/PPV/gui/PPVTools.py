@@ -15,6 +15,7 @@ try:
     from .PPVFileHandler import FileHandlerGUI
     from .PPVFrameworkReport import FrameworkReportBuilder
     from .AutomationDesigner import start_automation_flow_designer
+    from .ExperimentBuilder import ExperimentBuilderGUI
 except ImportError:
     from gui.PPVLoopChecks import PTCReportGUI
     from gui.PPVDataChecks import PPVReportGUI
@@ -22,6 +23,7 @@ except ImportError:
     from gui.PPVFileHandler import FileHandlerGUI
     from gui.PPVFrameworkReport import FrameworkReportBuilder
     from gui.AutomationDesigner import start_automation_flow_designer
+    from gui.ExperimentBuilder import ExperimentBuilderGUI
 #import pyfiglet
 
 def display_banner():
@@ -142,6 +144,13 @@ class Tools(tk.Frame):
 			"• Drag-and-drop flow design\n• Experiment sequencing\n• Export automation configs",
 			"#16a085",
 			self.open_automation_designer)
+		
+		self.create_tool_card(tools_container, 3, 0,
+			"Experiment Builder",
+			"Create and edit JSON configurations for Debug Framework Control Panel.",
+			"• Build experiments from scratch\n• Import from Excel/JSON\n• Export Control Panel configs",
+			"#1abc9c",
+			self.open_experiment_builder)
 		
 		# Footer with close button
 		footer_frame = tk.Frame(self.scrollable_frame, bg='#f0f0f0', pady=20)
@@ -297,6 +306,10 @@ class Tools(tk.Frame):
 	def open_automation_designer(self):
 		"""Open Automation Flow Designer tool"""
 		start_automation_flow_designer(parent=self.root)
+	
+	def open_experiment_builder(self):
+		"""Open Experiment Builder tool"""
+		ExperimentBuilderGUI(parent=self.root)
 	
 	def center_window(self, window):
 		"""Center a window on the screen"""

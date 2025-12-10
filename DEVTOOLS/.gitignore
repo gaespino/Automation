@@ -1,0 +1,26 @@
+# Backup files - don't commit these
+backups/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak

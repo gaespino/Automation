@@ -149,7 +149,7 @@ class Tools(tk.Frame):
 			"Experiment Builder",
 			"Create and edit JSON configurations for Debug Framework Control Panel.",
 			"• Build experiments from scratch\n• Import from Excel/JSON\n• Export Control Panel configs",
-			"#e67e22",
+			"#1abc9c",
 			self.open_experiment_builder)
 		
 		# Footer with close button

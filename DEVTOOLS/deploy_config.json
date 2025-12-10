@@ -1,0 +1,39 @@
+{
+  "paths": {
+    "baseline": "c:\\Git\\Automation\\Automation\\S2T\\BASELINE",
+    "baseline_dmr": "c:\\Git\\Automation\\Automation\\S2T\\BASELINE_DMR",
+    "ppv": "c:\\Git\\Automation\\Automation\\PPV",
+    "backup_base": "c:\\Git\\Automation\\Automation\\DEVTOOLS\\backups",
+    "source_base": "c:\\Git\\Automation\\Automation\\PPV",
+    "target_base": "c:\\Git\\Automation\\Automation\\S2T\\BASELINE\\DebugFramework\\PPV"
+  },
+  "settings": {
+    "similarity_threshold": 0.3,
+    "max_diff_lines_display": 200,
+    "auto_backup": true,
+    "confirm_major_changes": true
+  },
+  "product_configs": {
+    "GNR": {
+      "source_type": "BASELINE",
+      "deployment_type": "DebugFramework",
+      "target_base": "",
+      "replacement_csv": "",
+      "selected_files": []
+    },
+    "CWF": {
+      "source_type": "BASELINE",
+      "deployment_type": "DebugFramework",
+      "target_base": "",
+      "replacement_csv": "",
+      "selected_files": []
+    },
+    "DMR": {
+      "source_type": "BASELINE_DMR",
+      "deployment_type": "DebugFramework",
+      "target_base": "",
+      "replacement_csv": "",
+      "selected_files": []
+    }
+  }
+}

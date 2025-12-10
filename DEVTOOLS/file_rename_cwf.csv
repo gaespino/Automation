@@ -1,0 +1,5 @@
+old_file,new_file,old_name,new_name,description,update_imports,enabled
+DebugFramework/SystemDebug.py,DebugFramework/CWFSystemDebug.py,SystemDebug.py,CWFSystemDebug.py,Rename SystemDebug to CWFSystemDebug,yes,yes
+DebugFramework/TestFramework.py,DebugFramework/CWFTestFramework.py,TestFramework.py,CWFTestFramework.py,Rename TestFramework to CWFTestFramework,yes,yes
+S2T/dpmChecks.py,S2T/CWFdpmChecks.py,dpmChecks.py,CWFdpmChecks.py,Rename dpmChecks to CWFdpmChecks,yes,yes
+S2T/CoreManipulation.py,S2T/CWFCoreManipulation.py,CoreManipulation.py,CWFCoreManipulation.py,Rename CoreManipulation to CWFCoreManipulation,yes,yes

@@ -1,0 +1,10 @@
+old_import,new_import,description,enabled
+from DebugFramework.SystemDebug import,from DebugFramework.DMRSystemDebug import,DMR variant: SystemDebug,yes
+import DebugFramework.SystemDebug,import DebugFramework.DMRSystemDebug as SystemDebug,DMR variant import: SystemDebug,yes
+users.gaespino.dev.DebugFramework.SystemDebug,users.gaespino.DebugFramework.DMRSystemDebug,DMR config path: SystemDebug,yes
+from S2T.dpmChecks import,from S2T.DMRdpmChecks import,DMR variant: dpmChecks,yes
+import S2T.dpmChecks,import S2T.DMRdpmChecks as dpmChecks,DMR variant import: dpmChecks,yes
+users.gaespino.dev.S2T.dpmChecks,users.gaespino.S2T.DMRdpmChecks,DMR config path: dpmChecks,yes
+from S2T.CoreManipulation import,from S2T.DMRCoreManipulation import,DMR variant: CoreManipulation,yes
+import S2T.CoreManipulation,import S2T.DMRCoreManipulation as CoreManipulation,DMR variant import: CoreManipulation,yes
+users.gaespino.dev.S2T.CoreManipulation,users.gaespino.S2T.DMRCoreManipulation,DMR config path: CoreManipulation,yes

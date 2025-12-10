@@ -1,0 +1,5 @@
+old_file,new_file,old_name,new_name,description,update_imports,enabled
+DebugFramework/SystemDebug.py,DebugFramework/GNRSystemDebug.py,SystemDebug.py,GNRSystemDebug.py,Rename SystemDebug to GNRSystemDebug,yes,yes
+DebugFramework/TestFramework.py,DebugFramework/GNRTestFramework.py,TestFramework.py,GNRTestFramework.py,Rename TestFramework to GNRTestFramework,yes,yes
+S2T/dpmChecks.py,S2T/GNRdpmChecks.py,dpmChecks.py,GNRdpmChecks.py,Rename dpmChecks to GNRdpmChecks,yes,yes
+S2T/CoreManipulation.py,S2T/GNRCoreManipulation.py,CoreManipulation.py,GNRCoreManipulation.py,Rename CoreManipulation to GNRCoreManipulation,yes,yes
