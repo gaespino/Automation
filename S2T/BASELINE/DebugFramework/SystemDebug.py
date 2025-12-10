@@ -1718,7 +1718,8 @@ class Framework:
 		self.unit_data = None
 		self._current_strategy = None
 		self._current_executor = None
-
+		self.product = FrameworkUtils.get_product_str()
+		
 		# CRITICAL: Use queue-based status reporting instead of direct callback
 		self.status_manager = StatusUpdateManager(
 			status_reporter=status_reporter,  # Your MainThreadHandler instance

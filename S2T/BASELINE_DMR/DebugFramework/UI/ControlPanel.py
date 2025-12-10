@@ -173,6 +173,10 @@ class EditExperimentWindow(tk.Toplevel):
 		self.mode = mode  # "edit" or "add_new"
 		self.config_file = config_file
 		
+		# Extract product from config filename (e.g., 'GNRControlPanelConfig.json' -> 'GNR')
+		self.current_product = config_file.replace('ControlPanelConfig.json', '') if 'ControlPanelConfig.json' in config_file else 'GNR'
+		print(f"[EDIT WINDOW] Initializing with config_file='{config_file}', extracted product='{self.current_product}'")
+		
 		# Add validation debouncing
 		self.validation_timer = None
 		self.pending_validations = set()
@@ -419,46 +423,67 @@ class EditExperimentWindow(tk.Toplevel):
 		return converted_data
 
 	def _initialize_missing_fields(self):
-		"""Initialize any missing fields with default values"""
+		"""Initialize any missing fields with default values from config"""
 		all_fields = set()
 		
-		# Collect all possible fields from data_types
-		for field in self.data_types.keys():
+		# Collect all possible fields from field_configs
+		for field in self.field_configs.keys():
 			all_fields.add(field)
 		
-		# Add missing fields with appropriate default values
+		# Add missing fields with default values from config
 		for field in all_fields:
 			if field not in self.data:
-				field_types = self.data_types.get(field, [str])
-				if bool in field_types:
-					self.data[field] = False
-				elif int in field_types:
-					self.data[field] = 0
-				elif float in field_types:
-					self.data[field] = 0.0
+				field_config = self.field_configs.get(field, {})
+				default_value = field_config.get('default', '')
+				
+				# Use configured default if it exists and is not empty string
+				if default_value != '' and default_value is not None:
+					self.data[field] = default_value
 				else:
-					self.data[field] = ""
+					# Use empty string for fields without defaults
+					self.data[field] = ''
 
 	def load_configuration(self):
+		"""Load configuration from PPV/configs folder using new field_configs format"""
+		# Try to load from DebugFramework's PPV/configs folder
 		current_dir = os.path.dirname(__file__)
-		config_path = os.path.join(current_dir, self.config_file)
+		# Navigate to PPV/configs: UI -> DebugFramework -> PPV -> configs
+		ppv_config_dir = os.path.join(current_dir, '..', 'PPV', 'configs')
+		ppv_config_path = os.path.join(ppv_config_dir, self.config_file)
+		
+		# Fallback to old location if PPV config doesn't exist
+		old_config_path = os.path.join(current_dir, self.config_file)
+		
+		config_path = ppv_config_path if os.path.exists(ppv_config_path) else old_config_path
+		
+		# Log which config file is being loaded
+		config_location = "PPV/configs" if config_path == ppv_config_path else "UI folder"
+		print(f"[EDIT WINDOW] Loading config from {config_location}: {config_path}")
 		
 		try:
 			with open(config_path) as config_file:
 				config_data = json.load(config_file)
+				# Migrate old format to new format if needed
+				config_data = self.migrate_config_format(config_data)
 		except FileNotFoundError:
 			messagebox.showerror("Configuration Error", 
-							   f"Configuration file '{self.config_file}' not found.")
+						   f"Configuration file '{self.config_file}' not found in PPV/configs or UI folder.")
 			self.destroy()
 			return
 		except json.JSONDecodeError as e:
 			messagebox.showerror("Configuration Error", 
-							   f"Invalid JSON in configuration file: {e}")
+						   f"Invalid JSON in configuration file: {e}")
 			self.destroy()
 			return
 
-		# Convert string type names to actual types
-		data_types_with_objects = {}
+		# Store the full configuration
+		self.config_template = config_data
+		self.field_configs = config_data.get('field_configs', {})
+		self.field_enable_config = config_data.get('field_enable_config', {})
+		self.config_product = config_data.get('PRODUCT', 'GNR')
+		print(f"[EDIT WINDOW] Config loaded successfully. PRODUCT from config: '{self.config_product}', current_product: '{self.current_product}'")
+		
+		# Build data_types from field_configs for backward compatibility
 		type_mapping = {
 			"str": str,
 			"int": int,
@@ -467,24 +492,170 @@ class EditExperimentWindow(tk.Toplevel):
 			"dict": dict
 		}
 		
-		for field, type_list in config_data['data_types'].items():
-			data_types_with_objects[field] = [type_mapping[type_name] for type_name in type_list]
-
+		data_types_with_objects = {}
+		for field_name, field_config in self.field_configs.items():
+			field_type = field_config.get('type', 'str')
+			data_types_with_objects[field_name] = [type_mapping.get(field_type, str)]
+		
 		self.data_types = data_types_with_objects
+		
+		# Extract options and metadata from field_configs
 		self.TEST_MODES = config_data.get('TEST_MODES', [])
 		self.TEST_TYPES = config_data.get('TEST_TYPES', [])
 		self.VOLTAGE_TYPES = config_data.get('VOLTAGE_TYPES', [])
-		self.MASK_OPTIONS = config_data.get('MASK_OPTIONS', [])
 		self.TYPES = config_data.get('TYPES', [])
 		self.DOMAINS = config_data.get('DOMAINS', [])
 		self.CONTENT_OPTIONS = config_data.get('CONTENT_OPTIONS', [])
-		self.CORE_LICENSE_OPTIONS = config_data.get('CORE_LICENSE_OPTIONS', [])
-		self.DISABLE_2_CORES_OPTIONS = config_data.get('DISABLE_2_CORES_OPTIONS', [])
-		self.fields_to_hide = config_data.get('fields_to_hide', {})
-		self.field_descriptions = config_data.get('field_descriptions', {})
-		self.mandatory_fields = config_data.get('mandatory_fields', [])
-		self.FIELD_GROUPS = config_data.get('FIELD_GROUPS', {})
-
+		
+		# Build options from field_configs
+		self.MASK_OPTIONS = self._get_field_options('Configuration (Mask)')
+		self.CORE_LICENSE_OPTIONS = self._get_field_options('Core License')
+		self.DISABLE_2_CORES_OPTIONS = self._get_field_options('Disable 2 Cores')
+		self.DISABLE_1_CORE_OPTIONS = self._get_field_options('Disable 1 Core')
+		
+		# Build field descriptions and mandatory fields from field_configs
+		self.field_descriptions = {}
+		self.mandatory_fields = []
+		for field_name, field_config in self.field_configs.items():
+			if field_config.get('description'):
+				self.field_descriptions[field_name] = field_config['description']
+			if field_config.get('required', False):
+				self.mandatory_fields.append(field_name)
+		
+		# Build field groups by section
+		self.FIELD_GROUPS = self._build_field_groups_from_sections()
+		
+		# Build fields to hide based on conditions
+		self.fields_to_hide = self._build_conditional_fields()
+	
+	def migrate_config_format(self, config):
+		"""Migrate old data_types format to new field_configs format"""
+		if 'field_configs' in config:
+			# Already in new format
+			return config
+		
+		if 'data_types' not in config:
+			# No data types, return as-is
+			return config
+		
+		# Convert old format to new format
+		new_config = config.copy()
+		new_config['field_configs'] = {}
+		
+		for field_name, type_list in config['data_types'].items():
+			field_type = type_list[0] if type_list else 'str'
+			# Determine section based on field name patterns
+			section = self._guess_section_for_field(field_name)
+			new_config['field_configs'][field_name] = {
+				'section': section,
+				'type': field_type if isinstance(field_type, str) else field_type.__name__,
+				'default': self._get_default_for_type(field_type if isinstance(field_type, str) else field_type.__name__),
+				'description': config.get('field_descriptions', {}).get(field_name, f'{field_name} field'),
+				'required': field_name in config.get('mandatory_fields', [])
+			}
+		
+		# Remove old data_types
+		if 'data_types' in new_config:
+			del new_config['data_types']
+		
+		return new_config
+	
+	def _get_default_for_type(self, field_type):
+		"""Get default value for a field type"""
+		defaults = {
+			'str': '',
+			'int': 0,
+			'float': 0.0,
+			'bool': False
+		}
+		return defaults.get(field_type, '')
+	
+	def _guess_section_for_field(self, field_name):
+		"""Guess section for a field based on its name"""
+		if any(x in field_name.lower() for x in ['linux', 'dragon', 'merlin', 'ulx', 'vvar']):
+			if 'linux' in field_name.lower():
+				return 'Linux'
+			if 'dragon' in field_name.lower() or 'ulx' in field_name.lower() or 'vvar' in field_name.lower():
+				return 'Dragon'
+			if 'merlin' in field_name.lower():
+				return 'Merlin'
+		if any(x in field_name.lower() for x in ['voltage', 'frequency']):
+			return 'Voltage & Frequency'
+		if any(x in field_name.lower() for x in ['loop']):
+			return 'Loops'
+		if any(x in field_name.lower() for x in ['sweep', 'start', 'end', 'step', 'domain']):
+			return 'Sweep'
+		if any(x in field_name.lower() for x in ['shmoo']):
+			return 'Shmoo'
+		if any(x in field_name.lower() for x in ['ttl', 'script', 'pass', 'fail']):
+			return 'Advanced Configuration'
+		if field_name in ['Visual ID', 'Bucket', 'COM Port', 'IP Address']:
+			return 'Unit Data'
+		if field_name in ['Test Name', 'Test Mode', 'Test Type', 'Experiment']:
+			return 'Basic Information'
+		return 'Test Configuration'
+	
+	def _get_field_options(self, field_name):
+		"""Get options for a field from field_configs"""
+		if field_name in self.field_configs:
+			return self.field_configs[field_name].get('options', [])
+		return []
+	
+	def _build_field_groups_from_sections(self):
+		"""Build FIELD_GROUPS structure from field_configs sections"""
+		groups = {
+			'Config': {},
+			'Linux': {},
+			'EFI/Dragon': {}
+		}
+		
+		# Map sections to tabs
+		section_to_tab = {
+			'Basic Information': 'Config',
+			'Test Configuration': 'Config',
+			'Unit Data': 'Config',
+			'Voltage & Frequency': 'Config',
+			'Loops': 'Config',
+			'Sweep': 'Config',
+			'Shmoo': 'Config',
+			'Advanced Configuration': 'Config',
+			'Linux': 'Linux',
+			'Dragon': 'EFI/Dragon',
+			'Merlin': 'EFI/Dragon'
+		}
+		
+		# Group fields by section within tabs
+		for field_name, field_config in self.field_configs.items():
+			section = field_config.get('section', 'Test Configuration')
+			tab_name = section_to_tab.get(section, 'Config')
+			
+			if section not in groups[tab_name]:
+				groups[tab_name][section] = []
+			
+			groups[tab_name][section].append(field_name)
+		
+		return groups
+	
+	def _build_conditional_fields(self):
+		"""Build fields_to_hide based on conditions in field_configs"""
+		fields_to_hide = {
+			'Loops': [],
+			'Sweep': [],
+			'Shmoo': []
+		}
+		
+		# Find fields with Test Type conditions
+		for field_name, field_config in self.field_configs.items():
+			condition = field_config.get('condition', {})
+			if condition.get('field') == 'Test Type':
+				required_value = condition.get('value')
+				# Hide this field for other test types
+				for test_type in ['Loops', 'Sweep', 'Shmoo']:
+					if test_type != required_value:
+						fields_to_hide[test_type].append(field_name)
+		
+		return fields_to_hide
+	
 	def create_tabs(self):
 		"""Create tabs for different categories"""
 		tab_names = ["Config", "Linux", "EFI/Dragon"]
@@ -556,16 +727,19 @@ class EditExperimentWindow(tk.Toplevel):
 			row += 1
 
 	def create_field_widget(self, parent, field, row, tab_name):
-		"""Optimized widget creation with reduced validation calls"""
-		if field not in self.data_types:
+		"""Optimized widget creation with reduced validation calls - uses field_configs"""
+		if field not in self.data_types and field not in self.field_configs:
 			return
 			
+		# Get field configuration
+		field_config = self.field_configs.get(field, {})
 		field_types = self.data_types.get(field, [str])
+		field_type = field_config.get('type', 'str')
 		entry_widget = None
 		
 		# Create label with mandatory indicator - optimized width
 		label_text = field
-		if field in self.mandatory_fields:
+		if field in self.mandatory_fields or field_config.get('required', False):
 			label_text += " *"
 		
 		label = ttk.Label(parent, text=label_text, width=20)
@@ -577,28 +751,52 @@ class EditExperimentWindow(tk.Toplevel):
 		validation_indicator.grid(row=row, column=1, padx=(2, 5))
 		self.validation_indicators[field] = validation_indicator
 		
+		# Get options from field_config if available
+		field_options = field_config.get('options', [])
+		
+		# Check if field should be disabled based on product (field_enable_config)
+		field_enabled = True
+		if hasattr(self, 'field_enable_config') and field in self.field_enable_config:
+			enabled_products = self.field_enable_config[field]
+			field_enabled = self.current_product in enabled_products
+		
+		# Special handling for Product field - always read-only and matches config
+		if field == 'Product':
+			field_enabled = False  # Make it read-only
+			# Ensure it matches the current product from config
+			self.input_vars[field].set(self.current_product)
+		
 		# Create appropriate widget based on field type
-		if bool in field_types:
+		if field_type == 'bool' or bool in field_types:
 			entry_widget = ttk.Checkbutton(parent, variable=self.input_vars[field], 
-										onvalue='True', offvalue='False')
-		elif field in ['Test Type', 'Test Mode', 'Configuration (Mask)', 'Type', 'Domain', 'Core License', 'Content', 'Voltage Type', 'Disable 2 Cores']:
-			options_dict = {
-				'Test Mode': self.TEST_MODES,
-				'Test Type': self.TEST_TYPES,
-				'Voltage Type': self.VOLTAGE_TYPES,
-				'Configuration (Mask)': self.MASK_OPTIONS,
-				'Type': self.TYPES,
-				'Domain': self.DOMAINS,
-				'Core License': self.CORE_LICENSE_OPTIONS,
-				'Content': self.CONTENT_OPTIONS,
-				'Disable 2 Cores': self.DISABLE_2_CORES_OPTIONS
-			}
-			options = options_dict.get(field, [])
-			entry_widget = ttk.Combobox(parent, textvariable=self.input_vars[field], 
-									values=options, width=35)
-			entry_widget.set(self.input_vars[field].get() or (options[0] if options else ""))
+									onvalue='True', offvalue='False')
+		elif field_options or field in ['Test Type', 'Test Mode', 'Configuration (Mask)', 'Type', 'Domain', 'Core License', 'Content', 'Voltage Type', 'Disable 2 Cores', 'Disable 1 Core']:
+			# Use options from field_config first, then fall back to legacy options
+			if not field_options:
+				options_dict = {
+					'Test Mode': self.TEST_MODES,
+					'Test Type': self.TEST_TYPES,
+					'Voltage Type': self.VOLTAGE_TYPES,
+					'Configuration (Mask)': self.MASK_OPTIONS,
+					'Type': self.TYPES,
+					'Domain': self.DOMAINS,
+					'Core License': self.CORE_LICENSE_OPTIONS,
+					'Content': self.CONTENT_OPTIONS,
+					'Disable 2 Cores': self.DISABLE_2_CORES_OPTIONS,
+					'Disable 1 Core': self.DISABLE_1_CORE_OPTIONS
+				}
+				field_options = options_dict.get(field, [])
 			
-		elif field in ['TTL Folder', 'Scripts File', 'Post Process', 'Linux Path', 'ULX Path', 'Dragon Content Path', 'ShmooFile']:
+			entry_widget = ttk.Combobox(parent, textvariable=self.input_vars[field], 
+							values=field_options, width=35)
+			entry_widget.set(self.input_vars[field].get() or (field_options[0] if field_options else ""))
+			if not field_enabled:
+				entry_widget.configure(state='disabled')
+				label.configure(foreground='#cccccc')
+			else:
+				entry_widget.configure(state='readonly')
+				
+		elif field in ['TTL Folder', 'Scripts File', 'Post Process', 'Linux Path', 'ULX Path', 'Dragon Content Path', 'ShmooFile', 'Merlin Path', 'Fuse File', 'Bios File']:
 			# File/folder selection fields
 			frame = tk.Frame(parent)
 			frame.grid(row=row, column=2, sticky='EW', padx=5, pady=2)
@@ -607,18 +805,21 @@ class EditExperimentWindow(tk.Toplevel):
 			entry_widget.pack(side="left", fill="x", expand=True)
 			
 			browse_button = ttk.Button(frame, text="...", width=3,
-									command=lambda f=field: self.browse_file_folder(f))
+								command=lambda f=field: self.browse_file_folder(f))
 			browse_button.pack(side="right", padx=(3, 0))
 			
 		else:
 			# Regular entry widget
 			entry_widget = ttk.Entry(parent, textvariable=self.input_vars[field], width=35)
+			if not field_enabled:
+				entry_widget.configure(state='disabled')
+				label.configure(foreground='#cccccc')
 			
 			# Optimized validation binding - only for critical fields
-			if field in self.mandatory_fields or field in ['Start', 'End', 'Steps', 'IP Address']:
+			if field in self.mandatory_fields or field in ['Start', 'End', 'Steps', 'IP Address'] or field_config.get('required', False):
 				self.input_vars[field].trace('w', lambda *args, f=field: self.validate_field(f))
 		
-		if entry_widget and field not in ['TTL Folder', 'Scripts File', 'Post Process', 'Linux Path', 'ULX Path', 'Dragon Content Path', 'ShmooFile']:
+		if entry_widget and field not in ['TTL Folder', 'Scripts File', 'Post Process', 'Linux Path', 'ULX Path', 'Dragon Content Path', 'ShmooFile', 'Merlin Path', 'Fuse File', 'Bios File']:
 			entry_widget.grid(row=row, column=2, sticky='EW', padx=5, pady=2)
 			
 		# Configure grid weights
@@ -626,9 +827,9 @@ class EditExperimentWindow(tk.Toplevel):
 		parent.grid_columnconfigure(1, weight=0, minsize=20)
 		parent.grid_columnconfigure(2, weight=1, minsize=250)
 		
-		# Create tooltip
-		tooltip_text = self.field_descriptions.get(field, "No description available")
-		if field in self.mandatory_fields:
+		# Create tooltip from field_config description
+		tooltip_text = field_config.get('description', self.field_descriptions.get(field, "No description available"))
+		if field in self.mandatory_fields or field_config.get('required', False):
 			tooltip_text += "\n\n* This field is mandatory"
 		
 		self.create_tooltip(label, tooltip_text)
@@ -636,8 +837,8 @@ class EditExperimentWindow(tk.Toplevel):
 		# Store widget reference
 		if field not in self.widgets:
 			self.widgets[field] = []
-		self.widgets[field].append((label, entry_widget, validation_indicator))
-
+			self.widgets[field].append((label, entry_widget, validation_indicator))	
+	
 	def browse_file_folder(self, field):
 		"""Handle file/folder browsing"""
 		current_value = self.input_vars[field].get()
@@ -696,8 +897,18 @@ class EditExperimentWindow(tk.Toplevel):
 
 	def update_content_dependent_fields(self, content_type):
 		"""Update field visibility and requirements based on content type"""
-		linux_fields = [f for f in self.data_types.keys() if f.startswith('Linux')]
-		dragon_fields = [f for f in self.data_types.keys() if f.startswith('Dragon') or f.startswith('ULX') or f.startswith('VVAR') or f.startswith('Merlin')]
+		# Dynamically build content-specific field lists from field_configs
+		linux_fields = []
+		dragon_fields = []
+		
+		for field_name, field_config in self.field_configs.items():
+			condition = field_config.get('condition', {})
+			if condition and condition.get('field') == 'Content':
+				condition_value = condition.get('value', '').lower()
+				if condition_value == 'linux':
+					linux_fields.append(field_name)
+				elif condition_value in ['dragon', 'efi']:
+					dragon_fields.append(field_name)
 		
 		# Update field states based on content type
 		for field in linux_fields + dragon_fields:
@@ -708,7 +919,7 @@ class EditExperimentWindow(tk.Toplevel):
 						if hasattr(widget, 'configure'):
 							widget.configure(state='normal')
 						label.configure(foreground='black')
-					elif content_type == "dragon" and field in dragon_fields:
+					elif content_type in ["dragon", "efi"] and field in dragon_fields:
 						# Enable Dragon fields
 						if hasattr(widget, 'configure'):
 							widget.configure(state='normal')
@@ -2117,9 +2328,23 @@ class DebugFrameworkControlPanel:
 		self.execution_state = execution_state
 
 		# CRITICAL: Initialize Framework with queue-based reporter
+		self.Framework = Framework
 		if Framework:
 			self.framework_manager = manager(Framework)
 			self.Framework_utils = utils
+			# Extract product from FrameworkUtils (which reads from dpm.product_str())
+			try:
+				self.product = utils.get_product_str().upper()
+				print(f"[CONTROL PANEL] Product from FrameworkUtils: {self.product}")
+			except Exception as e:
+				print(f"[CONTROL PANEL] Failed to get product from utils: {e}")
+				self.product = 'GNR'  # Default to GNR if call fails
+		else:
+			self.product = 'GNR'  # Default to GNR if no Framework
+
+		# Log Framework and Product status
+		framework_status = "loaded" if Framework else "NOT loaded"
+		print(f"[CONTROL PANEL] Framework: {framework_status} | Product: {self.product}")
 
 		# CRITICAL: Store only primitive data, no Tkinter variables in threads
 		self.experiments_data = {}  # Use dict instead of Tkinter variables
@@ -2178,16 +2403,19 @@ class DebugFrameworkControlPanel:
 		self.avg_iterations_per_experiment = 10  # Default
 		self.start_time = None
 		self.last_iteration_time = None
-	
+		
+		
 		self.create_widgets()
 
 		# Auto-size after widgets are created
 		self.root.after(100, self.auto_size_window)
+		
+		# Log Framework and Product status after widgets are created
+		framework_status = "loaded" if Framework else "NOT loaded"
+		self.log_status(f"Framework: {framework_status} | Product: {self.product}", level="info")
 
 		# Keep track of active threads
-		self.active_threads = []
-
-		# Enhanced status management
+		self.active_threads = []		# Enhanced status management
 		#self._status_callback_enabled = True
 		#self._original_framework_callback = None
 
@@ -2292,6 +2520,20 @@ class DebugFrameworkControlPanel:
 		title_frame = ttk.Frame(self.left_frame)
 		title_frame.pack(fill=tk.X, padx=10, pady=5)
 		
+		# Product badge - modern framed design on the left
+		product_frame = tk.Frame(title_frame, bg="#1abc9c", relief=tk.FLAT, borderwidth=0)
+		product_frame.pack(side=tk.LEFT, padx=(0, 15))
+		
+		# Inner frame for padding
+		product_inner = tk.Frame(product_frame, bg="#1abc9c")
+		product_inner.pack(padx=8, pady=4)
+		
+		product_label = tk.Label(product_inner, text=self.product, 
+							   font=("Arial", 14, "bold"), 
+							   bg="#1abc9c", fg="white")
+		product_label.pack()
+		
+		# Main title
 		ttk.Label(title_frame, text="Debug Framework Control Panel", font=("Arial", 16)).pack(side=tk.LEFT)
 
 		# Status Label
@@ -4379,9 +4621,12 @@ class DebugFrameworkControlPanel:
 				
 				self.log_status(f"New experiment added: {new_name}")
 			
-			# Open in edit mode
-			EditExperimentWindow(self.root, data, update_callback, add_new_experiment_callback, mode="edit")
+			# Determine config file based on Framework product
+			config_file = f"{self.product}ControlPanelConfig.json"
+			print(f"[CONTROL PANEL] Opening edit window with product='{self.product}', config_file='{config_file}'")
 			
+			# Open in edit mode
+			EditExperimentWindow(self.root, data, update_callback, add_new_experiment_callback, mode="edit", config_file=config_file)		
 		except Exception as e:
 			self.log_status(f"[ERROR] Failed to open experiment editor: {e}")
 			messagebox.showerror("Error", f"Failed to open experiment editor: {e}")
@@ -4414,9 +4659,13 @@ class DebugFrameworkControlPanel:
 				
 				self.log_status(f"New experiment added: {new_name}")
 			
+			# Determine config file based on Framework product
+			config_file = f"{self.product}ControlPanelConfig.json"
+			print(f"[CONTROL PANEL] Opening add new window with product='{self.product}', config_file='{config_file}'")
+			
 			# Open edit window in "add new" mode
 			EditExperimentWindow(self.root, new_experiment_data, update_callback, 
-								add_new_experiment_callback, mode="add_new")
+								add_new_experiment_callback, mode="add_new", config_file=config_file)
 			
 		except Exception as e:
 			self.log_status(f"[ERROR] Failed to open add experiment window: {e}")
@@ -4425,26 +4674,54 @@ class DebugFrameworkControlPanel:
 	def create_default_experiment_data(self):
 		"""Create default experiment data for new experiments"""
 		# Get the config to know what fields exist
-		config_path = os.path.join(os.path.dirname(__file__), 'GNRControlPanelConfig.json')
+		current_dir = os.path.dirname(__file__)
+		# Load from DebugFramework's PPV/configs folder using product
+		ppv_config_dir = os.path.join(current_dir, '..', 'PPV', 'configs')
+		config_file = f"{self.product}ControlPanelConfig.json"
+		config_path = os.path.join(ppv_config_dir, config_file)
+		# Fallback to old location
+		if not os.path.exists(config_path):
+			config_path = os.path.join(current_dir, config_file)
 		
 		try:
 			with open(config_path) as f:
 				config_data = json.load(f)
-			data_types = config_data.get('data_types', {})
+			# Support both old data_types and new field_configs formats
+			if 'field_configs' in config_data:
+				field_configs = config_data['field_configs']
+			else:
+				# Old format - convert to new format
+				field_configs = {}
+				for field, types in config_data.get('data_types', {}).items():
+					field_type = 'str'
+					if 'int' in types:
+						field_type = 'int'
+					elif 'float' in types:
+						field_type = 'float'
+					elif 'bool' in types:
+						field_type = 'bool'
+					field_configs[field] = {'type': field_type, 'default': ''}
 		except:
 			# Fallback if config not available
-			data_types = {}
+			field_configs = {}
 		
 		new_experiment_data = {}
 		
-		for field, field_types in data_types.items():
+		for field, field_config in field_configs.items():
+			field_type = field_config.get('type', 'str')
+			# Use config default if available
+			default_value = field_config.get('default', '')
+			
 			if field == 'Experiment':
 				new_experiment_data[field] = 'Enabled'
 			elif field == 'Test Name':
 				new_experiment_data[field] = 'New_Experiment'
-			elif 'bool' in field_types:
+			elif default_value:
+				# Use the default from config
+				new_experiment_data[field] = default_value
+			elif field_type == 'bool':
 				new_experiment_data[field] = False
-			elif 'int' in field_types:
+			elif field_type == 'int':
 				# Set reasonable defaults for some fields
 				if field in ['Test Number']:
 					new_experiment_data[field] = 1
@@ -4455,25 +4732,15 @@ class DebugFrameworkControlPanel:
 				elif field in ['Linux Content Wait Time']:
 					new_experiment_data[field] = 10
 				else:
-					new_experiment_data[field] = 0
-			elif 'float' in field_types:
-				new_experiment_data[field] = 0.0
-			else:
-				# Set some reasonable defaults for string fields
-				if field in ['Test Mode']:
-					new_experiment_data[field] = 'Mesh'
-				elif field in ['Test Type']:
-					new_experiment_data[field] = 'Loops'
-				elif field in ['Content']:
-					new_experiment_data[field] = 'Linux'
-				elif field in ['Voltage Type']:
-					new_experiment_data[field] = 'vbump'
-				elif field in ['Pass String']:
-					new_experiment_data[field] = 'Test Complete'
-				elif field in ['Fail String']:
-					new_experiment_data[field] = 'Test Failed'
-				else:
 					new_experiment_data[field] = ''
+			elif field_type == 'float':
+				new_experiment_data[field] = ''
+			elif field in ['Pass String']:
+				new_experiment_data[field] = 'Test Complete'
+			elif field in ['Fail String']:
+				new_experiment_data[field] = 'Test Failed'
+			else:
+				new_experiment_data[field] = ''
 		
 		return new_experiment_data
 

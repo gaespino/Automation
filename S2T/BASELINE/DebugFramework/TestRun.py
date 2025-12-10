@@ -7,7 +7,7 @@ import tempfile
 # Available products: "GNR", "CWF", "DMR"
 # Select which panel to test by uncommenting the appropriate line
 
-PRODUCT = "GNR"  # Change this to test different products
+PRODUCT = "CWF"  # Change this to test different products
 
 print("\n" + "="*70)
 print("DEBUG FRAMEWORK TEST LAUNCHER")

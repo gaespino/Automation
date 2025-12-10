@@ -237,6 +237,10 @@ class FrameworkUtils:
 		"""Create debug mask"""
 		return DebugMask(basemask, root, callback)
 
+	@staticmethod
+	def get_product_str() -> str:
+		"""Get product string"""
+		return dpm.product_str()
 
 
 #######################################################

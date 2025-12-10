@@ -237,7 +237,21 @@ class FrameworkUtils:
 		"""Create debug mask"""
 		return DebugMask(basemask, root, callback)
 
+	@staticmethod
+	def ipc_credentials(username: str, password: str):
+		"""Enter IPC credentials"""
+		if s2tutils:
+			s2tutils.entercredentials(username, password)
+		else:
+			FrameworkUtils.FrameworkPrint('IPC Utils module not available, cannot set credentials.', 2)
 
+	@staticmethod
+	def ipc_clear_credentials():
+		"""Clear IPC credentials"""
+		if s2tutils:
+			s2tutils.clearcredentials()
+		else:
+			FrameworkUtils.FrameworkPrint('IPC Utils module not available, cannot clear credentials.', 2)
 
 #######################################################
 ########## 		Masking Script 

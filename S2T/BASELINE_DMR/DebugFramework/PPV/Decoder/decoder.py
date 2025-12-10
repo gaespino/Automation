@@ -1017,7 +1017,9 @@ class decoder():
 			# Filter for memory-related MCAs
 			mem_filtered = pd.DataFrame()
 			for pattern in mem_patterns:
+				#print(pattern)
 				pattern_data = self.extract_value(subset, 'TestName', pattern)
+				#print(pattern_data)
 				if not pattern_data.empty:
 					mem_filtered = pd.concat([mem_filtered, pattern_data], ignore_index=True)
 			

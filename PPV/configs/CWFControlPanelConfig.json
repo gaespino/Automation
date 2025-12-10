@@ -182,6 +182,7 @@
             "description": "Configuration mask value",
             "required": false,
             "options": [
+                "",
                 "RowPass1",
                 "RowPass2",
                 "RowPass3",
@@ -204,6 +205,7 @@
             "description": "Cores to disable (2-core configuration)",
             "required": false,
             "options": [
+                "",
                 "0x3",
                 "0xc",
                 "0x9",
@@ -218,6 +220,7 @@
             "description": "Core to disable (1-core configuration)",
             "required": false,
             "options": [
+                "",
                 "0x1",
                 "0x2"
             ]
@@ -717,14 +720,14 @@
             "required": false
         },
         "Fuse File": {
-            "section": "Merlin",
+            "section": "Advanced Configuration",
             "type": "str",
             "default": "",
             "description": "Fuse configuration file path",
             "required": false
         },
         "Bios File": {
-            "section": "Merlin",
+            "section": "Advanced Configuration",
             "type": "str",
             "default": "",
             "description": "BIOS file path",
@@ -733,7 +736,7 @@
         "Product": {
             "section": "Unit Data",
             "type": "str",
-            "default": "GNR",
+            "default": "CWF",
             "description": "Product type",
             "required": true,
             "options": [

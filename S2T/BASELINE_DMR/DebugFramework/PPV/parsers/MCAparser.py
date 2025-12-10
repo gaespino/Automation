@@ -65,13 +65,15 @@ def init_select_data(product):
 
 	elif coretype == 'bigcore':## Declaring reduced data Information
 		reduced_data_cha = {
-								'UTIL__MC_STATUS': r'0[xX]20000.00000000',
-								'UTIL__MC_ADDR':None, 
-								'__MCI_STATUS': r'0[xX]20000.00000000',
-								'__MCI_MISC':'0X80',
-								'__MCI_ADDR':None,
-								'UTIL__MC_MISC':'0X80',
-								'__MC8_ADDR':None, # MCCHNL ADDR
+								'_MC_STATUS': r'0[xX]20000.00000000',
+								'_MC_ADDR':None, 
+								'_MCI_STATUS': r'0[xX]20000.00000000',
+								'_MCI_MISC':'0X80',
+								'_MCI_ADDR':None,
+								'_MC_MISC':'0X80',
+								#'MEMSS__B2CMI': '0X7F', # ML2 MCAs 
+								#'MCCHAN__IMC':None, # mcchcnl
+								'_MC8_ADDR':None, # mcchnl
 	#							'__MC_MISC3':None,
 	#							'BIOS':None,
 								'UBOX':None,
@@ -81,6 +83,16 @@ def init_select_data(product):
 		reduced_data_core = {
 								'ML2_CR_MC3': '0X7F', # ML2 MCAs 
 								'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
+								'__ID___CORE__':None, # DCU MCAs 
+								'__ID___LOGICAL__':None, # DTLB MCAs 
+								'__ID___PACKAGE__':None, # ROB1 MCAs -- to be included in excel dashboard
+								'__ID___THREAD__':None, # C6SRAM MCAs -- to be included in excel dashboard
+								'__MESSAGES___0___TEXT__':None,
+								'__MESSAGES___0___LEVEL__':None,
+								'__AVG_FREQ_MHZ__':None,
+								'__FAIL___TIME_TO_FAIL__':None,
+								'__FAIL___SEED__':None,
+								'__FAIL___CPU_MASK__':None,
 								'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
 								'DCU_CR_MC1':'0X1F', # DCU MCAs 
 								'DTLB_CR_MC2':'0X3F', # DTLB MCAs 
@@ -90,7 +102,8 @@ def init_select_data(product):
 			## Will use this for some misc fails, moving PM and MEM errors here
 		reduced_data_others = {
 								'MEMSS__B2CMI': '0X7F', # ML2 MCAs 
-								'__MC8_ADDR':None, # mcchnl
+								'MCCHAN__IMC':None, # mcchcnl
+								'_MC8_ADDR':None, # mcchnl
 								'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
 								'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
 								'DCU_CR_MC1':'0X1F', # DCU MCAs 
@@ -101,24 +114,31 @@ def init_select_data(product):
 		
 	elif coretype == 'atom':## Declaring reduced data Information
 		reduced_data_cha = {
-								'UTIL__MC_STATUS': r'0[xX]20000.00000000',
-								'UTIL__MC_ADDR':None, 
-								'__MCI_STATUS': r'0[xX]20000.00000000',
-								'__MCI_MISC':'0X80',
-								'__MCI_ADDR':None,
-								'UTIL__MC_MISC':'0X80',
-								'__MC8_ADDR':None, # MCCHNL ADDR
+								'_MC_STATUS': r'0[xX]20000.00000000',
+								'_MC_ADDR':None, 
+								'_MCI_STATUS': r'0[xX]20000.00000000',
+								'_MCI_MISC':'0X80',
+								'_MCI_ADDR':None,
+								'_MC_MISC':'0X80',
+								#'MEMSS__B2CMI': '0X7F', # ML2 MCAs 
+								#'MCCHAN__IMC':None, # mcchcnl
+								'_MC8_ADDR':None, # mcchnl
 	#							'__MC_MISC3':None,
 	#							'BIOS':None,
 								'UBOX':None,
 								'FW_ERR_CAUSE': None,
 								'S3M_ERR_STS' : None,
-								'PTPCFSMS__MC_STATUS':None}
+								'PTPCFSMS__MC_STATUS':None,
+								'MEMSS__B2CMI': '0X7F', # ML2 MCAs 
+								'MCCHAN__IMC':None, # mcchcnl
+								'_MC8_ADDR':None, # mcchnl
+								}
 		reduced_data_core = {
 								'_CR_MCI_CTRL': '0X500000000', # CORE Control register
 								'_CR_MCI_STATUS':'0X20000000000000', # CORE MCAS
 								'_RESULT__':'PASS',
 								'_TEST__':None, # IFU MCAs 
+								'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
 								'__ID___CORE__':None, # DCU MCAs 
 								'__ID___LOGICAL__':None, # DTLB MCAs 
 								'__ID___PACKAGE__':None, # ROB1 MCAs -- to be included in excel dashboard
@@ -133,6 +153,8 @@ def init_select_data(product):
 			## Will use this for some misc fails, moving PM and MEM errors here
 		reduced_data_others = {
 								'MEMSS__B2CMI': '0X7F', # ML2 MCAs 
+								'MCCHAN__IMC':None, # mcchcnl
+								'_MC8_ADDR':None, # mcchnl
 								'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
 								'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
 								'DCU_CR_MC1':'0X1F', # DCU MCAs 

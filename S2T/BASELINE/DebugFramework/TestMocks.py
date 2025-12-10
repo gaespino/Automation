@@ -15,9 +15,37 @@ def setup_all_mocks(product: str = "GNR"):
     
     print(f"Setting up direct mocks for product: {product}...")
     
+    # CRITICAL: Update the product in all S2T mock instances in sys.modules
+    import sys
+    
+    # Update MockSetTesterRegs class
+    MockSetTesterRegs.SELECTED_PRODUCT = product
+    MockSetTesterRegs.config.SELECTED_PRODUCT = product
+    
+    # Update MockDPMChecks class
+    MockDPMChecks.SELECTED_PRODUCT = product
+    
+    # Update all registered S2T.SetTesterRegs modules in sys.modules
+    for module_name in ['S2T.SetTesterRegs', 
+                        'users.gaespino.dev.S2T.SetTesterRegs',
+                        'users.THR.PythonScripts.thr.S2T.SetTesterRegs']:
+        if module_name in sys.modules:
+            sys.modules[module_name].SELECTED_PRODUCT = product
+            sys.modules[module_name].config.SELECTED_PRODUCT = product
+            print(f"[MOCK SETUP] Updated {module_name}.SELECTED_PRODUCT = {product}")
+    
+    # Update all registered S2T.dpmChecks modules in sys.modules
+    for module_name in ['S2T.dpmChecks',
+                        'users.gaespino.dev.S2T.dpmChecks']:
+        if module_name in sys.modules:
+            sys.modules[module_name].SELECTED_PRODUCT = product
+            print(f"[MOCK SETUP] Updated {module_name}.SELECTED_PRODUCT = {product}")
+    
+    print(f"[MOCK SETUP] Set MockSetTesterRegs.SELECTED_PRODUCT = {product}")
+    print(f"[MOCK SETUP] Set MockDPMChecks.SELECTED_PRODUCT = {product}")
+    
     # Import and setup hardware mocks first
     try:
-        import sys
         import os
         current_dir = os.path.dirname(os.path.abspath(__file__))
         sys.path.insert(0, current_dir)
@@ -856,6 +884,7 @@ class MockCoreManipulation:
 class MockDPMChecks:
         # Class-level attributes
         FuseFileConfigs = {}  # Mock fuse configurations
+        SELECTED_PRODUCT = "GNR"  # Default, will be updated by setup_all_mocks
         
         @staticmethod
         def qdf_str():
@@ -863,7 +892,7 @@ class MockDPMChecks:
         
         @staticmethod
         def product_str():
-            return "GNR"
+            return MockDPMChecks.SELECTED_PRODUCT
         
         @staticmethod
         def getWW():
@@ -993,10 +1022,10 @@ class MockDPMChecks:
 # Mock SetTesterRegs - THIS IS THE CRITICAL ONE
 class MockSetTesterRegs:
         # CRITICAL: This must be a simple string, not a mock object
-        SELECTED_PRODUCT = "GNR"
+        SELECTED_PRODUCT = "GNR"  # Default, will be updated by setup_all_mocks
         
         class config:
-            SELECTED_PRODUCT = "GNR"
+            SELECTED_PRODUCT = "GNR"  # Default, will be updated by setup_all_mocks
             
         
         config.SELECTED_PRODUCT = SELECTED_PRODUCT

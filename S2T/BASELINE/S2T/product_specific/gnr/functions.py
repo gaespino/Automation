@@ -19,7 +19,7 @@ print (f"Loading Functions for {CONFIG_PRODUCT} || REV 0.1")
 class functions:
 	
 	@staticmethod
-	def pseudo_masking(ClassMask: dict, ClassMask_sys: dict, syscomputes: int):
+	def pseudo_masking(ClassMask: dict, ClassMask_sys: dict, syscomputes: list):
 
 		for key in ClassMask.keys():
 		
@@ -235,7 +235,12 @@ class functions:
 				value = sv.socket0.cpu.get_by_path(f'core{core}').get_by_path(key).read()
 
 			print(f"{key} : desired_value = {hex(_seldict[seldict][key])} -- {value}")
-			
+
+	@staticmethod
+	def fusesUpdate(sv):
+		sv.sockets.computes.fuses.load_fuse_ram()
+		sv.sockets.ios.fuses.load_fuse_ram()
+
 	@staticmethod
 	def display_banner(revision, date, engineer):
     	# Create the banner text
