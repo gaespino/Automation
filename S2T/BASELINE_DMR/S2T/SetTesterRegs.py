@@ -1138,7 +1138,7 @@ class S2TFlow():
 		scm.global_avx_mode = self.license_level
 		scm.global_vbumps_configuration=self.vbumps_volt
 		scm.global_u600w=self.u600w
-		scm.global_boot_extra=",pwrgoodmethod='usb', pwrgoodport=1, pwrgooddelay=45 "
+		scm.global_boot_extra=",pwrgoodmethod='usb', pwrgoodport=[1,2], pwrgooddelay=45 "
 		
 		# Flow specific
 		if flow =='mesh': 
