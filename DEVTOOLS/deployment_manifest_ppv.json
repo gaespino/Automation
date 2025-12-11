@@ -1,0 +1,90 @@
+{
+  "module_name": "PPV",
+  "description": "Production deployment manifest for PPV (Post-Processing and Visualization) module",
+  "version": "1.0",
+  "deployment_type": "production",
+  
+  "include_files": [
+    "__init__.py",
+    "run.py",
+    "requirements.txt",
+    "README.md"
+  ],
+  
+  "include_directories": [
+    {
+      "path": "api",
+      "include_all": true,
+      "exclude_patterns": ["__pycache__", "*.pyc"]
+    },
+    {
+      "path": "Decoder",
+      "include_all": true,
+      "exclude_patterns": ["__pycache__", "*.pyc"],
+      "include_subdirs": ["CWF", "DMR", "GNR"]
+    },
+    {
+      "path": "gui",
+      "include_all": true,
+      "exclude_patterns": ["__pycache__", "*.pyc"]
+    },
+    {
+      "path": "parsers",
+      "include_all": true,
+      "exclude_patterns": ["__pycache__", "*.pyc"]
+    },
+    {
+      "path": "utils",
+      "include_all": true,
+      "exclude_patterns": ["__pycache__", "*.pyc"]
+    },
+    {
+      "path": "configs",
+      "include_all": true,
+      "description": "Product-specific configuration files",
+      "files": [
+        "CWFControlPanelConfig.json",
+        "DMRControlPanelConfig.json",
+        "GNRControlPanelConfig.json",
+        "README.md"
+      ]
+    }
+  ],
+  
+  "exclude_files": [
+    "MCAparser_bkup.py",
+    "install_dependencies.bat",
+    "install_dependencies.py",
+    "process.ps1"
+  ],
+  
+  "exclude_directories": [
+    "DebugScripts",
+    ".vscode",
+    "__pycache__"
+  ],
+  
+  "exclude_patterns": [
+    "**/test_*.py",
+    "**/*_test.py",
+    "**/__pycache__",
+    "**/*.pyc",
+    "**/*_bkup.py",
+    "**/*.ps1",
+    "**/*.bat"
+  ],
+  
+  "notes": {
+    "debug_scripts": "DebugScripts folder contains PowerShell and shell scripts for development only",
+    "backup_files": "MCAparser_bkup.py is a backup/legacy file not needed in production",
+    "installation": "install_dependencies scripts are for development environment setup only",
+    "configs": "All three product config files (GNR, CWF, DMR) should be deployed to support multi-product scenarios"
+  },
+  
+  "dependencies": [
+    "Can be used standalone or integrated with DebugFramework",
+    "Requires dependencies from requirements.txt"
+  ],
+  
+  "deployment_notes": "PPV module can be deployed independently or as part of DebugFramework integration. When deploying with DebugFramework, ensure configs directory is accessible."
+}

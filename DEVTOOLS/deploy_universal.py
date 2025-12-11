@@ -30,6 +30,7 @@ from datetime import datetime
 from typing import Dict, List, Tuple, Optional, Set
 import hashlib
 import re
+import fnmatch
 
 # Default Paths
 WORKSPACE_ROOT = Path(r"c:\Git\Automation\Automation")
@@ -292,7 +293,7 @@ class FileComparer:
         return hash_md5.hexdigest()
     
     @staticmethod
-    def compare_files(source: Path, target: Path, replacer: ImportReplacer = None) -> Dict:
+    def compare_files(source: Path, target: Path, replacer: Optional[ImportReplacer] = None) -> Dict:
         """Compare two files with optional import replacement."""
         result = {
             'exists': target.exists(),
@@ -370,6 +371,126 @@ class FileComparer:
             result['status'] = 'minimal_changes'
         
         return result
+
+
+class DeploymentManifest:
+    """Handles deployment manifest loading and file filtering."""
+    
+    def __init__(self):
+        self.manifest = None
+        self.manifest_path = None
+        self.exclude_files = set()
+        self.exclude_patterns = []
+        self.include_files = set()
+        self.include_directories = {}
+        
+    def load_from_json(self, manifest_path: Path) -> bool:
+        """Load deployment manifest from JSON file."""
+        if not manifest_path.exists():
+            return False
+        
+        try:
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                self.manifest = json.load(f)
+            
+            self.manifest_path = manifest_path
+            
+            # Extract exclusion rules
+            self.exclude_files = set(self.manifest.get('exclude_files', []))
+            self.exclude_patterns = self.manifest.get('exclude_patterns', [])
+            
+            # Extract inclusion rules
+            self.include_files = set(self.manifest.get('include_files', []))
+            
+            # Process include_directories
+            for dir_info in self.manifest.get('include_directories', []):
+                path = dir_info.get('path', '')
+                self.include_directories[path] = dir_info
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error loading manifest: {e}")
+            return False
+    
+    def should_include_file(self, rel_path: str) -> Tuple[bool, str]:
+        """Check if file should be included based on manifest rules.
+        
+        Returns:
+            Tuple[bool, str]: (should_include, reason)
+        """
+        if not self.manifest:
+            return True, "No manifest loaded"
+        
+        rel_path_str = str(rel_path).replace('\\', '/')
+        file_name = Path(rel_path).name
+        
+        # Check explicit exclusions
+        if file_name in self.exclude_files or rel_path_str in self.exclude_files:
+            return False, f"Excluded by manifest: {file_name}"
+        
+        # Check exclude patterns
+        for pattern in self.exclude_patterns:
+            if fnmatch.fnmatch(rel_path_str, pattern) or fnmatch.fnmatch(file_name, pattern):
+                return False, f"Matches exclude pattern: {pattern}"
+        
+        # Check if it's in an excluded directory pattern
+        path_parts = Path(rel_path).parts
+        for part in path_parts:
+            # Check for common exclusions
+            if part in ['__pycache__', '.pytest_cache', '.vscode', '.git']:
+                return False, f"System directory: {part}"
+        
+        # If we have include rules, check if file matches
+        if self.include_files or self.include_directories:
+            # Check explicit includes
+            if file_name in self.include_files:
+                return True, "Explicitly included"
+            
+            # Check directory includes
+            for dir_path, dir_info in self.include_directories.items():
+                if rel_path_str.startswith(dir_path.replace('\\', '/')):
+                    # Check directory-specific exclusions
+                    dir_excludes = dir_info.get('exclude_patterns', [])
+                    for pattern in dir_excludes:
+                        if fnmatch.fnmatch(file_name, pattern) or fnmatch.fnmatch(rel_path_str, pattern):
+                            return False, f"Excluded by directory rule: {pattern}"
+                    
+                    if dir_info.get('include_all', False):
+                        return True, f"Included by directory: {dir_path}"
+            
+            # If we have strict include rules and file doesn't match, exclude it
+            if self.include_files and not self.include_directories:
+                return False, "Not in include list"
+        
+        # Default to include if no rules matched
+        return True, "No exclusion rules matched"
+    
+    def get_excluded_count(self, file_list: List[str]) -> int:
+        """Get count of files that would be excluded."""
+        if not self.manifest:
+            return 0
+        
+        excluded = 0
+        for file_path in file_list:
+            should_include, _ = self.should_include_file(file_path)
+            if not should_include:
+                excluded += 1
+        
+        return excluded
+    
+    def get_manifest_info(self) -> str:
+        """Get formatted information about loaded manifest."""
+        if not self.manifest:
+            return "No manifest loaded"
+        
+        info = f"Module: {self.manifest.get('module_name', 'Unknown')}\n"
+        info += f"Description: {self.manifest.get('description', 'N/A')}\n"
+        info += f"Exclude Files: {len(self.exclude_files)}\n"
+        info += f"Exclude Patterns: {len(self.exclude_patterns)}\n"
+        info += f"Include Directories: {len(self.include_directories)}\n"
+        
+        return info
 
 
 class CSVGeneratorDialog:
@@ -663,6 +784,10 @@ class UniversalDeploymentGUI:
         self.file_renamer = FileRenamer()
         self.rename_csv = None
         
+        # Deployment manifest
+        self.deployment_manifest = DeploymentManifest()
+        self.manifest_file = None
+        
         # Config management
         self.config = CONFIG
         self.config_auto_save = tk.BooleanVar(value=True)
@@ -845,6 +970,29 @@ class UniversalDeploymentGUI:
             rename_frame,
             text="Generate...",
             command=self.generate_rename_csv
+        ).pack(side='left', padx=5)
+        
+        # Deployment Manifest
+        manifest_frame = ttk.Frame(source_frame)
+        manifest_frame.pack(fill='x', pady=5)
+        
+        ttk.Label(manifest_frame, text="Deployment Manifest:", font=('Arial', 9, 'bold')).pack(side='left', padx=5)
+        self.manifest_label = ttk.Label(manifest_frame, text="None (all files included)", font=('Arial', 9))
+        self.manifest_label.pack(side='left', padx=5)
+        ttk.Button(
+            manifest_frame,
+            text="Load Manifest...",
+            command=self.load_manifest
+        ).pack(side='left', padx=5)
+        ttk.Button(
+            manifest_frame,
+            text="Clear",
+            command=self.clear_manifest
+        ).pack(side='left', padx=5)
+        ttk.Button(
+            manifest_frame,
+            text="Auto-Load",
+            command=self.auto_load_manifest
         ).pack(side='left', padx=5)
         
         # Main content
@@ -1125,6 +1273,95 @@ class UniversalDeploymentGUI:
         if self.files_data:
             self.scan_files()
     
+    def load_manifest(self):
+        """Load deployment manifest JSON file."""
+        initial_dir = DEVTOOLS_PATH
+        if self.manifest_file and self.manifest_file.exists():
+            initial_dir = self.manifest_file.parent
+        
+        manifest_path = filedialog.askopenfilename(
+            title="Select Deployment Manifest",
+            initialdir=initial_dir,
+            filetypes=[("JSON Files", "*.json"), ("All Files", "*.*")]
+        )
+        
+        if manifest_path:
+            manifest_path = Path(manifest_path)
+            if self.deployment_manifest.load_from_json(manifest_path):
+                self.manifest_file = manifest_path
+                manifest_name = manifest_path.stem.replace('deployment_manifest_', '')
+                self.manifest_label.config(text=manifest_name)
+                
+                info = self.deployment_manifest.get_manifest_info()
+                messagebox.showinfo(
+                    "Manifest Loaded",
+                    f"Loaded deployment manifest:\n{manifest_path.name}\n\n{info}"
+                )
+                # Rescan if files already loaded
+                if self.files_data:
+                    self.scan_files()
+                if self.config_auto_save.get():
+                    self.save_current_config()
+            else:
+                messagebox.showerror("Error", "Failed to load manifest file")
+    
+    def clear_manifest(self):
+        """Clear deployment manifest configuration."""
+        self.deployment_manifest = DeploymentManifest()
+        self.manifest_file = None
+        self.manifest_label.config(text="None (all files included)")
+        # Rescan if files already loaded
+        if self.files_data:
+            self.scan_files()
+        if self.config_auto_save.get():
+            self.save_current_config()
+    
+    def auto_load_manifest(self):
+        """Automatically load manifest based on deployment type."""
+        deployment = self.deployment_type.get()
+        
+        # Determine manifest file based on deployment type
+        manifest_map = {
+            'DebugFramework': 'deployment_manifest_debugframework.json',
+            'S2T': 'deployment_manifest_s2t.json',
+            'PPV': 'deployment_manifest_ppv.json'
+        }
+        
+        manifest_filename = manifest_map.get(deployment)
+        if not manifest_filename:
+            messagebox.showwarning(
+                "No Manifest",
+                f"No manifest available for deployment type: {deployment}"
+            )
+            return
+        
+        manifest_path = DEVTOOLS_PATH / manifest_filename
+        
+        if not manifest_path.exists():
+            messagebox.showwarning(
+                "Manifest Not Found",
+                f"Manifest file not found:\n{manifest_filename}\n\nPlease create the manifest or use 'Load Manifest...' to select a different file."
+            )
+            return
+        
+        if self.deployment_manifest.load_from_json(manifest_path):
+            self.manifest_file = manifest_path
+            manifest_name = manifest_path.stem.replace('deployment_manifest_', '')
+            self.manifest_label.config(text=manifest_name)
+            
+            info = self.deployment_manifest.get_manifest_info()
+            messagebox.showinfo(
+                "Auto-Loaded Manifest",
+                f"Automatically loaded manifest for {deployment}:\n\n{info}\n\nTest/mock/development files will be automatically excluded."
+            )
+            # Rescan if files already loaded
+            if self.files_data:
+                self.scan_files()
+            if self.config_auto_save.get():
+                self.save_current_config()
+        else:
+            messagebox.showerror("Error", "Failed to load manifest file")
+    
     def generate_import_csv(self):
         """Generate import replacement CSV template."""
         dialog = CSVGeneratorDialog(
@@ -1149,7 +1386,7 @@ class UniversalDeploymentGUI:
         """Handle generated import CSV."""
         if csv_file and csv_file.exists():
             # Load the generated CSV
-            if self.import_replacer.load_replacements(csv_file):
+            if self.import_replacer.load_from_csv(csv_file):
                 self.replacement_csv = csv_file
                 self.csv_label.config(text=csv_file.name)
                 if self.config_auto_save.get():
@@ -1163,7 +1400,7 @@ class UniversalDeploymentGUI:
         """Handle generated rename CSV."""
         if csv_file and csv_file.exists():
             # Load the generated CSV
-            if self.file_renamer.load_renames(csv_file):
+            if self.file_renamer.load_from_csv(csv_file):
                 self.rename_csv = csv_file
                 self.rename_csv_label.config(text=csv_file.name)
                 # Rescan if files already loaded
@@ -1239,6 +1476,7 @@ class UniversalDeploymentGUI:
         
         # Scan Python and JSON files
         skipped_count = 0
+        manifest_excluded = 0
         for root_dir, dirs, files in os.walk(scan_base):
             # Filter out system directories
             dirs[:] = [d for d in dirs if d not in ['__pycache__', '.vscode', '.git', '.pytest_cache']]
@@ -1247,6 +1485,13 @@ class UniversalDeploymentGUI:
                 if file.endswith(('.py', '.json', '.ttl', '.ini')) and not file.startswith('__'):
                     source_path = Path(root_dir) / file
                     rel_path = source_path.relative_to(scan_base)
+                    
+                    # Check manifest filtering first
+                    if self.deployment_manifest.manifest:
+                        should_include_manifest, reason = self.deployment_manifest.should_include_file(str(rel_path))
+                        if not should_include_manifest:
+                            manifest_excluded += 1
+                            continue
                     
                     # Check if file should be included based on product
                     if not self.should_include_file(rel_path):
@@ -1274,8 +1519,10 @@ class UniversalDeploymentGUI:
         
         self.populate_tree()
         status_msg = f"Found {len(self.files_data)} files for {product}"
+        if manifest_excluded > 0:
+            status_msg += f" (manifest excluded {manifest_excluded})"
         if skipped_count > 0:
-            status_msg += f" (skipped {skipped_count} other product files)"
+            status_msg += f" (product filtered {skipped_count})"
         self.status_label.config(text=status_msg)
     
     def populate_tree(self):
@@ -1727,7 +1974,7 @@ Target: {data['target_path']}
         
         # Enable report button
         try:
-            self.report_button.config(state='normal')
+            self.report_button['state'] = 'normal'
         except:
             pass
         
@@ -1760,6 +2007,8 @@ Target: {data['target_path']}
             'deployment_type': self.deployment_type.get(),
             'target_base': str(self.target_base) if self.target_base else "",
             'replacement_csv': str(self.replacement_csv) if self.replacement_csv else "",
+            'rename_csv': str(self.rename_csv) if self.rename_csv else "",
+            'manifest_file': str(self.manifest_file) if self.manifest_file else "",
             'selected_files': list(self.selected_files)
         }
         
@@ -1801,6 +2050,23 @@ Target: {data['target_path']}
                 if self.import_replacer.load_from_csv(csv_path):
                     self.replacement_csv = csv_path
                     self.csv_label.config(text=csv_path.name)
+        
+        # Load rename CSV
+        if prod_config.get('rename_csv'):
+            csv_path = Path(prod_config['rename_csv'])
+            if csv_path.exists():
+                if self.file_renamer.load_from_csv(csv_path):
+                    self.rename_csv = csv_path
+                    self.rename_csv_label.config(text=csv_path.name)
+        
+        # Load manifest
+        if prod_config.get('manifest_file'):
+            manifest_path = Path(prod_config['manifest_file'])
+            if manifest_path.exists():
+                if self.deployment_manifest.load_from_json(manifest_path):
+                    self.manifest_file = manifest_path
+                    manifest_name = manifest_path.stem.replace('deployment_manifest_', '')
+                    self.manifest_label.config(text=manifest_name)
         
         # Load selected files (will be applied after scan)
         if prod_config.get('selected_files'):

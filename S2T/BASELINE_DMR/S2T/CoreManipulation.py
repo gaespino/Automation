@@ -1088,6 +1088,16 @@ class SystemBooter:
 		Args:
 			use_fastboot: Whether fastboot method was used
 		"""
+
+		def fuse_top_base_check(fuse_dict: dict, showresults:bool, skip_init:bool, cbb_name: str):
+			"""Helper function to check fuse top and base values"""
+			
+			dict_keys = fuse_dict.keys() if fuse_dict else []
+
+			for dict_key in dict_keys:
+				print(Fore.LIGHTCYAN_EX + f"{'>' * 3} Checking {dict_key} Fuse for {cbb_name}: {fuse_dict[dict_key]}")
+				fuse_cmd_override_check(fuse_dict[dict_key], showresults=showresults, skip_init=skip_init, bsFuses=f'{cbb_name}{dict_key if "base" not in dict_key else ""}')
+
 		print(Fore.LIGHTCYAN_EX + "*" * 90)
 		print(Fore.LIGHTCYAN_EX + f"{'>' * 3} Checking fuse application after boot")
 		
@@ -1099,20 +1109,20 @@ class SystemBooter:
 				fuse_cmd_override_check(self.fuse_str, showresults=False, skip_init=skip_init, bsFuses=None)
 		else:
 			if self.fuse_str_cbb_0:
-				print(f"{'>' * 3} Checking fuses for CBB0 ---")
-				fuse_cmd_override_check(self.fuse_str_cbb_0, showresults=False, skip_init=skip_init, bsFuses='cbb0')
-			
+				print(Fore.LIGHTCYAN_EX + f"{'>' * 3} Checking fuses for CBB0 ---")
+				fuse_top_base_check(self.fuse_str_cbb_0, showresults=False, skip_init=skip_init, cbb_name='cbb0')
+
 			if self.fuse_str_cbb_1:
 				print(Fore.LIGHTCYAN_EX + f"{'>' * 3} Checking fuses for CBB1 ---")
-				fuse_cmd_override_check(self.fuse_str_cbb_1, showresults=False, skip_init=skip_init, bsFuses='cbb1')
+				fuse_top_base_check(self.fuse_str_cbb_0, showresults=False, skip_init=skip_init, cbb_name='cbb1')
 			
 			if self.fuse_str_cbb_2:
 				print(Fore.LIGHTCYAN_EX + f"{'>' * 3} Checking fuses for CBB2 ---")
-				fuse_cmd_override_check(self.fuse_str_cbb_2, showresults=False, skip_init=skip_init, bsFuses='cbb2')
+				fuse_top_base_check(self.fuse_str_cbb_0, showresults=False, skip_init=skip_init, cbb_name='cbb2')
 			
 			if self.fuse_str_cbb_3:
 				print(Fore.LIGHTCYAN_EX + f"{'>' * 3} Checking fuses for CBB3 ---")
-				fuse_cmd_override_check(self.fuse_str_cbb_3, showresults=False, skip_init=skip_init, bsFuses='cbb3')
+				fuse_top_base_check(self.fuse_str_cbb_0, showresults=False, skip_init=skip_init, cbb_name='cbb3')
 			
 			if self.fuse_str_imh_0:
 				print(Fore.LIGHTCYAN_EX + f"{'>' * 3} Checking fuses for imh0 ---")
@@ -1871,8 +1881,10 @@ def fuse_cmd_override_reset(fuse_cmd_array, skip_init=False, boot = True, s2t=Fa
 		svStatus(refresh = (False if s2t else True))
 		sv.sockets.imhs.fuses.load_fuse_ram() # Load IOs fuses
 		sv.sockets.cbbs.base.fuses.load_fuse_ram() # Load computes fuses
+		sv.sockets.cbbs.computes.fuses.load_fuse_ram() # Load computes fuses
 		sv.sockets.imhs.fuses.go_offline() # Computes go offline
 		sv.sockets.cbbs.base.fuses.go_offline() # IOs go offline
+		sv.sockets.cbbs.computes.fuses.go_offline() # IOs go offline
 
 	for f in (fuse_cmd_array): # For each input fuse
 		base = f.split('=')[0] # Fuse name
@@ -1886,8 +1898,10 @@ def fuse_cmd_override_reset(fuse_cmd_array, skip_init=False, boot = True, s2t=Fa
 
 	sv.sockets.imhs.fuses.flush_fuse_ram() # Load IOs fuses
 	sv.sockets.cbbs.base.fuses.flush_fuse_ram() # Load computes fuses
+	sv.sockets.cbbs.computes.fuses.flush_fuse_ram() # Load computes fuses
 	sv.sockets.imhs.fuses.go_online() # Computes go online
 	sv.sockets.cbbs.base.fuses.go_online() # IOs go online
+	sv.sockets.cbbs.computes.fuses.go_online() # IOs go online
 
 	try: ipc.go() # Restart threads
 	except: print('Not able to restart threads... skipping...')
@@ -1988,75 +2002,137 @@ def fuse_cmd_override_check(fuse_cmd_array, showresults = False, skip_init= Fals
 #=============== DEBUG SCRIPTS ==========================================================================#
 #========================================================================================================#
 
-def svStatus(checkipc = True, checksvcores = True, refresh = False, reconnect = False):
+def svStatus(checkipc: bool = True, checksvcores: bool = True, refresh: bool = False, reconnect: bool = False) -> None:
+	"""
+	Check and display system status for IPC and SV components.
+	
+	Args:
+		checkipc: Check IPC thread status
+		checksvcores: Check SV core data availability
+		refresh: Force refresh of IPC and SV data
+		reconnect: Reconnect IPC before checking
+	"""
 	from namednodes import sv
+	
+	# Constants for better performance (avoid repeated attribute lookups)
 	ipc = ipccli.baseaccess()
-	SysStatus = []
-	ipcBad = False
-	svBad = False
-	svcoredara = None
-	ipcthreads = None
 	
+	# Simple ASCII symbols (log-friendly)
+	OK = "[OK]"
+	FAIL = "[FAIL]"
+	WARN = "[WARN]"
+	INFO = "[>>]"
+	
+	# Pre-compute separator lines
+	HEADER_LINE = f"{Fore.CYAN}{'=' * 70}{Fore.WHITE}"
+	SEPARATOR = f"{Fore.CYAN}{'-' * 70}{Fore.WHITE}"
+	
+	# State tracking
+	ipcBad = svBad = False
+	ipcthreads = svcoredara = None
+	svcores = 0
+	
+	# Print header
+	print(f"\n{HEADER_LINE}")
+	print(f"{Fore.CYAN}  SYSTEM STATUS CHECK{Fore.WHITE}")
+	print(f"{HEADER_LINE}\n")
+	
+	# Reconnect if requested
 	if reconnect:
-		print(Fore.RED + f'{">"*3} IPC reconnect command requested... '+ Fore.WHITE)
+		print(f"{Fore.YELLOW}{INFO}{Fore.WHITE} IPC Reconnect: Reconnecting to target...")
 		ipc.reconnect()
+		print(f"      {Fore.GREEN}{OK}{Fore.WHITE} Reconnection complete\n")
 		
-	# Forcefully rerefsh sv and reconfig ipc, this is used mostly after boot that sv is not properly updated but no error is shown.
+	# Force refresh if requested
 	if refresh:
-		print(Fore.RED + f'{">"*3} IPC and SV data refresh requested... '+ Fore.WHITE)
+		print(f"{Fore.YELLOW}{INFO}{Fore.WHITE} Force Refresh: Refreshing IPC and SV data...")
 		ipc.unlock()
 		ipc.forcereconfig()
 		sv.refresh()
+		print(f"      {Fore.GREEN}{OK}{Fore.WHITE} Refresh complete\n")
 
-	## Start Checking flow
-	print(Fore.LIGHTGREEN_EX + f'{">"*3} Checking for System readiness... '+ Fore.WHITE)
+	# Initialize checks
+	print(f"{Fore.LIGHTCYAN_EX}[1/4]{Fore.WHITE} Initializing system checks...")
 	ipclocked = ipc.islocked()
-	sv_status = not sv.sockets	
+	sv_status = not sv.sockets
 
-	# Trying to check SV and IPC, if any read fails marks them as bad and will request the refresh
+	# Check IPC status
 	if checkipc:
+		print(f"{Fore.LIGHTCYAN_EX}[2/4]{Fore.WHITE} Checking IPC status...", end=" ", flush=True)
 		try:
-			print(Fore.LIGHTGREEN_EX + f'{">"*3} Checking IPC Status... '+ Fore.WHITE)
 			ipcstatus = ipc.isrunning()
-			ipcthreads = f'{Fore.BLACK}{(Back.LIGHTGREEN_EX + " Running " + Back.RESET) if ipcstatus else (Back.YELLOW +" Halted "+ Back.RESET)}{Fore.WHITE}'
-		except:
-			ipcthreads = f'{Fore.BLACK}{(Back.RED + " Down " + Back.RESET)}{Fore.WHITE}'
+			ipcthreads = f'{Fore.GREEN}{OK} Running{Fore.WHITE}' if ipcstatus else f'{Fore.YELLOW}{WARN} Halted{Fore.WHITE}'
+			print(f"{Fore.GREEN}{OK}{Fore.WHITE}" if ipcstatus else f"{Fore.YELLOW}{WARN}{Fore.WHITE}")
+		except Exception:
+			ipcthreads = f'{Fore.RED}{FAIL} Down{Fore.WHITE}'
 			ipcBad = True
+			print(f"{Fore.RED}{FAIL}{Fore.WHITE}")
 
+	# Check SV Core data
 	if checksvcores:
+		print(f"{Fore.LIGHTCYAN_EX}[3/4]{Fore.WHITE} Checking SV core data...", end=" ", flush=True)
 		try:
-			print(Fore.LIGHTGREEN_EX + f'{">"*3} Checking SV Status... '+ Fore.WHITE)
 			svcores = len(sv.sockets.cpu.modules)
-			svcoredara = f'{Fore.BLACK}{Back.LIGHTGREEN_EX}{" Up "}{Back.RESET}{Fore.WHITE}'
-
-		except:
-			svcoredara = f'{Fore.BLACK}{Back.RED}{" Down "}{Back.RESET}{Fore.WHITE}'
-
+			svcoredara = f'{Fore.GREEN}{OK} Up ({svcores} cores){Fore.WHITE}'
+			print(f"{Fore.GREEN}{OK}{Fore.WHITE}")
+		except Exception:
+			svcoredara = f'{Fore.RED}{FAIL} Down{Fore.WHITE}'
 			svBad = True
+			print(f"{Fore.RED}{FAIL}{Fore.WHITE}")
 
-	## Fancy Table for showing System Status
-	SysStatus.append(["Feature", "Status"])
-	SysStatus.append(["IPC Status",f'{Fore.BLACK}{(Back.RED + " Locked " + Back.RESET) if ipclocked else (Back.LIGHTGREEN_EX +" Unlocked "+ Back.RESET)}{Fore.WHITE}'])
-	SysStatus.append(["IPC Threads",f'{ipcthreads}'])
-	SysStatus.append(["SV Status",f'{Fore.BLACK}{(Back.RED + " Not Ready " + Back.RESET) if sv_status else (Back.LIGHTGREEN_EX +" Ready "+ Back.RESET)}{Fore.WHITE}'])
-	SysStatus.append(["SV CORE Data",f'{svcoredara}'])
+	print(f"{Fore.LIGHTCYAN_EX}[4/4]{Fore.WHITE} Compiling results...\n")
+
+	# Build status table with simple ASCII
+	SysStatus = [
+		[f"{Fore.CYAN}Feature{Fore.WHITE}", f"{Fore.CYAN}Status{Fore.WHITE}"],
+		["IPC Lock State", f'{Fore.RED}{FAIL} Locked{Fore.WHITE}' if ipclocked else f'{Fore.GREEN}{OK} Unlocked{Fore.WHITE}']
+	]
 	
-
-	table = tabulate(SysStatus, headers="firstrow", tablefmt="grid")
-
-	print(table)
+	# Conditionally add rows
+	if checkipc and ipcthreads:
+		SysStatus.append(["IPC Threads", ipcthreads])
 	
-	if (ipclocked or ipcBad):
-		print(Fore.RED + f'{">"*3} IPC is not ready, performing unlock and reconfig'+ Fore.WHITE)
+	SysStatus.append([
+		"SV Initialization",
+		f'{Fore.RED}{FAIL} Not Ready{Fore.WHITE}' if sv_status else f'{Fore.GREEN}{OK} Ready{Fore.WHITE}'
+	])
+	
+	if checksvcores and svcoredara:
+		SysStatus.append(["SV Core Data", svcoredara])
+	
+	# Print table with simple grid
+	print(tabulate(SysStatus, headers="firstrow", tablefmt="simple_grid"))
+	print()
+
+	# Recovery actions
+	recovery_needed = False
+	
+	if ipclocked or ipcBad:
+		recovery_needed = True
+		print(f"{Fore.YELLOW}{INFO}{Fore.WHITE} Recovery Action: IPC not ready, performing unlock and reconfig...")
 		ipc.unlock()
 		ipc.forcereconfig()
+		print(f"      {Fore.GREEN}{OK}{Fore.WHITE} IPC recovery complete")
 
-	if (not sv.sockets or svBad):
-		print(Fore.RED + f'{">"*3} SV not initialized refreshing '+ Fore.WHITE)
+	if not sv.sockets or svBad:
+		recovery_needed = True
+		print(f"{Fore.YELLOW}{INFO}{Fore.WHITE} Recovery Action: SV not initialized, refreshing...")
 		sv.refresh()
-		
-	if (sv.sockets and ipc.isunlocked()):
-		print(Fore.LIGHTGREEN_EX + f'{">"*3} SV is unlocked with updated nodes, ready to use '+ Fore.WHITE)
+		print(f"      {Fore.GREEN}{OK}{Fore.WHITE} SV refresh complete")
+	
+	# Final status summary
+	print(f"\n{SEPARATOR}")
+	system_ready = sv.sockets and ipc.isunlocked()
+	
+	if system_ready:
+		print(f"{Fore.GREEN}{OK} SYSTEM READY{Fore.WHITE} - SV unlocked with updated nodes")
+	elif recovery_needed:
+		print(f"{Fore.YELLOW}{WARN} RECOVERY APPLIED{Fore.WHITE} - System may require verification")
+	else:
+		print(f"{Fore.RED}{FAIL} SYSTEM NOT READY{Fore.WHITE} - Manual intervention required")
+	
+	print(f"{SEPARATOR}\n")
+
 	
 # We are passing Execution State to Check For Cancellations
 def check_user_cancel(execution_state=None):

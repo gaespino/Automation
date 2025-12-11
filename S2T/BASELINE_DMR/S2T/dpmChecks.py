@@ -108,8 +108,11 @@ else:
 
 ## Imports from THR folder - These are external scripts, always use same path
 f = None
+fo = None
 try:
-	f = import_module(f'{BASE_PATH}.{THR_NAMING}FuseOverride')
+	fo = import_module(f'{BASE_PATH}.{THR_NAMING}FuseOverride')
+	f = fo.DMRFuseOverrides()
+
 	print(' [+] FuseOverride imported successfully')
 except Exception as e:
 	print(f' [x] Could not import FuseOverride, some features may be limited: {e}')
@@ -120,8 +123,8 @@ if cfl.DEV_MODE:
 	importlib.reload(dpmlog)
 	importlib.reload(dpmtileview)
 	importlib.reload(LoadConfig)
-	if f is not None:
-		importlib.reload(f)
+	if fo is not None:
+		importlib.reload(fo)
 	config.reload()
 
 verbose = False
@@ -989,20 +992,22 @@ def pseudomask(combine = False, boot = False, Type = 'Class', ext_mask = None):
 		for key in ClassMask_sys.keys():
 			if key not in ClassMask.keys():
 				continue
+			
+			
 			print (f'\nMasks for pseudo {key} \n')
 			for cbb in syscbbs:
 				cbb_N = sv.socket0.get_by_path(cbb).target_info.instance
 				llc_mask = Masks_test[key][f'llc_cbb_{cbb_N}']
 				ia_mask = Masks_test[key][f'core_cbb_{cbb_N}']
 				
-				core_string = f'cbb_base{cbb_N} : {ia_mask},'
-				llc_string = f'cbb_base{cbb_N} : {llc_mask},'
+				_core_string = f"'cbb_base{cbb_N}' : {ia_mask},"
+				_llc_string = f"'cbb_base{cbb_N}' : {llc_mask},"
 				
 				#print (core_string)
 				#print (llc_string)
 
-				core_string += core_string
-				llc_string += llc_string
+				core_string += _core_string
+				llc_string += _llc_string
 			
 			# This will return the fuse strings to be used in the bootscript
 			fuse_ia = f'ia_core_disable = {{{core_string[:-1]}}}'
@@ -1010,6 +1015,10 @@ def pseudomask(combine = False, boot = False, Type = 'Class', ext_mask = None):
 			bootstring = f'{fuse_ia}, {fuse_llc}'
 			print (f"\nAdd the following to your bootscript to use the pseudo for {key} \n")
 			print (bootstring)
+
+			# ClearString
+			core_string = ''
+			llc_string = ''
 
 	else:
 		## Used with the pseudo_bs function, wont print fuse data, just return the Mask values to be processed by the script
@@ -1025,9 +1034,42 @@ def pseudomask(combine = False, boot = False, Type = 'Class', ext_mask = None):
 #
 #	return 'X1'
 
+## Helper function to format hex mask with leading zeros for 32-bit representation
+def format_mask_hex(mask_value, bits=32):
+	"""
+	Convert hex mask string to zero-padded hex format.
+	Args:
+		mask_value: Hex string (e.g., '0xffffff' or '0xff')
+		bits: Number of bits for the output (default 32)
+	Returns:
+		Zero-padded hex string (e.g., '0x00ffffff' for 32 bits)
+	"""
+	hex_digits = bits // 4  # 32 bits = 8 hex digits
+	return '0x' + hex(int(mask_value, 16))[2:].zfill(hex_digits)
+
 ## Uses pseudo Mask configurations to boot the unit, applying the HT disabled fuses to leave it ready for Dragon Pseudo
 ## Added a S2T key to work with the MESH S2T modes
-def pseudo_bs(ClassMask = 'RowEvenPass', Custom = [], boot = True, use_core = False, htdis = True, dis_2CPM = None, dis_1CPM = None, fuse_read = True, s2t = False, masks = None, clusterCheck = None, lsb = False, fuse_cbb =None, fuse_io = None, fast =False, ppvcfuse = False, skip_init = False,  vbump = {'enabled':False, 'type':['cfc'],'offset': 0,'cbbs':['cbb0', 'cbb1', 'cbb2', 'cbb3'],'imhs':['imh0', 'imh1'],'computes':['compute0', 'compute1', 'compute2', 'compute3']}):
+def pseudo_bs(ClassMask = 'RowEvenPass', 
+			  Custom = [], 
+			  boot = True, 
+			  use_core = False, 
+			  htdis = True, 
+			  dis_2CPM = None, 
+			  dis_1CPM = None, 
+			  fuse_read = True, 
+			  s2t = False, 
+			  masks = None, 
+			  clusterCheck = None, 
+			  lsb = False, 
+			  fuse_cbb =None, 
+			  fuse_io = None, 
+			  fast =False, 
+			  ppvcfuse = False, 
+			  skip_init = False,  
+			  vbump = {'enabled':False, 'type':['cfc'],'offset': 0,'cbbs':['cbb0', 'cbb1', 'cbb2', 'cbb3'],'imhs':['imh0', 'imh1'],'computes':['compute0', 'compute1', 'compute2', 'compute3']},
+			  dis_mask_checker = True,
+			  dis_axon = True):
+	
 	#vbump = {'type':['cfc'],'offset': 0,'computes':['compute0', 'compute1', 'compute2']}
 	if not skip_init: gcm.svStatus(refresh=True)
 
@@ -1040,7 +1082,7 @@ def pseudo_bs(ClassMask = 'RowEvenPass', Custom = [], boot = True, use_core = Fa
 	clusterCheck = False # Option disbabled in DMR
 
 	# Voltage bumps configuration
-	vbump_target = vbump['cbbs']
+	#vbump_target = vbump['cbbs']
 	vbump_type = vbump['type']
 	vbump_offset = vbump['offset']
 	vbump_enabled = vbump['enabled']
@@ -1095,7 +1137,7 @@ def pseudo_bs(ClassMask = 'RowEvenPass', Custom = [], boot = True, use_core = Fa
 	if fuse_io == None: fuse_io = []
 	
 	## Init Variables and default arrays
-	ValidClass = ['RowEvenPass', 'RowOddPass', 'ColumnEvenPass', 'ColumnOddPass']
+	ValidClass = ['RowEvenPass', 'RowOddPass', 'ColumnEvenPass', 'ColumnOddPass', 'Computes02', 'Computes13', 'Computes01', 'Computes23']
 	ValidRows = ['ROW0','ROW1','ROW2','ROW3','ROW4','ROW5','ROW6','ROW7']
 	ValidCols = ['COL0','COL1','COL2','COL3']
 	ValidCustom = ValidRows + ValidCols
@@ -1125,6 +1167,10 @@ def pseudo_bs(ClassMask = 'RowEvenPass', Custom = [], boot = True, use_core = Fa
 					'ColumnEvenPass': 'Booting only with Columns 0 and 2',
 					'ColumnOddPass': 'Booting only with Columns 1 and 3',
 					'Custom' : 'Booting with user mix & match configuration, Cols or Rows',
+					'Computes02' : 'Booting only with Computes 0 and 2 on each CBB',
+					'Computes01' : 'Booting only with Computes 0 and 1 on each CBB',
+					'Computes13' : 'Booting only with Computes 1 and 3 on each CBB',
+					'Computes23' : 'Booting only with Computes 2 and 3 on each CBB',
 					'External' : 'Use configuration from file .\\ConfigFiles\\DMRMasksDebug.json'
 	}
 	
@@ -1273,7 +1319,12 @@ def pseudo_bs(ClassMask = 'RowEvenPass', Custom = [], boot = True, use_core = Fa
 	if not s2t:
 
 		## Checks for htdis option, might recode this at some point this a bit of a lazy way to do it, will also include the option to add custom fuse strings and fuse files, later on.
-		all_fuses = ia_array + cfc_array + dis_1CPM_cbb + fuse_cbb + ppvc_config
+		# Flatten ppvc_config dictionary values into a single list
+		all_ppvc_fuses = []
+		if ppvcfuse and isinstance(ppvc_config, dict):
+			for key, fuse_list in ppvc_config.items():
+				all_ppvc_fuses.extend(fuse_list)
+		all_fuses = ia_array + cfc_array + dis_1CPM_cbb + fuse_cbb + all_ppvc_fuses
 		# if htdis:
 		#fuse_str_0 = fuse_cbb + vbump_array_base['cbb0'] + dis_1CPM_cbb + ppvc_config['cbb0']
 		#if chipConfig == 'X4':  
@@ -1292,14 +1343,21 @@ def pseudo_bs(ClassMask = 'RowEvenPass', Custom = [], boot = True, use_core = Fa
 			fast_fuses += gcm.mask_fuse_module_array(ia_masks = {'cbb0':int(core_cbb0,16), 'cbb1':int(core_cbb1,16), 'cbb2':int(core_cbb2,16)})
 
 			print (f'>>>  Fuse Configuration to be used in FastBoot\n',fast_fuses) 
-			gcm.fuse_cmd_override_reset(fuse_cmd_array=fast_fuses, skip_init=False, boot = boot, s2t=s2t)
 			
+			# Execute only if Debug is not selected
+			if not debug:
+				gcm.fuse_cmd_override_reset(fuse_cmd_array=fast_fuses, skip_init=False, boot = boot, s2t=s2t)
+			else:
+				print (f'>>>  Debug mode selected, skipping FastBoot fuse application step\n')
+				for fuse in fast_fuses:
+					print (f'>>>  Fuse to be applied: {fuse}\n')
+
 			# Waits for EFI and checks fuse application
 			# pseudo_efi_check(fuse_option)
 			gcm.modulesEnabled()
 			#fast_fuses = []
 
-		elif boot: 
+		else: 
 			fuse_str = {}
 			## Bootscript with or without htdis fuses
 			if chipConfig == 'X4': 
@@ -1307,8 +1365,20 @@ def pseudo_bs(ClassMask = 'RowEvenPass', Custom = [], boot = True, use_core = Fa
 				fuse_str_1 = dmr_fuse_fix(fuse_str = all_fuses, cbb_name= 'cbb1')
 				fuse_str_2 = dmr_fuse_fix(fuse_str = all_fuses, cbb_name= 'cbb2')
 				fuse_str_3 = dmr_fuse_fix(fuse_str = all_fuses, cbb_name= 'cbb3')
-
-				bscript_0 = ('pwrgoodmethod="usb", pwrgoodport=1, pwrgooddelay=30, fused_unit=True, enable_strap_checks=False,compute_config=%s,enable_pm=True, ia_core_disable={cbb_base0:%s, cbb_base1:%s, cbb_base2:%s, cbb_base3:%s}, llc_slice_disable={cbb_base0:%s, cbb_base1:%s, cbb_base2:%s, cbb_base3:%s}') % (chipConfig, core_cbb0, core_cbb1, core_cbb2, core_cbb3, llc_cbb0, llc_cbb1, llc_cbb2, llc_cbb3)
+				llc_fuse_data = {'cbb_base0':llc_cbb0, 'cbb_base1':llc_cbb1, 'cbb_base2':llc_cbb2, 'cbb_base3':llc_cbb3}
+				ia_fuse_data = {'cbb_base0':core_cbb0, 'cbb_base1':core_cbb1, 'cbb_base2':core_cbb2, 'cbb_base3':core_cbb3}
+				bscript_0 = (	f'pwrgoodmethod="usb", '
+								f'pwrgoodport=[1,2], '
+								f'pwrgooddelay=30, '
+								f'fused_unit=True, '
+								f'disable_mask_checker={dis_mask_checker}, '
+								f'disable_axon={dis_axon}, '
+								#f'enable_strap_checks=False, '
+								#f'compute_config="{chipConfig}", '
+								#f'enable_pm=True, '
+								f'ia_core_disable= {ia_fuse_data}, '
+								f'llc_slice_disable={llc_fuse_data}'
+								)
 				
 				fuse_str = {
 							'cbb_base0':fuse_str_0['base'],
@@ -1335,8 +1405,21 @@ def pseudo_bs(ClassMask = 'RowEvenPass', Custom = [], boot = True, use_core = Fa
 						
 			elif chipConfig == 'X1':
 				fuse_str_0 = dmr_fuse_fix(fuse_str = all_fuses, cbb_name= 'cbb0')
-				bscript_0 = ('pwrgoodmethod="usb", pwrgoodport=1, pwrgooddelay=30, fused_unit=True, enable_strap_checks=False,compute_config=%s,enable_pm=True, ia_core_disable={cbb_base0:%s}, llc_slice_disable={cbb_base0:%s}') % (chipConfig, core_cbb0, llc_cbb0)
-
+				llc_fuse_data = {'cbb_base0':llc_cbb0}
+				ia_fuse_data = {'cbb_base0':core_cbb0}
+				bscript_0 = (	f'pwrgoodmethod="usb", '
+								f'pwrgoodport=[1,2], '
+								f'pwrgooddelay=30, '
+								f'fused_unit=True, '
+								#f'enable_strap_checks=False, '
+								f'disable_mask_checker={dis_mask_checker}, '
+								f'disable_axon={dis_axon}, '
+								#f'compute_config="{chipConfig}", '
+								#f'enable_pm=True, '
+								f'ia_core_disable= {ia_fuse_data}, '
+								f'llc_slice_disable={llc_fuse_data}'
+								)
+				
 				fuse_str = {
 							'cbb_base0':fuse_str_0['base'],
 							'cbb0_top0':fuse_str_0['top0'],
@@ -1346,9 +1429,9 @@ def pseudo_bs(ClassMask = 'RowEvenPass', Custom = [], boot = True, use_core = Fa
 							}
 
 				bscript_1 = (
-				f', fuse_str={{'
+				f', fuse_str='
 				f'{fuse_str}'
-				f'}},'# dynamic_fuse_inject={{"top":my_method}}'
+				f','# dynamic_fuse_inject={{"top":my_method}}'
 				)
 			## Display data on screen, showing configuration to be used based on selection
 			print (f'\n>>>  Bootscript configuration for {ClassMask} ')
@@ -1371,34 +1454,38 @@ def pseudo_bs(ClassMask = 'RowEvenPass', Custom = [], boot = True, use_core = Fa
 			fuse_option = {'cbb0':fuse_str_0,'cbb1':fuse_str_1,'cbb2':fuse_str_2, 'cbb2':fuse_str_3}
 			## Either run the bootscript or just print the bootscript string in case additional feats need to be added on it.
 			# pending pereiras -- Not finished yet
-
-			print (f'>>>  Boot option is selected - Starting Bootscript') 
-		#	if htdis:
-			
-			if chipConfig == 'X1': b.go(pwrgoodmethod="usb", 
-							   			pwrgoodport=1, 
-										pwrgooddelay=30, 
-										fused_unit=True, 
-										enable_strap_checks=False,
-										compute_config=chipConfig,
-										enable_pm=True, 
-										ia_core_disable={"cbb_base0":core_cbb0, "cbb_base1":core_cbb1, "cbb_base2":core_cbb2, "cbb_base3":core_cbb3}, 
-										llc_slice_disable={"cbb_base0":llc_cbb0, "cbb_base1":llc_cbb1, "cbb_base2":llc_cbb2, "cbb_base3":llc_cbb3}, 
-										fuse_str=fuse_str)
-			
-			if chipConfig == 'X4': b.go(pwrgoodmethod='usb', 
-							   			pwrgoodport=1, 
-										pwrgooddelay=30, 
-										fused_unit=True, 
-										enable_strap_checks=False,
-										compute_config=chipConfig,
-										enable_pm=True, 
-										ia_core_disable={"cbb_base0":core_cbb0}, llc_slice_disable={"cbb_base0":llc_cbb0}, 
-										fuse_str=fuse_str)
-
-
-		else: 
-			print (f'\n>>>  Boot option not selected -- Copy bootscript code  above and edit if needed to run manually') 
+			if not debug and boot:
+				print (f'>>>  Boot option is selected - Starting Bootscript') 
+			#	if htdis:
+				
+				if chipConfig == 'X4': b.go(pwrgoodmethod="usb", 
+											pwrgoodport=1, 
+											pwrgooddelay=30, 
+											fused_unit=True, 
+											#enable_strap_checks=False,
+											disable_mask_checker=dis_mask_checker,
+											disable_axon=dis_axon,
+											compute_config=chipConfig,
+											#enable_pm=True, 
+											ia_core_disable={"cbb_base0":core_cbb0, "cbb_base1":core_cbb1, "cbb_base2":core_cbb2, "cbb_base3":core_cbb3}, 
+											llc_slice_disable={"cbb_base0":llc_cbb0, "cbb_base1":llc_cbb1, "cbb_base2":llc_cbb2, "cbb_base3":llc_cbb3}, 
+											fuse_str=fuse_str)
+				
+				if chipConfig == 'X1': b.go(pwrgoodmethod='usb', 
+											pwrgoodport=1, 
+											pwrgooddelay=30, 
+											fused_unit=True, 
+											#enable_strap_checks=False,
+											disable_mask_checker=dis_mask_checker,
+											disable_axon=dis_axon,
+											compute_config=chipConfig,
+											#enable_pm=True, 
+											ia_core_disable={"cbb_base0":core_cbb0}, llc_slice_disable={"cbb_base0":llc_cbb0}, 
+											fuse_str=fuse_str)
+			else:
+				if debug: print (f'>>>  Debug mode selected, skipping Bootscript execution step\n')
+				# Waits for EFI and checks fuse application
+				print (f'\n>>>  Boot option not selected -- Copy bootscript code  above and edit if needed to run manually') 
 	else:
 		# return core_count, llc_count, Masks_test
 		return core_count, llc_count, Masks_test
@@ -1503,36 +1590,33 @@ def ppvc_option():
 	return selection
 
 # CBB Top and Base fuse string modification for bootscript array usage
-def dmr_fuse_fix(fuse_str = {}, cbb_name = 'cbb0'):
+def dmr_fuse_fix(fuse_str = {}, cbb_name = 'cbb0', sockets = ['0','s']):
 	bs_fuse_array = []
 
+	fuses_keys = ['base','top0','top1','top2','top3']
+	fuses = {k:[] for k in fuses_keys}
 	base_string = '.base.'
-	bases = [f'sv.socket0.{cbb_name}.base.fuses.'	]
+	bases = [f'sv.socket{socket}.{cbb_name}.base.fuses.' for socket in sockets]
 
 	compute_string = ['s', '0', '1', '2', '3']
 
-	fuses = {}
-	for fuse in fuse_str:
-		
-		if base_string in fuse:
-			fuses['base'] = bs_fuse_fix(fuse_str = fuse, bases = bases)
-		else:
-			for cs in compute_string:
-				top_string = f'.compute{cs}.'
-				
-				if top_string in fuse:
-					if cs != 's':
-						fuses[f'top{cs}'] = bs_fuse_fix(fuse_str = fuse, bases = [f'sv.socket0.{cbb_name}.compute{cs}.fuses.'])
+	# Check for Base and Top fuses
+	# Base Check
+	fuses['base'].extend(bs_fuse_fix(fuse_str = fuse_str, bases = bases))
 
-					else:
-						fstring = bs_fuse_fix(fuse_str = fuse, bases = [f'sv.socket0.{cbb_name}.compute{cs}.'])
-						
-						# In the case of general string apply to all tops
-						fuses[f'top0'] = fstring
-						fuses[f'top1'] = fstring
-						fuses[f'top2'] = fstring
-						fuses[f'top3'] = fstring
-			 
+	# Top Check
+	for cs in compute_string:
+		top_bases = [f'sv.socket{socket}.{cbb_name}.compute{cs}.fuses.' for socket in sockets]
+		if cs != 's':
+			fuses[f'top{cs}'].extend(bs_fuse_fix(fuse_str = fuse_str, bases = top_bases))
+		else:
+			fstring = bs_fuse_fix(fuse_str = fuse_str, bases = top_bases)
+				
+			fuses[f'top0'].extend(fstring)
+			fuses[f'top1'].extend(fstring)
+			fuses[f'top2'].extend(fstring)
+			fuses[f'top3'].extend(fstring)
+
 	return fuses
 
 
@@ -1685,7 +1769,7 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 
 		if volt_dict['ddrd'] != None: volt_fuses+=f.ddrd_vbump_array(offset = volt_dict['ddrd']) # Adding DDRD fuses
 		#if volt_dict['ddra'] != None: volt_fuses+=f.ddra_vbump_array(offset = volt_dict['ddra'], computes = computes) # Adding DDRA fuses -- WIP
-		if volt_dict['cfc_io'] != None: volt_fuses+=f.cfc_io_vbump_array(offset = volt_dict['cfc_io'], include_cbbs=False, include_imhs=True) # Adding CFCxIO fuses
+		if volt_dict['cfc_io'] != None: volt_fuses+=f.cfc_vbump_array(offset = volt_dict['cfc_io'], include_cbbs=False, include_imhs=True) # Adding CFCxIO fuses
    		
 	#ppvc_fuses+=f.cfn_vbump_array(fixed_voltage = volt_values['cfn']) # Adding CFN fuses
 	#ppvc_fuses+=f.vccinf_vbump_array(fixed_voltage = volt_values['core'], computes = computes) # Adding VCCINF fuses
@@ -2376,8 +2460,8 @@ def masks_validation(masks, ClassMask, dies, product, _clusterCheck, _lsb = Fals
 
 	for compute in dies:
 		dieN = compute[-1]
-		cores[compute] = MAXCORESPERCBB - binary_count(masks[ClassMask][f'core_comp_{dieN}'])
-		llcs[compute] = MAXCORESPERCBB - binary_count(masks[ClassMask][f'llc_comp_{dieN}'])
+		cores[compute] = MAXCORESPERCBB - binary_count(masks[ClassMask][f'core_cbb_{dieN}'])
+		llcs[compute] = MAXCORESPERCBB - binary_count(masks[ClassMask][f'llc_cbb_{dieN}'])
 
 	#min_llc = llcs['compute0'] ## Defaulting to COMP0 if all are the same we dont change it
 	min_llc = min(llcs['cbb0'],llcs['cbb1'],llcs['cbb2'], llcs['cbb3'])

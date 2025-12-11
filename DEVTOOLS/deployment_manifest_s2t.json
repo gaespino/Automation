@@ -1,0 +1,84 @@
+{
+  "module_name": "S2T",
+  "description": "Production deployment manifest for S2T (System-to-Tester) module",
+  "version": "1.0",
+  "deployment_type": "production",
+  
+  "include_files": [
+    "__init__.py",
+    "ConfigsLoader.py",
+    "CoreManipulation.py",
+    "DffDataCollector.py",
+    "dpmChecks.py",
+    "GetTesterCurves.py",
+    "SetTesterRegs.py"
+  ],
+  
+  "include_directories": [
+    {
+      "path": "managers",
+      "include_all": true,
+      "exclude_patterns": ["__pycache__", "*.pyc"]
+    },
+    {
+      "path": "Logger",
+      "include_all": true,
+      "exclude_patterns": ["__pycache__", "*.pyc"]
+    },
+    {
+      "path": "Tools",
+      "include_all": true,
+      "exclude_patterns": ["__pycache__", "*.pyc"]
+    },
+    {
+      "path": "Fuse",
+      "include_all": true,
+      "exclude_patterns": ["__pycache__", "*.pyc"]
+    },
+    {
+      "path": "UI",
+      "include_all": true,
+      "exclude_patterns": ["__pycache__", "*.pyc", "test_*.py"]
+    },
+    {
+      "path": "EFI Tools",
+      "include_all": true,
+      "exclude_patterns": []
+    },
+    {
+      "path": "product_specific",
+      "include_all": false,
+      "description": "Product-specific implementations - deploy only relevant product folder",
+      "product_folders": {
+        "GNR": "product_specific/GNR",
+        "CWF": "product_specific/CWF", 
+        "DMR": "product_specific/DMR"
+      }
+    }
+  ],
+  
+  "exclude_files": [],
+  
+  "exclude_patterns": [
+    "**/test_*.py",
+    "**/*_test.py",
+    "**/__pycache__",
+    "**/*.pyc"
+  ],
+  
+  "product_specific_deployment": {
+    "enabled": true,
+    "description": "Only deploy the product_specific subfolder matching target product",
+    "example": "For GNR deployment, only include product_specific/GNR folder"
+  },
+  
+  "notes": {
+    "product_specific": "The product_specific directory contains GNR, CWF, and DMR subfolders. Deploy only the relevant product folder to target environment.",
+    "dependencies": "S2T module requires DebugFramework for full functionality",
+    "efi_tools": "EFI Tools folder contains scripts that may be platform-specific"
+  },
+  
+  "dependencies": [
+    "DebugFramework module for framework integration"
+  ]
+}

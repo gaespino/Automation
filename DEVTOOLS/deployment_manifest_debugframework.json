@@ -1,0 +1,109 @@
+{
+  "module_name": "DebugFramework",
+  "description": "Production deployment manifest for DebugFramework module",
+  "version": "1.0",
+  "deployment_type": "production",
+  
+  "include_files": [
+    "__init__.py",
+    "SystemDebug.py",
+    "TestFramework.py",
+    "FileHandler.py",
+    "SerialConnection.py",
+    "MaskEditor.py",
+    "Misc.py"
+  ],
+  
+  "include_directories": [
+    {
+      "path": "ExecutionHandler",
+      "include_all": true,
+      "exclude_patterns": ["__pycache__", "*.pyc", "Old_code.py"]
+    },
+    {
+      "path": "Interfaces",
+      "include_all": true,
+      "exclude_patterns": ["__pycache__", "*.pyc"]
+    },
+    {
+      "path": "Storage_Handler",
+      "include_all": true,
+      "exclude_patterns": ["__pycache__", "*.pyc"]
+    },
+    {
+      "path": "Automation_Flow",
+      "include_all": true,
+      "exclude_patterns": [
+        "__pycache__", 
+        "*.pyc",
+        "dummy_structure.json",
+        "notes.txt",
+        "old_interface.py",
+        "reference_code_old.py"
+      ]
+    },
+    {
+      "path": "UI",
+      "include_all": true,
+      "exclude_patterns": [
+        "__pycache__",
+        "*.pyc",
+        "MockControlPanel.py",
+        "TestControlPanel.py",
+        "test_config.py",
+        "old_windows",
+        ".pytest_cache",
+        "README_TEST.md"
+      ]
+    },
+    {
+      "path": "PPV",
+      "include_all": true,
+      "exclude_patterns": ["__pycache__", "*.pyc"]
+    },
+    {
+      "path": "Shmoos",
+      "include_all": true,
+      "exclude_patterns": ["__pycache__", "*.pyc"]
+    },
+    {
+      "path": "TTL",
+      "include_all": true,
+      "exclude_patterns": []
+    },
+    {
+      "path": "EFI",
+      "include_all": true,
+      "exclude_patterns": []
+    }
+  ],
+  
+  "exclude_files": [
+    "TestRun.py",
+    "TestMocks.py",
+    "HardwareMocks.py",
+    "S2TMocks.py",
+    "S2TTestFramework.py"
+  ],
+  
+  "exclude_patterns": [
+    "**/test_*.py",
+    "**/*_test.py",
+    "**/*Mock*.py",
+    "**/__pycache__",
+    "**/*.pyc",
+    "**/.pytest_cache"
+  ],
+  
+  "notes": {
+    "test_files": "TestRun.py, TestMocks.py, S2TTestFramework.py - Only for development testing",
+    "mock_files": "HardwareMocks.py, S2TMocks.py, MockControlPanel.py - Only for development/testing without hardware",
+    "deprecated": "Old_code.py in ExecutionHandler, old_interface.py and reference_code_old.py in Automation_Flow",
+    "documentation": "README_TEST.md, notes.txt, dummy_structure.json - Development documentation only"
+  },
+  
+  "dependencies": [
+    "S2T module must be deployed alongside DebugFramework",
+    "PPV module integration requires PPV/configs to be present"
+  ]
+}

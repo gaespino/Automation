@@ -17,7 +17,7 @@
     "GNR": {
       "source_type": "BASELINE",
       "deployment_type": "DebugFramework",
-      "target_base": "",
+      "target_base": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\GNR\\prod\\DebugFramework",
       "replacement_csv": "",
       "selected_files": []
     },

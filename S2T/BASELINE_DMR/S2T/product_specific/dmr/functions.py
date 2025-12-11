@@ -268,6 +268,7 @@ class functions:
 
 	@staticmethod
 	def fusesUpdate(sv):
+		sv.sockets.cbbs.base.fuses.load_fuse_ram()
 		sv.sockets.cbbs.computes.fuses.load_fuse_ram()
 		sv.sockets.imhs.fuses.load_fuse_ram()
 		
