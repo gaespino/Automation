@@ -809,17 +809,17 @@ class SystemBooter:
 			boot_disable_ia = ''
 		else:
 			for key, value in self.coremask.items():
-				_ia.append(f'"{key}":{hex(value)}')
+				_ia.append(f'"cbb_base_{key[-1]}":{hex(value)}')
 			disable_ia = ','.join(_ia)
-			boot_disable_ia = f' ia_core_disable={{{disable_ia}}},'
+			boot_disable_ia = f' ia_core_disable = {{{disable_ia}}},'
 		
 		if self.slicemask is None:
 			boot_disable_llc = ''
 		else:
 			for key, value in self.slicemask.items():
-				_llc.append(f'"{key}":{hex(value)}')
+				_llc.append(f'"cbb_base_{key[-1]}":{hex(value)}')
 			disable_llc = ','.join(_llc)
-			boot_disable_llc = f' llc_slice_disable={{{disable_llc}}},'
+			boot_disable_llc = f' llc_slice_disable = {{{disable_llc}}},'
 		
 		return boot_disable_ia, boot_disable_llc
 	
@@ -1034,7 +1034,7 @@ class SystemBooter:
 					
 					svStatus(checkipc=True, checksvcores=False, refresh=False, reconnect=False)
 				
-				if attempt <= n - 1:
+				elif attempt <= n - 1:
 					dpm.powercycle()
 					time.sleep(delay)
 			
@@ -1095,7 +1095,7 @@ class SystemBooter:
 			dict_keys = fuse_dict.keys() if fuse_dict else []
 
 			for dict_key in dict_keys:
-				print(Fore.LIGHTCYAN_EX + f"{'>' * 3} Checking {dict_key} Fuse for {cbb_name}: {fuse_dict[dict_key]}")
+				print(Fore.LIGHTCYAN_EX + f"{'>' * 3} Checking {dict_key.upper()} Fuse for {cbb_name.upper()}: total of {len(fuse_dict[dict_key])} entries	---")
 				fuse_cmd_override_check(fuse_dict[dict_key], showresults=showresults, skip_init=skip_init, bsFuses=f'{cbb_name}{dict_key if "base" not in dict_key else ""}')
 
 		print(Fore.LIGHTCYAN_EX + "*" * 90)
@@ -1195,7 +1195,7 @@ class System2Tester():
 		else: self.masks = masks
 
 		# Debug Mode -- User can enable/disable debug mode during execution
-		self.debug = False
+		self.debug = debug
 		
 		# Initialize SystemBooter for boot operations
 		self._init_system_booter()
