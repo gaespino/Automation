@@ -19,7 +19,7 @@
 #	>> Logger.py - User Interface
 #
 # Update: 30/10/2024
-# Version: 1.30 
+# Version: 1.30
 # Last Update notes: Added the following features:
 # - Bios Knobs Checks
 # - PPVC option for pseudo Bootscript
@@ -27,7 +27,7 @@
 # - Flow execution time reduction by code optimization
 #
 # Update: 20/06/2024
-# Version: 1.20 
+# Version: 1.20
 # Last Update notes: Added the following features
 # - vbump option for pseudo_bs
 # - Burn test logics
@@ -35,7 +35,7 @@
 # - Code cleanup
 #
 # Update: 12/2/2024
-# Versiun: 1.00 
+# Versiun: 1.00
 # Last Update notes: Added the pseudo bs capabilities to use Custom Masks, set htdis = False if none pseudo content is being used.
 # Any issues please contact gabriel.espinoza.ballestero@intel.com
 #
@@ -143,12 +143,12 @@ log_folder = "C:\\temp\\"
 def retry_on_exception(func, *args, **kwargs):
 	"""
 	Executes a function and retries if an exception occurs.
-	
+
 	Parameters:
 	- func: The function to execute.
 	- *args: Positional arguments for the function.
 	- **kwargs: Keyword arguments for the function.
-	
+
 	Returns:
 	- The result of the function if successful.
 	- None if all retries fail.
@@ -166,7 +166,7 @@ def retry_on_exception(func, *args, **kwargs):
 ## Instance Initiator - Can be optimized but it works for now, used to simplify code a bit
 class PySV():
 	from namednodes import sv
-	
+
 	"""
 	Class constructor for PythonSV path creation.
 	"""
@@ -180,36 +180,40 @@ class PySV():
 			for template in PathTemplates:
 				for i in instances:
 					try:
-						self._instances.append(self._socket.get_by_path('{0}.{1}'.format(template,i)))
+						if i is not None:
+							self._instances.append(self._socket.get_by_path('{0}.{1}'.format(template,i)))
+						else:
+							self._instances.append(self._socket.get_by_path('{}'.format(template)))
 					except:
 						print(f'PythonSV instance {i} cannot be read, skipping')
-		
-		# Perform a check on all the instances, if there is a non readable one, remove it 
-		if checktype != '': 
+
+		# Perform a check on all the instances, if there is a non readable one, remove it
+		if checktype != '':
 			self.instancechk()
 
 	def instancechk(self):
-		
+
 		for _instance in self._instances:
 			try:
 				read_check = _instance.get_by_path('{}'.format(self.readcheck))
+				print(f'instance {_instance.path}.{self.readcheck} correctly readable')
 				#print(read_check.path)
 				read_check.read()
 			except:
-				print(f'instance {_instance.path} cannot be read, removing it')
+				print(f'instance {_instance.path}.{self.readcheck} cannot be read, removing it')
 				self._instances.remove(_instance)
 
 ## Cstates review: type help for a nice table with all cstates values (WIP)
 class cstates():
 	def __init__(self, sktnum = [0]):
-		self.sv = _get_global_sv()			
+		self.sv = _get_global_sv()
 		self.ipc = ipccli.baseaccess()
 		self.sktnum = sktnum
 		self.instance = ['ptpcfsms.ptpcfsms']
-	
+
 	def core(self, corecstates = 0x7, computes = ['compute0', 'compute1', 'compute2']):
 		#instance = ['ptpcfsms.ptpcfsms']
-		for die in computes:	
+		for die in computes:
 			cores = PySV(tiles=self.sktnum, PathTemplates = ['uncore.punit'],instances=self.instance, preTilePath='socket',die=die, checktype = 'dfx_ctrl_unprotected')
 			for core in cores._instances:
 				cstate_cv = core.dfx_ctrl_unprotected.core_cstate_limit.read()
@@ -218,13 +222,13 @@ class cstates():
 
 	def pkgc(self, pkg = 0x5, computes = ['compute0', 'compute1', 'compute2']):
 		#instance = ['ptpcfsms.ptpcfsms']
-		for die in computes:	
+		for die in computes:
 			pc6s = PySV(tiles=self.sktnum, PathTemplates = ['uncore.punit'],instances=self.instance, preTilePath='socket',die=die, checktype = 'dfx_ctrl_unprotected')
 			for pc6 in pc6s._instances:
 				pc6_cv = pc6.dfx_ctrl_unprotected.pkg_cstate_limit.read()
 				pc6.dfx_ctrl_unprotected.pkg_cstate_limit = pkg
 				print(f'{die.upper()} pkg cstate value changed from {pc6_cv} --> {pkg}')
-				
+
 	def read(self):
 		#instance = ['ptpcfsms.ptpcfsms']
 		die = 'computes'
@@ -234,23 +238,23 @@ class cstates():
 			cstate.dfx_ctrl_unprotected.pkg_cstate_limit.show()
 
 	def counters(self):
-		sv = self.sv		
+		sv = self.sv
 		ipc = self.ipc
 		halted = False
 		message = 'Running C6 counters check, to check cpu counters a halt needs to be done, do you want to continue?'
 		response = prompt_msg(message, timeout = 30)
 		if (response == 'no') or (response == None):
 			sys.exit()
-		
-		try: 
+
+		try:
 			ipc.halt()
 			halted = True
 		except: print('Halt cannot be executed, probably unit already hanged or halted. Skipping....')
 		# Not considering multi socket on this version yet
 		print ("Core C6 counters : \n")
-		
+
 		sv.socket0.computes.cpu.cores.fscp_cr_core_c6_residency_counter.show()
-		
+
 		print ("\nPackage C6 counters : \n")
 		sv.socket0.computes.uncore.punit.ptpcioregs.ptpcioregs.pc6_rcntr.show()
 
@@ -258,22 +262,69 @@ class cstates():
 
 ## CFC Voltage/Ratio values and VF Curve data
 class cfc():
-	def __init__(self, dies = ['all'], regs = 'all', sktnum = [0], fuse_ram = True):
-		self.sv = _get_global_sv()			
+	def __init__(self, dies = ['all'], regs = 'all', sktnum = [0], fuse_ram = True) -> None:
+		self.sv = _get_global_sv()
 		self.ipc = ipccli.baseaccess()
-		
+
 		self.regs = regs
 		self.sktnum = sktnum
 		self.fuse_ram = fuse_ram
-		
+		self.cfc_voltages = config.CFC_VOLTAGE_CURVES
+		self.cfc_ratios = config.CFC_RATIO_CURVES
+
+		self.imh_cv = ['uncore.punit.punit_regs.punit_gpsb']
+		self.cbb_cv = ['base.punit_fuses']
+
+
 		if 'all' in dies:
 			dies = []
-			dies.extend(sv.socket0.ios.name)
-			dies.extend(sv.socket0.computes.name)
+			dies.extend(sv.socket0.imhs.name)
+			dies.extend(sv.socket0.cbbs.name)
 		self.dies = dies
 
-	def voltage(self):
-		
+		self._set_variables()
+
+	def _set_instance(self, sktnum, template, instance, die, check) -> PySV:
+
+		return PySV(tiles=sktnum, PathTemplates = template, instances=instance, preTilePath='socket',die=die, checktype = check)
+
+	def _generate_fuse_from_config(self, fuse, p1, p1_name, p2=None, p2_name=None, p3=None, p3_name=None) -> str:
+
+		if p2 is None:
+			return fuse.replace(p1_name, str(p1))
+		if p3 is None:
+			return fuse.replace(p1_name, str(p1)).replace(p2_name, str(p2))
+
+		return fuse.replace(p1_name, str(p1)).replace(p2_name, str(p2)).replace(p3_name, str(p3))
+
+	def _set_variables(self) -> None:
+		# CBB Base
+		self.base_path = ['base']
+		self.base_path_cv = ['pcudata']
+		self.base_instance = ['fuses.punit_fuses']
+		self.base_instance_cv_cfc = [None]
+		self.base_instance_cv_ia = ['punit_regs.punit_gpsb.gpsb_infvnn_io_regs'] ## Not used reading TOP
+		self.base_fuse_test_reg = 'fw_fuses_cfc_min_ratio'
+		self.base_cv_test_cfc_v = 'wp_cv_ring_fivr_0' # Voltage
+		self.base_cv_test_cfc_f = 'wp_cv_ring'#Ratio
+
+		  # CBB Top
+		self.top_path = ['computes']
+		self.top_instance = ['fuses'] #computes.fuses.core0_fuse
+		self.top_instance_cv_ia = ['pmas.pmsb.io_wp1'] # WP_CV_Ring Voltage/Frequency
+		self.top_fuse_test_reg = 'core0_fuse.core_fuse_core_fuse_acode_ia_base_vf_ratio_0'
+
+		# IMH
+		self.imh_path = ['fuses']
+		self.imh_instance = ['punit']
+		self.imh_path_cv = ['pcodeio_map']
+		self.imh_instance_cv = [None]
+		self.imh_fuse_test_v = 'pcode_cfcio_vf_voltage_point0'
+		self.imh_fuse_test_f = 'pcode_cfcio_min_ratio'
+		self.imh_cv_test_reg = 'io_wp_rc_cv_ps_0' # Voltage / Ratio
+
+	def voltage(self) -> None:
+
 		#Self Class values
 		regs = self.regs
 		fuse_ram = self.fuse_ram
@@ -283,201 +334,289 @@ class cfc():
 		# Data inits
 		data_cfc = {}
 		data_hdc = {}
-		#data_pstates = {}	
+		data_cfc_io = {}
+		#data_pstates = {}
 		data_read = {}
-		update_data = {}
-		instance = []
-		mesh_inst = ['pcodeio_map']
-		meshcv = 'io_wp_rc_cv_ps_0'
+		data_read_io = {}
 
 		# Check for arguments in reg key
-		valid_regs = {	'fuses':{'fuses': True, 	'cv':False}, 
-						'cv': 	{'fuses': False, 	'cv':True}, 
+		valid_regs = {	'fuses':{'fuses': True, 	'cv':False},
+						'cv': 	{'fuses': False, 	'cv':True},
 						'all':	{'fuses': True, 	'cv':True}}
-		
+
 		if regs not in valid_regs.keys():
 			print (f'No valid register selection to be read, valid options are: \n' +
-					'fuses:	Reads all fused data configured for CFC Ratios. \n' + 
+					'fuses:	Reads all fused data configured for CFC Ratios. \n' +
 					'cv: 	Reads current mesh value for CFC ratios. \n' +
 					'all: 	Reads fuses and current values for CFC ratios. (default) '  )
 			sys.exit()
-		
+
 		regfuse = valid_regs[regs]['fuses']
 		regcv = valid_regs[regs]['cv']
 
 		# Read all fuses first
 		if fuse_ram and regfuse:
 			fuseRAM()
-			#sv.sockets.computes.fuses.load_fuse_ram()
-			#sv.sockets.ios.fuses.load_fuse_ram()
-		
-		curves = config.CFC_VOLTAGE_CURVES
-				#{	'cfc_curve': ['pcode_cfc_vf_voltage_point0','pcode_cfc_vf_voltage_point1','pcode_cfc_vf_voltage_point2','pcode_cfc_vf_voltage_point3','pcode_cfc_vf_voltage_point4','pcode_cfc_vf_voltage_point5'],
-				#	#'hdc_curve': ['pcode_hdc_vf_voltage_point0','pcode_hdc_vf_voltage_point1','pcode_hdc_vf_voltage_point2','pcode_hdc_vf_voltage_point3','pcode_hdc_vf_voltage_point4','pcode_hdc_vf_voltage_point5'],
-				#	'hdc_curve': ['pcode_l2_vf_voltage_point0','pcode_l2_vf_voltage_point1','pcode_l2_vf_voltage_point2','pcode_l2_vf_voltage_point3','pcode_l2_vf_voltage_point4','pcode_l2_vf_voltage_point5'],
-				#}
+
+		curves = self.cfc_voltages
 
 		for die in dies:
-			
-			if re.search(r'io*', die): 
-				instance = ['punit_iosf_sb']
-				
-			elif re.search(r'compute*', die): 
-				instance = ['pcu']
+
+			if re.search(r'imh*', die):
+				die_inst = self._set_instance(sktnum, self.imh_path, self.imh_instance, die, self.imh_fuse_test_v)
+				mesh_val = self._set_instance(sktnum, self.imh_path_cv, self.imh_instance_cv, die, self.imh_cv_test_reg)
+
+			elif re.search(r'cbb*', die):
+				die_inst = self._set_instance(sktnum, self.base_path, self.base_instance, die, self.base_fuse_test_reg)
+				mesh_val = self._set_instance(sktnum, self.base_path_cv, self.base_instance_cv_cfc, die, self.base_cv_test_cfc_v)
 			else:
 				print(f'Not valid die selected {die}: Skipping...')
 				continue
-			#print (f'\n### {str(die).upper()}  - CFC Voltages fused values ###')
-			die_inst = PySV(tiles=sktnum, PathTemplates = ['fuses'],instances=instance, preTilePath='socket',die=die, checktype = 'pcode_cfc_min_ratio')
-			mesh_val = PySV(tiles=sktnum, PathTemplates = ['uncore'],instances=mesh_inst, preTilePath='socket',die=die, checktype = meshcv)
-			
+
 			if regfuse:
 				for fuse in die_inst._instances:
 					# CFC VF fuses (VOLTAGE)
+					for point in curves['points']:
 
-					for curve in curves['cfc_curve']:
-						pointvalue = fuse.readregister(curve)
-						printData(data_cfc, curve, die, hex(pointvalue))
+						if 'imh' in die:
+							for curve in curves['cfcio_curve']:
+								for domain in curves['cfcio_domains']:
+									_fuse = self._generate_fuse_from_config(curve, point, '#points#', domain, '#domain#')
+									pointvalue = fuse.readregister(_fuse)
+									printData(data_cfc_io, _fuse, die, hex(pointvalue))
+						else:
 
-					if re.search(r'compute*', die):
-						# HDC VF fuses (VOLTAGE)
+							for curve in curves['cfc_curve']:
+								for cfc in curves['cfcs']:
+									_fuse = self._generate_fuse_from_config(curve, cfc, '#cfcs#', point, '#points#')
+									pointvalue = fuse.readregister(_fuse)
+									printData(data_cfc, _fuse, die, hex(pointvalue))
 
-						for curve in curves['hdc_curve']:
-							pointvalue = fuse.readregister(curve)
-							printData(data_hdc, curve, die, hex(pointvalue))
 
 			if regcv:
 				# Mesh current value / Add some extra code for the hdc read, this one can be checked directly from the RA
 				for mesh in mesh_val._instances:
 
-					meshvalue = mesh.io_wp_rc_cv_ps_0.readfield('voltage')
-					printData(data_read, 'io_wp_rc_cv_ps_0.voltage', die, hex(meshvalue))
+					if 'imh' in die:
+						meshvalue = mesh.get_by_path(self.imh_cv_test_reg).readfield('voltage')
+						print(data_read, f'{self.imh_cv_test_reg}.voltage', die, hex(meshvalue))
+						printData(data_read_io, f'{self.imh_cv_test_reg}.voltage', die, hex(meshvalue))
+					else:
+						for cfc in curves['cfcs']:
+							meshvalue = mesh.get_by_path(f'wp_cv_ring_fivr_{cfc}').readfield('voltage')
+							print(data_read, f'wp_cv_ring_fivr_{cfc}[0].voltage', die, hex(meshvalue))
+							printData(data_read, f'wp_cv_ring_fivr_{cfc}[0].voltage', die, hex(meshvalue))
 
 		if regfuse:
-			printTable(data_cfc, "CFC VF fuses (VOLTAGE)")
-			printTable(data_hdc, "HDC VF fuses (VOLTAGE)")
-			
+			if data_cfc:
+				printTable(data_cfc, "CFC CBB VF fuses (VOLTAGE)")
+			#printTable(data_hdc, "HDC VF fuses (VOLTAGE)")
+			if data_cfc_io:
+				printTable(data_cfc_io, "CFC IO VF fuses (VOLTAGE)")
+
 		if regcv:
-			printTable(data_read, "Voltage Current Values (MESH)")
+			if data_read:
+				printTable(data_read, "Voltages CBB Current Values (MESH)")
+			if data_read_io:
+				printTable(data_read_io, "Voltages IO Current Values (MESH)")
 
 	def ratios(self):
-		
+
 		#Self Class values
 		regs = self.regs
 		fuse_ram = self.fuse_ram
 		dies = self.dies
 		sktnum = self.sktnum
-		
+
 		# Data inits
 		data_cfc = {}
 		data_hdc = {}
-		data_pstates = {}	
+		data_cfc_io = {}
+		data_pstates_io = {}
+		data_pstates = {}
 		data_read = {}
-		update_data = {}
-		instance = []
-		mesh_inst = ['pcodeio_map']
-		meshcv = 'io_wp_rc_cv_ps_0'
+		data_read_io = {}
 
 		#Check for arguemnts in reg key
-		valid_regs = {	'fuses':{'fuses': True, 	'cv':False}, 
-						'cv': 	{'fuses': False, 	'cv':True}, 
+		valid_regs = {	'fuses':{'fuses': True, 	'cv':False},
+						'cv': 	{'fuses': False, 	'cv':True},
 						'all':	{'fuses': True, 	'cv':True}}
-		
+
 		if regs not in valid_regs.keys():
 			print (f'No valid register selection to be read, valid options are: \n' +
-					'fuses:	Reads all fused data configured for CFC Ratios. \n' + 
+					'fuses:	Reads all fused data configured for CFC Ratios. \n' +
 					'cv: 	Reads current mesh value for CFC ratios. \n' +
 					'all: 	Reads fuses and current values for CFC ratios. (default) '  )
 			sys.exit()
-		
+
 		regfuse = valid_regs[regs]['fuses']
 		regcv = valid_regs[regs]['cv']
-		
+
 		# Read all fuses first
 		if fuse_ram and regfuse:
 			fuseRAM()
-			#sv.sockets.computes.fuses.load_fuse_ram()
-			#sv.sockets.ios.fuses.load_fuse_ram()
-		
-		curves = config.CFC_RATIO_CURVES
-		#{	'cfc_curve': ['pcode_cfc_vf_ratio_point0','pcode_cfc_vf_ratio_point1','pcode_cfc_vf_ratio_point2','pcode_cfc_vf_ratio_point3','pcode_cfc_vf_ratio_point4','pcode_cfc_vf_ratio_point5'],
-		#			'hdc_curve': ['pcode_l2_vf_ratio_point0','pcode_l2_vf_ratio_point1','pcode_l2_vf_ratio_point2','pcode_l2_vf_ratio_point3','pcode_l2_vf_ratio_point4','pcode_l2_vf_ratio_point5'],
-		#			'pstates' : {	'p0':'pcode_sst_pp_0_cfc_p0_ratio', 
-		#							'p1':'pcode_sst_pp_0_cfc_p1_ratio', 
-		#							'pn':'pcode_cfc_pn_ratio', 
-		#							'min':'pcode_cfc_min_ratio'}
-		#		}
+
+		curves = self.cfc_ratios #config.CFC_RATIO_CURVES
 
 		for die in dies:
-			
-			if re.search(r'io*', die): 
-				instance = ['punit_iosf_sb']
-				
-			elif re.search(r'compute*', die): 
-				instance = ['pcu']
+
+			if re.search(r'imh*', die):
+				die_inst = self._set_instance(sktnum, self.imh_path, self.imh_instance, die, self.imh_fuse_test_f)
+				mesh_val = self._set_instance(sktnum, self.imh_path_cv, self.imh_instance_cv, die, self.imh_cv_test_reg)
+
+			elif re.search(r'cbb*', die):
+				die_inst = self._set_instance(sktnum, self.base_path, self.base_instance, die, self.base_fuse_test_reg)
+				mesh_val = self._set_instance(sktnum, self.base_path_cv, self.base_instance_cv_cfc, die, self.base_cv_test_cfc_f)
+
 			else:
 				print(f'Not valid die selected {die}: Skipping...')
 				continue
-			#print (f'\n### {str(die).upper()}  - CFC Ratios fused values ###')
-			die_inst = PySV(tiles=sktnum, PathTemplates = ['fuses'],instances=instance, preTilePath='socket',die=die, checktype = 'pcode_cfc_min_ratio')
-			mesh_val = PySV(tiles=sktnum, PathTemplates = ['uncore'],instances=mesh_inst, preTilePath='socket',die=die, checktype = meshcv)
-			
+
 			if regfuse:
 				for fuse in die_inst._instances:
 					# CFC VF fuses (RATIO)
+					if 'imh' in die:
+						for domain in curves['cfcio_domains']:
+							for curve in curves['cfcio_curve']:
+								_fuse = self._generate_fuse_from_config(curve, domain, '#domain#')
+								pointvalue = fuse.readregister(_fuse)
+								printData(data_cfc_io, _fuse, die, hex(pointvalue))
 
-					for curve in curves['cfc_curve']:
-						pointvalue = fuse.readregister(curve)
-						printData(data_cfc, curve, die, hex(pointvalue))
+						  # CFCIO Pstate fuses (RATIO)
+						for pstate in curves['pstates_io'].keys():
+							if curves['pstates_io'][pstate] is None:
+								continue
+							for domain in curves['cfcio_domains']:
+								_fuse = self._generate_fuse_from_config(curves['pstates_io'][pstate], domain, '#domain#')
+								pstatevalue = fuse.readregister(_fuse)
+								printData(data_pstates_io, _fuse, die, hex(pstatevalue))
 
-					if re.search(r'compute*', die):
-						# HDC VF fuses (RATIO)
-
-						for curve in curves['hdc_curve']:
+					else:
+						for curve in curves['cfc_curve']:
 							pointvalue = fuse.readregister(curve)
-							printData(data_hdc, curve, die, hex(pointvalue))
+							printData(data_cfc, curve, die, hex(pointvalue))
 
-					# CFC Pstate fuses (RATIO)
-					for pstate in curves['pstates'].keys():
-						pstatevalue = fuse.readregister(curves['pstates'][pstate])
-						printData(data_pstates, pstate, die, hex(pstatevalue))
-			
+
+						# CFC Pstate fuses (RATIO)
+						for pstate in curves['pstates'].keys():
+							if curves['pstates'][pstate] is None:
+								continue
+
+							pstatevalue = fuse.readregister(curves['pstates'][pstate])
+							printData(data_pstates, pstate, die, hex(pstatevalue))
+					#if re.search(r'compute*', die):
+					#	# HDC VF fuses (RATIO)
+					#
+					#	for curve in curves['hdc_curve']:
+					#		pointvalue = fuse.readregister(curve)
+					#		printData(data_hdc, curve, die, hex(pointvalue))
+
+
+
 			if regcv:
 				# Mesh current value
 				for mesh in mesh_val._instances:
 
-					meshvalue = mesh.io_wp_rc_cv_ps_0.readfield('ratio')
-					printData(data_read, 'io_wp_rc_cv_ps_0.ratio', die, hex(meshvalue))
-
+					if 'imh' in die:
+						meshvalue = mesh.get_by_path(self.imh_cv_test_reg).readfield('ratio')
+						printData(data_read_io, f'{self.imh_cv_test_reg}.ratio', die, hex(meshvalue))
+					else:
+						meshvalue = mesh.get_by_path(f'{self.base_cv_test_cfc_f}').readfield('ratio')
+						printData(data_read, f'{self.base_cv_test_cfc_f}.ratio', die, hex(meshvalue))
 		if regfuse:
-			printTable(data_cfc, "CFC VF fuses (RATIO)")
-			printTable(data_hdc, "HDC VF fuses (RATIO)")
-			printTable(data_pstates, "Pstates Values (RATIO)")
+			if data_cfc:
+				printTable(data_cfc, "CFC CBB VF fuses (RATIO)")
+			if data_cfc_io:
+				printTable(data_cfc_io, "CFC IO VF fuses (RATIO)")
+			#printTable(data_hdc, "HDC VF fuses (RATIO)")
+			if data_pstates:
+				printTable(data_pstates, "Pstates Values (RATIO)")
+			if data_pstates_io:
+				printTable(data_pstates_io, "Pstates IO Values (RATIO)")
 		if regcv:
-			printTable(data_read, "Ratios Current Values (MESH)")
+			if data_read:
+				printTable(data_read, "Ratios CBB Current Values (MESH)")
+			if data_read_io:
+				printTable(data_read_io, "Ratios IO Current Values (MESH)")
 
 	#def curves(self)
 
 ## IA Voltage/Ratio values and VF Curve data
 class ia():
-	
+
 	def __init__(self, dies = ['all'], regs = 'all', sktnum = [0], fuse_ram = True):
-		self.sv = _get_global_sv()			
+		self.sv = _get_global_sv()
 		self.ipc = ipccli.baseaccess()
-		
+
 		self.regs = regs
 		self.sktnum = sktnum
 		self.fuse_ram = fuse_ram
-		
+		self.ia_voltages = config.IA_VOLTAGE_CURVES
+		self.ia_ratios = config.IA_RATIO_CURVES
+		self.Ia_config = config.IA_RATIO_CONFIG
+
 		if 'all' in dies:
-			_die = sv.socket0.target_info["segment"].lower()
-			dies = sv.socket0.computes.name
+
+			dies = sv.socket0.cbbs.name
 			#if _die == 'gnrap':
 			#	dies = ['compute0', 'compute1', 'compute2']
 			#elif _die == 'gnrsp':
 			#	dies = ['compute0', 'compute1']
-		
+
 		self.dies = dies
+		self._set_variables()
+
+	def _set_instance(self, sktnum, template, instance, die, check) -> PySV:
+
+		return PySV(tiles=sktnum, PathTemplates = template, instances=instance, preTilePath='socket',die=die, checktype = check)
+
+	def _generate_fuse_from_config(self, fuse, p1, p1_name, p2=None, p2_name=None, p3=None, p3_name=None) -> str:
+
+		if p2 is None:
+			return fuse.replace(p1_name, str(p1))
+		if p3 is None:
+			return fuse.replace(p1_name, str(p1)).replace(p2_name, str(p2))
+
+		return fuse.replace(p1_name, str(p1)).replace(p2_name, str(p2)).replace(p3_name, str(p3))
+
+	def _set_variables(self) -> None:
+		# CBB Base
+		self.base_path = ['base']
+		self.base_path_cv = ['pcudata']
+		self.base_instance = ['fuses.punit_fuses']
+		self.base_instance_cv_cfc = [None]
+		self.base_instance_cv_ia = ['punit_regs.punit_gpsb.gpsb_infvnn_io_regs'] ## Not used reading TOP
+		self.base_fuse_test_reg = 'fw_fuses_cfc_min_ratio'
+		self.base_cv_test_cfc_v = 'wp_cv_ring_fivr_0' # Voltage
+		self.base_cv_test_cfc_f = 'wp_cv_ring'#Ratio
+
+		  # CBB Top
+		self.top_path = ['computes']
+		self.top_instance = ['fuses'] #computes.fuses.core0_fuse
+		self.top_instance_cv_ia = ['pmas'] #computes.fuses.core0_fuse
+		self.top_cv_test_ia = 'pmsb.io_wp1' # WP_CV_Ring Voltage/Frequency
+		self.top_cv_ia = 'pmsb.io_wp1' # WP_CV_Ring Voltage/Frequency
+		self.top_fuse_test_reg = 'core0_fuse.core_fuse_core_fuse_acode_ia_base_vf_ratio_0'
+		self.top_path_cv = ['computes']
+		# IMH
+		self.imh_path = ['fuses']
+		self.imh_instance = ['punit']
+		self.imh_path_cv = ['pcodeio_map']
+		self.imh_instance_cv = [None]
+		self.imh_fuse_test_v = 'pcode_cfcio_vf_voltage_point0'
+		self.imh_fuse_test_f = 'pcode_cfcio_min_ratio'
+		self.imh_cv_test_reg = 'io_wp_rc_cv_ps_0' # Voltage / Ratio
+
+	def _check_data_type(self, value) -> str:
+		# Check if value is hex or int
+		if isinstance(value, int):
+			return hex(value)
+		# Check if value is hex string
+		else:
+			return value
+
+	def _get_header_compute_cbb(self, die) -> list:
+		return sv.socket0.get_by_path(die).computes.name
 
 	## Ratios information for IA/CORES
 	def ratios(self, vf = True):
@@ -486,133 +625,134 @@ class ia():
 		fuse_ram = self.fuse_ram
 		dies = self.dies
 		sktnum = self.sktnum
-		
+
 		## Init Values
-		instance = {}
 		data_limits ={}
 		data_p1 = {}
 		data_pstates = {}
 		data_read = {}
 		data_vf = {}
-		mesh_inst = ['pcodeio_map']
-		meshcv = 'io_wp_ia_cv_ps_0'
-		
-		# Curves defaults
-		pp = 0
-		idx = 0
-		ratio = 0
-		
-		# Enumerate all the variables needed for power curves	
-		ppfs = [0,1,2,3,4]
-		idxs = [0,1,2,3,4,5]
-		vfidxs = [0,1,2,3]
-		ratios = [0,1,2,3,4,5,6,7]
-		search_string = ['profile', 'idx', 'ratio'] # Not used
+		data_deltas = {}
 
 
-		valid_regs = {	'fuses':{'fuses': True, 	'cv':False}, 
-						'cv': 	{'fuses': False, 	'cv':True}, 
+		valid_regs = {	'fuses':{'fuses': True, 	'cv':False},
+						'cv': 	{'fuses': False, 	'cv':True},
 						'all':	{'fuses': True, 	'cv':True}}
 
 		if regs not in valid_regs.keys():
 			print (f'No valid register selection to be read, valid options are: \n' +
-					'fuses:	Reads all fused data configured for IA Ratios. \n' + 
+					'fuses:	Reads all fused data configured for IA Ratios. \n' +
 					'cv: 	Reads current mesh value for IA ratios. \n' +
 					'all: 	Reads fuses and current values for IA ratios. (default) '  )
 			sys.exit()
-		
+
 		regfuse = valid_regs[regs]['fuses']
-		regcv = valid_regs[regs]['cv']	
-		
+		regcv = valid_regs[regs]['cv']
+
 		# Read all fuses first
 		if fuse_ram and regfuse:
 			fuseRAM()
 
 		#David - solo SSE license se usa, AVX no
-		curves = config.IA_RATIO_CURVES
-		
-		#{	'limits': [f'pcode_sst_pp_##profile##_turbo_ratio_limit_ratios_cdyn_index##idx##_ratio##ratio##'],
-		#			'p1': [f'pcode_sst_pp_##profile##_sse_p1_ratio'],
-		#			'vf_curve': ['pcode_ia_vf_ratio_voltage_index##idx##_ratio_point0','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point1','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point2','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point3','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point4','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point5'],
-		#			'pstates' : {	'p0':'pcode_ia_p0_ratio', 
-		#							'pn':'pcode_ia_pn_ratio', 
-		#							'min':'pcode_ia_min_ratio',
-		#						}
-		#		}
+		curves = self.ia_ratios
+		config = self.Ia_config
 
-		#if 'all' in dies:
-		#	dies = ['compute0', 'compute1', 'compute2']
 
 		for die in dies:
+			computes_list = self._get_header_compute_cbb(die)
 
-			if re.search(r'compute*', die): 
-				instance = ['pcu']
+			if re.search(r'cbb*', die):
+				#instance = ['pcu']
+				die_inst = self._set_instance(sktnum, self.base_path, self.base_instance, die, self.base_fuse_test_reg)
+				top_inst = self._set_instance(sktnum, self.top_path, self.top_instance, die, self.top_fuse_test_reg)
+
+				#base_val = self._set_instance(sktnum, self.base_path_cv, self.base_instance_cv_cfc, die, self.base_cv_test_cfc_f)
+				top_val = self._set_instance(sktnum, self.top_path_cv, self.top_instance_cv_ia, die, self.top_cv_test_ia)
+
 			else:
 				print(f'Not valid die selected {die}: Skipping...')
 				continue
-			#print (f'\n### {str(die).upper()}  - IA Ratios fused values ###')
-			die_inst = PySV(tiles=sktnum, PathTemplates = ['fuses'],instances=instance, preTilePath='socket',die=die, checktype = 'pcode_ia_min_ratio')
-			mesh_val = PySV(tiles=sktnum, PathTemplates = ['uncore'],instances=mesh_inst, preTilePath='socket',die=die, checktype = meshcv)
-			
+
 			## Dumps all fuse data if option is selected
 			if regfuse:
 				for fuse in die_inst._instances:
-					
+
 					# Limit fuses (RATIO)
 					for curve in curves['limits']:
-						for pp in ppfs:
-							for idx in idxs:
-								for ratio in ratios:
-									new_curve = curve
-									
-									#for _search in search_string:
-									new_curve = new_curve.replace(f'##profile##',str(pp))
-									new_curve = new_curve.replace(f'##idx##',str(idx))
-									new_curve = new_curve.replace(f'##ratio##',str(ratio))
-									
-									pointvalue = fuse.readregister(new_curve)
-									printData(data_limits, new_curve, die, hex(pointvalue))
+						for pp in config['ppfs']:
+							for idx in config['idxs']:
+								for ratio in config['ratios']:
+									new_curve = self._generate_fuse_from_config(curve, pp, '#ppfs#', idx, '#idxs#', ratio, '#ratios#')
+									pointvalue = self._check_data_type(fuse.get_by_path(new_curve).get_value())
+									printData(data_limits, new_curve, f'{die}', pointvalue)
 									#print(f'{new_curve} = {pointvalue}')
-					
-					# VF curve ratio values
-					for idx in vfidxs:
-						for curve in curves['vf_curve']:
-
-							new_curve = curve
-							new_curve = new_curve.replace(f'##idx##',str(idx))
-							pointvalue = fuse.readregister(new_curve)
-							printData(data_vf, new_curve, die, hex(pointvalue))
 
 					# P1 fuses (RATIO)
 					for curve in curves['p1']:
-						for pp in ppfs:
-							new_curve = curve
-							new_curve = new_curve.replace(f'##profile##',str(pp))
-							pointvalue = fuse.readregister(new_curve)
+						for pp in config['ppfs']:
+							new_curve = self._generate_fuse_from_config(curve, pp, '#ppfs#')
+
+							pointvalue = self._check_data_type(fuse.get_by_path(new_curve).get_value())
 							#print(f'{new_curve} = {pointvalue}')
-							printData(data_p1, new_curve, die, hex(pointvalue))
+							printData(data_p1, new_curve, f'{die}', pointvalue)
 
 					# CFC Pstate fuses (RATIO)
 					for pstate in curves['pstates'].keys():
-						pstatevalue = fuse.readregister(curves['pstates'][pstate])
+						if pstate in config['fusetype']['top']:
+							continue
+						pstatevalue = self._check_data_type(fuse.get_by_path(curves['pstates'][pstate]).get_value())
 						#print(f'{pstate} = {pstatevalue}')
-						printData(data_pstates, pstate, die, hex(pstatevalue))
+						printData(data_pstates, pstate, f'{die}:{computes_list}', pstatevalue)
 
-			
+				for fuse in top_inst._instances:
+
+					# VF curve ratio values
+					for curve in curves['vf_curve']:
+						for core in config['cores']:
+							for pnt in config['vfpnt']:
+								new_curve = self._generate_fuse_from_config(curve,core, '#cores#', pnt, '#vfpnt#')
+								#print(new_curve)
+								pointvalue = self._check_data_type(fuse.get_by_path(new_curve).get_value())
+								printData(data_vf, new_curve, f'{die}:{computes_list}', pointvalue)
+
+					# VF curve ratio values
+					for curve in curves['vf_deltas']:
+						for core in config['cores']:
+							for idx in config['vfidx']:
+								for pnt in config['vfpnt']:
+									new_curve = self._generate_fuse_from_config(curve,core, '#cores#', idx, '#vfidx#', pnt, '#vfpnt#')
+									pointvalue = self._check_data_type(fuse.get_by_path(new_curve).get_value())
+									printData(data_deltas, new_curve, f'{die}:{computes_list}', pointvalue)
+
+					# IA Pstate fuses (RATIO)
+
+					for core in config['cores']:
+						for pstate in curves['pstates']['p0']:
+							new_curve = self._generate_fuse_from_config(pstate, core, '#cores#')
+							pstatevalue = self._check_data_type(fuse.get_by_path(new_curve).get_value())
+							printData(data_pstates, f'p0_core{core}', f'{die}:{computes_list}', pstatevalue)
+
 			# Dumps current core ratio valus if option is selected
 			if regcv:
-				for mesh in mesh_val._instances:
+				for mesh in top_val._instances:
+					#print(f'Mesh instance: {mesh.path}')
+					for inst in mesh:
+						svregister = f'{self.top_cv_ia}'
+						try:
+							meshvalue = self._check_data_type(inst.get_by_path(svregister).core_frequency.get_value())
+							#print(type(inst.get_by_path(svregister).core_frequency.get_value()))
+						except:
+							meshvalue = 'Not readable'
 
-					for core in range(64):
-						svregister = f'io_wp_ia_cv_ps_{core}'
-						meshvalue = mesh.readregister(svregister).readfield('ratio')
-						printData(data_read, f'{svregister}.ratio', die, hex(meshvalue))
-					#print(f'{meshcv}.ratio = {hex(meshvalue)}')
+						printData(data_read, f'{inst.path}.{svregister}.core_frequency', f'{die}', meshvalue)
+						#print(f'{meshcv}.ratio = {hex(meshvalue)}')
+
 		if regfuse:
 			printTable(data_limits, "IA VF limit fuses (RATIO)")
 			printTable(data_p1, "IA P1 power profiles fuses (RATIO)")
 			printTable(data_pstates, "IA Pstates Values (RATIO)")
 			printTable(data_vf, "IA VF Curve Values (RATIO)")
+			printTable(data_deltas, "IA VF Delta Values (RATIO)")
 		if regcv:
 			printTable(data_read, "IA Ratios Current Values")
 
@@ -623,47 +763,48 @@ class ia():
 		fuse_ram = self.fuse_ram
 		dies = self.dies
 		sktnum = self.sktnum
-		
+
 		## Init Values
 		instance = {}
 		data_read = {}
 		data_vf = {}
 		mesh_inst = ['pcodeio_map']
 		meshcv = 'io_wp_ia_cv_ps_0'
-		
+
 		# Curves defaults
 		pp = 0
 		idx = 0
 		ratio = 0
-		
-		# Enumerate all the variables needed for power curves	
-		
+
+		# Enumerate all the variables needed for power curves
+
 		idxs = [0,1,2,3]
 		vcurves = [0,1,2,3,4,5,6,7,8,9,10,11]
 		search_string = ['profile', 'idx', 'ratio'] # Not used
 
 
-		valid_regs = {	'fuses':{'fuses': True, 	'cv':False}, 
-						'cv': 	{'fuses': False, 	'cv':True}, 
+		valid_regs = {	'fuses':{'fuses': True, 	'cv':False},
+						'cv': 	{'fuses': False, 	'cv':True},
 						'all':	{'fuses': True, 	'cv':True}}
 
 		if regs not in valid_regs.keys():
 			print (f'No valid register selection to be read, valid options are: \n' +
-					'fuses:	Reads all fused data configured for IA Ratios. \n' + 
+					'fuses:	Reads all fused data configured for IA Ratios. \n' +
 					'cv: 	Reads current mesh value for IA ratios. \n' +
 					'all: 	Reads fuses and current values for IA ratios. (default) '  )
 			sys.exit()
-		
+
 		regfuse = valid_regs[regs]['fuses']
-		regcv = valid_regs[regs]['cv']	
-		
+		regcv = valid_regs[regs]['cv']
+
 		# Read all fuses first
 		if fuse_ram and regfuse:
 			fuseRAM()
 			#sv.sockets.computes.fuses.load_fuse_ram()
 			#sv.sockets.ios.fuses.load_fuse_ram()
 
-		curves = config.IA_VOLTAGE_CURVES
+		curves = self.ia_voltages
+		config = self.Ia_config
 		#{	'vf_curve': ['pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point0','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point1','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point2','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point3','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point4','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point5'],
 		#		}
 
@@ -671,39 +812,42 @@ class ia():
 		#	dies = ['compute0', 'compute1', 'compute2']
 
 		for die in dies:
+			computes_list = self._get_header_compute_cbb(die)
+			if re.search(r'cbb*', die):
+				#instance = ['pcu']
+				#die_inst = self._set_instance(sktnum, self.base_path, self.base_instance, die, self.base_fuse_test_reg)
+				top_inst = self._set_instance(sktnum, self.top_path, self.top_instance, die, self.top_fuse_test_reg)
 
-			if re.search(r'compute*', die): 
-				instance = ['pcu']
+				#base_val = self._set_instance(sktnum, self.base_path_cv, self.base_instance_cv_cfc, die, self.base_cv_test_cfc_f)
+				top_val = self._set_instance(sktnum, self.top_path_cv, self.top_instance_cv_ia, die, self.top_cv_test_ia)
+
 			else:
 				print(f'Not valid die selected {die}: Skipping...')
 				continue
-			#print (f'\n### {str(die).upper()}  - IA Ratios fused values ###')
-			die_inst = PySV(tiles=sktnum, PathTemplates = ['fuses'],instances=instance, preTilePath='socket',die=die, checktype = 'pcode_ia_min_ratio')
-			mesh_val = PySV(tiles=sktnum, PathTemplates = ['uncore'],instances=mesh_inst, preTilePath='socket',die=die, checktype = meshcv)
-			
+
 			## Dumps all fuse data if option is selected
 			if regfuse:
-				for fuse in die_inst._instances:
+				for fuse in top_inst._instances:
 
 					# VF curve voltage values
-					for vcurve in vcurves:
-						for idx in idxs:
+					for pnt in config['vfpnt']:
+						for core in config['cores']:
 							for curve in curves['vf_curve']:
-								new_curve = curve
-								new_curve = new_curve.replace(f'##curve##',str(vcurve))
-								new_curve = new_curve.replace(f'##idx##',str(idx))								
-								pointvalue = fuse.readregister(new_curve)
-								printData(data_vf, new_curve, die, hex(pointvalue))
-			
+								new_curve = self._generate_fuse_from_config(curve, core, '#cores#', pnt, '#vfpnt#')
+								pointvalue = self._check_data_type(fuse.get_by_path(new_curve).get_value())
+								printData(data_vf, new_curve, f'{die}:{computes_list}', pointvalue)
+
 			# Dumps current core voltage valus if option is selected
 			if regcv:
-				for mesh in mesh_val._instances:
+				for mesh in top_val._instances:
+					for inst in mesh:
+						svregister = f'{self.top_cv_test_ia}'
+						try:
+							meshvalue = self._check_data_type(inst.get_by_path(svregister).core_voltage.get_value())
+						except:
+							meshvalue = 'Not readable'
+						printData(data_read, f'{inst.path}.{svregister}.core_voltage', f'{die}', meshvalue)
 
-					for core in range(64):
-						svregister = f'io_wp_ia_cv_ps_{core}'
-						meshvalue = mesh.readregister(svregister).readfield('voltage')
-						printData(data_read, f'{svregister}.voltage', die, hex(meshvalue))
-					#print(f'{meshcv}.ratio = {hex(meshvalue)}')
 		if regfuse:
 
 			printTable(data_vf, "IA VF Curve Values (VOLTAGE)")
@@ -713,31 +857,31 @@ class ia():
 ## DPM Tileview for error logs
 def logger(visual = '', qdf = '', TestName='', Testnumber = 0, dr_dump = True, chkmem = 0, debug_mca = 0, folder=None, WW = '', Bucket = 'UNCORE', UI=False, refresh = False, logging = None, upload_to_disk = False, upload_to_danta = False):
 	gcm.svStatus(refresh=refresh)
-	
+
 	if folder == None:
 		folder = log_folder
 	if visual == '':
 		visual = visual_str()
-	
+
 		if visual == '' and not UI:
 			visual = input(" Enter Unit Visual ID: ")
-	
+
 	if qdf == '':
 		qdf = qdf_str()
 
 	product = config.SELECTED_PRODUCT #product_str()
-	
+
 	if WW == '':
 		#currentdate = datetime.date.today()
 		#iso_calendar = currentdate.isocalendar()
 		WW = getWW()
 	#test = f'{loop}_{visual}_{testname}'
-	
-	if UI: dpmlog.callUI(qdf = qdf, ww = WW, product = product)   		
-	else: 
+
+	if UI: dpmlog.callUI(qdf = qdf, ww = WW, product = product)
+	else:
 		try:
 			dpmtileview.run(visual, Testnumber, TestName, chkmem, debug_mca, dr_dump = dr_dump, folder = folder, WW = WW, Bucket = Bucket, product = product, QDF = qdf, logger = logging, upload_to_disk = upload_to_disk, upload_to_danta = upload_to_danta)
-			
+
 		except Exception as e:
 			print(f"!!! Something went wrong with the script: {e}. Retrying with a forced sv and ipc refresh...")
 			gcm.svStatus(refresh=True)
@@ -778,7 +922,7 @@ def hwls_miscompare(logger=None):
 				logger(f'HWLS_INFO_{module.name.upper()}_P0:{pair_0:#x}_P1:{pair_1:#x}')
 		except Exception as e:
 			logger(f'Error reading bus_cr_lockstep_miscompare_status_core_pair for module: {e}')
-	
+
 	else:
 		logger(f'Function not available for this product: {config.SELECTED_PRODUCT}')
 
@@ -793,12 +937,12 @@ def bsknobs(readonly = False, skipinit = False):
 	#biosknobs(knobs=knobs, readonly=False)
 
 	try:
-		
+
 		ram.pull()
 		print(' -- BIOS Knob Data collected -- ')
 		Softstrap_val = ram.DfxS3mSoftStrap.getValue()
 		Sofstrap_str = ram.DfxS3mSoftStrap.getString()
-		
+
 		SkipWarmResetPromotion_val = ram.DfxSkipWarmResetPromotion.getValue()
 		SkipWarmResetPromotion_str = ram.DfxSkipWarmResetPromotion.getString()
 
@@ -807,9 +951,9 @@ def bsknobs(readonly = False, skipinit = False):
 
 		IerrResetEnabled_val = ram.IerrResetEnabled.getValue()
 		IerrResetEnabled_str = ram.IerrResetEnabled.getString()
-		
+
 		change = False
-		
+
 		if Softstrap_val != 0:
 			if readonly:
 				print(f'> DfxS3mSoftStrap {Softstrap_val} value not Disabled, needs to be changed < ')
@@ -863,7 +1007,7 @@ def bsknobs(readonly = False, skipinit = False):
 		print('> IerrResetEnabled = "Disable">')
 		print('> DwrEnable = "Enabled">')
 
-## BIOS Knobs edit use key for knob and set the desired value	
+## BIOS Knobs edit use key for knob and set the desired value
 def biosknobs(knobs = {}, readonly=False):
 	import pysvtools.xmlcli.nvram as nvram
 	ipc = ipccli.baseaccess()
@@ -891,11 +1035,11 @@ def biosknobs(knobs = {}, readonly=False):
 
 			else:
 				print(f' -- Bios knob {k} not found ')
-			
+
 			if change: ram.pull()
 			if readonly: return ram
-		
-	
+
+
 	except:
 		print(' -- Error pulling/updating data from/to NVRAM, try again or use PYFIT to edit and your bios')
 
@@ -910,7 +1054,7 @@ def fuseRAM(refresh = False):
 def fuses(rdFuses=True, sktnum=[0], printFuse=False):
 	sv = _get_global_sv()
 	#_fuse_instance = config.FUSE_INSTANCE # base.fuses
-	
+
 	imhs = []
 	imhs.extend(sv.socket0.imhs.name)
 
@@ -925,7 +1069,7 @@ def fuses(rdFuses=True, sktnum=[0], printFuse=False):
 	masks = {}
 
 	for cbb in cbbs:
-		cbb_name = cbb.name 
+		cbb_name = cbb.name
 		masks[f"ia_{cbb_name}"] =  cbb.base.fuses.punit_fuses.fw_fuses_sst_pp_0_module_disable_mask.read()
 		masks[f"llc_{cbb_name}"] = cbb.base.fuses.punit_fuses.fw_fuses_llc_slice_ia_ccp_dis.read()
 		fusetable.append([f'ia_{cbb_name}',hex(masks[f"ia_{cbb_name}"])])
@@ -940,12 +1084,12 @@ def fuses(rdFuses=True, sktnum=[0], printFuse=False):
 ## Tool for converting current unit fuses to a pseudo format, considers all three CLASS fuse configurations
 ## With the latest update it also shows the RowPass Masks as they were included in the config file
 def pseudomask(combine = False, boot = False, Type = 'Class', ext_mask = None):
-	
+
 	sv = _get_global_sv()
 	syscbbs = sv.socket0.cbbs.name
 	product = config.PRODUCT_CONFIG.lower()
 	ClassMask, ClassMask_sys, Masks_test = pseudo_type(Type, product)
-	
+
 	# Product Specific Function for Masking in pseudo Configuration
 	ClassMask_sys = pf.pseudo_masking(ClassMask, ClassMask_sys, syscbbs)
 
@@ -954,19 +1098,19 @@ def pseudomask(combine = False, boot = False, Type = 'Class', ext_mask = None):
 	else:
 		masks = ext_mask
 
-	
+
 	for cbb in syscbbs:
 		cbb_N = sv.socket0.get_by_path(cbb).target_info.instance
 
 		_iamask = masks[f'ia_cbb{cbb_N}']
 		_llc_mask = masks[f'llc_cbb{cbb_N}']
-		
+
 		if combine:
 			_iamask = bin(_iamask | _llc_mask)
 		else:
 			_iamask = bin(_iamask)
 			_llc_mask = bin(_llc_mask)
-		
+
 		for key in ClassMask_sys.keys():
 			if key not in ClassMask.keys():
 				continue
@@ -986,29 +1130,29 @@ def pseudomask(combine = False, boot = False, Type = 'Class', ext_mask = None):
 
 
 	if not boot:
-		
+
 		core_string = ''
 		llc_string = ''
 		for key in ClassMask_sys.keys():
 			if key not in ClassMask.keys():
 				continue
-			
-			
+
+
 			print (f'\nMasks for pseudo {key} \n')
 			for cbb in syscbbs:
 				cbb_N = sv.socket0.get_by_path(cbb).target_info.instance
 				llc_mask = Masks_test[key][f'llc_cbb_{cbb_N}']
 				ia_mask = Masks_test[key][f'core_cbb_{cbb_N}']
-				
+
 				_core_string = f"'cbb_base{cbb_N}' : {ia_mask},"
 				_llc_string = f"'cbb_base{cbb_N}' : {llc_mask},"
-				
+
 				#print (core_string)
 				#print (llc_string)
 
 				core_string += _core_string
 				llc_string += _llc_string
-			
+
 			# This will return the fuse strings to be used in the bootscript
 			fuse_ia = f'ia_core_disable = {{{core_string[:-1]}}}'
 			fuse_llc = f'llc_slice_disable = {{{llc_string[:-1]}}}'
@@ -1028,7 +1172,7 @@ def pseudomask(combine = False, boot = False, Type = 'Class', ext_mask = None):
 #def getChipConfig():
 #	from namednodes import sv
 #	number_of_cbbs = len(sv.socket0.cbbs.names)
-#	
+#
 #	if number_of_cbbs == 4:
 #		return 'X4'
 #
@@ -1049,34 +1193,34 @@ def format_mask_hex(mask_value, bits=32):
 
 ## Uses pseudo Mask configurations to boot the unit, applying the HT disabled fuses to leave it ready for Dragon Pseudo
 ## Added a S2T key to work with the MESH S2T modes
-def pseudo_bs(ClassMask = 'RowEvenPass', 
-			  Custom = [], 
-			  boot = True, 
-			  use_core = False, 
-			  htdis = True, 
-			  dis_2CPM = None, 
-			  dis_1CPM = None, 
-			  fuse_read = True, 
-			  s2t = False, 
-			  masks = None, 
-			  clusterCheck = None, 
-			  lsb = False, 
-			  fuse_cbb =None, 
-			  fuse_io = None, 
-			  fast =False, 
-			  ppvcfuse = False, 
-			  skip_init = False,  
+def pseudo_bs(ClassMask = 'RowEvenPass',
+			  Custom = [],
+			  boot = True,
+			  use_core = False,
+			  htdis = True,
+			  dis_2CPM = None,
+			  dis_1CPM = None,
+			  fuse_read = True,
+			  s2t = False,
+			  masks = None,
+			  clusterCheck = None,
+			  lsb = False,
+			  fuse_cbb =None,
+			  fuse_io = None,
+			  fast =False,
+			  ppvcfuse = False,
+			  skip_init = False,
 			  vbump = {'enabled':False, 'type':['cfc'],'offset': 0,'cbbs':['cbb0', 'cbb1', 'cbb2', 'cbb3'],'imhs':['imh0', 'imh1'],'computes':['compute0', 'compute1', 'compute2', 'compute3']},
 			  dis_mask_checker = True,
 			  dis_axon = True):
-	
+
 	#vbump = {'type':['cfc'],'offset': 0,'computes':['compute0', 'compute1', 'compute2']}
 	if not skip_init: gcm.svStatus(refresh=True)
 
 	# Product Init
 	product = config.PRODUCT_CONFIG.lower()
 	chipConfig = chop_str()
-	
+
 	syscbbs = sv.socket0.cbbs.name
 	sysimhs = sv.socket0.imhs.name
 	clusterCheck = False # Option disbabled in DMR
@@ -1090,14 +1234,14 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 	# Generate required arrays / dictionaries
 	vbump_array = {cbb: [] for cbb in syscbbs}
 	vbump_array.update({imh: [] for imh in sysimhs})
-	
+
 	ppvc_config = {cbb: [] for cbb in syscbbs}
 	ppvc_config.update({imh: [] for imh in sysimhs})
 
 	cfc_array = []
 	io_array = []
 	ia_array = []
-	
+
 	# Init fuse string arrays for base bootscript
 	strings = ['base','top0','top1','top2','top3']
 	fuse_str_0 = {fs: [] for fs in strings}
@@ -1115,10 +1259,10 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 	# if variant == 'AP': cluster = 6
 	# elif variant == 'SP': cluster = 4
 	# else: cluster = 2
-	
-	
+
+
 	## Mask Type by default we use Class, but if Custom is used we change it to user, might remove this later on
-	mType = 'Class'	
+	mType = 'Class'
 	if ClassMask == 'Custom':
 		mType = 'User'
 	elif ClassMask == 'External':
@@ -1135,16 +1279,16 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 	#External fuses added for BurnIn script use
 	if fuse_cbb == None: fuse_cbb = []
 	if fuse_io == None: fuse_io = []
-	
+
 	## Init Variables and default arrays
 	ValidClass = ['RowEvenPass', 'RowOddPass', 'ColumnEvenPass', 'ColumnOddPass', 'Computes02', 'Computes13', 'Computes01', 'Computes23']
 	ValidRows = ['ROW0','ROW1','ROW2','ROW3','ROW4','ROW5','ROW6','ROW7']
-	ValidCols = ['COL0','COL1','COL2','COL3']
+	ValidCols = []
 	ValidCustom = ValidRows + ValidCols
 	Fmask = '0xffffffff'
 	cbb_size = len(syscbbs)
 	imh_size = len(sysimhs)
-	
+
 	# Buidlding the compare mask structure
 	core_masks = {f'core_cbb_{num}': Fmask for num in range(cbb_size)}
 	llc_masks = {f'llc_cbb_{num}': Fmask for num in range(cbb_size)}
@@ -1173,14 +1317,14 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 					'Computes23' : 'Booting only with Computes 2 and 3 on each CBB',
 					'External' : 'Use configuration from file .\\ConfigFiles\\DMRMasksDebug.json'
 	}
-	
+
 	## Checks if the selected ClassMask option is valid
 	if ClassMask not in valid_masks:
 		if ClassMask == 'Custom':
 			for mvalue in Custom:
 				#print(valid_masks)
 				if mvalue.upper() not in valid_masks:
-					
+
 					print(f'>>> Masks to be used in Custom, should be either:')
 					#print(f' -- ClassMasks:{ValidClass}')
 					print(f'> Rows:{ValidRows}')
@@ -1188,18 +1332,18 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 					sys.exit()
 		elif ClassMask == 'External':
 			print(f'>>> Using external Debug Mask found in file ../ConfigFiles/DMRMasksDebug.json')
-		else:			
+		else:
 			print(f'>>> Not a valid ClassMask selected use: RowEvenPass, RowOddPass, ColumnEvenPass, ColumnOddPass')
 			sys.exit()
-	
+
 	## Checks for system masks, either external input or checking current system values
-			
+
 	if masks == None: origMask = fuses(rdFuses = fuse_read)
 	else: origMask = masks
 
 	## Custom Mask Build - Will add a Core count at the end to validate if pseudo can be used...
 	if ClassMask == 'Custom':
-	
+
 
 		for _CustomVal in Custom:
 			CustomVal = _CustomVal.upper()
@@ -1207,25 +1351,25 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 			for idx in range(cbb_size):
 				CompareMask['Custom'][f'core_cbb_{idx}'] = hex(int(Loop_mask[CustomVal][f'core_cbb_{idx}'],16) & int(CompareMask['Custom'][f'core_cbb_{idx}'],16))
 				CompareMask['Custom'][f'llc_cbb_{idx}'] = hex(int(Loop_mask[CustomVal][f'llc_cbb_{idx}'],16) & int(CompareMask['Custom'][f'llc_cbb_{idx}'],16))
-			
+
 			#CompareMask['Custom']['core_cbb_0'] = hex(int(Loop_mask[CustomVal]['core_cbb_0'],16) & int(CompareMask['Custom']['core_cbb_0'],16))
-			#if chipConfig == 'X4': 
+			#if chipConfig == 'X4':
 			#	CompareMask['Custom']['core_cbb_1'] = hex(int(Loop_mask[CustomVal]['core_cbb_1'],16) & int(CompareMask['Custom']['core_cbb_1'],16))
 			#	CompareMask['Custom']['core_cbb_2'] = hex(int(Loop_mask[CustomVal]['core_cbb_2'],16) & int(CompareMask['Custom']['core_cbb_2'],16))
 			#	CompareMask['Custom']['core_cbb_3'] = hex(int(Loop_mask[CustomVal]['core_cbb_3'],16) & int(CompareMask['Custom']['core_cbb_3'],16))
 
 			#CompareMask['Custom']['llc_cbb_0'] = hex(int(Loop_mask[CustomVal]['llc_cbb_0'],16) & int(CompareMask['Custom']['llc_cbb_0'],16))
-			#if chipConfig == 'X4': 
+			#if chipConfig == 'X4':
 			#	CompareMask['Custom']['llc_cbb_1'] = hex(int(Loop_mask[CustomVal]['llc_cbb_1'],16) & int(CompareMask['Custom']['llc_cbb_1'],16))
 			#	CompareMask['Custom']['llc_cbb_2'] = hex(int(Loop_mask[CustomVal]['llc_cbb_2'],16) & int(CompareMask['Custom']['llc_cbb_2'],16))
 			#	CompareMask['Custom']['llc_cbb_3'] = hex(int(Loop_mask[CustomVal]['llc_cbb_3'],16) & int(CompareMask['Custom']['llc_cbb_3'],16))
-		
+
 		Masks_test = CompareMask
 
 	## Class Mask Build, depending on the selected option of First/Second or Third Pass
 	else:
 		Masks_test = pseudomask(combine = use_core, boot = True, Type = mType, ext_mask = origMask)
-	
+
 
 	Masks_test, core_count, llc_count = masks_validation(masks = Masks_test, ClassMask = ClassMask, dies = syscbbs, product = product, _clusterCheck = clusterCheck, _lsb = lsb)
 
@@ -1233,20 +1377,20 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 	# Always assign cbb0 (minimum requirement)
 	core_cbb0 = Masks_test[ClassMask]['core_cbb_0']
 	llc_cbb0 = Masks_test[ClassMask]['llc_cbb_0']
-	
+
 	# Initialize optional CBBs to None (will be assigned if they exist)
 	core_cbb1 = llc_cbb1 = '0x0'
 	core_cbb2 = llc_cbb2 = '0x0'
 	core_cbb3 = llc_cbb3 = '0x0'
-	
+
 	if len(syscbbs) >= 2:
 		core_cbb1 = Masks_test[ClassMask]['core_cbb_1']
 		llc_cbb1 = Masks_test[ClassMask]['llc_cbb_1']
-	
+
 	if len(syscbbs) >= 3:
 		core_cbb2 = Masks_test[ClassMask]['core_cbb_2']
 		llc_cbb2 = Masks_test[ClassMask]['llc_cbb_2']
-	
+
 	if len(syscbbs) >= 4:
 		core_cbb3 = Masks_test[ClassMask]['core_cbb_3']
 		llc_cbb3 = Masks_test[ClassMask]['llc_cbb_3']
@@ -1279,13 +1423,13 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 
 		if fast:
 			print (f'>>>  FastBoot option is selected - Starting Boot with Warm Reset')
-			print (f'>>>  Be aware, this only changes the CoreMasks keeping current CHA configuration') 
+			print (f'>>>  Be aware, this only changes the CoreMasks keeping current CHA configuration')
 			fast_fuses = all_fuses
 
 			fast_fuses += gcm.mask_fuse_module_array(ia_masks = {'cbb0':int(core_cbb0,16), 'cbb1':int(core_cbb1,16), 'cbb2':int(core_cbb2,16)})
 
-			print (f'>>>  Fuse Configuration to be used in FastBoot\n',fast_fuses) 
-			
+			print (f'>>>  Fuse Configuration to be used in FastBoot\n',fast_fuses)
+
 			# Execute only if Debug is not selected
 			if not debug:
 				gcm.fuse_cmd_override_reset(fuse_cmd_array=fast_fuses, skip_init=False, boot = boot, s2t=s2t)
@@ -1298,10 +1442,10 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 			# pseudo_efi_check(fuse_option)
 			gcm.modulesEnabled()
 
-		else: 
+		else:
 			fuse_str = {}
 			## Bootscript with or without htdis fuses
-			if chipConfig == 'X4': 
+			if chipConfig == 'X4':
 				fuse_str_0 = dmr_fuse_fix(fuse_str = all_fuses, cbb_name= 'cbb0')
 				fuse_str_1 = dmr_fuse_fix(fuse_str = all_fuses, cbb_name= 'cbb1')
 				fuse_str_2 = dmr_fuse_fix(fuse_str = all_fuses, cbb_name= 'cbb2')
@@ -1320,7 +1464,7 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 								f'ia_core_disable= {ia_fuse_data}, '
 								f'llc_slice_disable={llc_fuse_data}'
 								)
-				
+
 				fuse_str = {
 							'cbb_base0':fuse_str_0['base'],
 							'cbb0_top0':fuse_str_0['top0'],
@@ -1343,7 +1487,7 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 							'cbb3_top2':fuse_str_3['top2'],
 							'cbb3_top3':fuse_str_3['top3']
 							}
-						
+
 			elif chipConfig == 'X1':
 				fuse_str_0 = dmr_fuse_fix(fuse_str = all_fuses, cbb_name= 'cbb0')
 				llc_fuse_data = {'cbb_base0':llc_cbb0}
@@ -1360,7 +1504,7 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 								f'ia_core_disable= {ia_fuse_data}, '
 								f'llc_slice_disable={llc_fuse_data}'
 								)
-				
+
 				fuse_str = {
 							'cbb_base0':fuse_str_0['base'],
 							'cbb0_top0':fuse_str_0['top0'],
@@ -1377,62 +1521,62 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 			## Display data on screen, showing configuration to be used based on selection
 			print (f'\n>>>  Bootscript configuration for {ClassMask} ')
 			print (f'>>>  {Class_help[ClassMask]}')
-			if ClassMask == 'Custom': 
+			if ClassMask == 'Custom':
 				print (f'>>>  Custom Mask Selected: {Custom}')
 			# print (f'>>>  Core/LLC enabled total Count: CORE = {core_count}, LLC = {llc_count}')
 			print (f'>>>  Using Compute 0 Masks: CORE = {core_cbb0}, LLC = {llc_cbb0}')
-			
-			if chipConfig == 'X4': 
+
+			if chipConfig == 'X4':
 				print (f'>>>  Using Compute 1 Masks: CORE = {core_cbb1}, LLC = {llc_cbb1}')
 				print (f'>>>  Using Compute 2 Masks: CORE = {core_cbb2}, LLC = {llc_cbb2}')
 				print (f'>>>  Using Compute 3 Masks: CORE = {core_cbb3}, LLC = {llc_cbb3}')
 			# if htdis:print (f'>>>  Applying HT Disabled Fuses : Computes = {htdis_comp}')
 			# if htdis:print (f'>>>  Applying HT Disabled Fuses : Computes = {htdis_io} \n')
-			print (f'>>>  Running Bootscript: \n') 
+			print (f'>>>  Running Bootscript: \n')
 			print (f">>>  b.go({bscript_0}{bscript_1})")
-			
+
 
 			fuse_option = {'cbb0':fuse_str_0,'cbb1':fuse_str_1,'cbb2':fuse_str_2, 'cbb2':fuse_str_3}
-			
+
 			## Either run the bootscript or just print the bootscript string in case additional feats need to be added on it.
 			# pending pereiras -- Not finished yet
 			if not debug and boot:
-				print (f'>>>  Boot option is selected - Starting Bootscript') 
+				print (f'>>>  Boot option is selected - Starting Bootscript')
 			#	if htdis:
-				
-				if chipConfig == 'X4': b.go(pwrgoodmethod="usb", 
-											pwrgoodport=[1,2], 
-											pwrgooddelay=30, 
-											fused_unit=True, 
+
+				if chipConfig == 'X4': b.go(pwrgoodmethod="usb",
+											pwrgoodport=[1,2],
+											pwrgooddelay=30,
+											fused_unit=True,
 											enable_strap_checks=False,
 											disable_mask_checker=dis_mask_checker,
 											disable_axon=dis_axon,
 											compute_config=chipConfig,
-											enable_pm=True, 
-											ia_core_disable={"cbb_base0":core_cbb0, "cbb_base1":core_cbb1, "cbb_base2":core_cbb2, "cbb_base3":core_cbb3}, 
-											llc_slice_disable={"cbb_base0":llc_cbb0, "cbb_base1":llc_cbb1, "cbb_base2":llc_cbb2, "cbb_base3":llc_cbb3}, 
+											enable_pm=True,
+											ia_core_disable={"cbb_base0":core_cbb0, "cbb_base1":core_cbb1, "cbb_base2":core_cbb2, "cbb_base3":core_cbb3},
+											llc_slice_disable={"cbb_base0":llc_cbb0, "cbb_base1":llc_cbb1, "cbb_base2":llc_cbb2, "cbb_base3":llc_cbb3},
 											fuse_str=fuse_str)
-				
-				if chipConfig == 'X1': b.go(pwrgoodmethod='usb', 
-											pwrgoodport=[1,2], 
-											pwrgooddelay=30, 
-											fused_unit=True, 
+
+				if chipConfig == 'X1': b.go(pwrgoodmethod='usb',
+											pwrgoodport=[1,2],
+											pwrgooddelay=30,
+											fused_unit=True,
 											enable_strap_checks=False,
 											disable_mask_checker=dis_mask_checker,
 											disable_axon=dis_axon,
 											compute_config=chipConfig,
-											enable_pm=True, 
-											ia_core_disable={"cbb_base0":core_cbb0}, llc_slice_disable={"cbb_base0":llc_cbb0}, 
+											enable_pm=True,
+											ia_core_disable={"cbb_base0":core_cbb0}, llc_slice_disable={"cbb_base0":llc_cbb0},
 											fuse_str=fuse_str)
 			else:
 				if debug: print (f'>>>  Debug mode selected, skipping Bootscript execution step\n')
 				# Waits for EFI and checks fuse application
-				print (f'\n>>>  Boot option not selected -- Copy bootscript code  above and edit if needed to run manually') 
+				print (f'\n>>>  Boot option not selected -- Copy bootscript code  above and edit if needed to run manually')
 	else:
-		
+
 		# Returning counts in case we need to validate something in S2T -- Not used currently
 		return core_count, llc_count, Masks_test
-	
+
 
 # pereiras, pending to add the correct regs, currently it's dummy function
 def my_method(socket: str, die: str, fuse_override_iteration=None)->int:
@@ -1455,11 +1599,11 @@ def pseudo_efi_check(fuses):
 		fuseRAM(refresh=True)
 
 		for f in fuses.keys():
-			if f: 
+			if f:
 				print(f'>>> Checking fuse application for {f.upper()}')
 				gcm.fuse_cmd_override_check(fuse_cmd_array = fuses[f], skip_init= True, bsFuses = f)
-		
-		gcm.modulesEnabled()	
+
+		gcm.modulesEnabled()
 
 ## Unit VID, PRODUCT and QDF checks
 def visual_str(socket = sv.socket0, die = 'compute0'):
@@ -1468,7 +1612,7 @@ def visual_str(socket = sv.socket0, die = 'compute0'):
 	#print(catts_db)
 	#def get_visual_id(ult_txt_str):
 	#	db = subprocess.Popen([catts_db, ult_txt_str], stdout=subprocess.PIPE)
-	#	return db.communicate()[0].decode().strip()	
+	#	return db.communicate()[0].decode().strip()
 
 	try:
 		#vid = get_visual_id(fu.get_ult(socket=socket, tile=die, ult_in=None)['textStr'])
@@ -1482,7 +1626,7 @@ def visual_str(socket = sv.socket0, die = 'compute0'):
 def request_unit_info():
 	data = reqinfo.get_unit_info(sv=sv, ipc=ipc)
 	return data
-	
+
 def qdf_str():
 	qdf = fu.get_qdf_str(socket=sv.socket0, die='cbb0.base')
 	return qdf
@@ -1521,7 +1665,7 @@ def ppvc_option():
 			selection = 'GNR SP HCC'
 		if chop == 'LCC':
 			selection = 'GNR SP LCC'
-			
+
 	if product == 'CWFAP':
 		#if chop == 'XDCC':
 		selection = 'CWF AP XDCC X3'
@@ -1554,7 +1698,7 @@ def dmr_fuse_fix(fuse_str = {}, cbb_name = 'cbb0', sockets = ['0','s']):
 			fuses[f'top{cs}'].extend(bs_fuse_fix(fuse_str = fuse_str, bases = top_bases))
 		else:
 			fstring = bs_fuse_fix(fuse_str = fuse_str, bases = top_bases)
-				
+
 			fuses[f'top0'].extend(fstring)
 			fuses[f'top1'].extend(fstring)
 			fuses[f'top2'].extend(fstring)
@@ -1563,7 +1707,7 @@ def dmr_fuse_fix(fuse_str = {}, cbb_name = 'cbb0', sockets = ['0','s']):
 	return fuses
 
 
-## PPVC Fuses configuration, 
+## PPVC Fuses configuration,
 def ppvc(bsformat = False, ppvc_fuses = [], updateram=False):
 	print("\n***********************************v********************************************")
 	print(f'Searching for PPVC fuses, please enter requested values for proper configuration:')
@@ -1572,7 +1716,7 @@ def ppvc(bsformat = False, ppvc_fuses = [], updateram=False):
 	if updateram: fuseRAM(refresh = False)
 	#syscomputes = sv.socket0.computes.name
 	ppvc_confg = {	'compute0':[],
-			   		'compute1':[],
+					   'compute1':[],
 					'compute2':[],
 					'io0':[],
 					'io1':[],}
@@ -1582,15 +1726,15 @@ def ppvc(bsformat = False, ppvc_fuses = [], updateram=False):
 	print(f'Current Unit QDF: {qdf}')
 	print(f'Current Unit Product: {selection}')
 	try: rgb_values = f.get_rgb_values(qdf, selection)
-	except: 
+	except:
 		print(f'Failed collecting data for QDF: {qdf}. ')
 		user_input = input(">>> Do you want to try with a different QDF? Y/[N]]: ")
-		if user_input.upper() == 'Y':   	
+		if user_input.upper() == 'Y':
 			rgb_values = f.get_rgb_values()
 		else:
 			print(f'Skipping PPVC Configuration --')
 			return ppvc_confg
-		
+
 	#computes = len(syscomputes)
 	ppvc_fuses+=f.ia_vbump_array(rgb_array=rgb_values) # Adding IA fuses
 	ppvc_fuses+=f.cfc_vbump_array(rgb_array=rgb_values) # Adding CFC fuses
@@ -1614,9 +1758,9 @@ def ppvc(bsformat = False, ppvc_fuses = [], updateram=False):
 		if fuses_compute2: fuses_compute2 = bs_fuse_fix(fuse_str = fuses_compute2, bases = ['sv.socket0.compute2.fuses.'])
 		if fuses_io0: fuses_io0 = bs_fuse_fix(fuse_str = fuses_io0, bases = ['sv.socket0.io0.fuses.'])
 		if fuses_io1: fuses_io1 = bs_fuse_fix(fuse_str = fuses_io1, bases = ['sv.socket0.io1.fuses.'])
-	
+
 	ppvc_confg = {	'compute0':fuses_compute0,
-			   		'compute1':fuses_compute1,
+					   'compute1':fuses_compute1,
 					'compute2':fuses_compute2,
 					'io0':fuses_io0,
 					'io1':fuses_io1,}
@@ -1631,7 +1775,7 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 	#ppvc_fuses = f.ppvc_rgb_reduction(boot=False)
 	## I have rebuilt the ppvc script here instead of using what is in GFO in case additional customization is needed
 	if updateram: fuseRAM(refresh = False)
-	
+
 	# This is changing for DMR -- not compatible with previous products (GNR/CWF)
 	# Be careful when updating this section in older products
 
@@ -1642,12 +1786,12 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 
 	volt_config = { f'cbb{c}': base_top_config for c in range(cbbs)}
 	volt_config.update(imh_config)
-	
+
 	#computes = len(syscomputes)
 	if fixed:
 		if volt_dict['core'] != None: volt_fuses+=f.ia_vbump_array(fixed_voltage = volt_dict['core']) # Adding IA fuses
-		
-		
+
+
 		if isinstance(volt_dict['cfc_die'], dict):
 			for k,v in volt_dict['cfc_die'].items():
 				if volt_dict['cfc_die'][k] != None:
@@ -1655,29 +1799,29 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 		else:
 			if volt_dict['cfc_die'] != None:
 				volt_fuses+=f.cfc_vbump_array(fixed_voltage = volt_dict['cfc_die'], include_cbbs=True, include_imhs=False) # Adding CFC fuses
-		
+
 		if isinstance(volt_dict['core_mlc_volt'], dict):
 			for k,v in volt_dict['core_mlc_volt'].items():
-				if volt_dict['core_mlc_volt'][k] != None: 
+				if volt_dict['core_mlc_volt'][k] != None:
 					volt_fuses+=f.mlc_vbump_array(fixed_voltage = v, target_cbb=int(k[-1]))
 		else:
-			if volt_dict['core_mlc_volt'] != None: 
+			if volt_dict['core_mlc_volt'] != None:
 				volt_fuses+=f.hdc_vbump_array(fixed_voltage = volt_dict['core_mlc_volt']) # Adding HDC fuses
 
 		# No HDC in DMR -- Left for reference
 		if isinstance(volt_dict['hdc_die'], dict):
 			for k,v in volt_dict['hdc_die'].items():
-				if volt_dict['hdc_die'][k] != None: 
+				if volt_dict['hdc_die'][k] != None:
 					volt_fuses+=f.hdc_vbump_array(fixed_voltage = v, target_cbb=int(k[-1]))
 		else:
-			if volt_dict['hdc_die'] != None: 
+			if volt_dict['hdc_die'] != None:
 				volt_fuses+=f.hdc_vbump_array(fixed_voltage = volt_dict['hdc_die']) # Adding HDC fuses
 
 
 		if volt_dict['ddrd'] != None:volt_fuses+=f.ddrd_vbump_array(fixed_voltage = volt_dict['ddrd']) # Adding DDRD fuses
 		#if volt_dict['ddra'] != None:volt_fuses+=f.ddra_vbump_array(fixed_voltage = volt_dict['ddra'], computes = computes) # Adding DDRA fuses -- WIP
 		if volt_dict['cfc_io'] != None:volt_fuses+=f.cfc_vbump_array(fixed_voltage = volt_dict['cfc_io'], include_cbbs=False, include_imhs=True) # Adding CFCxIO fuses
-	
+
 	elif vbump:
 		if volt_dict['core'] != None: volt_fuses+=f.ia_vbump_array(offset = volt_dict['core']) # Adding IA fuses
 		#if volt_dict['cfc_die'] != None: volt_fuses+=f.cfc_vbump_array(offset = volt_dict['cfc_die'], computes = computes) # Adding CFC fuses
@@ -1693,27 +1837,27 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 
 		if isinstance(volt_dict['core_mlc_volt'], dict):
 			for k,v in volt_dict['core_mlc_volt'].items():
-				if volt_dict['core_mlc_volt'][k] != None: 
+				if volt_dict['core_mlc_volt'][k] != None:
 					volt_fuses+=f.mlc_vbump_array(offset = v, target_cbb=int(k[-1]))
 		else:
-			if volt_dict['core_mlc_volt'] != None: 
+			if volt_dict['core_mlc_volt'] != None:
 				volt_fuses+=f.mlc_vbump_array(offset = volt_dict['core_mlc_volt']) # Adding HDC fuses
-		
+
 
 		# No HDC in DMR -- Left for reference
 		if isinstance(volt_dict['hdc_die'], dict):
 			for k,v in volt_dict['hdc_die'].items():
-				if volt_dict['hdc_die'][k] != None: 
+				if volt_dict['hdc_die'][k] != None:
 					volt_fuses+=f.hdc_vbump_array(offset = v, target_cbb=int(k[-1]))
 		else:
-			if volt_dict['hdc_die'] != None: 
+			if volt_dict['hdc_die'] != None:
 				volt_fuses+=f.hdc_vbump_array(offset = volt_dict['hdc_die']) # Adding HDC fuses
-		
+
 
 		if volt_dict['ddrd'] != None: volt_fuses+=f.ddrd_vbump_array(offset = volt_dict['ddrd']) # Adding DDRD fuses
 		#if volt_dict['ddra'] != None: volt_fuses+=f.ddra_vbump_array(offset = volt_dict['ddra'], computes = computes) # Adding DDRA fuses -- WIP
 		if volt_dict['cfc_io'] != None: volt_fuses+=f.cfc_vbump_array(offset = volt_dict['cfc_io'], include_cbbs=False, include_imhs=True) # Adding CFCxIO fuses
-   		
+
 	#ppvc_fuses+=f.cfn_vbump_array(fixed_voltage = volt_values['cfn']) # Adding CFN fuses
 	#ppvc_fuses+=f.vccinf_vbump_array(fixed_voltage = volt_values['core'], computes = computes) # Adding VCCINF fuses
 
@@ -1733,9 +1877,9 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 		if fuses_cbb3: fuses_cbb3 = dmr_fuse_fix(fuse_str = fuses_cbb3, cbb_name = 'cbb3')
 		if fuses_imh0: fuses_imh0 = bs_fuse_fix(fuse_str = fuses_imh0, bases = ['sv.socket0.imh0.fuses'])
 		if fuses_imh1: fuses_imh1 = bs_fuse_fix(fuse_str = fuses_imh1, bases = ['sv.socket0.imh0.fuses'])
-	
+
 	volt_config = {	'cbb0':fuses_cbb0,
-			   		'cbb1':fuses_cbb1,
+					   'cbb1':fuses_cbb1,
 					'cbb2':fuses_cbb2,
 					'cbb3':fuses_cbb3,
 					'imh0':fuses_imh0,
@@ -1762,12 +1906,12 @@ def pseudo_type(Type, product):
 		ClassMask_sys = DebugMask[Type]['ClassMask_sys']
 		Masks_test = DebugMask[Type]['Masks_test']
 
-	
+
 	return ClassMask, ClassMask_sys, Masks_test
 
 ## FIVR and PLL WP reader
 def reader(dies=['compute0'], ratype = ['fivrs'], ras = ['all'], sktnum = [0]):
-	
+
 	#sv = _get_global_sv()
 	## Build for GNR UCC AP X3 for the moment
 	path = 'C:\\Temp\\'
@@ -1779,7 +1923,7 @@ def reader(dies=['compute0'], ratype = ['fivrs'], ras = ['all'], sktnum = [0]):
 			RA_array_fivr = ra_type('io','fivrs')
 			for key in RA_array_fivr.keys():
 				ra_io_fivr.append(RA_array_fivr[key])
-		
+
 		if 'plls' in ratype or 'all' in ratype:
 			RA_array_pll = ra_type('io','plls')
 			for key in RA_array_pll.keys():
@@ -1797,7 +1941,7 @@ def reader(dies=['compute0'], ratype = ['fivrs'], ras = ['all'], sktnum = [0]):
 			for key in RA_array_pll.keys():
 				ra_compute_pll.append(RA_array_pll[key])
 
-	
+
 	for _ratype in ratype:
 		#print(_ratype)
 		if _ratype == 'fivrs':
@@ -1827,7 +1971,7 @@ def reader(dies=['compute0'], ratype = ['fivrs'], ras = ['all'], sktnum = [0]):
 
 ## FIVR Workpoints (WP) Test
 def fivrs(dies=['compute0'],ras = ['all'], sktnum = [0], band = {'up':0.01,'down':0.01}, log = False):
-	
+
 	#sv = _get_global_sv()
 	gcm.svStatus()
 	## Build for GNR UCC AP X3 for the moment
@@ -1849,7 +1993,7 @@ def fivrs(dies=['compute0'],ras = ['all'], sktnum = [0], band = {'up':0.01,'down
 	else:
 		ra_io = ras
 		ra_compute = ras
-		
+
 	for tstdie in dies:
 		test_data = {}
 		label = '\n - Resource Adapter (RA) {} values for {} -\n'.format('fivrs', tstdie)
@@ -1858,19 +2002,19 @@ def fivrs(dies=['compute0'],ras = ['all'], sktnum = [0], band = {'up':0.01,'down
 			io = PySV(tiles=sktnum, PathTemplates = ['uncore.ra'],instances=ra_io, preTilePath='socket',die=tstdie, checktype = checkreg)
 			test_data = executeFIVRtest(io, band['up'], band['down'])
 			printRAs(test_data, label)
-			
+
 		else :
 			#test_data = raRead(compute0, 'fivrs')
 			compute = PySV(tiles=sktnum, PathTemplates = ['uncore.ra'],instances=ra_compute, preTilePath='socket',die=tstdie, checktype = checkreg)
 			test_data = executeFIVRtest(compute, band['up'], band['down'])
 			printRAs(test_data, label)
-		
+
 		if log: xlswrite(xlsfile, test_data, tstdie)
 			#print (init_data)
 
 ## PLL Workpoints (WP) Test
 def plls(dies=['compute0'],ras = ['all'], sktnum = [0], band = {'up':1,'down':1}, log = False):
-	
+
 	#sv = _get_global_sv()
 	gcm.svStatus()
 	## Build for GNR UCC AP X3 for the moment
@@ -1892,7 +2036,7 @@ def plls(dies=['compute0'],ras = ['all'], sktnum = [0], band = {'up':1,'down':1}
 	else:
 		ra_io = ras
 		ra_compute = ras
-		
+
 	for tstdie in dies:
 		test_data = {}
 		label = '\n - Resource Adapter (RA) {} values for {} -\n'.format('plls', tstdie)
@@ -1901,19 +2045,19 @@ def plls(dies=['compute0'],ras = ['all'], sktnum = [0], band = {'up':1,'down':1}
 			io = PySV(tiles=sktnum, PathTemplates = ['uncore.ra'],instances=ra_io, preTilePath='socket',die=tstdie, checktype = checkreg)
 			test_data = executePLLtest(io, band['up'], band['down'])
 			printRAs(test_data, label)
-			
+
 		else :
 			#test_data = raRead(compute0, 'fivrs')
 			compute = PySV(tiles=sktnum, PathTemplates = ['uncore.ra'],instances=ra_compute, preTilePath='socket',die=tstdie, checktype = checkreg)
 			test_data = executePLLtest(compute, band['up'], band['down'])
 			printRAs(test_data, label)
-		
+
 		if log: xlswrite(xlsfile, test_data, tstdie)
 			#print (init_data)
 
 # RCs Check WIP do not use
 def rcs(dies=['compute0'], rcs = ['rc2, rc5'], sktnum = [0], band = {'pll_up':0.01,'pll_down':0.01,'fvir_up':0.01,'fivr_down':0.01}, log = False ):
-		
+
 	sv = _get_global_sv()
 	## Build for GNR UCC AP X3 for the moment
 	path = 'C:\\Temp\\'
@@ -1929,8 +2073,8 @@ def msr_read(rlists = [0xCE, 0x199, 0x1AD, 0x1AE, 0x1A0]):
 	reglist = []
 	regdict = {}
 	maxthreads = len(ipc.threads)
-	
-	init =0 
+
+	init =0
 	initcol = []
 	for reg in rlists:
 		regs = []
@@ -1940,26 +2084,26 @@ def msr_read(rlists = [0xCE, 0x199, 0x1AD, 0x1AE, 0x1A0]):
 			#if init ==0:
 			#	initcol.append(item[0])
 			#	reglist.append(initcol)
-			
+
 			regs.append(str(item))
 		regdict[reg] = regs
 		init += 1
 		#print(initcol)
-		
-	
+
+
 	RAkeys = list(regdict.keys())
 	RAvalues = list(regdict.values())
 	#print(RAkeys)
 	#print(RAvalues)
 	#reglist = [[i] + [v for v in regdict[k][i]] for i, k in enumerate(regdict)]
-	
+
 	for i in range(maxthreads):
 		v = []
 		for k in regdict.keys():
 			v.append(regdict[k][i])
 		reglist.append(v)
 	#reglist = [[[v] for v in regdict[k][i]] for i ]
-	#print(reglist)	
+	#print(reglist)
 
 	df = pd.DataFrame(reglist, columns=rlists)
 	xlspath = 'C:\\Temp\\MSRsdump.xlsx'
@@ -1967,7 +2111,7 @@ def msr_read(rlists = [0xCE, 0x199, 0x1AD, 0x1AE, 0x1A0]):
 		# Write the DataFrame to Excel
 		df.to_excel(writer,sheet_name='MSRs', index=False)
 
-## Build arrays for FastBoot 
+## Build arrays for FastBoot
 def fuses_dis_2CPM(dis_cores, bsformat = True):
 	'''
 	dis_cores: 'HIGH' or 'LOW' to disable globally on all modules. usefull to run pseudo MESH
@@ -2052,9 +2196,9 @@ def fuses_htdis():
 	htdis_comp = BootFuses['ht']['compHT']['htdis']
 	htdis_io = BootFuses['ht']['ioHT']['htdis']
 	dpmarray = []
-	dpmarray += htdis_comp 
+	dpmarray += htdis_comp
 	dpmarray += htdis_io
-	
+
 	return dpmarray
 
 # Move VCCIN and VCCING to use FuseOverride Script
@@ -2132,7 +2276,7 @@ def fuses_vccinf(types = ['io', 'compute'], domains = ['active', 'idle', 'safe']
 				dpmarray += [_fuse + '=0x%x' % newvalue]
 	return dpmarray
 
-## Below arrays uses the GNRFuseOverride script @ thr folder, adding them here for ease of use -- 
+## Below arrays uses the GNRFuseOverride script @ thr folder, adding them here for ease of use --
 def fuses_cfc_vbumps(offset = 0, rgb_array={}, point = None, skip_init=False, fixed_voltage = None, target_compute = None):
 	#sv = _get_global_sv
 	#sv.refresh()
@@ -2148,7 +2292,7 @@ def fuses_cfc_vbumps(offset = 0, rgb_array={}, point = None, skip_init=False, fi
 	#		if target_compute in item:
 	#			computearray.append(item)
 	#	dpmarray = computearray
-		
+
 	return dpmarray
 
 def fuses_cfc_io_vbump_array(offset = 0, rgb_array={}, skip_init=False, point=None, fixed_voltage=None, target_io= None):
@@ -2198,7 +2342,7 @@ def fuses_ddra_vbumps(offset = 0, rgb_array={}, point = None, skip_init=False, f
 	return dpmarray
 
 def fuses_ia_vbumps(offset = 0, rgb_array={}, skip_init=False, curve=None, point=None, index=None, fixed_voltage=None, target_compute=None):
-	
+
 	if not skip_init: fuseRAM(refresh = True)
 	dpmarray = []
 	dpmarray = f.ia_vbump_array(offset = offset, rgb_array=rgb_array, target_curve=curve, target_point=point, target_index=index, fixed_voltage=fixed_voltage, target_compute=target_compute)
@@ -2209,7 +2353,7 @@ def read_fuse_array(fuse_array, skip_init=False):
 	print('Reading fuse values from entered array... ')
 	f.read_array(fuse_array=fuse_array, skip_init=skip_init, load_fuses=False)
 
-## Uses USB Splitter controller to power cycle / on / off the unit -- 
+## Uses USB Splitter controller to power cycle / on / off the unit --
 def powercycle(stime = 10, ports = [1,2]):
 	import toolext.bootscript.toolbox.power_control.USBPowerSplitterFullControl as pwsc
 
@@ -2241,7 +2385,7 @@ def warm_reset():
 	print(' Performing Unit warm reset.. Please wait')
 	ipc.resettarget()
 
-## MachineBreaks -- To Avoid Unit restart after a FAIL -- 
+## MachineBreaks -- To Avoid Unit restart after a FAIL --
 def ipc_powerdowns():
 
 	ipc = _get_global_ipc()
@@ -2268,7 +2412,7 @@ def burnin(domains=['mesh'], level='mid', boot = True):
 	_fuse_str_io = []
 	validlevel = ['high', 'mid', 'low']
 	validomains = ['mesh', 'core', 'io']
-	
+
 	#if level.lower() not in validlevel:
 	#	print('Invalid Selection use levels: low, mid or high')
 	#	sys.exit()
@@ -2278,21 +2422,21 @@ def burnin(domains=['mesh'], level='mid', boot = True):
 	#	sys.exit()
 
 	for domain in domains:
-		
+
 		if domain != 'io':
 			_fuse_str_append = burnin_fuses(domain=domain, level=level)
 			_fuse_str_compute += _fuse_str_append
-			
-		else: 
+
+		else:
 			_fuse_str_append = burnin_fuses(domain=domain, level=level)
 			_fuse_str_io += _fuse_str_append
 			_fuse_str_io = bs_fuse_fix(fuse_str = _fuse_str_io, bases = ['sv.sockets.ios.fuses.punit_iosf_sb.','sv.socket0.io0.fuses.punit_iosf_sb.','sv.socket0.io1.fuses.punit_iosf_sb.'])
 
-	if boot: 
-		print (f' ---  Boot option is selected - Starting Bootscript') 
+	if boot:
+		print (f' ---  Boot option is selected - Starting Bootscript')
 		if variant == 'AP': b.go(pwrgoodmethod='usb', pwrgoodport=1, pwrgooddelay=30, fused_unit=True, enable_strap_checks=False,compute_config=COMPUTE_CONFIG,enable_pm=True,segment=SEGMENT, fuse_str_compute = _fuse_str_compute,fuse_str_io = _fuse_str_io)
 		if variant == 'SP': b.go(pwrgoodmethod='usb', pwrgoodport=1, pwrgooddelay=30, fused_unit=True, enable_strap_checks=False,compute_config=COMPUTE_CONFIG,enable_pm=True,segment=SEGMENT, fuse_str_compute = _fuse_str_compute,fuse_str_io = _fuse_str_io)
-	else: 
+	else:
 		print (f'\n ---  Boot option not selected -- Copy bootscript code  above and edit if needed to run manually')
 		print(f'Compute Fuses: \n {_fuse_str_compute}')
 		print(f'IO Fuses: \n {_fuse_str_io}')
@@ -2308,17 +2452,17 @@ def burnin_fuses(domain='mesh', level='low', bsformat = True):
 		sys.exit()
 	else:
 		BIdata = BurnInData[level]
-	
+
 	if domain == 'core':
 		VCCCORE = BIdata['VCCCORE']
 		VCCDDRA = BIdata['VCCDDRA']
 		VCCDDRD = BIdata['VCCDDRD']
 
-		## Rest of mesh devices moved 500mV from CORE value not lower than 
+		## Rest of mesh devices moved 500mV from CORE value not lower than
 		VCCCFC = max(VCCCORE - 0.5, 0.8)
 		VCCHDC = max(VCCCORE - 0.5, 0.8)
 		VCCIN = BIdata['VCCIN']
-		VCCINF = BIdata['VCCINF']		
+		VCCINF = BIdata['VCCINF']
 		_type = ['compute']
 
 	if domain == 'mesh':
@@ -2328,7 +2472,7 @@ def burnin_fuses(domain='mesh', level='low', bsformat = True):
 		VCCDDRA = max(VCCCFC - 0.5, 0.8)
 		VCCDDRD = max(VCCCFC - 0.5, 0.8)
 		VCCIN = BIdata['VCCIN']
-		VCCINF = BIdata['VCCINF']		
+		VCCINF = BIdata['VCCINF']
 		_type = ['compute']
 
 	if domain == 'io': ## WIP
@@ -2339,7 +2483,7 @@ def burnin_fuses(domain='mesh', level='low', bsformat = True):
 		VCCIOFLEX = BIdata['VCCIOFLEX']
 		VCCIOPCIE = BIdata['VCCIOPCIE']
 		VCCIN = BIdata['VCCIN']
-		VCCINF = BIdata['VCCINF']		
+		VCCINF = BIdata['VCCINF']
 		_type = ['io']
 
 	core_str = fuses_ia_vbumps(fixed_voltage=VCCCORE, target_compute=0)
@@ -2349,11 +2493,11 @@ def burnin_fuses(domain='mesh', level='low', bsformat = True):
 	hdc_str = fuses_hdc_vbumps(fixed_voltage=VCCHDC, computes=1)
 
 	_fuse_str = core_str + ddra_str + ddrd_str + cfc_str + hdc_str
-	
+
 	## Replace full register name base to be used in bootscript fuse_str
 	if bsformat: _fuse_str = bs_fuse_fix(fuse_str = _fuse_str, bases = ['sv.socket0.compute0.fuses.'])
 
-	## VCCIN and VCCINF fuse configuration	
+	## VCCIN and VCCINF fuse configuration
 	vccin_str = fuses_vccin(types = _type , domains = ['active', 'idle', 'safe'], value = VCCIN, bsformat = bsformat)
 	vccinf_str = fuses_vccinf(types = _type , domains = ['active', 'idle', 'safe'], value = VCCINF, bsformat = bsformat)
 
@@ -2369,7 +2513,7 @@ def bs_fuse_fix(fuse_str = [], bases = ['sv.sockets.computes.fuses.']):
 		for base in bases:
 			if base in fuse:
 				newfuse = fuse.replace(base,'')
-				## Remove any extra space 
+				## Remove any extra space
 				newfuse = newfuse.replace(' ','')
 				print(f'Changing fuse from {fuse} --> {newfuse}')
 			else:
@@ -2395,7 +2539,7 @@ def masks_validation(masks, ClassMask, dies, product, _clusterCheck, _lsb = Fals
 	if variant == 'AP': cluster = 6
 	elif variant == 'SP': cluster = 4
 	else: cluster = 2
-	
+
 	cores = {'cbb0':MAXCORESPERCBB,'cbb1':MAXCORESPERCBB,'cbb2':MAXCORESPERCBB,'cbb3':MAXCORESPERCBB}
 	llcs = {'cbb0':MAXCORESPERCBB,'cbb1':MAXCORESPERCBB,'cbb2':MAXCORESPERCBB,'cbb3':MAXCORESPERCBB}
 	core_count = 0
@@ -2424,7 +2568,7 @@ def masks_validation(masks, ClassMask, dies, product, _clusterCheck, _lsb = Fals
 			llc_cd = masks[ClassMask][f'llc_comp_{dieN}']
 			count_llc = llcs[compute]
 			count_core = cores[compute]
-			extras = count_llc - min_llc 
+			extras = count_llc - min_llc
 			#print(f'{compute} extra {extras} llc')
 			if extras > 0:
 				print(f' !!!  Current LLC count for compute{dieN}: LLCs = {count_llc}, not compliant with clustering required value {min_llc}, applying fix..\n')
@@ -2434,11 +2578,11 @@ def masks_validation(masks, ClassMask, dies, product, _clusterCheck, _lsb = Fals
 				llcs[compute] = count_llc
 				cores[compute] = count_core
 				print(f' !!!  Clustering fix completed for {compute.upper()}!!!\n')
-	
+
 	for c in dies:
 		core_count += cores[c]#cores['compute0'] + cores['compute1'] + cores['compute2']
 		llc_count += llcs[c]#llcs['compute0'] + llcs['compute1'] + llcs['compute2']
-	
+
 	return masks, core_count, llc_count
 
 ## Checks if mask is compliant with clustering configuration for the specified product
@@ -2461,7 +2605,7 @@ def clusterCheck(coremask, llcmask, computes, llc_extra = 0, lsb = True):
 		newcore = int(coremask,16) | disMask
 		llcmask = hex(newllc)
 		coremask = hex(newcore)
-		
+
 		#print(f'Disabling newllcmask1: {bin(newllc)}')
 		print(f' !!!  Disabling slice: {first_zero + 60*(int(computeN))}')
 		llc_extra = llc_extra - 1
@@ -2487,12 +2631,12 @@ def clustering(mask, computes, llc_extra = 0, lsb = True):
 		print(compute)
 		print(bin(int(mask[f'llc_comp_{computeN}'],16)))
 		if llc_extra == 0:
-			newllc = int(mask[f'llc_comp_{computeN}'],16) 
-			newcore = int(mask[f'core_comp_{computeN}'],16) 
+			newllc = int(mask[f'llc_comp_{computeN}'],16)
+			newcore = int(mask[f'core_comp_{computeN}'],16)
 			mask[f'llc_comp_{computeN}'] = hex(newllc)
-			mask[f'core_comp_{computeN}'] = hex(newcore)				
-		
-		else:	
+			mask[f'core_comp_{computeN}'] = hex(newcore)
+
+		else:
 			#for key in mask.keys()[-1]:
 			disMask, first_zero = bit_disable(mask[f'llc_comp_{computeN}'], lsb = lsb)
 			newllc = int(mask[f'llc_comp_{computeN}'],16) | disMask
@@ -2514,7 +2658,7 @@ def clustering(mask, computes, llc_extra = 0, lsb = True):
 		print(f'{compute} -- Cores = {corecnt}, LLCS = {llcnt}')
 		corecnt = corecnt + cores
 		llcnt = llcnt + llcs
-		
+
 	print(f'Clustering fix new Core count = {cores}')
 	print(f'Clustering fix new LLC count = {llcs}')
 
@@ -2523,11 +2667,11 @@ def clustering(mask, computes, llc_extra = 0, lsb = True):
 ## Looks for the first bit depending on the LSB selection, if LSB will disable the lowest slice enabled else will disable the highest
 def bit_disable(combineMask, lsb = True, base = 16):
 	## We will check for the first enabled slice and enable it
-	if type(combineMask) == str:	
+	if type(combineMask) == str:
 		binMask = bin(int(combineMask, base))[2:].zfill(60)
 	else:
-		binMask = bin(combineMask)[2:].zfill(60)	
-	
+		binMask = bin(combineMask)[2:].zfill(60)
+
 	if lsb: first_zero = binMask[::-1].find('0')
 	else: first_zero = (len(binMask)-1) - (binMask.find('0'))
 
@@ -2542,7 +2686,7 @@ def bit_disable(combineMask, lsb = True, base = 16):
 ########################################################################################################################################################################
 
 
-## RA Test support code 
+## RA Test support code
 def printRAs(data, label = ''):
 	#print(data)
 	RAkeys = list(data.keys())
@@ -2562,31 +2706,31 @@ def executeFIVRtest(die, bup = 0.01, bdown = 0.01):
 	for ra_instance in die._instances:
 		# Transitions waitime
 		wtime = 0.5
-		
+
 		# Read all initial values
 		value, ramp, decvalue = raRead(ra_instance,'fivrs')
-		
+
 		# Increase Volts
 		newValue1 = decvalue + bup
 		wrval1 = int(newValue1*1000/2.5)
 		newValue1 = wrval1
-		
+
 		# Write New values
 		raWrite(die, ra_instance, 'fivrs', wrval1)
-		
+
 		time.sleep(wtime)
 		fbValue1, fbramp1, fbdecvalue1 = raRead(ra_instance,'fivrs')
-				
+
 		# Decrease Volts
 		newValue2 = decvalue - bdown
 		wrval2 = int(newValue2*1000/2.5)
 		newValue2 = wrval2
-		
+
 		#Write new Values
 		raWrite(die, ra_instance, 'fivrs', wrval2)
 		time.sleep(wtime)
 		fbValue2, fbramp2, fbdecvalue2 = raRead(ra_instance,'fivrs')
-		
+
 
 		# Back to Initial Values
 
@@ -2597,22 +2741,22 @@ def executeFIVRtest(die, bup = 0.01, bdown = 0.01):
 		# Check fsm
 
 		fsm_state, fsm_busy, v_change_ack = chkfsmsts(ra_instance, 'fivrs')
-		if str(fsm_state) != '0x0': 
+		if str(fsm_state) != '0x0':
 			results = 'FAIL_fsm'
-		elif newValue1 != fbValue1: 
+		elif newValue1 != fbValue1:
 			results = 'FAIL_inc'
-		elif newValue2 != fbValue2: 
+		elif newValue2 != fbValue2:
 			results = 'FAIL_dec'
 		else:
 			results = 'PASS'
 
-		#Increase 
+		#Increase
 		#value, decvalue, ramp = raRead(ra_instance,'fivrs', newValue)
 
-		test_data[ra_instance.path]= {	'init_value':hex(value), 
+		test_data[ra_instance.path]= {	'init_value':hex(value),
 										'end_val':hex(endvalue),
 										'test_result':results,
-										'init_volts':decvalue, 
+										'init_volts':decvalue,
 										'init_ramp':ramp,
 										'inc_write_val':hex(newValue1),
 										'inc_write_fb':hex(fbValue1),
@@ -2631,31 +2775,31 @@ def executePLLtest(die, bup = 1, bdown = 1):
 	for ra_instance in die._instances:
 		# Transitions waitime
 		wtime = 0.5
-		
+
 		# Read all initial values
 		value, ramp, decvalue = raRead(ra_instance,'plls')
-		
+
 		# Increase Volts
 		newValue1 = decvalue + bup
 		wrval1 = int(newValue1)
 		newValue1 = wrval1
-		
+
 		# Write New values
 		raWrite(die, ra_instance, 'plls', wrval1)
-		
+
 		time.sleep(wtime)
 		fbValue1, fbramp1, fbdecvalue1 = raRead(ra_instance,'plls')
-				
+
 		# Decrease Volts
 		newValue2 = decvalue - bdown
 		wrval2 = int(newValue2)
 		newValue2 = wrval2
-		
+
 		#Write new Values
 		raWrite(die, ra_instance, 'plls', wrval2)
 		time.sleep(wtime)
 		fbValue2, fbramp2, fbdecvalue2 = raRead(ra_instance,'plls')
-		
+
 
 		# Back to Initial Values
 
@@ -2666,22 +2810,22 @@ def executePLLtest(die, bup = 1, bdown = 1):
 		# Check fsm
 
 		fsm_state, fsm_busy, f_change_ack = chkfsmsts(ra_instance, 'plls')
-		if str(fsm_state) != '0x0': 
+		if str(fsm_state) != '0x0':
 			results = 'FAIL_fsm'
-		elif newValue1 != fbValue1: 
+		elif newValue1 != fbValue1:
 			results = 'FAIL_inc'
-		elif newValue2 != fbValue2: 
+		elif newValue2 != fbValue2:
 			results = 'FAIL_dec'
 		else:
 			results = 'PASS'
 
-		#Increase 
+		#Increase
 		#value, decvalue, ramp = raRead(ra_instance,'fivrs', newValue)
 
-		test_data[ra_instance.path]= {	'init_value':hex(value), 
+		test_data[ra_instance.path]= {	'init_value':hex(value),
 										'end_val':hex(endvalue),
 										'test_result':results,
-										'init_freq':decvalue, 
+										'init_freq':decvalue,
 										'pll_mode':ramp,
 										'inc_write_val':hex(newValue1),
 										'inc_write_fb':hex(fbValue1),
@@ -2700,22 +2844,22 @@ def executeRARead(die, _ratype):
 	for ra_instance in die._instances:
 		# Read all initial values
 		value, ramp, decvalue = raRead(ra_instance, _ratype)
-		
+
 		# Check fsm
 
 		fsm_state, fsm_busy, v_change_ack = chkfsmsts(ra_instance, _ratype)
 
 		if _ratype == 'fivrs':
-			test_data[ra_instance.path]= {	'init_value':hex(value), 
-											'init_volts':decvalue, 
+			test_data[ra_instance.path]= {	'init_value':hex(value),
+											'init_volts':decvalue,
 											'init_ramp':ramp,
 											'fsm_state':fsm_state,
 											'fsm_busy':fsm_busy,
 											'v_change_ack':v_change_ack,
 											}
 		else:
-			test_data[ra_instance.path]= {	'init_value':hex(value), 
-											'init_ratio':decvalue, 
+			test_data[ra_instance.path]= {	'init_value':hex(value),
+											'init_ratio':decvalue,
 											'pll_mode':ramp,
 											'fsm_state':fsm_state,
 											'fsm_busy':fsm_busy,
@@ -2726,7 +2870,7 @@ def executeRARead(die, _ratype):
 	return (test_data)
 
 def chkfsmsts(ra_instance, rdtype):
-	
+
 	try:
 		if rdtype == 'fivrs':
 			fsm_state = ra_instance.wp_sts_vrci.wp_fsm_state.read()
@@ -2738,7 +2882,7 @@ def chkfsmsts(ra_instance, rdtype):
 			fsm_busy = ra_instance.wp_sts_clki.wp_fsm_busy.read()
 			change_ack = ra_instance.f_change_ack.read()
 			#data[ra_instance.path]= {'ratio_hex':value, 'ratio_dec':decvalue, 'mode':mode}
-			
+
 			#print (ra_instance)
 			#print (data)
 	except:
@@ -2749,7 +2893,7 @@ def chkfsmsts(ra_instance, rdtype):
 	except: return fsm_state, fsm_busy, change_ack
 
 def raRead(ra_instance, rdtype):
-		
+
 	try:
 		if rdtype == 'fivrs':
 			value = ra_instance.current_vrci.voltage
@@ -2759,9 +2903,9 @@ def raRead(ra_instance, rdtype):
 		else:
 			value = ra_instance.current_clki.ratio
 			mode = ra_instance.current_clki.pll_mode
-			decvalue = int(value) 
+			decvalue = int(value)
 				#data[ra_instance.path]= {'ratio_hex':value, 'ratio_dec':decvalue, 'mode':mode}
-			
+
 			#print (ra_instance)
 			#print (data)
 	except:
@@ -2773,7 +2917,7 @@ def raRead(ra_instance, rdtype):
 
 def raWrite(die, ra_instance, rdtype, newValue):
 	#print (newValue)
-	
+
 	# Checks for any master dependancy on the RAs
 	rootinstance = leafRAs(die, rdtype, ra_instance)
 	#print(rootinstance.path)
@@ -2786,14 +2930,14 @@ def raWrite(die, ra_instance, rdtype, newValue):
 	else:
 		rootinstance.target_clki.ratio = newValue
 		#mode = ra_instance.current_vrci.pll_mode.read()
-		#decvalue = int(value) 
+		#decvalue = int(value)
 		#data[ra_instance.path]= {'ratio_hex':value, 'ratio_dec':decvalue, 'mode':mode}
-	
+
 	#print (ra_instance)
 	#print (data)
 	#return data
 
-## RA Test data log to excel 
+## RA Test data log to excel
 def xlswrite(xlspath, data, label = 'Test'):
 
 	RAkeys = list(data.keys())
@@ -2805,11 +2949,11 @@ def xlswrite(xlspath, data, label = 'Test'):
 
 	print ('Saving xls file in {}'.format(xlspath))
 
-	
+
 
 	df = pd.DataFrame(table_data, columns=["ra_instance.path"] + list(RAvalues[0].keys()))
 	if os.path.isfile(xlspath):
-		
+
 		print('Appending data to the file')
 		with pd.ExcelWriter(xlspath, engine='openpyxl', mode='a', if_sheet_exists = 'overlay') as writer:
 			# Append data to the existing file
@@ -2823,7 +2967,7 @@ def xlswrite(xlspath, data, label = 'Test'):
 ## GNR Ra types, in future updates this data will be moved to a json config file
 def ra_dict():
 	radict = {'compute':[],	'io':[]}
-	
+
 	radict['compute'] = ['ra0','ra1','ra2','ra3','ra4',
 		   'ra5','ra6','ra7','ra8','ra9',
 		   'ra10','ra11','ra12','ra13','ra14',
@@ -2843,14 +2987,14 @@ def ra_dict():
 		   'ra30','ra31','ra32','ra33','ra34',
 		   'ra35','ra36','ra37','ra38','ra39',
 		   'ra40','ra41','ra42','ra43','ra44','ra45']
-	
+
 	return radict
 
 ## GNR Ra leaf/master dependancy, in future updates this data will be moved to a json config file
 def leafRAs(die, ratype, instance):
-	
+
 	rootinstance = instance
-	
+
 	leafs =	{'fivrs' : {
 					'ra28':'ra22',
 					'ra30':'ra18',
@@ -2861,12 +3005,12 @@ def leafRAs(die, ratype, instance):
 		if leaf in str(instance.path):
 			rootinstance = die._socket.get_by_path('{0}.{1}'.format('uncore.ra',leafs[ratype][leaf]))
 			print ('Instance {} uses master in location {}'.format(instance.path, rootinstance.path))
-	
+
 	return rootinstance
 
 ## GNR Ra types, in future updates this data will be moved to a json config file
 def ra_type(d_type, ratype):
-	
+
 	if d_type == 'compute':
 		data = 	{'fivrs' : {
 					'ddra1':'ra5',
@@ -2877,7 +3021,7 @@ def ra_type(d_type, ratype):
 					'hdc3':'ra30',
 					'ddrd3':'ra34',
 					'ddra3':'ra40'},
-				'plls' : {	
+				'plls' : {
 					'ddrio1':'ra4',
 					'fivr0':'ra9',
 					'mesh0':'ra10',
@@ -2905,7 +3049,7 @@ def ra_type(d_type, ratype):
 					'hca1':'ra39',
 					'flexcfn23':'ra43',
 					'flexio23':'ra44'},
-				'plls' : {	
+				'plls' : {
 					'pcie20':'ra4',
 					'hca0':'ra7',
 					'pcie21':'ra12',
@@ -2930,7 +3074,7 @@ def ra_type(d_type, ratype):
 ########################################################################################################################################################################
 
 
-## SV initilize		
+## SV initilize
 def _get_global_sv():
 
 	'''
@@ -2949,7 +3093,7 @@ def _get_global_sv():
 	if not sv.sockets:
 		#Msg.print_("No socketlist detected. Restarting baseaccess and sv.refresh")
 		ipc = _get_global_ipc()
-		ipc.forcereconfig() 
+		ipc.forcereconfig()
 		if ipc.islocked():
 			ipc.unlock()
 		#ipc.unlock()
@@ -2967,7 +3111,7 @@ def _get_global_ipc():
 		if ipc is None:
 			import ipccli
 			ipc = ipccli.baseaccess()
-			ipc.forcereconfig() 
+			ipc.forcereconfig()
 			ipc.unlock()
 			#ipc.uncores.unlock()
 		return ipc
@@ -3011,7 +3155,7 @@ def printData(data, curve, die, pointvalue):
 		data[curve].update(update_data)
 	except:
 		data[curve] = {die: pointvalue}
-	
+
 	return data
 
 def binary_count(value, bitcount = '1', lenght = 60):

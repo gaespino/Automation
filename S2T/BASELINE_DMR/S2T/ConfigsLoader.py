@@ -224,9 +224,9 @@ class ProductConfiguration:
 
 
 # Initialize the global configuration object
-FUSES = _configs.init_product_fuses()
-FRAMEWORKVARS = _configs.init_framework_vars()
-FRAMEWORK_FEATURES = _configs.init_framework_features()
+FUSES = _configs.init_product_fuses(sv)
+FRAMEWORKVARS = _configs.init_framework_vars(sv)
+FRAMEWORK_FEATURES = _configs.init_framework_features(sv)
 
 config = ProductConfiguration(CONFIG, FUSES, FRAMEWORKVARS, FRAMEWORK_FEATURES)
 
