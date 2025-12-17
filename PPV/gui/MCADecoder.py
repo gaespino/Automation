@@ -12,8 +12,9 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import tkinter as tk
-from tkinter import ttk, messagebox, scrolledtext
+from tkinter import ttk, messagebox, scrolledtext, filedialog
 import re
+import datetime
 
 try:
     from ..Decoder import decoder as mcparse
@@ -94,8 +95,8 @@ class MCADecoderGUI:
         main_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=10, pady=10)
         main_frame.columnconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=1)
-        main_frame.rowconfigure(2, weight=1)
-        main_frame.rowconfigure(4, weight=2)
+        main_frame.rowconfigure(1, weight=1)
+        main_frame.rowconfigure(3, weight=2)
 
         # Configuration Section
         config_frame = tk.LabelFrame(main_frame, text="Configuration",
@@ -157,21 +158,34 @@ class MCADecoderGUI:
 
         self.results_text = scrolledtext.ScrolledText(results_frame, height=15, width=80,
                                                      font=("Consolas", 10), wrap=tk.WORD,
-                                                     bg="#f8f9fa", relief=tk.FLAT,
-                                                     borderwidth=1, highlightthickness=1,
-                                                     highlightbackground="#dee2e6")
-        self.results_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+                                                     bg="#1e1e1e", fg="#d4d4d4", relief=tk.FLAT,
+                                                     borderwidth=2, highlightthickness=0,
+                                                     insertbackground="#ffffff")
+        self.results_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=2, pady=2)
+
+        # Configure text tags for syntax highlighting
+        self.results_text.tag_configure("header", foreground="#4ec9b0", font=("Consolas", 10, "bold"))
+        self.results_text.tag_configure("section", foreground="#569cd6", font=("Consolas", 10, "bold"))
+        self.results_text.tag_configure("label", foreground="#9cdcfe")
+        self.results_text.tag_configure("value", foreground="#ce9178")
+        self.results_text.tag_configure("error", foreground="#f48771")
+        self.results_text.tag_configure("success", foreground="#4ec9b0")
 
         # Action buttons frame
         buttons_frame = tk.Frame(main_frame)
         buttons_frame.grid(row=4, column=0, columnspan=2, pady=(10, 0))
 
-        copy_btn = tk.Button(buttons_frame, text="Copy Results", command=self.copy_results,
+        copy_btn = tk.Button(buttons_frame, text="📋 Copy Results", command=self.copy_results,
                            bg="#3498db", fg="white", font=("Segoe UI", 9, "bold"),
                            padx=20, pady=8, relief=tk.FLAT, cursor="hand2")
         copy_btn.pack(side=tk.LEFT, padx=5)
 
-        clear_btn = tk.Button(buttons_frame, text="Clear All", command=self.clear_all,
+        export_btn = tk.Button(buttons_frame, text="💾 Export to File", command=self.export_results,
+                             bg="#27ae60", fg="white", font=("Segoe UI", 9, "bold"),
+                             padx=20, pady=8, relief=tk.FLAT, cursor="hand2")
+        export_btn.pack(side=tk.LEFT, padx=5)
+
+        clear_btn = tk.Button(buttons_frame, text="🗑️ Clear All", command=self.clear_all,
                             bg="#95a5a6", fg="white", font=("Segoe UI", 9, "bold"),
                             padx=20, pady=8, relief=tk.FLAT, cursor="hand2")
         clear_btn.pack(side=tk.LEFT, padx=5)
@@ -349,9 +363,9 @@ class MCADecoderGUI:
 
     def decode_cha(self, values, product):
         """Decode CHA/CCF MCA registers"""
-        self.update_results("╔" + "═" * 78 + "╗\n")
-        self.update_results(f"║ CHA/CCF MCA DECODE - {product:<62} ║\n")
-        self.update_results("╚" + "═" * 78 + "╝\n\n")
+        self.update_results("=" * 80 + "\n")
+        self.update_results(f"CHA/CCF MCA DECODE - {product}\n")
+        self.update_results("=" * 80 + "\n\n")
 
         mc_status = values.get('MC_STATUS', '')
         mc_addr = values.get('MC_ADDR', '')
@@ -359,15 +373,15 @@ class MCADecoderGUI:
         mc_misc3 = values.get('MC_MISC3', '')
 
         # Display raw values
-        self.update_results("┌─ RAW REGISTER VALUES " + "─" * 56 + "┐\n")
-        self.update_results(f"│ MC_STATUS:  {mc_status:<64} │\n")
+        self.update_results("RAW REGISTER VALUES:\n")
+        self.update_results(f"  MC_STATUS:  {mc_status}\n")
         if mc_addr:
-            self.update_results(f"│ MC_ADDR:    {mc_addr:<64} │\n")
+            self.update_results(f"  MC_ADDR:    {mc_addr}\n")
         if mc_misc:
-            self.update_results(f"│ MC_MISC:    {mc_misc:<64} │\n")
+            self.update_results(f"  MC_MISC:    {mc_misc}\n")
         if mc_misc3:
-            self.update_results(f"│ MC_MISC3:   {mc_misc3:<64} │\n")
-        self.update_results("└" + "─" * 78 + "┘\n\n")
+            self.update_results(f"  MC_MISC3:   {mc_misc3}\n")
+        self.update_results("\n")
 
         # Create a minimal decoder instance to use decoding methods
         # We need to create a dummy dataframe to initialize decoder
@@ -376,46 +390,46 @@ class MCADecoderGUI:
         dec = mcparse.decoder(data=dummy_df, product=product)
 
         # Decode MC_STATUS fields
-        self.update_results("┌─ MC_STATUS DECODE " + "─" * 59 + "┐\n")
+        self.update_results("MC_STATUS DECODE:\n")
 
         try:
             # MSCOD (bits 16-31)
             mscod = dec.cha_decoder(value=mc_status, type='MC DECODE')
-            self.update_results(f"│ MSCOD (Error Type):   {mscod:<55} │\n")
+            self.update_results(f"  MSCOD (Error Type):  {mscod}\n")
 
             # VAL bit (bit 63)
             val_bit = extract_bits(mc_status, 63, 63)
             val_status = 'Valid' if val_bit == 1 else 'Invalid'
-            self.update_results(f"│ VAL (Valid):          {val_bit} - {val_status:<47} │\n")
+            self.update_results(f"  VAL (Valid):         {val_bit} - {val_status}\n")
 
             # UC bit (bit 61)
             uc_bit = extract_bits(mc_status, 61, 61)
             uc_status = 'Uncorrected' if uc_bit == 1 else 'Corrected'
-            self.update_results(f"│ UC (Uncorrected):     {uc_bit} - {uc_status:<47} │\n")
+            self.update_results(f"  UC (Uncorrected):    {uc_bit} - {uc_status}\n")
 
             # PCC bit (bit 57)
             pcc_bit = extract_bits(mc_status, 57, 57)
             pcc_status = 'Corrupted' if pcc_bit == 1 else 'Not Corrupted'
-            self.update_results(f"│ PCC (Proc Context):   {pcc_bit} - {pcc_status:<47} │\n")
+            self.update_results(f"  PCC (Proc Context):  {pcc_bit} - {pcc_status}\n")
 
             # ADDRV bit (bit 58)
             addrv_bit = extract_bits(mc_status, 58, 58)
             addrv_status = 'Valid' if addrv_bit == 1 else 'Invalid'
-            self.update_results(f"│ ADDRV (Addr Valid):   {addrv_bit} - {addrv_status:<47} │\n")
+            self.update_results(f"  ADDRV (Addr Valid):  {addrv_bit} - {addrv_status}\n")
 
             # MISCV bit (bit 59)
             miscv_bit = extract_bits(mc_status, 59, 59)
             miscv_status = 'Valid' if miscv_bit == 1 else 'Invalid'
-            self.update_results(f"│ MISCV (Misc Valid):   {miscv_bit} - {miscv_status:<47} │\n")
+            self.update_results(f"  MISCV (Misc Valid):  {miscv_bit} - {miscv_status}\n")
 
         except Exception as e:
-            self.update_results(f"│ Error: {str(e):<71} │\n")
+            self.update_results(f"  Error: {str(e)}\n")
 
-        self.update_results("└" + "─" * 78 + "┘\n\n")
+        self.update_results("\n")
 
         # Decode MC_MISC if available
         if mc_misc:
-            self.update_results("┌─ MC_MISC DECODE " + "─" * 61 + "┐\n")
+            self.update_results("MC_MISC DECODE:\n")
             try:
                 orig_req = dec.cha_decoder(value=mc_misc, type='Orig Req')
                 opcode = dec.cha_decoder(value=mc_misc, type='Opcode')
@@ -423,18 +437,18 @@ class MCADecoderGUI:
                 tor_id = dec.cha_decoder(value=mc_misc, type='TorID')
                 tor_fsm = dec.cha_decoder(value=mc_misc, type='TorFSM')
 
-                self.update_results(f"│ Original Request:  {orig_req:<57} │\n")
-                self.update_results(f"│ Opcode:            {opcode:<57} │\n")
-                self.update_results(f"│ Cache State:       {cache_state:<57} │\n")
-                self.update_results(f"│ TOR ID:            {tor_id:<57} │\n")
-                self.update_results(f"│ TOR FSM:           {tor_fsm:<57} │\n")
+                self.update_results(f"  Original Request:  {orig_req}\n")
+                self.update_results(f"  Opcode:            {opcode}\n")
+                self.update_results(f"  Cache State:       {cache_state}\n")
+                self.update_results(f"  TOR ID:            {tor_id}\n")
+                self.update_results(f"  TOR FSM:           {tor_fsm}\n")
             except Exception as e:
-                self.update_results(f"│ Error: {str(e):<71} │\n")
-            self.update_results("└" + "─" * 78 + "┘\n\n")
+                self.update_results(f"  Error: {str(e)}\n")
+            self.update_results("\n")
 
         # Decode MC_MISC3 if available
         if mc_misc3:
-            self.update_results("┌─ MC_MISC3 DECODE " + "─" * 60 + "┐\n")
+            self.update_results("MC_MISC3 DECODE:\n")
             try:
                 src_id = dec.cha_decoder(value=mc_misc3, type='SrcID')
                 ismq = dec.cha_decoder(value=mc_misc3, type='ISMQ')
@@ -442,16 +456,17 @@ class MCADecoderGUI:
                 result = dec.cha_decoder(value=mc_misc3, type='Result')
                 local_port = dec.cha_decoder(value=mc_misc3, type='Local Port')
 
-                self.update_results(f"│ Source ID:         {src_id:<57} │\n")
-                self.update_results(f"│ ISMQ FSM:          {ismq:<57} │\n")
-                self.update_results(f"│ SAD Attribute:     {attribute:<57} │\n")
-                self.update_results(f"│ SAD Result:        {result:<57} │\n")
-                self.update_results(f"│ Local Port:        {local_port:<57} │\n")
+                self.update_results(f"  Source ID:         {src_id}\n")
+                self.update_results(f"  ISMQ FSM:          {ismq}\n")
+                self.update_results(f"  SAD Attribute:     {attribute}\n")
+                self.update_results(f"  SAD Result:        {result}\n")
+                self.update_results(f"  Local Port:        {local_port}\n")
             except Exception as e:
-                self.update_results(f"│ Error: {str(e):<71} │\n")
-            self.update_results("└" + "─" * 78 + "┘\n\n")
+                self.update_results(f"  Error: {str(e)}\n")
+            self.update_results("\n")
 
-        self.update_results("✓ Decode Complete\n")
+        self.update_results("=" * 80 + "\n")
+        self.update_results("Decode Complete\n")
 
     def decode_llc(self, values, product):
         """Decode LLC MCA registers"""
@@ -459,9 +474,9 @@ class MCADecoderGUI:
             self.update_results("Note: DMR uses CCF decoder (includes LLC). Use CHA/CCF decoder.\n")
             return
 
-        self.update_results("╔" + "═" * 78 + "╗\n")
-        self.update_results(f"║ LLC MCA DECODE - {product:<66} ║\n")
-        self.update_results("╚" + "═" * 78 + "╝\n\n")
+        self.update_results("=" * 80 + "\n")
+        self.update_results(f"LLC MCA DECODE - {product}\n")
+        self.update_results("=" * 80 + "\n\n")
 
         mc_status = values.get('MC_STATUS', '')
         mc_addr = values.get('MC_ADDR', '')
@@ -832,10 +847,43 @@ class MCADecoderGUI:
                 self.root.clipboard_append(results)
                 self.root.update()
                 messagebox.showinfo("Success", "Results copied to clipboard!")
-            else:
                 messagebox.showwarning("Warning", "No results to copy!")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to copy: {str(e)}")
+
+    def export_results(self):
+        """Export decoded results to a text file"""
+        try:
+            results = self.results_text.get(1.0, tk.END).strip()
+            if not results:
+                messagebox.showwarning("Warning", "No results to export!")
+                return
+
+            # Generate default filename
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            product = self.product_var.get()
+            decoder_type = self.decoder_var.get().replace('/', '_')
+            default_filename = f"MCA_Decode_{product}_{decoder_type}_{timestamp}.txt"
+
+            # Ask user for save location
+            file_path = filedialog.asksaveasfilename(
+                defaultextension=".txt",
+                initialfile=default_filename,
+                filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+                title="Export Decoded Results"
+            )
+
+            if file_path:
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(f"MCA Single Decoder Results\n")
+                    f.write(f"Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                    f.write(f"Product: {product}\n")
+                    f.write(f"Decoder: {decoder_type}\n")
+                    f.write("=" * 80 + "\n\n")
+                    f.write(results)
+                messagebox.showinfo("Success", f"Results exported to:\n{file_path}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to export: {str(e)}")
 
     def clear_all(self):
         """Clear all input fields and results"""
