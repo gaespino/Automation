@@ -453,13 +453,15 @@ class ExperimentBuilderGUI:
             if field_config.get('section') == 'Unit Data'
         ]
 
-        # Sort fields to ensure Product appears first
+        # Sort fields to ensure Product appears first, then Visual ID
         def sort_key(item):
             field_name = item[0]
             if field_name == "Product":
                 return (0, field_name)  # Product first
+            elif field_name == "Visual ID":
+                return (1, field_name)  # Visual ID second
             else:
-                return (1, field_name)  # Others alphabetically after
+                return (2, field_name)  # Others alphabetically after
 
         unit_data_fields = sorted(unit_data_fields, key=sort_key)
 
