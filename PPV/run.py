@@ -18,15 +18,27 @@ import tkinter as tk
 
 # Import after adding to path
 from gui.PPVTools import Tools, display_banner
+from gui.ProductSelector import show_product_selector
 
 def main():
     """Main entry point for PPV Tools application"""
     # Display the banner in console
     display_banner()
     
-    # Create the main window
+    # Show product selector first
+    selected_product = show_product_selector()
+    
+    # Exit if user cancelled
+    if not selected_product:
+        print("Product selection cancelled. Exiting...")
+        return
+    
+    print(f"\nSelected Product: {selected_product}")
+    print("Launching PPV Tools Hub...\n")
+    
+    # Create the main window with selected product
     root = tk.Tk()
-    app = Tools(root)
+    app = Tools(root, default_product=selected_product)
     root.mainloop()
 
 if __name__ == "__main__":

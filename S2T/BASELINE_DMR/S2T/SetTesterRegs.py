@@ -1133,9 +1133,9 @@ class S2TFlow():
 
 		# DMR-specific: core_mlc_volt
 		if self.voltage_mgr.voltage_ips.get('core_mlc_volt', False):
-			scm.global_fixed_core_mlc_volt = self.voltage_mgr.core_mlc_volt
+			scm.global_fixed_mlc_volt = self.voltage_mgr.core_mlc_volt
 		else:
-			scm.global_fixed_core_mlc_volt=None  # GNR/CWF don't use core_mlc_volt
+			scm.global_fixed_mlc_volt=None  # GNR/CWF don't use core_mlc_volt
 
 		scm.global_avx_mode = self.license_level
 		scm.global_vbumps_configuration=self.vbumps_volt

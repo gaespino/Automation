@@ -30,12 +30,13 @@ class MCADecoderGUI:
     Single MCA register decoder with dynamic fields based on product and decoder type
     """
 
-    def __init__(self, root):
+    def __init__(self, root, default_product="GNR"):
         self.root = root
         self.root.title("MCA Single Line Decoder")
         self.root.geometry("900x700")
 
         # Product configurations
+        self.default_product = default_product  # Store default product
         self.products = ['GNR', 'CWF', 'DMR']
         self.decoder_types = {
             'CHA/CCF': {
@@ -105,7 +106,7 @@ class MCADecoderGUI:
 
         # Product selection
         ttk.Label(config_frame, text="Product:").grid(row=0, column=0, sticky=tk.W, padx=(0, 10))
-        self.product_var = tk.StringVar(value=self.products[0])
+        self.product_var = tk.StringVar(value=self.default_product)
         product_combo = ttk.Combobox(config_frame, textvariable=self.product_var,
                                      values=self.products, state='readonly', width=15)
         product_combo.grid(row=0, column=1, sticky=tk.W, padx=(0, 20))

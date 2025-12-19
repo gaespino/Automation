@@ -154,6 +154,7 @@
             "description": "Core license key",
             "required": false,
             "options": [
+				"",
                 "1: SSE/128",
                 "2: AVX2/256 Light",
                 "3: AVX2/256 Heavy",
@@ -188,17 +189,29 @@
             "section": "Test Configuration",
             "type": "str",
             "default": "",
-            "description": "Configuration mask value",
+            "description": "Mesh: Mask options | Slice: Core number (0-128)",
             "required": false,
-            "options": [
-                "",
-                "RowPass1",
-                "RowPass2",
-                "RowPass3",
-                "FirstPass",
-                "SecondPass",
-                "ThirdPass"
-            ]
+            "conditional_options": {
+                "field": "Test Mode",
+                "Mesh": {
+                    "type": "str",
+                    "options": [
+						"",
+                        "Compute0",
+                        "Compute1",
+                        "Compute2",
+                        "Compute3"
+                    ]
+                },
+                "Slice": {
+                    "type": "int",
+                    "range": {
+                        "GNR": [0, 179],
+                        "CWF": [0, 179],
+                        "DMR": [0, 128]
+                    }
+                }
+            }
         },
         "Boot Breakpoint": {
             "section": "Test Configuration",

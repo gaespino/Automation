@@ -8,14 +8,15 @@ $driveMappings = @(
     @{ Letter = "I:"; Path = "\\Amr\ec\proj\mdl\cr\intel" },
     @{ Letter = "Q:"; Path = "\\crcv03a-cifs.cr.intel.com\mpe_spr_003" },
     @{ Letter = "R:"; Path = "\\crcv03a-cifs.cr.intel.com\mfg_tlo_001" },
-    @{ Letter = "S:"; Path = "\\crcv03a-cifs.cr.intel.com\mfg_tlo_002" }
+    @{ Letter = "S:"; Path = "\\crcv03a-cifs.cr.intel.com\mfg_tlo_002" },
+    @{ Letter = "F:"; Path = "\\crcv03a-cifs.cr.intel.com\mfg_tlo_003" }
 )
 
 # Map each drive
 foreach ($mapping in $driveMappings) {
     $driveLetter = $mapping.Letter
     $networkPath = $mapping.Path
-    
+
     try {
         # Check if drive is already mapped
         if (Test-Path $driveLetter) {

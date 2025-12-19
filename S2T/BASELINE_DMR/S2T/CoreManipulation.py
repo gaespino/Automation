@@ -785,32 +785,32 @@ class SystemBooter:
 		if self.config.ia_fw_p1:
 			fuse_str_cbb.extend(self._assign_values_to_regs(
 				self.boot_fuses['IA']['fwFreq']['p1'], self.config.ia_fw_p1))
-			fuse_str_imh.extend(self._assign_values_to_regs(
-				self.boot_fuses['IA']['imhFreq']['p1'], self.config.ia_fw_p1))
+			#fuse_str_imh.extend(self._assign_values_to_regs(
+			#	self.boot_fuses['IA']['imhFreq']['p1'], self.config.ia_fw_p1))
 
 		if self.config.ia_fw_pn:
 			fuse_str_cbb.extend(self._assign_values_to_regs(
 				self.boot_fuses['IA']['fwFreq']['pn'], self.config.ia_fw_pn))
-			fuse_str_imh.extend(self._assign_values_to_regs(
-				self.boot_fuses['IA']['imhFreq']['pn'], self.config.ia_fw_p1))
+			#fuse_str_imh.extend(self._assign_values_to_regs(
+			#	self.boot_fuses['IA']['imhFreq']['pn'], self.config.ia_fw_p1))
 
 		if self.config.ia_fw_pm:
 			fuse_str_cbb.extend(self._assign_values_to_regs(
 				self.boot_fuses['IA']['fwFreq']['min'], self.config.ia_fw_pm))
-			fuse_str_imh.extend(self._assign_values_to_regs(
-				self.boot_fuses['IA']['imhFreq']['min'], self.config.ia_fw_p1))
+			#fuse_str_imh.extend(self._assign_values_to_regs(
+			#	self.boot_fuses['IA']['imhFreq']['min'], self.config.ia_fw_p1))
 
 		if self.config.ia_fw_pboot:
 			fuse_str_cbb.extend(self._assign_values_to_regs(
 				self.boot_fuses['IA']['fwFreq']['boot'], self.config.ia_fw_pboot))
-			fuse_str_imh.extend(self._assign_values_to_regs(
-				self.boot_fuses['IA']['imhFreq']['boot'], self.config.ia_fw_p1))
+			#fuse_str_imh.extend(self._assign_values_to_regs(
+			#	self.boot_fuses['IA']['imhFreq']['boot'], self.config.ia_fw_p1))
 
 		if self.config.ia_fw_pturbo:
 			fuse_str_cbb.extend(self._assign_values_to_regs(
 				self.boot_fuses['IA']['fwFreq']['turbo'], self.config.ia_fw_pturbo))
-			fuse_str_imh.extend(self._assign_values_to_regs(
-				self.boot_fuses['IA']['imhFreq']['turbo'], self.config.ia_fw_p1))
+			#fuse_str_imh.extend(self._assign_values_to_regs(
+			#	self.boot_fuses['IA']['imhFreq']['turbo'], self.config.ia_fw_p1))
 
 		return fuse_str_cbb, fuse_str_imh
 

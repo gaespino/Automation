@@ -46,9 +46,10 @@ def display_banner():
 
 # Create the main window
 class Tools(tk.Frame):
-	def __init__(self, root):
+	def __init__(self, root, default_product="GNR"):
 		super().__init__(root)
 		self.root = root
+		self.default_product = default_product  # Store default product selection
 		self.root.title("PPV Tools Hub")
 
 		# Enable full-screen resizing
@@ -95,6 +96,27 @@ class Tools(tk.Frame):
 								 font=("Segoe UI", 11),
 								 bg='#2c3e50', fg='#ecf0f1')
 		subtitle_label.pack()
+
+		# Product indicator
+		product_indicator_frame = tk.Frame(title_frame, bg='#34495e', padx=15, pady=8)
+		product_indicator_frame.pack(pady=(10, 0))
+
+		product_names = {
+			'GNR': 'Granite Rapids',
+			'CWF': 'Clearwater Forest',
+			'DMR': 'Diamond Rapids'
+		}
+		
+		product_full_name = product_names.get(self.default_product, self.default_product)
+		
+		product_indicator = tk.Label(
+			product_indicator_frame,
+			text=f"📌 Default Product: {self.default_product} ({product_full_name})",
+			font=("Segoe UI", 9),
+			bg='#34495e',
+			fg='#ecf0f1'
+		)
+		product_indicator.pack()
 
 		# Tools grid container
 		tools_container = tk.Frame(self.scrollable_frame, bg='#f0f0f0')
@@ -281,50 +303,50 @@ class Tools(tk.Frame):
 		"""Open PTC Loop Parser tool"""
 		root1 = tk.Toplevel(self.root)
 		root1.title('PPV Loop Parser')
-		app1 = PTCReportGUI(root1)
+		app1 = PTCReportGUI(root1, default_product=self.default_product)
 		self.center_window(root1)
 
 	def open_ppv_mca_report(self):
 		"""Open PPV MCA Report tool"""
 		root2 = tk.Toplevel(self.root)
 		root2.title('PPV MCA Report')
-		app2 = PPVReportGUI(root2)
+		app2 = PPVReportGUI(root2, default_product=self.default_product)
 		self.center_window(root2)
 
 	def open_dpmb(self):
 		"""Open DPMB Requests tool"""
 		root3 = tk.Toplevel(self.root)
 		root3.title('DPMB Bucketer Requests')
-		app3 = dpmbGUI(root3)
+		app3 = dpmbGUI(root3, default_product=self.default_product)
 		self.center_window(root3)
 
 	def open_filehandler(self):
 		"""Open File Handler tool"""
 		root4 = tk.Toplevel(self.root)
 		root4.title('File Handler')
-		app4 = FileHandlerGUI(root4)
+		app4 = FileHandlerGUI(root4, default_product=self.default_product)
 		self.center_window(root4)
 
 	def open_frameworkreport(self):
 		"""Open Framework Report Builder tool"""
 		root5 = tk.Toplevel(self.root)
 		root5.title('Framework Report Builder')
-		app5 = FrameworkReportBuilder(root5)
+		app5 = FrameworkReportBuilder(root5, default_product=self.default_product)
 		# Framework report is already maximized, no need to center
 
 	def open_automation_designer(self):
 		"""Open Automation Flow Designer tool"""
-		start_automation_flow_designer(parent=self.root)
+		start_automation_flow_designer(parent=self.root, default_product=self.default_product)
 
 	def open_experiment_builder(self):
 		"""Open Experiment Builder tool"""
-		ExperimentBuilderGUI(parent=self.root)
+		ExperimentBuilderGUI(parent=self.root, default_product=self.default_product)
 
 	def open_mca_decoder(self):
 		"""Open MCA Single Decoder tool"""
 		root6 = tk.Toplevel(self.root)
 		root6.title('MCA Single Decoder')
-		app6 = MCADecoderGUI(root6)
+		app6 = MCADecoderGUI(root6, default_product=self.default_product)
 		self.center_window(root6)
 
 	def center_window(self, window):
@@ -337,8 +359,23 @@ class Tools(tk.Frame):
 		window.geometry(f'{width}x{height}+{x}+{y}')
 
 if __name__ == "__main__":
+	from ProductSelector import show_product_selector
+	
 	display_banner()
+	
+	# Show product selector first
+	selected_product = show_product_selector()
+	
+	# Exit if user cancelled
+	if not selected_product:
+		print("Product selection cancelled. Exiting...")
+		import sys
+		sys.exit(0)
+	
+	print(f"\nSelected Product: {selected_product}")
+	print("Launching PPV Tools Hub...\n")
+	
 	root = tk.Tk(baseName='MainWindow')
-	app = Tools(root)
+	app = Tools(root, default_product=selected_product)
 	#app.pack(fill='both', expand=True)
 	root.mainloop()

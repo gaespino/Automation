@@ -13,8 +13,9 @@ except ImportError:
     from parsers.PPVLoopsParser import LogsPTC as ptc
 
 class PTCReportGUI:
-    def __init__(self, root):
+    def __init__(self, root, default_product="GNR"):
         self.root = root
+        self.default_product = default_product  # Store default product
         self.root.title("PTC Loop Parser")
         self.root.geometry("800x450")  # Increased size
         self.root.resizable(True, True)  # Allow resizing
