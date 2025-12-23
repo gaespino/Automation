@@ -3699,7 +3699,7 @@ class ExperimentBuilderGUI:
             "• JSON/Excel import/export\n"
             "• Field copy functionality\n"
             "• Configuration save/load (.tpl files)\n\n"
-            "Part of PPV Tools Hub\n"
+            "Part of THR Debug Tools Hub\n"
             "© 2025"
         )
         messagebox.showinfo("About", about_text)

@@ -763,6 +763,8 @@ class S2TFlow():
 		self.voltage_mgr.ddra_volt = self.ddra_volt
 		self.voltage_mgr.use_ate_volt = self.use_ate_volt
 
+		# Set external voltage variables
+		self.quick()
 	#========================================================================================================#
 	#=============== INITIALIZATION AND FLOW CONTROL =======================================================#
 	#========================================================================================================#
@@ -831,6 +833,17 @@ class S2TFlow():
 		Configure voltage using VoltageManager.
 		Handles all voltage options: ATE, fixed, vbumps, PPVC.
 		"""
+		# Debug
+		print(f"\n{bullets} Setting voltage using VoltageManager...")
+		print(f"{bullets} Current Voltage Settings:")
+		print(f"  Use ATE Voltage: {self.use_ate_volt}")
+		print(f"  Voltage Selection Method: {self.voltselect}")
+		print(f"  External Configuration: {self.external}")
+		print(f"  FastBoot Enabled: {self.fastboot}")
+		print(f"{bullets} Current Voltage Values:")
+		print(f"  Core Voltage: {self.core_volt}")
+		print(f"  Mesh Core Voltage: {self.qvbumps_core}")
+		print(f"  Mesh Mesh Voltage: {self.qvbumps_mesh}")
 
 		# Configure voltage
 		configured = self.voltage_mgr.configure_voltage(
@@ -1169,6 +1182,15 @@ class S2TFlow():
 		else:
 			scm.global_boot_postcode=False
 
+	def tileview(self, rdfuses=False):
+		"""Display Tile View"""
+		if hasattr(scm, 'coresEnabled'):
+			scm.coresEnabled(rdfuses=rdfuses)
+		elif hasattr(scm, 'modulesEnabled'):
+			scm.modulesEnabled(rdfuses=rdfuses)
+		else:
+			print(f"{bullets} Tile view not supported for this product.")
+
 	#========================================================================================================#
 	#=============== SLICE MODE IMPLEMENTATION ==============================================================#
 	#========================================================================================================#
@@ -1461,7 +1483,7 @@ class S2TFlow():
 		print (f"\n{'='*80}")
 		print ("\tUnit Tileview")
 		print (f"{'='*80}\n")
-		scm.coresEnabled(rdfuses=False)
+		self.tileview(rdfuses=self.rdfuses)
 		print (f"\n{'='*80}")
 		print ("\tConfiguration Summary")
 		print (f"{'='*80}\n")
@@ -1936,7 +1958,7 @@ class S2TFlow():
 		print (f"\n{'='*80}")
 		print ("\tUnit Tileview")
 		print (f"{'='*80}\n")
-		scm.coresEnabled(rdfuses=False)
+		self.tileview(rdfuses=False)
 		print (f"\n{'='*80}")
 		print ("\tConfiguration Summary")
 		print (f"{'='*80}\n")
@@ -1953,6 +1975,7 @@ class S2TFlow():
 		if self.vbumps_volt: print("\t> Voltage Bumps fuses set")
 		if self.use_ate_volt: print("\t> ATE Fixed Voltage fuses set")
 		if self.core_volt != None: print ("\t> %s Volt = %f" % (self.coremenustring,self.core_volt))
+		if self.core_mlc_volt != None: print (f"\t> {self.coremenustring} MLC Volt = {self.core_mlc_volt}" )
 		if self.mesh_cfc_volt != None: print (f"\t> Mesh CFC Volt = {self.mesh_cfc_volt}" )
 		if self.mesh_hdc_volt != None: print (f"\t> Mesh HDC Volt = {self.mesh_hdc_volt}" )
 		if self.io_cfc_volt != None: print ("\t> IO CFC Volt = %f" % self.io_cfc_volt)

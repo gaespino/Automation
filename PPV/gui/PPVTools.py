@@ -31,14 +31,25 @@ except ImportError:
 def display_banner():
     # Create the banner text
     banner_text = rf'''
-=============================================================================
-    ____  ____  __  ___   ____  ____ _    __   __________  ____  __   _____
-   / __ \/ __ \/  |/  /  / __ \/ __ \ |  / /  /_  __/ __ \/ __ \/ /  / ___/
-  / / / / /_/ / /|_/ /  / /_/ / /_/ / | / /    / / / / / / / / / /   \__ \
- / /_/ / ____/ /  / /  / ____/ ____/| |/ /    / / / /_/ / /_/ / /______/ /
-/_____/_/   /_/  /_/  /_/   /_/     |___/    /_/  \____/\____/_____/____/
-
-=============================================================================
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║  ████████╗██╗  ██╗██████╗     ██████╗ ███████╗██████╗ ██╗   ██╗ ██████╗    ║
+║  ╚══██╔══╝██║  ██║██╔══██╗    ██╔══██╗██╔════╝██╔══██╗██║   ██║██╔════╝    ║
+║     ██║   ███████║██████╔╝    ██║  ██║█████╗  ██████╔╝██║   ██║██║  ███╗   ║
+║     ██║   ██╔══██║██╔══██╗    ██║  ██║██╔══╝  ██╔══██╗██║   ██║██║   ██║   ║
+║     ██║   ██║  ██║██║  ██║    ██████╔╝███████╗██████╔╝╚██████╔╝╚██████╔╝   ║
+║     ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝    ╚═════╝ ╚══════╝╚═════╝  ╚═════╝  ╚═════╝    ║
+║                                                                            ║
+║            ████████╗ ██████╗  ██████╗ ██╗     ███████╗                     ║
+║            ╚══██╔══╝██╔═══██╗██╔═══██╗██║     ██╔════╝                     ║
+║               ██║   ██║   ██║██║   ██║██║     ███████╗                     ║
+║               ██║   ██║   ██║██║   ██║██║     ╚════██║                     ║
+║               ██║   ╚██████╔╝╚██████╔╝███████╗███████║                     ║
+║               ╚═╝    ╚═════╝  ╚═════╝ ╚══════╝╚══════╝                     ║
+║                                                                            ║
+║         Test Hole Resolution Debug Tools - Unit Characterization Suite     ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
     '''
 
     # Print the banner
@@ -50,7 +61,7 @@ class Tools(tk.Frame):
 		super().__init__(root)
 		self.root = root
 		self.default_product = default_product  # Store default product selection
-		self.root.title("PPV Tools Hub")
+		self.root.title("THR Debug Tools Hub")
 
 		# Enable full-screen resizing
 		self.root.state('zoomed')  # Maximize window on Windows
@@ -86,13 +97,13 @@ class Tools(tk.Frame):
 		title_frame = tk.Frame(self.scrollable_frame, bg='#2c3e50', pady=20)
 		title_frame.pack(fill="x", padx=20, pady=(20, 10))
 
-		title_label = tk.Label(title_frame, text="PPV TOOLS HUB",
+		title_label = tk.Label(title_frame, text="THR DEBUG TOOLS HUB",
 							   font=("Segoe UI", 24, "bold"),
 							   bg='#2c3e50', fg='white')
 		title_label.pack()
 
 		subtitle_label = tk.Label(title_frame,
-								 text="Comprehensive Suite for PPV Data Analysis & Management",
+								 text="Test Hole Resolution Debug Tools - Unit Characterization & Debug Flow Suite",
 								 font=("Segoe UI", 11),
 								 bg='#2c3e50', fg='#ecf0f1')
 		subtitle_label.pack()
@@ -106,9 +117,9 @@ class Tools(tk.Frame):
 			'CWF': 'Clearwater Forest',
 			'DMR': 'Diamond Rapids'
 		}
-		
+
 		product_full_name = product_names.get(self.default_product, self.default_product)
-		
+
 		product_indicator = tk.Label(
 			product_indicator_frame,
 			text=f"📌 Default Product: {self.default_product} ({product_full_name})",
@@ -117,6 +128,16 @@ class Tools(tk.Frame):
 			fg='#ecf0f1'
 		)
 		product_indicator.pack()
+
+		# Debug Flow button in header
+		flow_button = tk.Button(title_frame, text="📊 View Debug Flow",
+							   command=self.show_debug_flow,
+							   bg="#3498db", fg="white",
+							   font=("Segoe UI", 9, "bold"),
+							   padx=25, pady=8,
+							   relief=tk.FLAT,
+							   cursor="hand2")
+		flow_button.pack(pady=(10, 0))
 
 		# Tools grid container
 		tools_container = tk.Frame(self.scrollable_frame, bg='#f0f0f0')
@@ -358,23 +379,400 @@ class Tools(tk.Frame):
 		y = (window.winfo_screenheight() // 2) - (height // 2)
 		window.geometry(f'{width}x{height}+{x}+{y}')
 
+	def show_debug_flow(self):
+		"""Display the recommended debug flow for using the tools suite"""
+		flow_window = tk.Toplevel(self.root)
+		flow_window.title("THR Debug Tools - Recommended Flow")
+		flow_window.geometry("1100x550")
+		flow_window.configure(bg='#e8e8e8')
+		flow_window.resizable(True, True)  # Allow resizing if needed
+
+		# Make it modal
+		flow_window.transient(self.root)
+		flow_window.grab_set()
+
+		# Main container
+		main_frame = tk.Frame(flow_window, bg='#e8e8e8')
+		main_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=8)
+
+		# Title
+		title_label = tk.Label(
+			main_frame,
+			text="🔄 Unit Characterization & Debug Flow",
+			font=("Segoe UI", 16, "bold"),
+			bg='#e8e8e8',
+			fg='#1a1a1a'
+		)
+		title_label.pack(pady=(0, 2))
+
+		subtitle_label = tk.Label(
+			main_frame,
+			text="From Factory Testing to Root Cause Analysis",
+			font=("Segoe UI", 10),
+			bg='#e8e8e8',
+			fg='#2c3e50'
+		)
+		subtitle_label.pack(pady=(0, 8))
+
+		# Flow container with grid layout
+		flow_container = tk.Frame(main_frame, bg='#e8e8e8')
+		flow_container.pack(fill="both", expand=True)
+
+		# Configure grid - 5 columns (box, arrow, box, arrow, box)
+		for i in range(5):
+			if i % 2 == 0:  # Box columns
+				flow_container.columnconfigure(i, weight=3, minsize=100)
+			else:  # Arrow columns
+				flow_container.columnconfigure(i, weight=0, minsize=25)
+
+		# Configure grid rows - let content determine height
+		for i in range(5):
+			flow_container.rowconfigure(i, weight=0, minsize=0)
+
+		# Row 1: Steps 1-3
+		self.create_compact_flow_box(flow_container, "1", "Initial Data Query", "DPMB", "#9b59b6", row=0, col=0)
+		self.create_horizontal_arrow(flow_container, row=0, col=1)
+		self.create_compact_flow_box(flow_container, "2", "MCA Analysis", "MCA Report + Decoder", "#e74c3c", row=0, col=2)
+		self.create_horizontal_arrow(flow_container, row=0, col=3)
+		self.create_compact_flow_box(flow_container, "3", "Additional Analysis - PTC / PPV Validation runs", "PTC Parser", "#f39c12", row=0, col=4, optional=True)
+
+		# Vertical arrow from Step 3 to Step 4
+		self.create_vertical_arrow(flow_container, row=1, col=4)
+
+		# Row 2: Steps 4-6
+		self.create_compact_flow_box(flow_container, "4", "Experiment Design", "Builder + Flow Designer", "#1abc9c", row=2, col=4)
+		self.create_horizontal_arrow(flow_container, row=2, col=3, reverse=True)
+		self.create_compact_flow_box(flow_container, "5", "Framework Execution", "Debug Framework", "#3498db", row=2, col=2)
+		self.create_horizontal_arrow(flow_container, row=2, col=1, reverse=True)
+		self.create_compact_flow_box(flow_container, "6", "Results Analysis", "Report Builder + Files", "#16a085", row=2, col=0)
+
+		# Vertical arrow from Step 6 to Step 7
+		self.create_vertical_arrow(flow_container, row=3, col=0)
+
+		# Row 3: Step 7 (left aligned)
+		self.create_compact_flow_box(flow_container, "7", "Root Cause & Content", "Class Testing & Content", "#27ae60", row=4, col=0)
+
+		# Bottom info
+		info_frame = tk.Frame(main_frame, bg='#d4d4d4', relief=tk.SOLID, borderwidth=1)
+		info_frame.pack(fill="x", pady=(8, 0))
+
+		info_text = "💡 Systematic approach from data collection to root cause • Integrated toolset • Reduced debug time"
+		info_label = tk.Label(
+			info_frame,
+			text=info_text,
+			font=("Segoe UI", 9),
+			bg='#d4d4d4',
+			fg='#1a1a1a',
+			wraplength=800,
+			justify='center'
+		)
+		info_label.pack(pady=6, padx=10)
+
+		# Close button
+		close_btn = tk.Button(
+			main_frame,
+			text="Close",
+			command=lambda: self.close_flow_window(flow_window),
+			bg="#2c3e50",
+			fg="white",
+			font=("Segoe UI", 10, "bold"),
+			padx=40,
+			pady=8,
+			relief=tk.FLAT,
+			cursor="hand2"
+		)
+		close_btn.pack(pady=6)
+
+		# Center the window
+		flow_window.update_idletasks()
+		width = 1100
+		height = 550
+		x = (flow_window.winfo_screenwidth() // 2) - (width // 2)
+		y = (flow_window.winfo_screenheight() // 2) - (height // 2)
+		flow_window.geometry(f'{width}x{height}+{x}+{y}')
+
+	def close_flow_window(self, window):
+		"""Close flow window"""
+		window.destroy()
+
+	def create_compact_flow_box(self, parent, number, title, tool, color, row=0, col=0, optional=False):
+		"""Create a compact visual flow box"""
+		box = tk.Frame(parent, bg='#ffffff', relief=tk.SOLID, borderwidth=2,
+					  highlightbackground=color, highlightthickness=3, width=220)
+		box.grid(row=row, column=col, padx=2, pady=3, sticky="ew")
+		box.grid_propagate(True)  # Allow box to resize to content
+
+		# Colored bar
+		tk.Frame(box, bg=color, height=1).pack(fill="x")
+
+		# Content
+		content = tk.Frame(box, bg='#ffffff', padx=10, pady=1)
+		content.pack(fill="both", expand=True)
+
+		# Badge
+		badge_text = f"Step {number}" if not optional else f"Step {number} (Opt)"
+		badge = tk.Label(
+			content,
+			text=badge_text,
+			font=("Segoe UI", 7, "bold"),
+			bg=color,
+			fg='white',
+			padx=6,
+			pady=1
+		)
+		badge.pack(anchor="w", pady=0)
+
+		# Title
+		title_label = tk.Label(
+			content,
+			text=title,
+			font=("Segoe UI", 9, "bold"),
+			bg='#ffffff',
+			fg='#1a1a1a',
+			wraplength=190,
+			justify='left'
+		)
+		title_label.pack(anchor="w", pady=0)
+
+		# Tool
+		tool_label = tk.Label(
+			content,
+			text=f"🔧 {tool}",
+			font=("Segoe UI", 8, "italic"),
+			bg='#ffffff',
+			fg='#2c3e50',
+			wraplength=190,
+			justify='left'
+		)
+		tool_label.pack(anchor="w")
+
+	def create_horizontal_arrow(self, parent, row=0, col=0, reverse=False):
+		"""Create a horizontal arrow between steps"""
+		arrow_frame = tk.Frame(parent, bg='#e8e8e8')
+		arrow_frame.grid(row=row, column=col, padx=2, pady=2)
+
+		canvas = tk.Canvas(arrow_frame, bg='#e8e8e8', width=50, height=20, highlightthickness=0)
+		canvas.pack()
+
+		def draw(event=None):
+			canvas.delete("all")
+			w = canvas.winfo_width()
+			h = canvas.winfo_height()
+			if w > 10 and h > 10:
+				center_y = h // 2
+				if reverse:
+					# Left-pointing arrow
+					canvas.create_line(w-5, center_y, 5, center_y, fill='#5a5a5a', width=3, arrow=tk.LAST, arrowshape=(10, 12, 5))
+				else:
+					# Right-pointing arrow
+					canvas.create_line(5, center_y, w-5, center_y, fill='#5a5a5a', width=3, arrow=tk.LAST, arrowshape=(10, 12, 5))
+
+		canvas.bind('<Configure>', draw)
+		arrow_frame.after(100, draw)
+
+	def create_vertical_arrow(self, parent, row=0, col=0):
+		"""Create a vertical arrow between rows"""
+		arrow_frame = tk.Frame(parent, bg='#e8e8e8')
+		arrow_frame.grid(row=row, column=col, padx=0, pady=2, sticky="ew")
+
+		canvas = tk.Canvas(arrow_frame, bg='#e8e8e8', height=25, highlightthickness=0)
+		canvas.pack(fill="both", expand=True)
+
+		def draw(event=None):
+			canvas.delete("all")
+			w = canvas.winfo_width()
+			h = canvas.winfo_height()
+			if h > 5 and w > 10:
+				center_x = w // 2
+				canvas.create_line(center_x, 0, center_x, h, fill='#5a5a5a', width=3, arrow=tk.LAST, arrowshape=(10, 12, 5))
+
+		canvas.bind('<Configure>', draw)
+		arrow_frame.after(100, draw)
+
+	def create_flow_box(self, parent, number, title, tool, color, points, optional=False):
+		"""Create a visual flow box for a step"""
+		# Container for the step
+		box_container = tk.Frame(parent, bg='#f0f0f0')
+		box_container.pack(fill="x", pady=8)
+
+		# Main card
+		card = tk.Frame(box_container, bg='white', relief=tk.SOLID, borderwidth=2, highlightbackground=color, highlightthickness=2)
+		card.pack(fill="x", padx=30)
+
+		# Colored header bar
+		header_bar = tk.Frame(card, bg=color, height=6)
+		header_bar.pack(fill="x")
+
+		# Content area
+		content = tk.Frame(card, bg='white', padx=20, pady=12)
+		content.pack(fill="both", expand=True)
+
+		# Top row: Step number and title
+		top_row = tk.Frame(content, bg='white')
+		top_row.pack(fill="x", anchor="w")
+
+		# Step badge
+		badge_text = f"STEP {number}" if not optional else f"STEP {number} (Optional)"
+		step_badge = tk.Label(
+			top_row,
+			text=badge_text,
+			font=("Segoe UI", 8, "bold"),
+			bg=color,
+			fg='white',
+			padx=8,
+			pady=3
+		)
+		step_badge.pack(side=tk.LEFT, padx=(0, 12))
+
+		# Title
+		title_label = tk.Label(
+			top_row,
+			text=title,
+			font=("Segoe UI", 12, "bold"),
+			bg='white',
+			fg='#2c3e50'
+		)
+		title_label.pack(side=tk.LEFT)
+
+		# Tool name
+		tool_frame = tk.Frame(content, bg='white')
+		tool_frame.pack(fill="x", anchor="w", pady=(8, 10))
+
+		tool_label = tk.Label(
+			tool_frame,
+			text=f"🔧 {tool}",
+			font=("Segoe UI", 9, "italic"),
+			bg='white',
+			fg=color
+		)
+		tool_label.pack(anchor="w")
+
+		# Key points in columns
+		points_frame = tk.Frame(content, bg='white')
+		points_frame.pack(fill="x", anchor="w")
+
+		for i, point in enumerate(points):
+			point_label = tk.Label(
+				points_frame,
+				text=f"• {point}",
+				font=("Segoe UI", 8),
+				bg='white',
+				fg='#7f8c8d',
+				anchor="w"
+			)
+			point_label.pack(anchor="w", padx=10, pady=1)
+
+	def create_arrow(self, parent):
+		"""Create a visual arrow between steps"""
+		arrow_frame = tk.Frame(parent, bg='#f0f0f0', height=35)
+		arrow_frame.pack(fill="x")
+
+		arrow_canvas = tk.Canvas(arrow_frame, bg='#f0f0f0', height=35, highlightthickness=0)
+		arrow_canvas.pack(fill="x")
+
+		# Draw arrow
+		def draw_arrow(event=None):
+			arrow_canvas.delete("all")
+			width = arrow_canvas.winfo_width()
+			if width > 1:
+				center_x = width // 2
+				# Vertical line
+				arrow_canvas.create_line(center_x, 0, center_x, 25, fill='#95a5a6', width=3, arrow=tk.LAST, arrowshape=(10, 12, 5))
+
+		arrow_canvas.bind('<Configure>', draw_arrow)
+		arrow_frame.update_idletasks()
+		draw_arrow()
+
+	def create_flow_step_card(self, parent, step):
+		"""Create a card for each flow step"""
+		card = tk.Frame(parent, bg='white', relief=tk.SOLID, borderwidth=1)
+		card.pack(fill="x", pady=10, padx=10)
+
+		# Header with step number and color
+		header = tk.Frame(card, bg=step['color'], height=8)
+		header.pack(fill="x")
+
+		# Content
+		content = tk.Frame(card, bg='white', padx=20, pady=15)
+		content.pack(fill="both", expand=True)
+
+		# Step number and title
+		title_frame = tk.Frame(content, bg='white')
+		title_frame.pack(fill="x", anchor="w")
+
+		number_label = tk.Label(
+			title_frame,
+			text=f"Step {step['number']}",
+			font=("Segoe UI", 10, "bold"),
+			bg=step['color'],
+			fg='white',
+			padx=10,
+			pady=3
+		)
+		number_label.pack(side=tk.LEFT, padx=(0, 10))
+
+		title_label = tk.Label(
+			title_frame,
+			text=step['title'],
+			font=("Segoe UI", 13, "bold"),
+			bg='white',
+			fg='#2c3e50'
+		)
+		title_label.pack(side=tk.LEFT)
+
+		# Tool name
+		tool_label = tk.Label(
+			content,
+			text=f"🔧 {step['tool']}",
+			font=("Segoe UI", 9, "italic"),
+			bg='white',
+			fg=step['color']
+		)
+		tool_label.pack(anchor="w", pady=(5, 10))
+
+		# Description
+		desc_label = tk.Label(
+			content,
+			text=step['description'],
+			font=("Segoe UI", 9),
+			bg='white',
+			fg='#34495e',
+			wraplength=800,
+			justify="left"
+		)
+		desc_label.pack(anchor="w", pady=(0, 10))
+
+		# Actions
+		for action in step['actions']:
+			action_label = tk.Label(
+				content,
+				text=action,
+				font=("Segoe UI", 9),
+				bg='white',
+				fg='#7f8c8d',
+				anchor="w"
+			)
+			action_label.pack(anchor="w", padx=20, pady=2)
+		y = (window.winfo_screenheight() // 2) - (height // 2)
+		window.geometry(f'{width}x{height}+{x}+{y}')
+
 if __name__ == "__main__":
 	from ProductSelector import show_product_selector
-	
+
 	display_banner()
-	
+
 	# Show product selector first
 	selected_product = show_product_selector()
-	
+
 	# Exit if user cancelled
 	if not selected_product:
 		print("Product selection cancelled. Exiting...")
 		import sys
 		sys.exit(0)
-	
+
 	print(f"\nSelected Product: {selected_product}")
-	print("Launching PPV Tools Hub...\n")
-	
+	print("Launching SysDebug & THR Tools Hub...\n")
+
 	root = tk.Tk(baseName='MainWindow')
 	app = Tools(root, default_product=selected_product)
 	#app.pack(fill='both', expand=True)

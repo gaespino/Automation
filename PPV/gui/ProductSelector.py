@@ -1,8 +1,8 @@
 """
-PPV Tools - Product Selection Welcome Window
+SysDebug & THR Tools - Product Selection Welcome Window
 
 This module provides a welcome screen for selecting the default product
-to use across all PPV Tools.
+to use across all SysDebug & THR Tools.
 """
 
 import tkinter as tk
@@ -20,7 +20,7 @@ class ProductSelectorWindow:
             self.window = tk.Tk()
 
         self.selected_product = None
-        self.window.title("PPV Tools - Welcome")
+        self.window.title("THR Debug Tools - Welcome")
 
         # Window configuration
         window_width = 600
@@ -68,13 +68,13 @@ class ProductSelectorWindow:
         main_container.pack(fill='both', expand=True)
 
         # Header Section
-        header_frame = tk.Frame(main_container, bg=self.colors['primary'], pady=30)
+        header_frame = tk.Frame(main_container, bg=self.colors['primary'], pady=25)
         header_frame.pack(fill='x')
 
         # Title
         title_label = tk.Label(
             header_frame,
-            text="Welcome to PPV Tools",
+            text="Welcome to THR Debug Tools",
             font=("Segoe UI", 22, "bold"),
             bg=self.colors['primary'],
             fg='white'
@@ -84,41 +84,53 @@ class ProductSelectorWindow:
         # Subtitle
         subtitle_label = tk.Label(
             header_frame,
-            text="Comprehensive Suite for PPV Data Analysis & Management",
-            font=("Segoe UI", 10),
+            text="Accelerating Unit Debug from Factory to Root Cause",
+            font=("Segoe UI", 10, "italic"),
             bg=self.colors['primary'],
             fg=self.colors['light']
         )
-        subtitle_label.pack(pady=(5, 0))
+        subtitle_label.pack(pady=(5,0))
 
-        # Info Section
-        info_frame = tk.Frame(main_container, bg='#f0f0f0', pady=15)
+        # Info Section - Compact description
+        info_frame = tk.Frame(main_container, bg='#f0f0f0', pady=10)
         info_frame.pack(fill='x', padx=40)
 
-        info_text = (
-            "PPV Tools provides a comprehensive suite of utilities for analyzing "
-            "and managing PPV experiment data, including:\n\n"
-            "• Experiment Configuration Builder\n"
-            "• MCA Report Generation & Decoding\n"
-            "• PTC Loop Parser & Analysis\n"
-            "• Framework Report Builder\n"
-            "• Automation Flow Designer\n"
-            "• File Management & Merging Tools"
-        )
-
-        info_label = tk.Label(
+        # Main tagline
+        tagline_label = tk.Label(
             info_frame,
-            text=info_text,
-            font=("Segoe UI", 9),
+            text="Available Tools:",
+            font=("Segoe UI", 11, "bold"),
             bg='#f0f0f0',
-            fg=self.colors['secondary'],
-            justify='left',
-            wraplength=500
+            fg=self.colors['primary'],
+            justify='left'
         )
-        info_label.pack()
+        tagline_label.pack(anchor='w', pady=(0, 8))
+
+        # Tools list - concise
+        tools = [
+            "• Experiment Builder - Create Debug Framework configurations",
+            "• MCA Decoder & Report Generator - Parse and analyze MCA data",
+            "• PTC Loop Parser - Extract experiment results",
+            "• Framework Report Builder - Consolidate debug results",
+            "• Automation Flow Designer - Design test sequences",
+            "• File Handler - Merge and manage data files",
+            "• DPMB Interface - Query bucketing data"
+        ]
+
+        for tool in tools:
+            tool_label = tk.Label(
+                info_frame,
+                text=tool,
+                font=("Segoe UI", 8),
+                bg='#f0f0f0',
+                fg=self.colors['secondary'],
+                justify='left',
+                anchor='w'
+            )
+            tool_label.pack(anchor='w', pady=1)
 
         # Product Selection Section
-        selection_frame = tk.Frame(main_container, bg='#f0f0f0', pady=10)
+        selection_frame = tk.Frame(main_container, bg='#f0f0f0', pady=8)
         selection_frame.pack(fill='x', padx=40)
 
         selection_title = tk.Label(
@@ -128,22 +140,22 @@ class ProductSelectorWindow:
             bg='#f0f0f0',
             fg=self.colors['primary']
         )
-        selection_title.pack(anchor='w', pady=(0, 10))
+        selection_title.pack(anchor='w', pady=(0, 5))
 
         selection_subtitle = tk.Label(
             selection_frame,
             text="Choose the product you'll be working with. This can be changed later in each tool.",
-            font=("Segoe UI", 9),
+            font=("Segoe UI", 8),
             bg='#f0f0f0',
             fg='#7f8c8d',
             wraplength=500,
             justify='left'
         )
-        selection_subtitle.pack(anchor='w', pady=(0, 15))
+        selection_subtitle.pack(anchor='w', pady=(0, 10))
 
         # Product buttons container
         buttons_frame = tk.Frame(selection_frame, bg='#f0f0f0')
-        buttons_frame.pack(pady=10)
+        buttons_frame.pack(pady=8)
 
         # Product data
         products = [
@@ -182,7 +194,7 @@ class ProductSelectorWindow:
         button_container = tk.Frame(action_frame, bg='#f0f0f0')
         button_container.pack()
 
-        # Continue button
+        # Continue button - prominent and visible
         self.continue_btn = tk.Button(
             button_container,
             text="Continue →",
@@ -191,12 +203,12 @@ class ProductSelectorWindow:
             fg='white',
             font=("Segoe UI", 12, "bold"),
             padx=50,
-            pady=15,
+            pady=12,
             relief=tk.FLAT,
             cursor="hand2",
             state='disabled'
         )
-        self.continue_btn.pack(side='left', padx=5)
+        self.continue_btn.pack(side='left', padx=8)
 
         # Cancel button
         cancel_btn = tk.Button(
@@ -205,13 +217,13 @@ class ProductSelectorWindow:
             command=self.on_cancel,
             bg='#95a5a6',
             fg='white',
-            font=("Segoe UI", 11),
+            font=("Segoe UI", 10),
             padx=40,
-            pady=15,
+            pady=12,
             relief=tk.FLAT,
             cursor="hand2"
         )
-        cancel_btn.pack(side='left', padx=5)
+        cancel_btn.pack(side='left', padx=8)
 
         # Hover effects for action buttons
         self.continue_btn.bind('<Enter>', lambda e: self.continue_btn.config(

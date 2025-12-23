@@ -227,8 +227,8 @@ class configurations:
 
 		# Mesh Configurations CWF
 		ate_masks = 	{
-							'DMR_CLTAP':{1:'Compute0', 2:'Compute1',3:'Compute2', 4:'Compute3'},
-							'DMR_CLTSP':{1:'Compute0', 2:'Compute1',3:'Compute2', 4:'Compute3'}
+							'DMR_CLTAP':{1:'Computes0', 2:'Computes1',3:'Computes2', 4:'Computes3', 5:'Computes123', 6:'Computes023', 7:'Computes013', 8:'Computes012'},
+							'DMR_CLTSP':{1:'Computes0', 2:'Computes1',3:'Computes2', 4:'Computes3', 5:'Computes123', 6:'Computes023', 7:'Computes013', 8:'Computes012'}
 							}
 		masks_AP = [v for k,v in ate_masks['DMR_CLTAP'].items()]
 		masks_SP = [v for k,v in ate_masks['DMR_CLTSP'].items()]
@@ -335,7 +335,7 @@ class configurations:
 							'lsb':					{'default':False,'enabled':True,'disabled_value':False,},
 							'fix_apic':				{'default':None,'enabled':False,'disabled_value':False,},
 							'dryrun':				{'default':False,'enabled':True,'disabled_value':False,},
-							'fastboot':				{'default':False,'enabled':True,'disabled_value':False,},
+							'fastboot':				{'default':False,'enabled':False,'disabled_value':False,}, # Ned to revisit
 							'mlcways':				{'default':None,'enabled':False,'disabled_value':False,},
 							'ppvc_fuses':			{'default':None,'enabled':True,'disabled_value':None,},
 							'custom_volt':			{'default':None,'enabled':True,'disabled_value':None,},
@@ -343,11 +343,12 @@ class configurations:
 							'reset_start':			{'default':None,'enabled':True,'disabled_value':None,},
 							'check_bios':			{'default':None,'enabled':True,'disabled_value':None,},
 							'mesh_cfc_volt':		{'default':None,'enabled':True,'disabled_value':None,},
-							'mesh_hdc_volt':		{'default':None,'enabled':True,'disabled_value':None,},
+							'mesh_hdc_volt':		{'default':None,'enabled':False,'disabled_value':None,},
 							'io_cfc_volt':			{'default':None,'enabled':True,'disabled_value':None,},
 							'ddrd_volt':			{'default':None,'enabled':True,'disabled_value':None,},
 							'ddra_volt':			{'default':None,'enabled':True,'disabled_value':None,},
 							'core_volt':			{'default':None,'enabled':True,'disabled_value':None,},
+							'core_mlc_volt':		{'default':None,'enabled':True,'disabled_value':None,},
 							'u600w':				{'default':None,'enabled':False,'disabled_value':None,},
 							'extMasks':				{'default':None,'enabled':True,'disabled_value':None},
 							'reg_select':			{'default':None,'enabled':False,'disabled_value':1,}

@@ -1281,7 +1281,7 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 	if fuse_io == None: fuse_io = []
 
 	## Init Variables and default arrays
-	ValidClass = ['RowEvenPass', 'RowOddPass', 'ColumnEvenPass', 'ColumnOddPass', 'Computes02', 'Computes13', 'Computes01', 'Computes23']
+	ValidClass = ['RowEvenPass', 'RowOddPass', 'ColumnEvenPass', 'ColumnOddPass', 'Computes0', 'Computes1', 'Computes2', 'Computes3', 'Computes02', 'Computes01', 'Computes13', 'Computes23', 'Computes012', 'Computes123', 'Computes023', 'Computes013', 'Custom', 'External']
 	ValidRows = ['ROW0','ROW1','ROW2','ROW3','ROW4','ROW5','ROW6','ROW7']
 	ValidCols = []
 	ValidCustom = ValidRows + ValidCols
@@ -1311,6 +1311,10 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 					'ColumnEvenPass': 'Booting only with Columns 0 and 2',
 					'ColumnOddPass': 'Booting only with Columns 1 and 3',
 					'Custom' : 'Booting with user mix & match configuration, Cols or Rows',
+					'Computes0' : 'Booting only with Computes 0 and 2 on each CBB',
+					'Computes1' : 'Booting only with Computes 0 and 2 on each CBB',
+					'Computes2' : 'Booting only with Computes 0 and 2 on each CBB',
+					'Computes3' : 'Booting only with Computes 0 and 2 on each CBB',
 					'Computes02' : 'Booting only with Computes 0 and 2 on each CBB',
 					'Computes01' : 'Booting only with Computes 0 and 1 on each CBB',
 					'Computes13' : 'Booting only with Computes 1 and 3 on each CBB',
@@ -1333,7 +1337,7 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 		elif ClassMask == 'External':
 			print(f'>>> Using external Debug Mask found in file ../ConfigFiles/DMRMasksDebug.json')
 		else:
-			print(f'>>> Not a valid ClassMask selected use: RowEvenPass, RowOddPass, ColumnEvenPass, ColumnOddPass')
+			print(f'>>> Not a valid ClassMask selected use: {valid_masks}')
 			sys.exit()
 
 	## Checks for system masks, either external input or checking current system values
@@ -1771,7 +1775,9 @@ def ppvc(bsformat = False, ppvc_fuses = [], updateram=False):
 ## Voltage read for S2T
 def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = True, vbump=False, updateram=False):
 	print("\n***********************************v********************************************")
-	print(f'Changing Voltage fuses based on System 2 Tester Configuration')
+	print(f'Changing Voltage fuses based on System 2 Tester Configuration: Type {"Fixed" if fixed else ""}{"vBump" if vbump else ""}')
+	for k,v in volt_dict.items():
+		print(f'>>>  Voltage setting for {k.upper()}: {v}V')
 	#ppvc_fuses = f.ppvc_rgb_reduction(boot=False)
 	## I have rebuilt the ppvc script here instead of using what is in GFO in case additional customization is needed
 	if updateram: fuseRAM(refresh = False)
@@ -1800,13 +1806,13 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 			if volt_dict['cfc_die'] != None:
 				volt_fuses+=f.cfc_vbump_array(fixed_voltage = volt_dict['cfc_die'], include_cbbs=True, include_imhs=False) # Adding CFC fuses
 
-		if isinstance(volt_dict['core_mlc_volt'], dict):
-			for k,v in volt_dict['core_mlc_volt'].items():
-				if volt_dict['core_mlc_volt'][k] != None:
+		if isinstance(volt_dict['core_mlc'], dict):
+			for k,v in volt_dict['core_mlc'].items():
+				if volt_dict['core_mlc'][k] != None:
 					volt_fuses+=f.mlc_vbump_array(fixed_voltage = v, target_cbb=int(k[-1]))
 		else:
-			if volt_dict['core_mlc_volt'] != None:
-				volt_fuses+=f.hdc_vbump_array(fixed_voltage = volt_dict['core_mlc_volt']) # Adding HDC fuses
+			if volt_dict['core_mlc'] != None:
+				volt_fuses+=f.hdc_vbump_array(fixed_voltage = volt_dict['core_mlc']) # Adding HDC fuses
 
 		# No HDC in DMR -- Left for reference
 		if isinstance(volt_dict['hdc_die'], dict):
@@ -1835,13 +1841,13 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 			if volt_dict['cfc_die'] != None:
 				volt_fuses+=f.cfc_vbump_array(offset = volt_dict['cfc_die'], include_cbbs=True, include_imhs=False) # Adding CFC fuses
 
-		if isinstance(volt_dict['core_mlc_volt'], dict):
-			for k,v in volt_dict['core_mlc_volt'].items():
-				if volt_dict['core_mlc_volt'][k] != None:
+		if isinstance(volt_dict['core_mlc'], dict):
+			for k,v in volt_dict['core_mlc'].items():
+				if volt_dict['core_mlc'][k] != None:
 					volt_fuses+=f.mlc_vbump_array(offset = v, target_cbb=int(k[-1]))
 		else:
-			if volt_dict['core_mlc_volt'] != None:
-				volt_fuses+=f.mlc_vbump_array(offset = volt_dict['core_mlc_volt']) # Adding HDC fuses
+			if volt_dict['core_mlc'] != None:
+				volt_fuses+=f.mlc_vbump_array(offset = volt_dict['core_mlc']) # Adding HDC fuses
 
 
 		# No HDC in DMR -- Left for reference
@@ -1879,7 +1885,7 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 		if fuses_imh1: fuses_imh1 = bs_fuse_fix(fuse_str = fuses_imh1, bases = ['sv.socket0.imh0.fuses'])
 
 	volt_config = {	'cbb0':fuses_cbb0,
-					   'cbb1':fuses_cbb1,
+					'cbb1':fuses_cbb1,
 					'cbb2':fuses_cbb2,
 					'cbb3':fuses_cbb3,
 					'imh0':fuses_imh0,

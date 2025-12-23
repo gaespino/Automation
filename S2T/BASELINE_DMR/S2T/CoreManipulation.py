@@ -1411,10 +1411,11 @@ class System2Tester():
 		modules = {}
 		llcs = {}
 
-		_moduleMasks= {cbb.name: masks[f'ia_{cbb.name}'] for cbb in self.cbbs}
-		_llcMasks= {cbb.name: masks[f'llc_{cbb.name}'] for cbb in self.cbbs}
+		_moduleMasks= {cbb.name: masks[f'core_cbb_{cbb.instance}'] for cbb in self.cbbs}
+		_llcMasks= {cbb.name: masks[f'llc_cbb_{cbb.instance}'] for cbb in self.cbbs}
 
-		for cbb_name in masks.keys():
+		for __cbb in self.cbbs:
+			cbb_name = __cbb.name
 			# Checking if str or int for modulemask / llcmask
 			if isinstance(_moduleMasks[cbb_name], str):
 				_moduleMasks[cbb_name] = int(_moduleMasks[cbb_name], 16)
@@ -2310,7 +2311,7 @@ def CheckMasks(readfuse = True, extMasks=None):
 
 	return masks, array
 
-def modulesEnabled(moduleslicemask=None, logical=False, skip = False, print_modules = True, print_llcs = True):
+def modulesEnabled(moduleslicemask=None, logical=False, skip = False, print_modules = True, print_llcs = True, rdFuses=True):
 	'''
 	Prints a  mini-tileview table of enabled modules
 
@@ -2326,7 +2327,7 @@ def modulesEnabled(moduleslicemask=None, logical=False, skip = False, print_modu
 
 	max_modules_cbb = config.MODS_PER_CBB # Modules per compute
 
-	masks = dpm.fuses(rdFuses = True, sktnum =[0]) # Get Module and LLC masks
+	masks = dpm.fuses(rdFuses = rdFuses, sktnum =[0]) # Get Module and LLC masks
 
 	for socket in sv.sockets: # For each socket
 

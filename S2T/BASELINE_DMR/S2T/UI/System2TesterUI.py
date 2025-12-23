@@ -10,7 +10,7 @@ class ConfigApp:
 		self.root.title("System 2 Tester Configuration")
 		self.s2t_flow = S2TFlow
 		self.debug = debug
-		
+
 		# Apply dark theme
 		style = ttk.Style()
 		available_themes = style.theme_names()
@@ -19,18 +19,18 @@ class ConfigApp:
 			style.theme_use('clam')
 		elif 'alt' in available_themes:
 			style.theme_use('alt')
-		
+
 		self.create_widgets()
 
 	def create_widgets(self):
 		# Main container
 		main_frame = ttk.Frame(self.root, padding="10")
 		main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-		
+
 		# Title
 		title = ttk.Label(main_frame, text="System 2 Tester Configuration Manager", font=('Segoe UI', 12, 'bold'))
 		title.grid(row=0, column=0, columnspan=2, pady=(0, 10))
-		
+
 		# Load Config Section
 		load_label = ttk.Label(main_frame, text="Configuration File:")
 		load_label.grid(row=1, column=0, sticky=tk.W, pady=5)
@@ -94,21 +94,21 @@ class QuickDefeatureTool:
 	# Tunable expected boot times (in seconds)
 	EXPECTED_TIME_FASTBOOT = 600   # 10 minutes
 	EXPECTED_TIME_NORMAL = 1200    # 20 minutes
-	
+
 	# Test mode settings (shorter durations for testing)
 	TEST_MODE_FASTBOOT = 30   # 30 seconds for fast testing
 	TEST_MODE_NORMAL = 60     # 60 seconds for normal testing
-	
+
 	def __init__(self, root, s2t, mode='mesh', product='GNRAP', test_mode=False):
 		self.root = root
 		self.mode = mode
 		self.product = product
 		self.test_mode = test_mode  # Enable test mode for offline testing
-		
+
 		# Set window title based on mode
 		title = "MESH Quick Defeature Tool" if mode == 'mesh' else "Slice Quick Defeature Tool"
 		self.root.title(title)
-		
+
 		# Apply dark theme
 		style = ttk.Style()
 		available_themes = style.theme_names()
@@ -117,48 +117,48 @@ class QuickDefeatureTool:
 			style.theme_use('clam')
 		elif 'alt' in available_themes:
 			style.theme_use('alt')
-		
+
 		## S2T Class variables Call
 		self.s2t = s2t
 		self.features = s2t.features() if s2t != None else None
 		self.variables = s2t.variables() if s2t != None else None
 		self.core_type = s2t.core_type if s2t != None else None
-		
+
 		# Use domains instead of computes (works for computes, cbbs, etc.)
 		self.domains = [d.capitalize() for d in s2t.domains] if s2t != None else ['Compute0', 'Compute1', 'Compute2']
 		self.domain_type = s2t.domain_type if s2t != None else 'Compute'  # 'Compute' or 'CBB'
-		
+
 		self.validclass = s2t.validclass if s2t != None else []
 		self.dis2cpm_valid = [v for k,v in s2t.dis2cpm_dict.items()] if s2t != None else []
 		self.dis2cpm_options = ["None"] + self.dis2cpm_valid
 		self.dis1cpm_valid = [v for k,v in s2t.dis1cpm_dict.items()] if s2t != None else []
 		self.dis1cpm_options = ["None"] + self.dis1cpm_valid
 		self.voltage_options = ["fixed", "vbump", "ppvc"]
-		
+
 		## Modes Configuration
 		self.mesh_config_options = ["None"] + self.validclass + self.domains + ["RightSide", "LeftSide"]
-		self.license_data = {v:k for k,v in self.s2t.license_dict.items() } if s2t != None else { 
-			"Don't set license":0,"SSE/128":1,"AVX2/256 Light":2, "AVX2/256 Heavy":3, 
+		self.license_data = {v:k for k,v in self.s2t.license_dict.items() } if s2t != None else {
+			"Don't set license":0,"SSE/128":1,"AVX2/256 Light":2, "AVX2/256 Heavy":3,
 			"AVX3/512 Light":4, "AVX3/512 Heavy":5, "TMUL Light":6, "TMUL Heavy":7
 		}
-		
+
 		self.enabledCores = []
-		
+
 		self.create_ui()
-	
+
 	def create_ui(self):
 		"""Create simple UI with ttk widgets"""
 		# Main container
 		main_frame = ttk.Frame(self.root, padding="10")
 		main_frame.grid(row=0, column=0, sticky="nsew")
-		
+
 		row = 0
-		
+
 		# Title
 		title_text = f"{self.mode.upper()} Quick Defeature Tool - {self.product}"
 		ttk.Label(main_frame, text=title_text, font=('Segoe UI', 11, 'bold')).grid(row=row, column=0, columnspan=2, pady=(0, 10), sticky="w")
 		row += 1
-		
+
 		# Domain/Mask Configuration
 		config_label_text = f"{self.domain_type} Configuration:" if self.mode == 'mesh' else "Target Physical Core:"
 		ttk.Label(main_frame, text=config_label_text).grid(row=row, column=0, padx=10, pady=5, sticky="w")
@@ -166,7 +166,7 @@ class QuickDefeatureTool:
 		self.mesh_config_dropdown = ttk.Combobox(main_frame, textvariable=self.mesh_config_var, values=self.mesh_config_options)
 		self.mesh_config_dropdown.grid(row=row, column=1, padx=10, pady=5, sticky="w")
 		row += 1
-		
+
 		# License Level
 		ttk.Label(main_frame, text="Core License:").grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.license_level_var = tk.StringVar(value="Don't set license")
@@ -174,36 +174,36 @@ class QuickDefeatureTool:
 		self.license_level_dropdown = ttk.Combobox(main_frame, textvariable=self.license_level_var, values=self.license_level_options)
 		self.license_level_dropdown.grid(row=row, column=1, padx=10, pady=5, sticky="w")
 		row += 1
-		
+
 		# Separator
 		ttk.Separator(main_frame, orient='horizontal').grid(row=row, column=0, columnspan=2, sticky="ew", pady=5)
 		row += 1
-		
+
 		# Frequency Defeature
 		ttk.Label(main_frame, text="Frequency Defeature:").grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.freq_defeature_var = tk.BooleanVar()
 		self.freq_defeature_checkbox = ttk.Checkbutton(main_frame, variable=self.freq_defeature_var, command=self.toggle_frequency_fields)
 		self.freq_defeature_checkbox.grid(row=row, column=1, padx=10, pady=5, sticky="w")
 		row += 1
-		
+
 		# Flat Core Frequency
 		ttk.Label(main_frame, text="Flat Core Frequency (MHz):").grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.flat_core_freq_entry = ttk.Entry(main_frame)
 		self.flat_core_freq_entry.grid(row=row, column=1, padx=10, pady=5, sticky="w")
 		self.flat_core_freq_entry.config(state='disabled')
 		row += 1
-		
+
 		# Flat Mesh Frequency
 		ttk.Label(main_frame, text="Flat Mesh Frequency (MHz):").grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.flat_mesh_freq_entry = ttk.Entry(main_frame)
 		self.flat_mesh_freq_entry.grid(row=row, column=1, padx=10, pady=5, sticky="w")
 		self.flat_mesh_freq_entry.config(state='disabled')
 		row += 1
-		
+
 		# Separator
 		ttk.Separator(main_frame, orient='horizontal').grid(row=row, column=0, columnspan=2, sticky="ew", pady=5)
 		row += 1
-		
+
 		# Voltage Defeature
 		ttk.Label(main_frame, text="Voltage Defeature Mode:").grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.volt_defeature_var = tk.StringVar(value="None")
@@ -212,7 +212,7 @@ class QuickDefeatureTool:
 		self.volt_defeature_dropdown.bind("<<ComboboxSelected>>", self.update_voltage_fields)
 		self.volt_defeature_dropdown.grid(row=row, column=1, padx=10, pady=5, sticky="w")
 		row += 1
-		
+
 		# Core vBumps
 		self.core_vbumps_label = ttk.Label(main_frame, text="Core Voltage:")
 		self.core_vbumps_label.grid(row=row, column=0, padx=10, pady=5, sticky="w")
@@ -220,7 +220,7 @@ class QuickDefeatureTool:
 		self.core_vbumps_entry.grid(row=row, column=1, padx=10, pady=5, sticky="w")
 		self.core_vbumps_entry.config(state='disabled')
 		row += 1
-		
+
 		# Mesh vBumps
 		self.mesh_vbumps_label = ttk.Label(main_frame, text="Mesh Voltage:")
 		self.mesh_vbumps_label.grid(row=row, column=0, padx=10, pady=5, sticky="w")
@@ -228,11 +228,11 @@ class QuickDefeatureTool:
 		self.mesh_vbumps_entry.grid(row=row, column=1, padx=10, pady=5, sticky="w")
 		self.mesh_vbumps_entry.config(state='disabled')
 		row += 1
-		
+
 		# Separator
 		ttk.Separator(main_frame, orient='horizontal').grid(row=row, column=0, columnspan=2, sticky="ew", pady=5)
 		row += 1
-		
+
 		# ATE Registers
 		reg_label_text = "ATE Registers Configuration:" if self.mode == 'slice' else "ATE Registers (Mesh Disabled):"
 		ttk.Label(main_frame, text=reg_label_text).grid(row=row, column=0, padx=10, pady=5, sticky="w")
@@ -242,95 +242,95 @@ class QuickDefeatureTool:
 		if self.mode == 'mesh':
 			self.registers_checkbox.config(state=tk.DISABLED)
 		row += 1
-		
+
 		# Registers Min
 		ttk.Label(main_frame, text="ATE Regs Min (0x0):").grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.registers_min_entry = ttk.Entry(main_frame)
 		self.registers_min_entry.grid(row=row, column=1, padx=10, pady=5, sticky="w")
 		self.registers_min_entry.config(state='disabled')
 		row += 1
-		
+
 		# Registers Max
 		ttk.Label(main_frame, text="ATE Regs Max (0xFFFF):").grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.registers_max_entry = ttk.Entry(main_frame)
 		self.registers_max_entry.grid(row=row, column=1, padx=10, pady=5, sticky="w")
 		self.registers_max_entry.config(state='disabled')
 		row += 1
-		
+
 		# Separator
 		ttk.Separator(main_frame, orient='horizontal').grid(row=row, column=0, columnspan=2, sticky="ew", pady=5)
 		row += 1
-		
+
 		# Options
 		self.fastboot_var = tk.BooleanVar(value=True)
 		self.fastboot_checkbox = ttk.Checkbutton(main_frame, text="FastBoot", variable=self.fastboot_var, state='disabled')
 		self.fastboot_checkbox.grid(row=row, column=0, padx=10, pady=5, sticky="w")
-		
+
 		self.reset_unit_var = tk.BooleanVar()
 		self.reset_unit_checkbox = ttk.Checkbutton(main_frame, text="Reset Unit", variable=self.reset_unit_var)
 		self.reset_unit_checkbox.grid(row=row, column=1, padx=10, pady=5, sticky="w")
 		row += 1
-		
+
 		self.ht_disable_var = tk.BooleanVar()
 		self.ht_disable_checkbox = ttk.Checkbutton(main_frame, text="HT Disable", variable=self.ht_disable_var)
 		self.ht_disable_checkbox.grid(row=row, column=0, padx=10, pady=5, sticky="w")
-		
+
 		self.w600_var = tk.BooleanVar()
 		self.w600_checkbox = ttk.Checkbutton(main_frame, text="600W Fuses", variable=self.w600_var, command=self.toggle_600w_fields)
 		self.w600_checkbox.grid(row=row, column=1, padx=10, pady=5, sticky="w")
 		row += 1
-		
+
 		# Disable 2 Cores per module (GNR/CWF)
 		ttk.Label(main_frame, text="Disable 2C Module:").grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.dis_2CPM_var = tk.StringVar(value="None")
 		self.dis_2CPM_dropdown = ttk.Combobox(main_frame, textvariable=self.dis_2CPM_var, values=self.dis2cpm_options)
 		self.dis_2CPM_dropdown.grid(row=row, column=1, padx=10, pady=5, sticky="w")
 		row += 1
-		
+
 		# Disable 1 Core per module (DMR)
 		ttk.Label(main_frame, text="Disable 1C Module:").grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.dis_1CPM_var = tk.StringVar(value="None")
 		self.dis_1CPM_dropdown = ttk.Combobox(main_frame, textvariable=self.dis_1CPM_var, values=self.dis1cpm_options)
 		self.dis_1CPM_dropdown.grid(row=row, column=1, padx=10, pady=5, sticky="w")
 		row += 1
-		
+
 		# Separator
 		ttk.Separator(main_frame, orient='horizontal').grid(row=row, column=0, columnspan=2, sticky="ew", pady=5)
 		row += 1
-		
+
 		# Action Buttons
 		button_frame = ttk.Frame(main_frame)
 		button_frame.grid(row=row, column=0, columnspan=2, pady=10)
-		
+
 		self.run_button = ttk.Button(button_frame, text="Run Configuration", command=self.run)
 		self.run_button.pack(side=tk.LEFT, padx=5)
-		
+
 		self.cancel_button = ttk.Button(button_frame, text="Close", command=self.root.destroy)
 		self.cancel_button.pack(side=tk.LEFT, padx=5)
 		row += 1
-		
+
 		# Status Label
 		self.waiting_label = ttk.Label(main_frame, text="", foreground="orange")
 		self.waiting_label.grid(row=row, column=0, columnspan=2, pady=5)
 		row += 1
-		
+
 		# Progress Bar
 		self.progress_bar = ttk.Progressbar(main_frame, length=400, mode='determinate')
 		self.progress_bar.grid(row=row, column=0, columnspan=2, pady=(0, 5), sticky="ew")
 		self.progress_bar.grid_remove()  # Hidden by default
-		
+
 		# Progress info label (shows percentage and time remaining)
 		self.progress_info_label = ttk.Label(main_frame, text="", font=('Segoe UI', 8))
 		self.progress_info_label.grid(row=row+1, column=0, columnspan=2, pady=(0, 5))
 		self.progress_info_label.grid_remove()  # Hidden by default
-		
+
 		# Initialize mode-specific settings
 		if self.s2t != None:
 			self.show_ate()
 		self.modeselect()
 		if self.s2t != None:
 			self.features_check()
-		
+
 		# Bind fastboot check
 		self.mesh_config_var.trace_add("write", self.check_fastboot)
 
@@ -338,7 +338,7 @@ class QuickDefeatureTool:
 		cores = []
 		for listkeys in self.s2t.array['CORES'].keys():
 			cores.extend(self.s2t.array['CORES'][listkeys])
-		
+
 		self.enabledCores = cores
 
 	def modeselect(self):
@@ -346,7 +346,7 @@ class QuickDefeatureTool:
 		if self.mode == 'mesh':
 			self.registers_checkbox.config(state=tk.DISABLED)
 			self.ht_disable_checkbox.config(state=tk.NORMAL)
-			
+
 			# Enable appropriate disable dropdown based on product
 			# DMR uses dis_1CPM, GNR/CWF use dis_2CPM
 			if 'DMR' in self.product.upper():
@@ -363,14 +363,14 @@ class QuickDefeatureTool:
 			self.ht_disable_checkbox.config(state=tk.DISABLED)
 			self.dis_2CPM_dropdown.config(state=tk.DISABLED)
 			self.dis_1CPM_dropdown.config(state=tk.DISABLED)
-		
-		if self.s2t != None: 
+
+		if self.s2t != None:
 			if not self.s2t.qdf600w:
 				self.w600_checkbox.config(state=tk.DISABLED)
-		
-		if self.mesh_config_var.get() == 'None' or self.mode == 'slice': 
+
+		if self.mesh_config_var.get() == 'None' or self.mode == 'slice':
 			self.fastboot_checkbox.config(state='normal')
-			
+
 	def show_ate(self):
 		print('--- ATE Frequency Configurations Available --- ')
 		self.s2t.ate_data(mode=self.mode)
@@ -388,7 +388,7 @@ class QuickDefeatureTool:
 			self.fastboot_checkbox.config(state='disabled')
 		else:
 			if self.mesh_config_var.get() == 'None': self.fastboot_checkbox.config(state='normal')
-		
+
 	def toggle_voltage_fields(self):
 		state = 'normal' if self.volt_defeature_var.get() else 'disabled'
 		self.core_vbumps_entry.config(state=state)
@@ -396,29 +396,49 @@ class QuickDefeatureTool:
 
 	def update_voltage_fields(self, event=None):
 		selection = self.volt_defeature_var.get()
-		if selection == "None":
+		self.voltage_text(selection=selection)
+
+	def voltage_text(self, selection = 'vbump'):
+
+		configs_core = {
+					'GNR': {'vbump': "Core vBumps (-0.2V to 0.2V)",
+             				'fixed': "Core Fixed Voltage",
+                 			'ppvc': "Core PPVC Conditions"},
+					'CWF': {'vbump': "Module vBumps (-0.2V to 0.2V)(+HDC)",
+             				'fixed': "Module Fixed Voltage (+HDC)",
+                 			'ppvc': "Module PPVC Conditions"},
+					'DMR': {'vbump': "Module vBumps (-0.2V to 0.2V)(+MLC)",
+             				'fixed': "Module Fixed Voltage (+MLC)",
+				 			'ppvc': "Module PPVC Conditions"}
+					}
+
+		configs_mesh = {
+					'GNR': {'vbump': "Mesh vBumps (-0.2V to 0.2V)(+HDC)",
+             				'fixed': "Mesh Fixed Voltage (CFC/HDC)",
+                 			'ppvc': "Mesh PPVC Conditions"},
+					'CWF': {'vbump': "Mesh vBumps (-0.2V to 0.2V)",
+             				'fixed': "Mesh Fixed Voltage",
+                 			'ppvc': "Mesh PPVC Conditions"},
+					'DMR': {'vbump': "Mesh vBumps (-0.2V to 0.2V)",
+             				'fixed': "Mesh Fixed Voltage",
+                 			'ppvc': "Mesh PPVC Conditions"}
+					}
+		selection_states = {'vbump': 'normal', 'fixed': 'normal', 'ppvc': 'disabled'}
+
+		if self.product in configs_core and selection != 'None':
+
+			self.core_vbumps_label.config(text=configs_core[self.product][selection])
+			self.mesh_vbumps_label.config(text=configs_mesh[self.product][selection])
+			self.core_vbumps_entry.config(state=selection_states[selection])
+			self.mesh_vbumps_entry.config(state=selection_states[selection])
+		else:
 			self.core_vbumps_label.config(text="Core Voltage")
 			self.mesh_vbumps_label.config(text="Mesh Voltage")
 			self.core_vbumps_entry.config(state='disabled')
 			self.mesh_vbumps_entry.config(state='disabled')
-		elif selection == "vbump":
-			self.core_vbumps_label.config(text= "Core vBumps (-0.2V to 0.2V)" if 'GNR' in self.product else "Core Fixed Voltage (+HDC)")
-			self.mesh_vbumps_label.config(text= "Mesh vBumps (-0.2V to 0.2V)(+HDC)" if 'GNR' in self.product else "Mesh Fixed Voltage (CFC)")
-			self.core_vbumps_entry.config(state='normal')
-			self.mesh_vbumps_entry.config(state='normal')
-		elif selection == "fixed":
-			self.core_vbumps_label.config(text="Core Fixed Voltage" if 'GNR' in self.product else "Core vBumps (-0.2V to 0.2V)(+HDC)")
-			self.mesh_vbumps_label.config(text="Mesh Fixed Voltage (CFC/HDC)" if 'GNR' in self.product else "Mesh vBumps (-0.2V to 0.2V)")
-			self.core_vbumps_entry.config(state='normal')
-			self.mesh_vbumps_entry.config(state='normal')
-		elif selection == "ppvc":
-			self.core_vbumps_label.config(text="Core PPVC Conditions")
-			self.mesh_vbumps_label.config(text="Mesh PPVC Conditions")
-			self.core_vbumps_entry.config(state='disabled')
-			self.mesh_vbumps_entry.config(state='disabled')
 
 	def toggle_register_fields(self):
-		
+
 		if self.registers_var.get():
 			state = 'normal'
 			min_val = '0x0'
@@ -426,8 +446,8 @@ class QuickDefeatureTool:
 		else:
 			state = 'disabled'
 			min_val = '0xFFFF'
-			max_val = '0xFFFF'   			
-		
+			max_val = '0xFFFF'
+
 		self.registers_min_entry.config(state=state)
 		self.registers_max_entry.config(state=state)
 
@@ -465,13 +485,13 @@ class QuickDefeatureTool:
 		self.dis_2CPM_dropdown.config(state=tk.DISABLED)
 		self.dis_1CPM_dropdown.config(state=tk.DISABLED)
 		self.volt_defeature_dropdown.config(state=tk.DISABLED)
-		
+
 		self.w600_checkbox.config(state=tk.DISABLED)
-	
+
 	def features_check(self):
 		if self.features is None:
 			return
-			
+
 		license_level = not self.features['license_level']['enabled']
 		core_freq = not self.features['core_freq']['enabled']
 		mesh_freq = not self.features['mesh_freq']['enabled']
@@ -492,7 +512,9 @@ class QuickDefeatureTool:
 		if core_volt and mesh_cfc_volt: self.volt_defeature_dropdown.config(state=tk.DISABLED)
 		if core_volt: self.core_vbumps_entry.config(state=tk.DISABLED)
 		if mesh_cfc_volt: self.mesh_vbumps_entry.config(state=tk.DISABLED)
-		if fastboot: self.fastboot_checkbox.config(state=tk.DISABLED)
+		if fastboot:
+			self.fastboot_checkbox.config(state=tk.DISABLED)
+			self.fastboot_var.set(False)
 		if dis_2CPM: self.dis_2CPM_dropdown.config(state=tk.DISABLED)
 		if dis_1CPM: self.dis_1CPM_dropdown.config(state=tk.DISABLED)
 		if dis_ht: self.ht_disable_checkbox.config(state=tk.DISABLED)
@@ -512,11 +534,11 @@ class QuickDefeatureTool:
 
 		else:
 			print("Test Configuration Cancelled")
-	
+
 	def run_config(self):
 		self.waiting_label.config(text="Running Configuration..." + (" [TEST MODE]" if self.test_mode else ""))
 		self.disablefields()
-		
+
 		# Determine expected time based on fastboot setting and test mode
 		if self.test_mode:
 			self.expected_time = self.TEST_MODE_FASTBOOT if self.fastboot_var.get() else self.TEST_MODE_NORMAL
@@ -524,22 +546,22 @@ class QuickDefeatureTool:
 			self.expected_time = self.EXPECTED_TIME_FASTBOOT if self.fastboot_var.get() else self.EXPECTED_TIME_NORMAL
 		self.start_time = time.time()
 		self.is_running = True  # Flag to track if config is running
-		
+
 		# Configure progress bar style BEFORE showing it
 		style = ttk.Style()
 		style.configure("green.Horizontal.TProgressbar", foreground='green', background='green')
 		style.configure("red.Horizontal.TProgressbar", foreground='red', background='red')
-		
+
 		# Show progress bar and info label
 		self.progress_bar['maximum'] = 100
 		self.progress_bar['value'] = 0
 		self.progress_bar.configure(style="green.Horizontal.TProgressbar")
 		self.progress_bar.grid()
 		self.progress_info_label.grid()
-		
+
 		# Force UI update to show initial state
 		self.root.update_idletasks()
-		
+
 		threading.Thread(target=self.run_config_thread, daemon=True).start()
 		# Schedule the first timer update to run in the UI thread
 		self.root.after(1000, self.update_timer)
@@ -553,24 +575,24 @@ class QuickDefeatureTool:
 			print(f"  FastBoot: {self.fastboot_var.get()}")
 			print(f"  Expected Duration: {self.expected_time} seconds")
 			print("=" * 60)
-			
+
 			# Sleep in small increments so we can see progress
 			for i in range(int(self.expected_time)):
 				time.sleep(1)
 				if i % 5 == 0:
 					print(f"  ... {i} seconds elapsed (progress: {(i/self.expected_time)*100:.1f}%)")
-			
+
 			print("=" * 60)
 			print("TEST MODE: Configuration simulation complete!")
 			print("=" * 60)
 			self.root.after(0, self.run_config_done)
 			return
-		
+
 		# Runs Init Flow again to reboot the unit
 		if self.mode == "mesh":
 			if self.s2t.reset_start:
 				self.s2t.mesh_init()
-			
+
 			# Set Voltage configs
 			self.s2t.set_voltage()
 
@@ -582,7 +604,7 @@ class QuickDefeatureTool:
 		if self.mode == "slice":
 			if self.s2t.reset_start:
 				self.s2t.slice_init()
-			
+
 			# Set Voltage configs
 			self.s2t.set_voltage()
 
@@ -599,30 +621,30 @@ class QuickDefeatureTool:
 		self.waiting_label.config(text="")
 		self.run_button.config(state=tk.NORMAL)
 		self.cancel_button.config(state=tk.NORMAL)
-		
+
 		# Hide progress bar and info label
 		self.progress_bar.grid_remove()
 		self.progress_info_label.grid_remove()
-		
+
 		messagebox.showinfo("Info", "Configuration run successfully")
 
 	def update_timer(self):
 		# Check if we should stop updating
 		if not hasattr(self, 'is_running') or not self.is_running:
 			return
-			
+
 		elapsed_time = int(time.time() - self.start_time)
-		
+
 		# Calculate progress percentage
 		progress_percent = min(100, (elapsed_time / self.expected_time) * 100)
-		
+
 		# Debug output in test mode
 		if self.test_mode:
 			print(f"[Timer Update] Progress: {progress_percent:.1f}% | Elapsed: {elapsed_time}s/{self.expected_time}s | Bar: {self.progress_bar['value']:.1f}")
-		
+
 		# Update progress bar value - set it explicitly
 		self.progress_bar['value'] = progress_percent
-		
+
 		# Change color to red if exceeding expected time
 		if elapsed_time > self.expected_time:
 			self.progress_bar.configure(style="red.Horizontal.TProgressbar")
@@ -632,14 +654,14 @@ class QuickDefeatureTool:
 			mins_remaining = time_remaining // 60
 			secs_remaining = time_remaining % 60
 			status_text = f"Est. time remaining: {mins_remaining}m {secs_remaining}s"
-		
+
 		# Update labels
 		self.waiting_label.config(text=f"Running... Time elapsed: {elapsed_time // 60}m {elapsed_time % 60}s")
 		self.progress_info_label.config(
 			text=f"{progress_percent:.1f}% - {status_text}",
 			foreground="red" if elapsed_time > self.expected_time else "blue"
 		)
-		
+
 		# Force complete UI update to ensure progress bar redraws
 		try:
 			# This is the key - update the entire window to force redraw
@@ -648,11 +670,11 @@ class QuickDefeatureTool:
 			self.progress_bar.update()
 		except:
 			pass  # In case window is closing
-		
+
 		# Keep updating while config is running
 		if self.is_running:
-			self.root.after(1000, self.update_timer)		
-	
+			self.root.after(1000, self.update_timer)
+
 	def get_options(self):
 
 		# Registers entry values
@@ -685,12 +707,12 @@ class QuickDefeatureTool:
 			return default
 		if value == '':
 			return default
-		
+
 		if isinstance(value, str):
 			return int(value, 0)
-		
+
 		return value
-	
+
 	def updates2t(self, options):
 		# In test mode or when s2t is None, skip updating s2t attributes
 		if self.test_mode or self.s2t is None:
@@ -706,7 +728,7 @@ class QuickDefeatureTool:
 		dis_1CPM = options["Disable 1C Module"]
 		Mask = options["Configuration"]
 		vtype = options["Voltage Defeature"]
-		 
+
 		self.s2t.fastboot = options["FastBoot"]
 		self.s2t.reset_start = options["Reset Unit"]
 		self.s2t.dis_ht = options["HT Disable"]
@@ -715,7 +737,7 @@ class QuickDefeatureTool:
 		self.s2t.cr_array_start = options["Registers Min"]
 		self.s2t.reg_select = options["Registers Select"]
 		self.s2t.u600w = options['600W Unit']
-		
+
 		if dis_2CPM in self.dis2cpm_valid:
 			self.s2t.dis_2CPM = dis_2CPM
 		if dis_1CPM in self.dis1cpm_valid:
@@ -734,18 +756,18 @@ class QuickDefeatureTool:
 			customs = {'LeftSide':self.s2t.left_hemispthere,'RightSide':self.s2t.right_hemispthere}
 			domain_names = list(self.s2t.domains)  # Use domains instead of computes
 			if vbump_core != None:
-				#self.s2t.voltselect = 3
+				print(f"Setting Core {vtype} to:", vbump_core)
 				self.s2t.qvbumps_core = vbump_core
 			if vbump_mesh != None:
-				#self.s2t.voltselect = 3
-				self.s2t.qvbumps_mesh = vbump_mesh			
+				print(f"Setting Mesh {vtype} to:", vbump_mesh)
+				self.s2t.qvbumps_mesh = vbump_mesh
 			if Mask in valid_configs.keys():
 				self.s2t.targetTile = 1
 				self.s2t.target = Mask
 				#self.s2t.fastboot = False
 			elif any(dom == Mask.lower() for dom in domain_names): # Check against domain names
 				self.s2t.targetTile = 2
-				self.s2t.target = Mask.lower() 
+				self.s2t.target = Mask.lower()
 				#self.s2t.fastboot = False
 			elif Mask in customs.keys():
 				self.s2t.targetTile = 3
@@ -761,12 +783,12 @@ class QuickDefeatureTool:
 				self.s2t.qvbumps_core = vbump_core
 			if vbump_mesh != None:
 				#self.s2t.voltselect = 2
-				self.s2t.qvbumps_mesh = vbump_mesh		
+				self.s2t.qvbumps_mesh = vbump_mesh
 			self.s2t.targetLogicalCore = int(Mask)
 
 		# Run Mesh
 		#s2tTest.setupMeshMode()
-	
+
 def dict2table(dict, header = []):
 	table = [header]
 	for k,v in dict.items():
@@ -793,9 +815,9 @@ if __name__ == "__main__":
 	# Test mode: Run without S2T connection to test UI timer and progress bar
 	# Set test_mode=True to use shorter durations (30s/60s instead of 10min/20min)
 	TEST_MODE = True  # Change to False for production use
-	
+
 	s2t = None  # No S2T object in test mode
-	
+
 	print("\n" + "=" * 60)
 	if TEST_MODE:
 		print("RUNNING IN TEST MODE")
@@ -806,8 +828,8 @@ if __name__ == "__main__":
 	else:
 		print("RUNNING IN PRODUCTION MODE (requires S2T connection)")
 	print("=" * 60 + "\n")
-	
-	mesh_ui(s2t, 'GNR', test_mode=TEST_MODE)
+
+	mesh_ui(s2t, 'DMR', test_mode=TEST_MODE)
 	#root = tk.Tk()
 	#app = QuickDefeatureTool(s2t, 'mesh', 'GNR')
 	#root.mainloop()
