@@ -616,12 +616,16 @@ class SystemBooter:
 
 		# Execute with retry logic
 		bootcont = 'b.cont'
-		boot_pass = self._retry_boot(
-			boot_string=self.boot_string,
-			bootcont=bootcont,
-			n=BOOTSCRIPT_RETRY_TIMES,
-			delay=BOOTSCRIPT_RETRY_DELAY
-		)
+		if not debug:
+			boot_pass = self._retry_boot(
+				boot_string=self.boot_string,
+				bootcont=bootcont,
+				n=BOOTSCRIPT_RETRY_TIMES,
+				delay=BOOTSCRIPT_RETRY_DELAY
+			)
+		else:
+			print(Fore.MAGENTA + 'Debug mode - skipping bootscript execution')
+			boot_pass = True
 
 		if not boot_pass:
 			raise ValueError("!!!FAIL -- Max number of bootscript retries reached")
@@ -657,11 +661,12 @@ class SystemBooter:
 		print(Fore.YELLOW + "*** Starting Unit Fast Boot Fuse Override ***".center(90))
 		print(Fore.YELLOW + "*" * 90)
 
-		fuse_cmd_override_reset(
-			fuse_cmd_array=self.fuse_str,
-			s2t=True,
-			execution_state=self.execution_state
-		)
+		if not debug:
+			fuse_cmd_override_reset(
+				fuse_cmd_array=self.fuse_str,
+				s2t=True,
+				execution_state=self.execution_state
+			)
 
 		# Wait for appropriate postcode
 		if self.config.stop_after_mrc:
@@ -886,11 +891,14 @@ class SystemBooter:
 		_ia = []
 		_llc = []
 
+		print(f"Generating Bootscript string with CoreMask: {self.coremask}")
+		print(f"Generating Bootscript string with SliceMask: {self.slicemask}")
+
 		if self.coremask is None:
 			boot_disable_ia = ''
 		else:
 			for key, value in self.coremask.items():
-				_ia.append(f'"cbb_base_{key[-1]}":{hex(value)}')
+				_ia.append(f'"cbb_base{key[-1]}":{hex(value)}')
 			disable_ia = ','.join(_ia)
 			boot_disable_ia = f' ia_core_disable = {{{disable_ia}}},'
 
@@ -898,9 +906,12 @@ class SystemBooter:
 			boot_disable_llc = ''
 		else:
 			for key, value in self.slicemask.items():
-				_llc.append(f'"cbb_base_{key[-1]}":{hex(value)}')
+				_llc.append(f'"cbb_base{key[-1]}":{hex(value)}')
 			disable_llc = ','.join(_llc)
 			boot_disable_llc = f' llc_slice_disable = {{{disable_llc}}},'
+
+		print(f'Boot Disable IA String: {boot_disable_ia}')
+		print(f'Boot Disable LLC String: {boot_disable_llc}')
 
 		return boot_disable_ia, boot_disable_llc
 
@@ -1437,7 +1448,22 @@ class System2Tester():
 		first_zero = binMask[::-1].find('0')
 		disMask = ~(1 << (first_zero)) & ((1 << config.MODS_PER_CBB)-1)
 
-		return disMask
+		return disMask, first_zero
+
+	def generate_compute_first_slice_mask(self, cbb, target_core) -> dict:
+		new_compute_mask = 0
+		computes = cbb.computes
+		target_compute = int((target_core % config.MODS_PER_CBB) / config.MODS_PER_COMPUTE) # Target Compute based on CBB
+		for compute in computes:
+			#compute_name = compute.name
+			computeN = compute.instance
+			if computeN == target_compute:
+				new_compute_mask |= (0 << (computeN * config.MODS_PER_COMPUTE))
+			else:
+				new_compute_mask |= (0xFF << (computeN * config.MODS_PER_COMPUTE))
+		print(f"{cbb.name.upper()}: Generated new compute mask:  {hex(new_compute_mask)}")
+
+		return new_compute_mask
 
 	def convert_cbb_mask_to_compute_mask(self, cbb_masks: dict) -> dict:
 		cbbs = self.cbbs
@@ -1525,11 +1551,15 @@ class System2Tester():
 
 			if int(cbbN) == target_cbb:
 				_moduleMasks[cbb_name] = modulemask | masks[f'ia_{cbb_name}']
-				_llcMasks[cbb_name] = masks[f'llc_{cbb_name}']
+				new_llc_mask = self.generate_compute_first_slice_mask(cbb, self.target)
+				_llcMasks[cbb_name] = new_llc_mask | masks[f'llc_{cbb_name}']
+				#_llcMasks[cbb_name] = masks[f'llc_{cbb_name}']
 			else:
-				disMask = self.generate_first_enabled_mask(masks=masks, cbb_name=cbb_name)
+				disMask, first_zero = self.generate_first_enabled_mask(masks=masks, cbb_name=cbb_name)
 				_moduleMasks[cbb_name] = disMask | masks[f'ia_{cbb_name}']
-				_llcMasks[cbb_name] = masks[f'llc_{cbb_name}']
+
+				new_llc_mask = self.generate_compute_first_slice_mask(cbb, first_zero)
+				_llcMasks[cbb_name] = new_llc_mask | masks[f'llc_{cbb_name}']
 
 		for cbb_name in cbbs.name:
 			# Print masks
@@ -1658,11 +1688,12 @@ class System2Tester():
 			cbbN = cbb.target_info.instance
 
 			if cbb not in target_cbb:
-				disMask = self.generate_first_enabled_mask(masks=masks, cbb_name=cbb_name)
+				disMask, first_zero = self.generate_first_enabled_mask(masks=masks, cbb_name=cbb_name)
+				new_llc_mask = self.generate_compute_first_slice_mask(cbb, first_zero)
 
 				print(f"\n\t{cbb_name.upper()} not selected, enabling only the first available slice")
 				_moduleMasks[cbb_name] = disMask |  masks[f'llc_{cbb_name}']
-				_llcMasks[cbb_name] = disMask |  masks[f'llc_{cbb_name}']
+				_llcMasks[cbb_name] = new_llc_mask |  masks[f'llc_{cbb_name}']
 
 			## If compute is not being disabled keep original Mask
 			else:
@@ -1823,6 +1854,9 @@ class System2Tester():
 			'cfc_mem_p1': cfc_mem_p1,
 			'cfc_mem_pm': cfc_mem_pm
 		}
+
+		# Re-initialize SystemBooter to ensure it has the latest configuration - Might only need it here check later
+		self._init_system_booter()
 
 		# Apply global configuration
 		#self._apply_global_boot_config()
@@ -2291,7 +2325,7 @@ def CheckMasks(readfuse = True, extMasks=None):
 		print(Fore.YELLOW +f' !!! ({type(extMasks)} : {extMasks})' + Fore.WHITE)
 		masks = extMasks
 
-	array = {'IA':{},
+	array = {'CORES':{},
 				'LLC':{}} # Dictionary to save both masks
 
 	for cbb in sv.socket0.cbbs: # For each Compute
@@ -2306,12 +2340,12 @@ def CheckMasks(readfuse = True, extMasks=None):
 		llcs = _enabled_bit_array(_slices) # get physical indexes of enabled LLCs
 		llc_array = [x + ((cbbN)*config.MODS_PER_CBB) for x in llcs] # Put previous indexes as global physical indexes in an array
 
-		array['IA'][cbb_name] = ia_array # Add module indexes array into the return dictionary
+		array['CORES'][cbb_name] = ia_array # Add module indexes array into the return dictionary
 		array['LLC'][cbb_name] = llc_array # Add LLC indexes array into the return dictionary
 
 	return masks, array
 
-def modulesEnabled(moduleslicemask=None, logical=False, skip = False, print_modules = True, print_llcs = True, rdFuses=True):
+def modulesEnabled(moduleslicemask=None, logical=False, skip = False, print_modules = True, print_llcs = True, rdfuses=True):
 	'''
 	Prints a  mini-tileview table of enabled modules
 
@@ -2327,7 +2361,7 @@ def modulesEnabled(moduleslicemask=None, logical=False, skip = False, print_modu
 
 	max_modules_cbb = config.MODS_PER_CBB # Modules per compute
 
-	masks = dpm.fuses(rdFuses = rdFuses, sktnum =[0]) # Get Module and LLC masks
+	masks = dpm.fuses(rdFuses = rdfuses, sktnum =[0]) # Get Module and LLC masks
 
 	for socket in sv.sockets: # For each socket
 

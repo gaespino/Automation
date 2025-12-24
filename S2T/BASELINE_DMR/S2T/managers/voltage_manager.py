@@ -262,7 +262,7 @@ class VoltageManager:
 
 		# Configure uncore voltages (CFC/HDC)
 		self.configure_uncore_voltages(fixed=True, external=external,
-									   qvbumps_mesh=None, input_func=input_func)
+									   qvbumps_mesh=qvbumps_mesh, input_func=input_func)
 
 		if not external:
 			# IO and DDR voltages
