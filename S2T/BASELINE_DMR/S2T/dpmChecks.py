@@ -1651,7 +1651,15 @@ def chop_str():
 	return chop
 
 def get_compute_index(core=None):
-	return int(core/config.MAXPHYSICAL)
+	return int((core % config.MODS_PER_CBB) / config.MODS_PER_COMPUTE)
+
+def get_cbb_index(core=None):
+	return int(core/config.MODS_PER_CBB)
+
+def get_single_compute_apic_location(core=None):
+	target_compute = get_compute_index(core=core)
+	apic_location = core - target_compute * 8
+	return apic_location
 
 def ppvc_option():
 	selection = None
@@ -2360,7 +2368,7 @@ def read_fuse_array(fuse_array, skip_init=False):
 	f.read_array(fuse_array=fuse_array, skip_init=skip_init, load_fuses=False)
 
 ## Uses USB Splitter controller to power cycle / on / off the unit --
-def powercycle(stime = 10, ports = [1,2]):
+def powercycle(stime = 20, ports = [1,2]):
 	import toolext.bootscript.toolbox.power_control.USBPowerSplitterFullControl as pwsc
 
 	print('Power cycling the unit using USB...')

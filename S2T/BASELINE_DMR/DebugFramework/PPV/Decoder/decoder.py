@@ -1023,12 +1023,17 @@ class decoder():
 				if not pattern_data.empty:
 					mem_filtered = pd.concat([mem_filtered, pattern_data], ignore_index=True)
 			
+			# Check if mem_filtered has data and required column before proceeding
+			if mem_filtered.empty or 'TestName' not in mem_filtered.columns:
+				print(f' -- No Memory MCA data found in VID: {visual_id}')
+				continue
+			
 			# Further filter for STATUS registers
 			mc_filtered = self.extract_value(mem_filtered, 'TestName', '_STATUS|_MC_STATUS|_MCI_STATUS')
 			
 			# If no MCA is found move to the next VID
 			if mc_filtered.empty:
-				print(f' -- No Memory MCA data found in VID: {visual_id}')
+				print(f' -- No Memory MCA STATUS registers found in VID: {visual_id}')
 				continue
 			
 			# This will iterate over all the Memory MCAs
@@ -1227,12 +1232,17 @@ class decoder():
 				if not pattern_data.empty:
 					io_filtered = pd.concat([io_filtered, pattern_data], ignore_index=True)
 			
+			# Check if io_filtered has data and required column before proceeding
+			if io_filtered.empty or 'TestName' not in io_filtered.columns:
+				print(f' -- No IO MCA data found in VID: {visual_id}')
+				continue
+			
 			# Further filter for STATUS registers
 			mc_filtered = self.extract_value(io_filtered, 'TestName', '_STATUS|_MC_STATUS|_MCI_STATUS|_MC_ST')
 			
 			# If no MCA is found move to the next VID
 			if mc_filtered.empty:
-				print(f' -- No IO MCA data found in VID: {visual_id}')
+				print(f' -- No IO MCA STATUS registers found in VID: {visual_id}')
 				continue
 			
 			# This will iterate over all the IO MCAs

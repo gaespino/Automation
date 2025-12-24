@@ -328,11 +328,12 @@ class QuickDefeatureTool:
 		if self.s2t != None:
 			self.show_ate()
 		self.modeselect()
-		if self.s2t != None:
-			self.features_check()
 
 		# Bind fastboot check
 		self.mesh_config_var.trace_add("write", self.check_fastboot)
+
+		if self.s2t != None:
+			self.features_check()
 
 	def corelist(self):
 		cores = []

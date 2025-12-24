@@ -546,8 +546,8 @@ class decoder_dmr():
 				if not pattern_data.empty:
 					io_filtered = pd.concat([io_filtered, pattern_data], ignore_index=True)
 			
-			# Check if io_filtered is empty before trying to filter further
-			if io_filtered.empty:
+			# Check if io_filtered has data and required column before proceeding
+			if io_filtered.empty or 'TestName' not in io_filtered.columns:
 				print(f' -- No IO MCA data found in VID: {visual_id}')
 				continue
 			
@@ -856,8 +856,8 @@ class decoder_dmr():
 				if not pattern_data.empty:
 					mem_filtered = pd.concat([mem_filtered, pattern_data], ignore_index=True)
 			
-			# Check if mem_filtered is empty before trying to filter further
-			if mem_filtered.empty:
+			# Check if mem_filtered has data and required column before proceeding
+			if mem_filtered.empty or 'TestName' not in mem_filtered.columns:
 				print(f' -- No Memory MCA data found in VID: {visual_id}')
 				continue
 			

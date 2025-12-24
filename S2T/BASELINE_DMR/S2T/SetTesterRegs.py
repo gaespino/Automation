@@ -2055,13 +2055,13 @@ def reboot_pm():
 
 ## Prints VVAR default configuration
 def vvars_call(slice = True, logCore=None, corestring = 'CORE'):
-	# GNR / CWF
-	VVAR2_DEFAULT = 0x1000002 if corestring == 'CORE' else 0x1000004 # 2 Threads
+	# DMR
+	VVAR2_DEFAULT = 0x1000002 #if corestring == 'CORE' else 0x1000002 # 2 Threads
 
 	if slice:
 		targetLogicalCore = logCore
 		try:
-			apic_0, apic_1 = scm._core_apic_id(core = logCore)
+			apic_0, apic_1 = scm._module_apic_id(phys_module = logCore)
 		except:
 			print('!!! Error Collecting APIC IDs Data --')
 			apic_0 = None

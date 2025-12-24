@@ -307,6 +307,16 @@ class decoder():
 			return self.dmr_decoder.ccf()
 		
 		mcdata = self.data
+		
+		# Check if required columns exist
+		required_columns = ['VisualId', 'TestName']
+		missing_columns = [col for col in required_columns if col not in mcdata.columns]
+		if missing_columns:
+			print(f' !!! ERROR: Missing required columns in MCA data: {missing_columns}')
+			print(f' !!! Available columns: {list(mcdata.columns)}')
+			print(f' !!! Returning empty DataFrame. Please check your input Excel file structure.')
+			return pd.DataFrame()
+		
 		# Initialize the new dataframe
 		columns = ['VisualID', 'Run', 'Operation', 'CHA_MC', 'Compute', 'CHA', 'MC_STATUS', 'MC DECODE','MC_ADDR', 'MC_MISC', 'MC_MISC3','Orig Req','Opcode','cachestate','TorID','TorFSM','SrcID','ISMQ','Attribute','Result','Local Port']
 		#new_df = pd.DataFrame(columns=columns)
@@ -438,6 +448,16 @@ class decoder():
 			return pd.DataFrame()  # Return empty DataFrame for DMR (LLC is in CCF)
 		
 		mcdata = self.data
+		
+		# Check if required columns exist
+		required_columns = ['VisualId', 'TestName']
+		missing_columns = [col for col in required_columns if col not in mcdata.columns]
+		if missing_columns:
+			print(f' !!! ERROR: Missing required columns in MCA data: {missing_columns}')
+			print(f' !!! Available columns: {list(mcdata.columns)}')
+			print(f' !!! Returning empty DataFrame. Please check your input Excel file structure.')
+			return pd.DataFrame()
+		
 		# Initialize the new dataframe
 		columns = ['VisualID', 'Run', 'Operation', 'LLC_MC', 'Compute', 'LLC', 'MC_STATUS', 'MC DECODE','MC_ADDR','MC_MISC', 'MiscV','RSF','LSF','LLC_misc']
 		#new_df = pd.DataFrame(columns=columns)
@@ -1002,6 +1022,16 @@ class decoder():
 			return self.dmr_decoder.mem()
 		
 		mcdata = self.data
+		
+		# Check if required columns exist
+		required_columns = ['VisualId', 'TestName']
+		missing_columns = [col for col in required_columns if col not in mcdata.columns]
+		if missing_columns:
+			print(f' !!! ERROR: Missing required columns in MCA data: {missing_columns}')
+			print(f' !!! Available columns: {list(mcdata.columns)}')
+			print(f' !!! Returning empty DataFrame. Please check your input Excel file structure.')
+			return pd.DataFrame()
+		
 		# Initialize the new dataframe - Added Type column
 		columns = ['VisualID', 'Run', 'Operation', 'Type', 'MEM_MC', 'Instance', 'MC_STATUS', 'MCACOD', 'MC_DECODE', 'MC_ADDR', 'MC_MISC']
 		
@@ -1023,12 +1053,17 @@ class decoder():
 				if not pattern_data.empty:
 					mem_filtered = pd.concat([mem_filtered, pattern_data], ignore_index=True)
 			
+			# Check if mem_filtered has data and required column before proceeding
+			if mem_filtered.empty or 'TestName' not in mem_filtered.columns:
+				print(f' -- No Memory MCA data found in VID: {visual_id}')
+				continue
+			
 			# Further filter for STATUS registers
 			mc_filtered = self.extract_value(mem_filtered, 'TestName', '_STATUS|_MC_STATUS|_MCI_STATUS')
 			
 			# If no MCA is found move to the next VID
 			if mc_filtered.empty:
-				print(f' -- No Memory MCA data found in VID: {visual_id}')
+				print(f' -- No Memory MCA STATUS registers found in VID: {visual_id}')
 				continue
 			
 			# This will iterate over all the Memory MCAs
@@ -1208,6 +1243,16 @@ class decoder():
 			return self.dmr_decoder.io()
 		
 		mcdata = self.data
+		
+		# Check if required columns exist
+		required_columns = ['VisualId', 'TestName']
+		missing_columns = [col for col in required_columns if col not in mcdata.columns]
+		if missing_columns:
+			print(f' !!! ERROR: Missing required columns in MCA data: {missing_columns}')
+			print(f' !!! Available columns: {list(mcdata.columns)}')
+			print(f' !!! Returning empty DataFrame. Please check your input Excel file structure.')
+			return pd.DataFrame()
+		
 		# Initialize the new dataframe - Added IO# column
 		columns = ['VisualID', 'Run', 'Operation', 'Type', 'IO_MC', 'IO', 'MC_STATUS', 'Instance', 'MCACOD', 'MC_DECODE', 'MC_ADDR', 'MC_MISC']
 		
@@ -1227,12 +1272,17 @@ class decoder():
 				if not pattern_data.empty:
 					io_filtered = pd.concat([io_filtered, pattern_data], ignore_index=True)
 			
+			# Check if io_filtered has data and required column before proceeding
+			if io_filtered.empty or 'TestName' not in io_filtered.columns:
+				print(f' -- No IO MCA data found in VID: {visual_id}')
+				continue
+			
 			# Further filter for STATUS registers
 			mc_filtered = self.extract_value(io_filtered, 'TestName', '_STATUS|_MC_STATUS|_MCI_STATUS|_MC_ST')
 			
 			# If no MCA is found move to the next VID
 			if mc_filtered.empty:
-				print(f' -- No IO MCA data found in VID: {visual_id}')
+				print(f' -- No IO MCA STATUS registers found in VID: {visual_id}')
 				continue
 			
 			# This will iterate over all the IO MCAs
