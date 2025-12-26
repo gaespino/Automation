@@ -1640,6 +1640,11 @@ def product_str(): # DMR will use device_name
 	product = config.PRODUCT_CONFIG.upper()
 	return product
 
+def get_selected_product(): # DMR will use device_name
+	#product = sv.socket0.target_info["device_name"].upper()
+	product = config.SELECTED_PRODUCT.upper()
+	return product
+
 def variant_str():
 	#variant = sv.socket0.target_info["variant"].upper()
 	variant = config.PRODUCT_VARIANT.upper()

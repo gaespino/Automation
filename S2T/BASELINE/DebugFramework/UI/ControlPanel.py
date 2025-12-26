@@ -2334,7 +2334,7 @@ class DebugFrameworkControlPanel:
 			self.Framework_utils = utils
 			# Extract product from FrameworkUtils (which reads from dpm.product_str())
 			try:
-				self.product = utils.get_product_str().upper()
+				self.product = utils.get_selected_product().upper()
 				print(f"[CONTROL PANEL] Product from FrameworkUtils: {self.product}")
 			except Exception as e:
 				print(f"[CONTROL PANEL] Failed to get product from utils: {e}")

@@ -151,7 +151,8 @@ from DebugFramework.ExecutionHandler.Configurations import (DragonConfiguration,
 											 TestTarget, VoltageType, TestType, TestStatus)
 
 ULX_CPU_DICT = {'GNR': 'GNR_B0',
-		   'CWF': 'CWF -gsv'}
+		   'CWF': 'CWF -gsv',
+		   'DMR': 'DMR'} # DMR APIC unlock is performed by MerlinX
 
 class ContentValues(Enum):
 	PRODUCT = s2t.config.SELECTED_PRODUCT
@@ -1730,7 +1731,7 @@ class Framework:
 		self.unit_data = None
 		self._current_strategy = None
 		self._current_executor = None
-		self.product = FrameworkUtils.get_product_str()
+		self.product = FrameworkUtils.get_selected_product()
 
 		# CRITICAL: Use queue-based status reporting instead of direct callback
 		self.status_manager = StatusUpdateManager(

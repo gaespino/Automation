@@ -242,6 +242,27 @@ class FrameworkUtils:
 		"""Get product string"""
 		return dpm.product_str()
 
+	@staticmethod
+	def get_selected_product() -> str:
+		"""Get product string"""
+		return dpm.get_selected_product()
+
+	@staticmethod
+	def ipc_credentials(username: str, password: str):
+		"""Enter IPC credentials"""
+		if s2tutils:
+			s2tutils.entercredentials(username, password)
+		else:
+			FrameworkUtils.FrameworkPrint('IPC Utils module not available, cannot set credentials.', 2)
+
+	@staticmethod
+	def ipc_clear_credentials():
+		"""Clear IPC credentials"""
+		if s2tutils:
+			s2tutils.clearcredentials()
+		else:
+			FrameworkUtils.FrameworkPrint('IPC Utils module not available, cannot clear credentials.', 2)
+
 
 #######################################################
 ########## 		Masking Script 

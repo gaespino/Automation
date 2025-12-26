@@ -14,7 +14,7 @@ except:
 	print( '[WARNING] CoreManipulation Module not imported, ignore if testing. ')
 	gcm = None
 
-try:	
+try:
     import users.gaespino.dev.S2T.dpmChecks as dpm
 except:
 	print( '[WARNING] DPM Checks Module not imported, ignore if testing. ')
@@ -30,7 +30,7 @@ try:
 except:
 	print( '[WARNING] System to Tester Utils Module not imported, ignore if testing. ')
 	s2tutils = None
-	
+
 current_dir= os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
@@ -65,7 +65,7 @@ class FrameworkUtils:
 	def FrameworkPrint(text: str, level: int = None):
 		"""Print framework messages with color coding"""
 		RESET_COLOR = Fore.WHITE
-		
+
 		if level == 0:
 			COLOR = Fore.YELLOW
 		elif level == 1:
@@ -74,16 +74,16 @@ class FrameworkUtils:
 			COLOR = Fore.RED
 		else:
 			COLOR = Fore.WHITE
-		
+
 		print(COLOR + text + RESET_COLOR)
-	
+
 	@staticmethod
 	def platform_check(com_port: str, ip_address: str):
 		"""Check platform configuration"""
 		TERATERM_PATH = ser.TERATERM_PATH
 		TERATERM_RVP_PATH = ser.TERATERM_RVP_PATH
 		TERATERM_INI_FILE = ser.TERATERM_INI_FILE
-		
+
 		fh.teraterm_check(
 			com_port=com_port,
 			ip_address=ip_address,
@@ -93,7 +93,7 @@ class FrameworkUtils:
 			useparser=False,
 			checkenv=True
 		)
-	
+
 	@staticmethod
 	def system_2_tester_default() -> Dict:
 		"""Get default system to tester configuration"""
@@ -116,16 +116,16 @@ class FrameworkUtils:
 	def Test_Macros_UI(root=None, data=None):
 		"""Run TTL macro UI"""
 		ser.run_ttl(root, data)
-	
+
 	@staticmethod
-	def TTL_Test(visual: str, cmds: Dict, bucket: str = 'Dummy', 
-				test: str = 'TTL Macro Validation', chkcore: int = None, 
-				ttime: int = 30, tnum: int = 1, content: str = 'Dragon', 
-				host: str = '192.168.0.2', PassString: str = 'Test Complete', 
+	def TTL_Test(visual: str, cmds: Dict, bucket: str = 'Dummy',
+				test: str = 'TTL Macro Validation', chkcore: int = None,
+				ttime: int = 30, tnum: int = 1, content: str = 'Dragon',
+				host: str = '192.168.0.2', PassString: str = 'Test Complete',
 				FailString: str = 'Test Failed', cancel_flag=False):
 		"""Run TTL test"""
 		qdf = dpm.qdf_str()
-		
+
 		ser.start(
 			visual=visual,
 			qdf=qdf,
@@ -146,21 +146,21 @@ class FrameworkUtils:
 	def get_unit_info() -> Dict:
 		"""Get unit information"""
 		return dpm.request_unit_info()
-	
+
 	@staticmethod
 	def reboot_unit(waittime: int = 60, u600w: bool = False, wait_postcode: bool = False):
 		"""Reboot unit"""
 		if not u600w:
-			dpm.powercycle(ports=[1])
+			dpm.powercycle(ports=[1,2], stime=40)
 		else:
 			dpm.reset_600w()
 			time.sleep(waittime)
-		
+
 		if wait_postcode:
 			time.sleep(waittime)
 			gcm._wait_for_post(gcm.EFI_POST, sleeptime=waittime)
 			gcm.svStatus(refresh=True)
-	
+
 	@staticmethod
 	def power_control(state: str = 'on', stime: int = 10):
 		"""Control unit power"""
@@ -172,7 +172,7 @@ class FrameworkUtils:
 			dpm.powercycle(stime=stime, ports=[1])
 		else:
 			FrameworkUtils.FrameworkPrint('-- No valid power configuration selected use: on, off or cycle', 2)
-	
+
 	@staticmethod
 	def power_status() -> bool:
 		"""Get power status"""
@@ -181,7 +181,7 @@ class FrameworkUtils:
 		except:
 			FrameworkUtils.FrameworkPrint('Not able to determine power status, setting it as off by default.', 2)
 			return False
-	
+
 	@staticmethod
 	def refresh_ipc():
 		"""Refresh IPC connection"""
@@ -189,7 +189,7 @@ class FrameworkUtils:
 			gcm.svStatus(refresh=True)
 		except:
 			FrameworkUtils.FrameworkPrint('!!! Unable to refresh SV and Unlock IPC. Issues with your system..', 2)
-	
+
 	@staticmethod
 	def reconnect_ipc():
 		"""Reconnect IPC"""
@@ -197,7 +197,7 @@ class FrameworkUtils:
 			gcm.svStatus(checkipc=True, checksvcores=False, refresh=False, reconnect=True)
 		except:
 			FrameworkUtils.FrameworkPrint('!!! Unable to execute ipc reconnect operation, check your system ipc connection status...', 2)
-	
+
 	@staticmethod
 	def warm_reset(waittime: int = 60, wait_postcode: bool = False):
 		"""Perform warm reset"""
@@ -205,12 +205,12 @@ class FrameworkUtils:
 			dpm.warm_reset()
 		except:
 			FrameworkUtils.FrameworkPrint('Failed while performing a warm reset...', 2)
-		
+
 		if wait_postcode:
 			time.sleep(waittime)
 			gcm._wait_for_post(gcm.EFI_POST, sleeptime=waittime)
 			gcm.svStatus(refresh=True)
-	
+
 	@staticmethod
 	def read_current_mask() -> Dict:
 		"""Read current mask configuration"""
@@ -225,17 +225,27 @@ class FrameworkUtils:
 			data_from_sheets = fh.process_excel_file(path)
 		else:
 			return None
-		
+
 		tabulated_df = fh.create_tabulated_format(data_from_sheets)
 		data_table = tabulate(tabulated_df, headers='keys', tablefmt='grid', showindex=False)
 		print(data_table)
-		
+
 		return data_from_sheets
 
 	@staticmethod
 	def Masks(basemask=None, root=None, callback=None):
 		"""Create debug mask"""
 		return DebugMask(basemask, root, callback)
+
+	@staticmethod
+	def get_product_str() -> str:
+		"""Get product string"""
+		return dpm.product_str()
+
+	@staticmethod
+	def get_selected_product() -> str:
+		"""Get product string"""
+		return dpm.get_selected_product()
 
 	@staticmethod
 	def ipc_credentials(username: str, password: str):
@@ -253,8 +263,9 @@ class FrameworkUtils:
 		else:
 			FrameworkUtils.FrameworkPrint('IPC Utils module not available, cannot clear credentials.', 2)
 
+
 #######################################################
-########## 		Masking Script 
+########## 		Masking Script
 #######################################################
 
 def DebugMask(basemask=None, root=None, callback = None):
@@ -280,4 +291,4 @@ def DebugMask(basemask=None, root=None, callback = None):
 
 	#@staticmethod
 	#def clear_s2t_cancel_flag(logger=FrameworkPrint):
-	#	gcm.clear_cancel_flag(logger)	
+	#	gcm.clear_cancel_flag(logger)

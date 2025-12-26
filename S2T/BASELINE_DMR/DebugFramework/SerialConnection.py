@@ -15,7 +15,8 @@ try:
 	import users.THR.PythonScripts.thr.CWFCoreDebugUtils as gcd
 except:
 	#print('Not able to import important libraries')
-	import users.THR.PythonScripts.thr.GNRCoreDebugUtils as gcd
+	#import users.THR.PythonScripts.thr.GNRCoreDebugUtils as gcd
+	import users.THR.dmr_debug_utilities.DMRCoreDebugUtils as gcd
 
 
 # TEST MODE
@@ -71,7 +72,7 @@ class teraterm():
 		self.execution_state = execution_state
 
 		# DR Data being collected by default
-		self.dr_dump = True 
+		self.dr_dump = True
 
 	def get_last_line(self):
 		with open(self.logfile, 'r') as file:
@@ -81,10 +82,10 @@ class teraterm():
 			return None, None
 
 	def search_in_file(self, lines, string = [], casesens = False, search_up_to_line = 10, reverse=True):
-		
+
 		if not lines:
 			return None
-		
+
 		search_lines = list(reversed(lines)) if reverse else lines
 		search_lines = search_lines[:search_up_to_line]
 		for line in (search_lines[:search_up_to_line]):
@@ -92,7 +93,7 @@ class teraterm():
 			for search_string in string:
 				if (search_string in line) if casesens else (search_string.lower() in line.lower()):
 					return True
-		
+
 		return False
 
 	def selfcheck(self):
@@ -101,7 +102,7 @@ class teraterm():
 		unchanged_checks = 0
 		endcount = 0
 		tstPass = False
-		time.sleep(30)        
+		time.sleep(30)
 
 		if self.content == 'Dragon': tstPass = self.eficheck(last_line, unchanged_checks, endcount)
 		elif self.content == 'Linux': tstPass = self.linuxcheck(last_line, unchanged_checks, endcount)
@@ -122,23 +123,23 @@ class teraterm():
 		## Check Loop increase ttime based on your current content time
 		while True:
 			self.check_user_cancel()
-			try: 
+			try:
 				current_last_line, total_lines = self.get_last_line()
-			except: 
+			except:
 				self.DebugLog(f"Failed reading Teraterm data log")
 				return False
 			if total_lines == None:
 				self.DebugLog(f"Failed reading Teraterm data log")
-				return False           
-		   
+				return False
+
 			numlines = len(total_lines)# if total_lines != None else 0
-			
+
 			# Function to collect Core Data if configured
 			self.get_core_data()
 
 			if current_last_line == last_line and prevlines == numlines:
 				unchanged_checks += 1
-				
+
 			else:
 				unchanged_checks = 0
 				last_line = current_last_line
@@ -154,13 +155,13 @@ class teraterm():
 					return False
 				if self.search_in_file(lines=total_lines, string=[self.ttendfail], casesens=False, search_up_to_line=10, reverse=True):
 					return False
-			
+
 			if 'FS1:\EFI\>' in current_last_line and numlines >= 2:
 				previousline = total_lines[numlines-2]
 				self.DebugLog(f'Last line {-1} --times:{endcount} --> {previousline}', 1)
 				endcount += 1
 				mce = False
-				
+
 				if self.ttendw.lower() in previousline.lower() and endcount > 5:
 					self.DebugLog("Test Finished Succesfully")
 					return True
@@ -169,21 +170,21 @@ class teraterm():
 					self.DebugLog("Test Failed -- Errors detected")
 					return False
 
-				if endcount > 5: 
+				if endcount > 5:
 					mce = self.mca_checker()
-				
+
 				if mce:
 					self.DebugLog("MCE Founds -- Ending Test")
 					return False
-				
+
 				if self.search_in_file(lines=total_lines, string=[self.ttendfail], casesens=False, search_up_to_line=10, reverse=True):
 					self.DebugLog("Test Failed -- Errors detected")
 					return False
-									
+
 				if self.search_in_file(lines=total_lines, string=[self.ttendw], casesens=False, search_up_to_line=10, reverse=True):
 					self.DebugLog("Test Finished Succesfully")
 					return True
-		 
+
 				#mcadata, pysvdecode = ereport.mca_dump_gnr(verbose=False)
 				#for k,v in pysvdecode.items():
 				#    if v == True:
@@ -191,7 +192,7 @@ class teraterm():
 				#        return False
 			else:
 				endcount = 0
-			
+
 			if self.ttendfail.lower() in current_last_line.lower():
 				self.DebugLog("Test Failed -- Errors detected")
 				return False
@@ -211,25 +212,25 @@ class teraterm():
 			time.sleep(self.testtime)
 
 	def linuxcheck(self, last_line = None, unchanged_checks = 0, endcount = 0):
-		self.DebugLog("Starting Linux OS Self Check Process ....")   
+		self.DebugLog("Starting Linux OS Self Check Process ....")
 		prevlines = 0
 		## Check Loop increase ttime based on your current content time
 		while True:
 			self.check_user_cancel()
-			try: 
+			try:
 				current_last_line, total_lines = self.get_last_line()
-			except: 
+			except:
 				self.DebugLog(f"Failed reading Teraterm data log")
 				return False
 			if total_lines == None:
 				self.DebugLog(f"Failed reading Teraterm data log")
-				return False           
-		   
+				return False
+
 			numlines = len(total_lines)# if total_lines != None else 0
-			
+
 			# Function to collect Core Data if configured
 			self.get_core_data()
-			
+
 			# Ping Host to ensure connection is alive
 			wdtimer = self.ping_host(host=self.host, retries=10, interval=self.testtime)
 
@@ -237,7 +238,7 @@ class teraterm():
 			if current_last_line == last_line and prevlines == numlines:
 				self.DebugLog(f'Log Last line not moving -- {last_line} -- Count:{unchanged_checks}')
 				unchanged_checks += 1
-				
+
 			else:
 				unchanged_checks = 0
 				last_line = current_last_line
@@ -270,27 +271,27 @@ class teraterm():
 				if self.ttendw in previousline and endcount > 5:
 					self.DebugLog("Test Finished Succesfully")
 					return True
-				
+
 				# Check MCE at count 5
-				if endcount > 5: 
+				if endcount > 5:
 					mce = self.mca_checker()
 
 				if mce:
 					self.DebugLog("MCE Founds -- Ending Test")
 					return False
-				
+
 				if self.search_in_file(lines=total_lines, string=[self.ttendfail], casesens=False, search_up_to_line=10, reverse=True):
 					self.DebugLog("Test Failed -- Errors detected")
 					return False
-				
+
 				if self.search_in_file(lines=total_lines, string=[self.ttendw], casesens=False, search_up_to_line=10, reverse=True):
 					self.DebugLog("Test Finished Succesfully")
 					return True
-				
+
 				if endcount >=20:
 					self.DebugLog("Console looks stuck -- Ending Test")
 					return False
-  
+
 			else:
 				endcount = 0
 
@@ -300,7 +301,7 @@ class teraterm():
 				if mce:
 					self.DebugLog("MCE Founds at the end of Test")
 					return False
-			
+
 				self.DebugLog("Test Finished Succesfully")
 				return True
 				#break
@@ -324,16 +325,16 @@ class teraterm():
 				self.DebugLog(f"Error pinging {host}: {e}")
 				retry_count += 1
 				time.sleep(interval)
-		
+
 		self.DebugLog(f"Failed to connect to {host} after {retries} retries.")
 
 	def get_core_data(self):
 
-		if self.chkcore != None: 
-			
+		if self.chkcore != None:
+
 			core = self.chkcore
 			socket = 0
-				
+
 			try:
 				compute=gcd.get_compute(core)
 				if self.product == 'GNR':
@@ -364,7 +365,7 @@ class teraterm():
 		process = subprocess.Popen([teraterm_exe, '/M='+ macro_path])
 
 		# Wait for the terminate flag to be set
-		while not self.terminate.is_set():        
+		while not self.terminate.is_set():
 			self.check_user_cancel()
 			time.sleep(1)
 		process.terminate()
@@ -382,7 +383,7 @@ class teraterm():
 
 		if macro == None: self.macro = self.cmds['StartTest']
 		else: macro = self.macro
-	   
+
 		teraterm_thread = threading.Thread(target=self.run_tera_term_macro).start()
 		if check: self.checker()
 
@@ -406,17 +407,17 @@ class teraterm():
 			# Wait for the terminate flag to be set
 			self.DebugLog(' Logging Boot Data --')
 			while not self.terminate_boot_log.is_set():
-				self.check_user_cancel()        
-				
+				self.check_user_cancel()
+
 				time.sleep(1)
 		except Exception as e:
 			self.DebugLog(f"Failed during boot logging: {e} ")
 			self.boot_process.terminate()
 			self.boot_process.wait()
-		
+
 		self.boot_process.terminate()
 		self.boot_process.wait()
- 
+
 	def boot_end(self, check = True):
 		self.terminate_boot_log.set()
 		#self.boot_process.wait()
@@ -426,7 +427,7 @@ class teraterm():
 		if check: self.checker()
 
 	def PYSVconsole(self, check = True):
-		
+
 		self.DebugLog(' PYSConsole Test Ended ....')
 		#self.selfcheck()
 		if check: self.checker()
@@ -434,13 +435,13 @@ class teraterm():
 	def checker(self):
 		time.sleep(30)
 		tstPass = self.selfcheck()
-		
-		if tstPass: 
+
+		if tstPass:
 			self.DebugLog('SERIAL: Test Completed Succesfully')
 			tname = f'{self.test}_PASS'
 			self.testresult = f'PASS::{self.test}'
-			
-		else: 
+
+		else:
 			self.DebugLog('SERIAL: Test Failed')
 			tname = f'{self.test}_FAILED'
 			self.testresult = f'FAIL::{self.test}'
@@ -454,13 +455,13 @@ class teraterm():
 		if self.product == 'GNR': mcadata, pysvdecode = ereport.mca_dump_gnr(verbose=False)
 		elif self.product == 'CWF': mcadata, pysvdecode = ereport.mca_dump_cwf(verbose=False)
 		else: self.DebugLog(f"Check Configuration product is no available for MCE Capture. Product:{self.product}")
-		
+
 		for k,v in pysvdecode.items():
 			if v == True:
 				self.DebugLog(f"MCE Found Unit Failed @ {k.upper()}")
 				return True
 			mcvalue = v
-		
+
 		return mcvalue
 
 	def check_user_cancel(self):
@@ -471,14 +472,14 @@ class teraterm():
 			if self.execution_state.is_cancelled():
 				self.DebugLog("Execution stopped by command", 2)
 				raise InterruptedError("SERIAL: Execution stopped")
-			
-		# Fallabck Method -- Used by TTL Test	
+
+		# Fallabck Method -- Used by TTL Test
 		elif cancel_check:
-			#print('Checking Cancel Status', cancel_check, self.cancel_flag.is_set())	
+			#print('Checking Cancel Status', cancel_check, self.cancel_flag.is_set())
 			if self.cancel_flag.is_set():
 				self.DebugLog("SERIAL: Framework Execution interrupted by user. Exiting...",2)
 				raise InterruptedError('SERIAL: Execution Interrupted by User')
-	 	
+
 		else:
 			pass
 
@@ -510,7 +511,7 @@ def ping_host(host: str, retries: int = 10, interval: int = 20):
 			print(f"Error pinging {host}: {e}")
 			retry_count += 1
 			time.sleep(interval)
-	
+
 	print(f"Failed to connect to {host} after {retries} retries.")
 	return False
 
@@ -545,11 +546,11 @@ def kill_process(process_name: str = 'ttermpro.exe', logger = None):
 	try:
 		# Use tasklist to check if the process is running
 		result = subprocess.run(['tasklist'], stdout=subprocess.PIPE, text=True)
-		
+
 		# Check if the process is in the list of running processes
 		if process_name in result.stdout:
 			logger(f"{process_name} is running. Terminating...")
-			
+
 			# Use taskkill to terminate the process
 			subprocess.run(['taskkill', '/F', '/IM', process_name], stdout=subprocess.PIPE, text=True)
 			logger(f"{process_name} has been terminated.")
