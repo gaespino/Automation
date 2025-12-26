@@ -454,6 +454,7 @@ class teraterm():
 	def mca_checker(self):
 		if self.product == 'GNR': mcadata, pysvdecode = ereport.mca_dump_gnr(verbose=False)
 		elif self.product == 'CWF': mcadata, pysvdecode = ereport.mca_dump_cwf(verbose=False)
+		elif self.product == 'DMR': mcadata, pysvdecode = ereport.mca_dump_dmr(verbose=False)
 		else: self.DebugLog(f"Check Configuration product is no available for MCE Capture. Product:{self.product}")
 
 		for k,v in pysvdecode.items():
