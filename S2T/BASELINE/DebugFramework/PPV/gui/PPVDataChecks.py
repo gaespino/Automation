@@ -13,8 +13,9 @@ except ImportError:
     from parsers.MCAparser import ppv_report as mcap
 
 class PPVReportGUI:
-    def __init__(self, root):
+    def __init__(self, root, default_product="GNR"):
         self.root = root
+        self.default_product = default_product  # Store default product
         self.root.title("PPV MCA Report Builder")
         self.root.geometry("850x550")  # Increased size
         self.root.resizable(True, True)  # Allow resizing
@@ -56,7 +57,7 @@ class PPVReportGUI:
         # Product
         tk.Label(config_frame, text="Product:", font=("Segoe UI", 9)).grid(row=0, column=2, padx=5, pady=8, sticky="w")
         self.name_entry = tk.StringVar(root)
-        self.name_entry.set("GNR")
+        self.name_entry.set(self.default_product)  # Use default product
         self.product_menu = tk.OptionMenu(config_frame, self.name_entry, "GNR", "CWF", "DMR")
         self.product_menu.config(font=("Segoe UI", 9), width=8)
         self.product_menu.grid(row=0, column=3, padx=5, pady=8, sticky="w")

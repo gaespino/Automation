@@ -107,13 +107,14 @@ class AutomationFlowDesigner:
     Allows engineers to visually design automation flows and export to JSON.
     """
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, default_product="GNR"):
         # Flow data
         self.experiments = {}  # Loaded from Excel/JSON
         self.flow_nodes = {}   # Node definitions
         self.flow_structure = {}  # Structure definitions
         self.flow_config = {}  # INI-style configuration
         self.parent = parent
+        self.default_product = default_product  # Store default product
 
         # Unit configuration overrides
         self.unit_config = {
@@ -2786,13 +2787,14 @@ class ExperimentEditor:
         self.dialog.focus_set()
 
 # Standalone function to start the designer
-def start_automation_flow_designer(parent=None):
+def start_automation_flow_designer(parent=None, default_product="GNR"):
     """
     Start the automation flow designer interface.
     Args:
         parent: Optional parent window (for Toplevel mode)
+        default_product: Default product selection (GNR, CWF, DMR)
     """
-    designer = AutomationFlowDesigner(parent=parent)
+    designer = AutomationFlowDesigner(parent=parent, default_product=default_product)
     if parent is None:
         designer.run()
     # If parent exists, window is already visible as Toplevel

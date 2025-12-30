@@ -14,8 +14,9 @@ dpmb_api = "dpmb-api.intel.com"
 #    dpmb(vidlist)
 
 class dpmbGUI:
-	def __init__(self, root):
+	def __init__(self, root, default_product="GNR"):
 		self.root = root
+		self.default_product = default_product  # Store default product
 		self.root.title("DPMB Bucketer Requests")
 		self.root.geometry("800x700")  # Increased size
 		self.root.resizable(True, True)  # Allow resizing

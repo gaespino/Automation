@@ -2130,7 +2130,7 @@ def msr_read(rlists = [0xCE, 0x199, 0x1AD, 0x1AE, 0x1A0]):
 		# Write the DataFrame to Excel
 		df.to_excel(writer,sheet_name='MSRs', index=False)
 
-## Build arrays for FastBoot
+## Build arrays for FastBoot - Place for the 4CPM product
 def fuses_dis_2CPM(dis_cores, bsformat = True):
 	'''
 	dis_cores: 'HIGH' or 'LOW' to disable globally on all modules. usefull to run pseudo MESH
@@ -2175,199 +2175,168 @@ def fuses_dis_1CPM(dis_cores, bsformat = True):
 		# fuse = [f"sv.socket0.computes.fuses.pcu.pcode_lp_disable={dis}"]
 	return fuse
 
-def fuses_freq_cfc(types = ['io', 'cfc'], domains = ['p0', 'p1', 'pn', 'min'], value = 0x8):
-	BootFuses = FuseFileConfigs
+def fuses_freq_cfc(ratio: hex = 0x8, include_imhs: bool=True, include_cbbs: bool = True)->list:
 	dpmarray = []
-	CFC_freq_fuses = BootFuses['CFC']['compFreq']
-	CFCIO_freq_fuses = BootFuses['CFC']['ioFreq']
-
-	for _type in types:
-		if _type.lower() == 'cfc':
-			data = CFC_freq_fuses
-		elif _type.lower() == 'io':
-			data = CFCIO_freq_fuses
-		else:
-			print('Not valid type selected use: io, cfc')
-			continue
-		for domain in domains:
-			for fuse in data[domain]:
-				dpmarray += [fuse + '=0x%x' % value]
+	dpmarray = f.cfc_fixed_ratio_array(	ratio=ratio,
+										include_imhs=include_imhs,
+										include_cbbs=include_cbbs)
 	return dpmarray
 
-def fuses_freq_ia(types = ['ia'], domains = ['p0', 'p1', 'pn', 'min','limits'], value = 0x8):
-	BootFuses = FuseFileConfigs
+def fuses_freq_ia(ratio: hex = 0x8, include_imhs: bool=True, include_cbbs: bool = False, include_boot: bool = False)->list:
 	dpmarray = []
-	IA_freq_fuses = BootFuses['IA']['compFreq']
-
-	for _type in types:
-		if _type.lower() == 'ia':
-			data = IA_freq_fuses
-		else:
-			print('Not valid type selected use: ia')
-			continue
-		for domain in domains:
-			for fuse in data[domain]:
-				dpmarray += [fuse + '=0x%x' % value]
+	dpmarray = f.ia_fixed_ratio_array(	ratio=ratio,
+										include_imhs=include_imhs,
+										include_cbbs=include_cbbs)
+	if include_boot:
+		dpmarray += f.ia_fixed_boot_array(ratio=ratio)
 	return dpmarray
 
-def fuses_htdis():
-	BootFuses = FuseFileConfigs
-	htdis_comp = BootFuses['ht']['compHT']['htdis']
-	htdis_io = BootFuses['ht']['ioHT']['htdis']
-	dpmarray = []
-	dpmarray += htdis_comp
-	dpmarray += htdis_io
+# HT Disable fuse array not implemented for DMR - use disable 1CPM instead
+def fuses_htdis() -> NotImplementedError:
+	return NotImplementedError("HT Disable fuses are not available for DMR product")
 
-	return dpmarray
-
-# Move VCCIN and VCCING to use FuseOverride Script
+# VCCIN fuse array not implemented for DMR yet
 def fuses_vccin(types = ['io', 'compute'], domains = ['active', 'idle', 'safe'], value = 1.89, bsformat = False, skip_init=False):
+	raise NotImplementedError("VCCIN not implemented yet for DMR product")
+
+# Reference Call to FuseOverride Class for VCCINF VBump arrays
+def fuses_vccinf( offset: float = 0,
+                 skip_init: bool = False,
+                 rgb_array: dict = {},
+                 target_socket: int | None = None,
+                 target_imhs: int | None = None,
+                 fixed_voltage: float | None = None) -> list:
+
 	if not skip_init: fuseRAM(refresh = True)
-	BootFuses = FuseFileConfigs
-	dpmarray = []
-	newvalue = int(value*1000/5)
-	print(f'Converting entered value to hex: {value}V ---> 0x{newvalue:#x}')
-	vccin_cdie_fuses = BootFuses['vccin']['compute']
-	vccin_iodie_fuses = BootFuses['vccin']['io']
 
-	for _type in types:
-		if _type.lower() == 'compute':
-			data = vccin_cdie_fuses
-			base = 'sv.sockets.computes.fuses.'
-		elif _type.lower() == 'io':
-			data = vccin_iodie_fuses
-			base = 'sv.sockets.ios.fuses.'
-		else:
-			print('Not valid type selected use: io, compute')
-			continue
-		for domain in domains:
-			fuse = data[domain]
-			#base = data['base']
-			print(fuse)
-			cv = eval(fuse + '.get_value()')
-			for v in range(len(cv)):
-				cvfloat = cv[v]*5/1000
-				if 'computes' in fuse:
-					_fuse = fuse.replace('computes',f'compute{v}')
-					_base = base.replace('computes',f'compute{v}')
-				elif 'ios' in fuse:
-					_fuse = fuse.replace('ios',f'io{v}')
-					_base = base.replace('ios',f'io{v}')
-				print (f"{_fuse} : {cvfloat}:0x%x > {value}: 0x%x" % (cv[v], newvalue))
-				if bsformat: _fuse = _fuse.replace(_base,'')
-				dpmarray += [_fuse + '=0x%x' % newvalue]
-	return dpmarray
-
-def fuses_vccinf(types = ['io', 'compute'], domains = ['active', 'idle', 'safe'], value = 0.85, bsformat = False, skip_init=False):
-	if not skip_init: fuseRAM(refresh = True)
-	BootFuses = FuseFileConfigs
-	dpmarray = []
-	newvalue = int(value*1000/5)
-	print(f'Converting entered value to hex: {value}V ---> 0x{newvalue:#x}')
-	vccin_cdie_fuses = BootFuses['vccinf']['compute']
-	vccin_iodie_fuses = BootFuses['vccinf']['io']
-
-	for _type in types:
-		if _type.lower() == 'compute':
-			data = vccin_cdie_fuses
-			base = 'sv.sockets.computes.fuses.'
-		elif _type.lower() == 'io':
-			data = vccin_iodie_fuses
-			base = 'sv.sockets.ios.fuses.'
-		else:
-			print('Not valid type selected use: io, compute')
-			continue
-		for domain in domains:
-			fuse = data[domain]
-			#base = data['base']
-			print(fuse)
-			cv = eval(fuse + '.get_value()')
-			for v in range(len(cv)):
-				cvfloat = cv[v]*5/1000
-				if 'computes' in fuse:
-					_fuse = fuse.replace('computes',f'compute{v}')
-					_base = base.replace('computes',f'compute{v}')
-				elif 'ios' in fuse:
-					_fuse = fuse.replace('ios.',f'io{v}.')
-					_base = base.replace('ios.',f'io{v}.')
-				print (f"{_fuse} : {cvfloat}:0x%x > {value}: 0x%x" % (cv[v], newvalue))
-				if bsformat: _fuse = _fuse.replace(_base,'')
-				dpmarray += [_fuse + '=0x%x' % newvalue]
+	dpmarray = f.vccinf_vbump_array_imh(	offset=offset,
+									rgb_array=rgb_array,
+									target_socket=target_socket,
+									target_imhs=target_imhs,
+									fixed_voltage=fixed_voltage)
 	return dpmarray
 
 ## Below arrays uses the GNRFuseOverride script @ thr folder, adding them here for ease of use --
-def fuses_cfc_vbumps(offset = 0, rgb_array={}, point = None, skip_init=False, fixed_voltage = None, target_compute = None):
-	#sv = _get_global_sv
-	#sv.refresh()
+# Reference Call to FuseOverride Class for CFC VBump arrays
+def fuses_cfc_vbumps(offset: float = 0,
+                     rgb_array: dict = {},
+                     skip_init: bool = False,
+                     target_socket: int | None = None,
+                     target_cbb: int | None = None,
+                     target_compute: int | None = None,
+                     target_core: int | None = None,
+                     fixed_voltage: float | None = None,
+                     ) -> list:
+
 	if not skip_init: fuseRAM(refresh = True)
-	#computes = len(sv.socket0.computes)
+	include_cbbs = True
+	include_imhs = False
 	dpmarray = []
-	dpmarray = f.cfc_vbump_array(offset = offset, rgb_array= rgb_array, target_point = point, fixed_voltage = fixed_voltage, target_compute = target_compute)
-	## Temporary fix
-	#if target_compute != None:
-	#	computearray = []
-	#	print(f'Splitting the array for one compute only: Target {target_compute}')
-	#	for item in dpmarray:
-	#		if target_compute in item:
-	#			computearray.append(item)
-	#	dpmarray = computearray
+	dpmarray = f.cfc_vbump_array(	offset=offset,
+									rgb_array=rgb_array,
+									target_socket=target_socket,
+									target_cbb=target_cbb, target_compute=target_compute,
+									target_core=target_core, fixed_voltage=fixed_voltage,
+									include_cbbs=include_cbbs, include_imhs=include_imhs)
+
 
 	return dpmarray
 
-def fuses_cfc_io_vbump_array(offset = 0, rgb_array={}, skip_init=False, point=None, fixed_voltage=None, target_io= None):
-		#sv = _get_global_sv
-	#sv.refresh()
+# Reference Call to FuseOverride Class for CFCxIO VBump arrays
+def fuses_cfc_io_vbump_array(offset: float = 0,
+                     rgb_array: dict = {},
+                     skip_init: bool = False,
+                     target_socket: int | None = None,
+                     target_cbb: int | None = None,
+                     target_compute: int | None = None,
+                     target_core: int | None = None,
+                     fixed_voltage: float | None = None,
+                     ) -> list:
+
 	if not skip_init: fuseRAM(refresh = True)
-	#computes = len(sv.socket0.computes)
+	include_cbbs = False
+	include_imhs = True
 	dpmarray = []
-	dpmarray = f.cfc_io_vbump_array(offset = offset, rgb_array= rgb_array, target_point=point, fixed_voltage=fixed_voltage, target_io=target_io)
+	dpmarray = f.cfc_vbump_array(	offset=offset,
+									rgb_array=rgb_array,
+									target_socket=target_socket,
+									target_cbb=target_cbb, target_compute=target_compute,
+									target_core=target_core, fixed_voltage=fixed_voltage,
+									include_cbbs=include_cbbs, include_imhs=include_imhs)
+
 
 	return dpmarray
 
+# This function is not available for DMR
 def fuses_hdc_vbumps(offset = 0, rgb_array={}, point = None, skip_init=False, fixed_voltage = None, target_compute = None):
-	#sv = _get_global_sv
-	#sv.refresh()
+	raise NotImplementedError('-ERROR- HDC VBump fuses are not available for DMR product')
+
+# Reference Call to FuseOverride Class for DDRD VBump arrays
+def fuses_ddrd_vbumps(offset: float = 0,
+                      skip_init: bool = False,
+                      rgb_array: dict = {},
+                      target_socket: int| None = None,
+                      target_imhs: int | None = None,
+                      fixed_voltage: float | None = None) -> list:
+
 	if not skip_init: fuseRAM(refresh = True)
 	#computes = len(sv.socket0.computes)
 	dpmarray = []
-	dpmarray = f.hdc_vbump_array(offset = offset, rgb_array= rgb_array, target_point = point, fixed_voltage = fixed_voltage, target_compute = target_compute)
-
-	#if target_compute != None:
-	#	computearray = []
-	#	print(f'Splitting the array for one compute only: Target {target_compute}')
-	#	for item in dpmarray:
-	#		if target_compute in item:
-	#			computearray.append(item)
-	#	dpmarray = computearray
-
+	dpmarray = f.ddrd_vbump_array(offset = offset,
+                               rgb_array= rgb_array,
+                               target_socket = target_socket,
+                               target_imhs = target_imhs,
+                               fixed_voltage = fixed_voltage)
 	return dpmarray
 
-def fuses_ddrd_vbumps(offset = 0, rgb_array={}, point = None, skip_init=False, fixed_voltage = None, target_compute = None):
-	#sv = _get_global_sv
-	#sv.refresh()
-	if not skip_init: fuseRAM(refresh = True)
-	#computes = len(sv.socket0.computes)
-	dpmarray = []
-	dpmarray = f.ddrd_vbump_array(offset = offset, rgb_array= rgb_array, target_point = point, fixed_voltage = fixed_voltage, target_compute = target_compute)
-	return dpmarray
-
+# This function is not implemented for DMR yet
 def fuses_ddra_vbumps(offset = 0, rgb_array={}, point = None, skip_init=False, fixed_voltage = None, target_compute = None):
-	#sv = _get_global_sv
-	#sv.refresh()
+	raise NotImplementedError("DDRA VBump fuses are not yet implemented for DMR product")
+
+# Reference Call to FuseOverride Class for IA VBump arrays
+def fuses_ia_vbumps(offset: float = 0,
+                    rgb_array: dict = {},
+                    skip_init: bool = False,
+                    fixed_voltage: float | None = None,
+                    target_socket: int | None = None,
+                    target_cbb: int | None = None,
+                    target_compute: int | None = None,
+                    target_core: int | None = None ) -> list:
+
 	if not skip_init: fuseRAM(refresh = True)
-	#computes = len(sv.socket0.computes)
 	dpmarray = []
-	dpmarray = f.ddra_vbump_array(offset = offset, rgb_array= rgb_array, target_point = point, fixed_voltage = fixed_voltage, target_compute = target_compute)
+	dpmarray = f.ia_vbump_array(offset=offset,
+                             rgb_array=rgb_array,
+                             target_socket=target_socket,
+                             target_cbb=target_cbb,
+                             target_compute=target_compute,
+                             target_core=target_core,
+                             fixed_voltage=fixed_voltage)
 	return dpmarray
 
-def fuses_ia_vbumps(offset = 0, rgb_array={}, skip_init=False, curve=None, point=None, index=None, fixed_voltage=None, target_compute=None):
+# Reference Call to FuseOverride Class for MLC VBump arrays
+def fuses_mlc_vbumps(offset: float = 0,
+                    rgb_array: dict = {},
+                    skip_init: bool = False,
+                    fixed_voltage: float | None = None,
+                    target_socket: int | None = None,
+                    target_cbb: int | None = None,
+                    target_compute: int | None = None,
+                    target_core: int | None = None ) -> list:
 
 	if not skip_init: fuseRAM(refresh = True)
 	dpmarray = []
-	dpmarray = f.ia_vbump_array(offset = offset, rgb_array=rgb_array, target_curve=curve, target_point=point, target_index=index, fixed_voltage=fixed_voltage, target_compute=target_compute)
+	dpmarray = f.mlc_vbump_array(offset=offset,
+                             rgb_array=rgb_array,
+                             target_socket=target_socket,
+                             target_cbb=target_cbb,
+                             target_compute=target_compute,
+                             target_core=target_core,
+                             fixed_voltage=fixed_voltage)
 	return dpmarray
 
-def read_fuse_array(fuse_array, skip_init=False):
+
+def read_fuse_array(fuse_array: list, skip_init: bool = False):
 	#dpm_array = fuse_array
 	print('Reading fuse values from entered array... ')
 	f.read_array(fuse_array=fuse_array, skip_init=skip_init, load_fuses=False)

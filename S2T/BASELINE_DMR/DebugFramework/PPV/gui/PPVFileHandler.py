@@ -13,9 +13,10 @@ except ImportError:
     from utils import PPVReportMerger as prm
 
 class FileHandlerGUI:
-    def __init__(self, root):
+    def __init__(self, root, default_product="GNR"):
         #super().__init__()
         self.root = root
+        self.default_product = default_product  # Store default product
         self.root.title("File Handler - Merge / Append Report Data")
         self.root.geometry("750x350")  # Increased size for better layout
         self.root.resizable(True, True)  # Allow resizing

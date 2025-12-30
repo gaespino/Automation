@@ -99,12 +99,12 @@ class FrameworkUtils:
 		"""Get default system to tester configuration"""
 		return {
 			'AFTER_MRC_POST': 0xbf000000,
-			'EFI_POST': 0xef0000ff,
+			'EFI_POST': 0x57000000, # Changed for DMR -- This might change in the future
 			'LINUX_POST': 0x58000000,
 			'BOOTSCRIPT_RETRY_TIMES': 3,
 			'BOOTSCRIPT_RETRY_DELAY': 60,
 			'MRC_POSTCODE_WT': 30,
-			'EFI_POSTCODE_WT': 60,
+			'EFI_POSTCODE_WT': 90,
 			'MRC_POSTCODE_CHECK_COUNT': 5,
 			'EFI_POSTCODE_CHECK_COUNT': 10,
 			'BOOT_STOP_POSTCODE': 0x0,
@@ -151,7 +151,7 @@ class FrameworkUtils:
 	def reboot_unit(waittime: int = 60, u600w: bool = False, wait_postcode: bool = False):
 		"""Reboot unit"""
 		if not u600w:
-			dpm.powercycle(ports=[1,2], stime=40)
+			dpm.powercycle(ports=[1,2], stime=30)
 		else:
 			dpm.reset_600w()
 			time.sleep(waittime)
@@ -162,14 +162,14 @@ class FrameworkUtils:
 			gcm.svStatus(refresh=True)
 
 	@staticmethod
-	def power_control(state: str = 'on', stime: int = 10):
+	def power_control(state: str = 'on', stime: int = 30):
 		"""Control unit power"""
 		if state == 'on':
-			dpm.power_on(ports=[1])
+			dpm.power_on(ports=[1,2])
 		elif state == 'off':
-			dpm.power_off(ports=[1])
+			dpm.power_off(ports=[1,2])
 		elif state == 'cycle':
-			dpm.powercycle(stime=stime, ports=[1])
+			dpm.powercycle(stime=stime, ports=[1,2], stime=stime)
 		else:
 			FrameworkUtils.FrameworkPrint('-- No valid power configuration selected use: on, off or cycle', 2)
 

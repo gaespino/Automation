@@ -1191,6 +1191,17 @@ class ErrorReportGenerator:
 
 		baseaccess.getglobalbase(refresh=True)
 
+	# Legacy static method for reading scratchpad
+	@staticmethod
+	def readscratchpad(sv, product=None, base_path=None):
+		"""Read scratchpad register value."""
+		try:
+			mca_banks = import_module(f'{base_path}.S2T.product_specific.{product.lower()}.mca_banks')
+			return mca_banks.read_scratchpad(sv)
+		except Exception as e:
+			print(f"[X] Error reading scratchpad: {e}")
+			return None
+
 # =================================================================
 # BACKWARD COMPATIBILITY WRAPPER
 # =================================================================

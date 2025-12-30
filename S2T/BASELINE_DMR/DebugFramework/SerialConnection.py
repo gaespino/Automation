@@ -156,7 +156,7 @@ class teraterm():
 				if self.search_in_file(lines=total_lines, string=[self.ttendfail], casesens=False, search_up_to_line=10, reverse=True):
 					return False
 
-			if 'FS1:\EFI\>' in current_last_line and numlines >= 2:
+			if 'fs1:\efi\>' in current_last_line.lower() and numlines >= 2:
 				previousline = total_lines[numlines-2]
 				self.DebugLog(f'Last line {-1} --times:{endcount} --> {previousline}', 1)
 				endcount += 1
@@ -336,8 +336,9 @@ class teraterm():
 			socket = 0
 
 			try:
-				compute=gcd.get_compute(core)
+
 				if self.product == 'GNR':
+					compute=gcd.get_compute(core)
 					iaR = gcd.read_current_core_ratio(core, compute, socket)
 					iaV = gcd.read_current_core_voltage(core, compute, socket)
 					iaL = gcd.read_current_license(core, compute, socket)
@@ -345,12 +346,21 @@ class teraterm():
 					#print( "core = %s, IA Ratio = %s, IA Volt = %f,  IALicense= %s" % (core, iaR, iaV, iaL))
 
 					self.DebugLog("phys_core = %s, IA Ratio = %s, IA Volt = %f, IALicense= %s, current_dcf_ratio = %d" % (core, iaR, iaV, iaL, dcf_ratio))
-				else:
+				elif self.product == 'CWF':
 					phys_mod = core
+					compute=gcd.get_compute(core)
 					moduleLog = gcd.get_moduleLog(core, compute, socket)
 					iaR = gcd.read_current_core_ratio(moduleLog, compute, socket)
 					iaV = gcd.read_current_core_voltage(moduleLog, compute, socket)
 					self.DebugLog( "PHYmodule = %s, LLmodule = %s, IA Ratio = %d, IA Volt = %f" % (phys_mod, moduleLog, iaR, iaV))
+				elif self.product == 'DMR':
+					phys_core = core
+					iaR = gcd.read_current_core_ratio(phys_core, socket)
+					iaV = gcd.read_current_core_voltage(phys_core, socket)
+					iaL = gcd.read_current_license(phys_core, socket)
+
+					self.DebugLog("phys_core = %s, IA Ratio = %s, IA Volt = %f, IALicense= %s" % (phys_core, iaR, iaV, iaL))
+
 			except Exception as e:
 				self.DebugLog( f" Failed collecting data for --> Core / Module:{core} -- {e}")
 				self.DebugLog(F" Disablomg Check Core/Module routine for CORE/MOD: {core}")

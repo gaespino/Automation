@@ -33,7 +33,7 @@ except ImportError:
 	print(f"[!] CoreManipulation module not available - some features will be disabled")
 
 try:
-	if dev_mode: 
+	if dev_mode:
 		import users.gaespino.dev.DebugFramework.FileHandler as file_handler
 	else:
 		import users.gaespino.DebugFramework.FileHandler as file_handler
@@ -49,7 +49,7 @@ try:
 	import ipccli
 	import namednodes
 	sv = namednodes.sv
-	
+
 except ImportError:
 	print(f"[!] ipccli/namednodes not available - MCA dump features will be disabled")
 
@@ -83,12 +83,12 @@ def run(visual='', Testnumber='', TestName='', chkmem=0, debug_mca=0,
 		framework_data = FRAMEWORK_VARS.copy()
 	if folder is None:
 		folder = "C:\\temp\\"
-	
+
 	print('='*80)
 	print(f'ErrorReport - Product: {product}:{variant}')
 	print(f'Test: {Testnumber}_{visual}_{TestName}')
 	print('='*80)
-	
+
 	try:
 		generator = ErrorReportGenerator(
 			product=product, variant=variant,
@@ -97,13 +97,13 @@ def run(visual='', Testnumber='', TestName='', chkmem=0, debug_mca=0,
 			file_handler=file_handler,
 			dpm_checks=dpm_checks
 		)
-		
+
 		if generator.mca_decoders:
 			print(f'\n{"-"*80}')
 			print(f'MCA Decoders Status for {product}:')
 			generator.mca_decoders.list_decoders()
 			print(f'{"-"*80}\n')
-		
+
 		result = generator.run(
 			visual=visual, Testnumber=Testnumber, TestName=TestName,
 			chkmem=chkmem, debug_mca=debug_mca, dr_dump=dr_dump,
@@ -111,12 +111,12 @@ def run(visual='', Testnumber='', TestName='', chkmem=0, debug_mca=0,
 			logger=logger, upload_to_disk=upload_to_disk,
 			upload_to_danta=upload_to_danta, framework_data=framework_data
 		)
-		
+
 		print('\n' + '='*80)
 		print(f'Error Report: {"SUCCESS" if result else "FAILED"}')
 		print('='*80 + '\n')
 		return result
-	
+
 	# Legacy fallback
 	except Exception as e:
 		print(f'ERROR: {e}')
@@ -167,7 +167,7 @@ def get_generator(product=None, variant=None, logger=None):
 		product = SELECTED_PRODUCT
 	if variant is None:
 		variant = SELECTED_VARIANT
-	
+
 	return ErrorReportGenerator(
 		product=product, variant=variant, config_loader=pe, logger=logger,
 		core_manipulation=core_manipulation, file_handler=file_handler,
@@ -200,10 +200,10 @@ def mca_dump_gnr(verbose=True):
 	"""
 	GNR MCA dump wrapper - delegates to product-specific implementation
 	Performs unlock in ErrorReport, then calls product-specific mca_dump
-	
+
 	Args:
 		verbose (bool): If True, prints detailed register information
-		
+
 	Returns:
 		tuple: (mcadata dict, pysvdecode dict) from product-specific mca_dump
 	"""
@@ -214,7 +214,7 @@ def mca_dump_gnr(verbose=True):
 
 		if mca_banks is None:
 			return {}, {}
-		
+
 		itp = unlock()
 		sv = mca_init()
 		refresh_weakly_reference()
@@ -228,22 +228,22 @@ def mca_dump_cwf(verbose=True):
 	"""
 	CWF MCA dump wrapper - delegates to product-specific implementation
 	Performs unlock in ErrorReport, then calls product-specific mca_dump
-	
+
 	Args:
 		verbose (bool): If True, prints detailed register information
-		
+
 	Returns:
 		tuple: (mcadata dict, pysvdecode dict) from product-specific mca_dump
 	"""
 
 	try:
-		
+
 		# Import and call product-specific mca_dump
 		import product_specific.cwf.mca_banks as mca_banks
-		
+
 		if mca_banks is None:
 			return {}, {}
-		
+
 		itp = unlock()
 		sv = mca_init()
 		refresh_weakly_reference()
@@ -257,22 +257,22 @@ def mca_dump_dmr(verbose=True):
 	"""
 	DMR MCA dump wrapper - delegates to product-specific implementation
 	Performs unlock in ErrorReport, then calls product-specific mca_dump
-	
+
 	Args:
 		verbose (bool): If True, prints detailed register information
-		
+
 	Returns:
 		tuple: (mcadata dict, pysvdecode dict) from product-specific mca_dump
 	"""
-	
+
 	try:
-		
+
 		# Import and call product-specific mca_dump
 		import product_specific.dmr.mca_banks as mca_banks
 
 		if mca_banks is None:
 			return {}, {}
-		
+
 		itp = unlock()
 		sv = mca_init()
 		refresh_weakly_reference()
@@ -282,7 +282,11 @@ def mca_dump_dmr(verbose=True):
 		print(f"[!] MCA dump failed: {e}")
 		return {}, {}
 
-__all__ = ['run', 'quick_run', 'get_decoder', 'list_decoders', 'get_generator', 
+def readscratchpad():
+	"""Read scratchpad value"""
+	return ErrorReportGenerator.readscratchpad(sv = sv, product=SELECTED_PRODUCT, base_path = BASE_PATH)
+
+__all__ = ['run', 'quick_run', 'get_decoder', 'list_decoders', 'get_generator',
 		   'mca_dump_gnr', 'mca_dump_cwf', 'mca_dump_dmr', 'mca_init',
 		   'SELECTED_PRODUCT', 'SELECTED_VARIANT', 'FRAMEWORK_VARS']
 
