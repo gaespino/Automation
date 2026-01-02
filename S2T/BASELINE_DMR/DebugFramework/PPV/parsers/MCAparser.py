@@ -20,7 +20,7 @@ except ImportError:
 
 
 def init_select_data(product):
-		
+
 	atomlist = ['SRF','CWF']
 	dmrlist = ['DMR']
 	coretype = 'atom' if product in atomlist else 'bigcore'
@@ -31,7 +31,7 @@ def init_select_data(product):
 	if product in dmrlist:## Declaring reduced data Information for DMR
 		reduced_data_cha = {
 								'__MC_STATUS': r'0[xX]20000.00000000',
-								'__MC_ADDR':None, 
+								'__MC_ADDR':None,
 								'__MCI_STATUS': r'0[xX]20000.00000000',
 								'__MCI_MISC':'0X80',
 								'__MCI_ADDR':None,
@@ -43,11 +43,11 @@ def init_select_data(product):
 								#'SCF__SCA':None,    # DMR uses SCA for LLC
 								'PTPCFSMS__MC_STATUS':None}
 		reduced_data_core = {
-								'ML2_CR_MC3': '0X7F', # ML2 MCAs 
+								'ML2_CR_MC3': '0X7F', # ML2 MCAs
 								'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
-								'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
-								'DCU_CR_MC1':'0X1F', # DCU MCAs 
-								'DTLB_CR_MC2':'0X3F', # DTLB MCAs 
+								'IFU_CR_MC0':'0X1FFF', # IFU MCAs
+								'DCU_CR_MC1':'0X1F', # DCU MCAs
+								'DTLB_CR_MC2':'0X3F', # DTLB MCAs
 								'ROB1_CR_MC':None, # ROB1 MCAs -- to be included in excel dashboard
 								'C6SRAM_MCA_STATUS':None, # C6SRAM MCAs -- to be included in excel dashboard
 								'PMSB':None}
@@ -66,12 +66,12 @@ def init_select_data(product):
 	elif coretype == 'bigcore':## Declaring reduced data Information
 		reduced_data_cha = {
 								'_MC_STATUS': r'0[xX]20000.00000000',
-								'_MC_ADDR':None, 
+								'_MC_ADDR':None,
 								'_MCI_STATUS': r'0[xX]20000.00000000',
 								'_MCI_MISC':'0X80',
 								'_MCI_ADDR':None,
 								'_MC_MISC':'0X80',
-								#'MEMSS__B2CMI': '0X7F', # ML2 MCAs 
+								#'MEMSS__B2CMI': '0X7F', # ML2 MCAs
 								#'MCCHAN__IMC':None, # mcchcnl
 								'_MC8_ADDR':None, # mcchnl
 	#							'__MC_MISC3':None,
@@ -81,10 +81,10 @@ def init_select_data(product):
 								'S3M_ERR_STS' : None,
 								'PTPCFSMS__MC_STATUS':None}
 		reduced_data_core = {
-								'ML2_CR_MC3': '0X7F', # ML2 MCAs 
+								'ML2_CR_MC3': '0X7F', # ML2 MCAs
 								'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
-								'__ID___CORE__':None, # DCU MCAs 
-								'__ID___LOGICAL__':None, # DTLB MCAs 
+								'__ID___CORE__':None, # DCU MCAs
+								'__ID___LOGICAL__':None, # DTLB MCAs
 								'__ID___PACKAGE__':None, # ROB1 MCAs -- to be included in excel dashboard
 								'__ID___THREAD__':None, # C6SRAM MCAs -- to be included in excel dashboard
 								'__MESSAGES___0___TEXT__':None,
@@ -93,34 +93,34 @@ def init_select_data(product):
 								'__FAIL___TIME_TO_FAIL__':None,
 								'__FAIL___SEED__':None,
 								'__FAIL___CPU_MASK__':None,
-								'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
-								'DCU_CR_MC1':'0X1F', # DCU MCAs 
-								'DTLB_CR_MC2':'0X3F', # DTLB MCAs 
+								'IFU_CR_MC0':'0X1FFF', # IFU MCAs
+								'DCU_CR_MC1':'0X1F', # DCU MCAs
+								'DTLB_CR_MC2':'0X3F', # DTLB MCAs
 								'ROB1_CR_MC':None, # ROB1 MCAs -- to be included in excel dashboard
 								'C6SRAM_MCA_STATUS':None, # C6SRAM MCAs -- to be included in excel dashboard
 								'PMSB':None}
 			## Will use this for some misc fails, moving PM and MEM errors here
 		reduced_data_others = {
-								'MEMSS__B2CMI': '0X7F', # ML2 MCAs 
+								'MEMSS__B2CMI': '0X7F', # ML2 MCAs
 								'MCCHAN__IMC':None, # mcchcnl
 								'_MC8_ADDR':None, # mcchnl
 								'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
-								'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
-								'DCU_CR_MC1':'0X1F', # DCU MCAs 
-								'DTLB_CR_MC2':'0X3F', # DTLB MCAs 
+								'IFU_CR_MC0':'0X1FFF', # IFU MCAs
+								'DCU_CR_MC1':'0X1F', # DCU MCAs
+								'DTLB_CR_MC2':'0X3F', # DTLB MCAs
 								'ROB1_CR_MC':None, # DTLB MCAs
 								'C6SRAM_MCA_STATUS':None, # DTLB MCAs
 								'PMSB':None}
-		
+
 	elif coretype == 'atom':## Declaring reduced data Information
 		reduced_data_cha = {
 								'_MC_STATUS': r'0[xX]20000.00000000',
-								'_MC_ADDR':None, 
+								'_MC_ADDR':None,
 								'_MCI_STATUS': r'0[xX]20000.00000000',
 								'_MCI_MISC':'0X80',
 								'_MCI_ADDR':None,
 								'_MC_MISC':'0X80',
-								#'MEMSS__B2CMI': '0X7F', # ML2 MCAs 
+								#'MEMSS__B2CMI': '0X7F', # ML2 MCAs
 								#'MCCHAN__IMC':None, # mcchcnl
 								'_MC8_ADDR':None, # mcchnl
 	#							'__MC_MISC3':None,
@@ -129,7 +129,7 @@ def init_select_data(product):
 								'FW_ERR_CAUSE': None,
 								'S3M_ERR_STS' : None,
 								'PTPCFSMS__MC_STATUS':None,
-								'MEMSS__B2CMI': '0X7F', # ML2 MCAs 
+								'MEMSS__B2CMI': '0X7F', # ML2 MCAs
 								'MCCHAN__IMC':None, # mcchcnl
 								'_MC8_ADDR':None, # mcchnl
 								}
@@ -137,10 +137,10 @@ def init_select_data(product):
 								'_CR_MCI_CTRL': '0X500000000', # CORE Control register
 								'_CR_MCI_STATUS':'0X20000000000000', # CORE MCAS
 								'_RESULT__':'PASS',
-								'_TEST__':None, # IFU MCAs 
+								'_TEST__':None, # IFU MCAs
 								'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
-								'__ID___CORE__':None, # DCU MCAs 
-								'__ID___LOGICAL__':None, # DTLB MCAs 
+								'__ID___CORE__':None, # DCU MCAs
+								'__ID___LOGICAL__':None, # DTLB MCAs
 								'__ID___PACKAGE__':None, # ROB1 MCAs -- to be included in excel dashboard
 								'__ID___THREAD__':None, # C6SRAM MCAs -- to be included in excel dashboard
 								'__MESSAGES___0___TEXT__':None,
@@ -152,13 +152,13 @@ def init_select_data(product):
 								}
 			## Will use this for some misc fails, moving PM and MEM errors here
 		reduced_data_others = {
-								'MEMSS__B2CMI': '0X7F', # ML2 MCAs 
+								'MEMSS__B2CMI': '0X7F', # ML2 MCAs
 								'MCCHAN__IMC':None, # mcchcnl
 								'_MC8_ADDR':None, # mcchnl
 								'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
-								'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
-								'DCU_CR_MC1':'0X1F', # DCU MCAs 
-								'DTLB_CR_MC2':'0X3F', # DTLB MCAs 
+								'IFU_CR_MC0':'0X1FFF', # IFU MCAs
+								'DCU_CR_MC1':'0X1F', # DCU MCAs
+								'DTLB_CR_MC2':'0X3F', # DTLB MCAs
 								'ROB1_CR_MC':None, # DTLB MCAs
 								'C6SRAM_MCA_STATUS':None, # DTLB MCAs
 								'PMSB':None}
@@ -166,7 +166,7 @@ def init_select_data(product):
 	return reduced_data_cha, reduced_data_core, reduced_data_others
 
 class ppv_report():
-	def __init__(self, name, week, label, source_file, report, data_core = None, data_cha = None, reduced = False, mcdetail = True, overview = False, decode = False, mode='Bucketer'):
+	def __init__(self, name, week, label, source_file, report, data_core = None, data_cha = None, reduced = False, mcdetail = True, overview = False, decode = False, mode='Bucketer', product = None):
 
 		self.source_file = rf'{source_file}'
 		self.source_sheet = 'raw_data'
@@ -189,7 +189,7 @@ class ppv_report():
 		## File Initialization
 
 		self.name = name
-		self.product = name.upper() ## Setting it the same as the name, can be changed later
+		self.product = product if product is not None else name.upper() ## Setting it the same as the name, can be changed later
 		self.week = week
 		self.label = label
 		self.output = report
@@ -213,9 +213,9 @@ class ppv_report():
 		if self.mcfile: filecopy(self.template_file_MCchk, self.mca_file)
 
 		## OVerview file option selected -- Only works with Reduced selected
-		if self.ovw: 
+		if self.ovw:
 			if self.reduced:
-				
+
 				self.template_file_ovw = os.path.join(self.templates_dir, self.ovw_template)
 				self.ovw_file = os.path.join(self.output, self.ovw_file)
 				filecopy(self.template_file_ovw, self.ovw_file)
@@ -231,7 +231,7 @@ class ppv_report():
 		## Declaring reduced data Information
 		#reduced_data_cha = {
 		#					'UTIL__MC_STATUS': '0X20000000000000',
-		#					'UTIL__MC_ADDR':None, 
+		#					'UTIL__MC_ADDR':None,
 		#					'__MCI_STATUS':'0X20000000000000',
 		#					'__MCI_MISC':'0X80',
 		#					'__MCI_ADDR':None,
@@ -243,21 +243,21 @@ class ppv_report():
 		#					'S3M_ERR_STS' : None,
 		#					'PTPCFSMS__MC_STATUS':None}
 		#reduced_data_core = {
-		#					'ML2_CR_MC3': '0X7F', # ML2 MCAs 
+		#					'ML2_CR_MC3': '0X7F', # ML2 MCAs
 		#					'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
-		#					'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
-		#					'DCU_CR_MC1':'0X1F', # DCU MCAs 
-		#					'DTLB_CR_MC2':'0X3F', # DTLB MCAs 
+		#					'IFU_CR_MC0':'0X1FFF', # IFU MCAs
+		#					'DCU_CR_MC1':'0X1F', # DCU MCAs
+		#					'DTLB_CR_MC2':'0X3F', # DTLB MCAs
 		#					'ROB1_CR_MC':None, # ROB1 MCAs -- to be included in excel dashboard
 		#					'C6SRAM_MCA_STATUS':None, # C6SRAM MCAs -- to be included in excel dashboard
 		#					'PMSB':None}
 		## Will use this for some misc fails, moving PM and MEM errors here
 		#reduced_data_others = {
-		#					'MEMSS__B2CMI': '0X7F', # ML2 MCAs 
+		#					'MEMSS__B2CMI': '0X7F', # ML2 MCAs
 		#					'ML3_CR_PIC_EXTENDED_LOCAL_APIC_ID':None,
-		#					'IFU_CR_MC0':'0X1FFF', # IFU MCAs 
-		#					'DCU_CR_MC1':'0X1F', # DCU MCAs 
-		#					'DTLB_CR_MC2':'0X3F', # DTLB MCAs 
+		#					'IFU_CR_MC0':'0X1FFF', # IFU MCAs
+		#					'DCU_CR_MC1':'0X1F', # DCU MCAs
+		#					'DTLB_CR_MC2':'0X3F', # DTLB MCAs
 		#					'ROB1_CR_MC':None, # DTLB MCAs
 		#					'C6SRAM_MCA_STATUS':None, # DTLB MCAs
 		#					'PMSB':None}
@@ -291,39 +291,39 @@ class ppv_report():
 		# Adds the PPV Final Bucket info to the file
 		self.bucket_info()
 		options.append('PPV')
-		
+
 		# Add MCA data if selected
 		if 'MESH' in options and decode:
 			print(' -- Parsing MCA Data for CHA in tab CHA_MCAs...')
 			self.parse_mcas(self.data_file, self.sheet_CHA)
 		if 'CORE' in options and decode:
 			self.parse_CORE_mcas(self.data_file, self.sheet_CORE)
-		
+
 		self.gen_auxfiles(data_file = self.data_file, mca_file=self.mca_file, ovw_file=self.ovw_file, mcfile_on=mcfile_on, ovw_on= ovw_on, options = options)
-		
+
 		print(f' !!! New file report created succesfully !!!')
 
 	def gen_auxfiles(self, data_file, mca_file, ovw_file, mcfile_on=False, ovw_on= True, options = ['MESH', 'CORE']):
-    
+
 		# Open the Data file and MCA file to start moving the new table to the report
-		if mcfile_on or ovw_on: 
+		if mcfile_on or ovw_on:
 			source_wb = file_open(file=data_file)
-		if mcfile_on: 
+		if mcfile_on:
 			target_wb = file_open(file=mca_file)
 
-		if ovw_on: 
+		if ovw_on:
 			ovw_wb = file_open(file=ovw_file)
 		# Update MCA Report
-			
+
 		for option in options:
 			if mcfile_on: self.copy_table_data(source_wb, target_wb, option = option)
 			if ovw_on: self.copy_table_data(source_wb, ovw_wb, option = option)
-		
+
 		# Close the files
 		if mcfile_on or ovw_on: file_close(source_wb, save=False)
 		if mcfile_on: file_close(target_wb)
 		if ovw_on: file_close(ovw_wb)
-		
+
 
 	def parse_data(self, option = 'MESH'):
 
@@ -332,21 +332,21 @@ class ppv_report():
 		source_sheet = self.source_sheet
 		target_file = self.data_file
 		reduced = self.reduced
-		
+
 		print(f' -- Filtering data from dpmb source file to create data for {option} MCA...')
-		
+
 		## Selects which table to update
-		if option == 'MESH': 
+		if option == 'MESH':
 			data_to_port = self.data_cha
 			target_sheet_name = self.sheet_CHA
 			table_name = self.table_cha
 
-		elif option == 'CORE': 
+		elif option == 'CORE':
 			data_to_port = self.data_core
 			target_sheet_name = self.sheet_CORE
 			table_name = self.table_core
 
-		else: 
+		else:
 			print('No valid option selected, use: MESH or CORE')
 			sys.exit()
 
@@ -354,8 +354,8 @@ class ppv_report():
 		source_data = pd.read_excel(source_file, sheet_name=source_sheet)
 		#extra_data = pd.DataFrame(columns=['PPVRun_MC'])
 		source_data['PPVRun_MC'] = source_data['LotsSeqKey'].astype(str) + "-" + source_data['UnitTestingSeqKey'].astype(str)
-		
-		#source_data = pd.concat([source_data, extra_data], ignore_index=True)	
+
+		#source_data = pd.concat([source_data, extra_data], ignore_index=True)
 		# Filter the data based on the conditions
 		if reduced:
 			filtered_data = pd.DataFrame()
@@ -379,24 +379,24 @@ class ppv_report():
 
 		# Load the target Excel file
 		target_workbook = load_workbook(target_file)
-		
+
 		# Get the target sheet
 		target_sheet = target_workbook[target_sheet_name]
-		
+
 		# Find the named table in the target sheet
 		table = None
 		for tbl in target_sheet.tables.values():
 			if tbl.name == table_name:
 				table = tbl
 				break
-		
+
 		#if table is None:
 			raise ValueError(f"Table {table_name} does not exist in the target file.")
-		
+
 		# Get the headers from the table
 		table_range = target_sheet[table.ref]
 		headers = [cell.value for cell in table_range[0]]
-		
+
 		# Prepare the data to be updated in the table
 		data_to_update = []
 		for _, row in filtered_data.iterrows():
@@ -404,19 +404,19 @@ class ppv_report():
 			for header in headers[:10]:
 				data_row.append(row[header])
 			data_to_update.append(data_row)
-		
+
 		# Update the table data
 		start_row = table_range[1][0].row
 		start_col = table_range[1][0].column
-		
+
 		for i, data_row in enumerate(data_to_update):
 			for j, value in enumerate(data_row):
 				target_sheet.cell(row=start_row + i, column=start_col + j, value=value)
-		
+
 		# Update the table range to include the new data
 		end_row = start_row + len(data_to_update) - 1
 		table.ref = f"{table_range[0][0].coordinate}:{target_sheet.cell(row=end_row, column=start_col + len(headers) - 1).coordinate}"
-		
+
 		# Replicate the formula in the last column to the newly added rows
 		last_col_letter = target_sheet.cell(row=start_row, column=start_col + len(headers) - 1).column_letter
 		formula_cell = target_sheet[f"{last_col_letter}{start_row}"]
@@ -435,13 +435,13 @@ class ppv_report():
 		#source_sheet = self.source_sheet
 		target_file = self.data_file
 		#reduced = self.reduced
-		
+
 		print(f' -- Checking for final bucket data...')
 
 		# Read data from the source Excel file and sheet
 		source_data = pd.read_excel(source_file, sheet_name='final_bucket')
 		content_data = pd.read_excel(source_file, sheet_name='results')
-		
+
 		# Add the BinData to the source_data dataframe
 
 		ppvBin = content_data.groupby('VisualId')['BinDesc'].apply(lambda x: ', '.join(x.dropna().astype(str))).reset_index()
@@ -453,24 +453,24 @@ class ppv_report():
 		source_data = source_data.merge(TestProgram, on='VisualId', how='left')
 		# Load the target Excel file
 		target_workbook = load_workbook(target_file)
-		
+
 		# Get the target sheet
 		target_sheet = target_workbook['PPV']
-		
+
 		# Find the named table in the target sheet
 		table = None
 		for tbl in target_sheet.tables.values():
 			if tbl.name == 'ppv':
 				table = tbl
 				break
-		
+
 		if table is None:
 			raise ValueError(f"Table {'ppv'} does not exist in the target file.")
-		
+
 		# Get the headers from the table
 		table_range = target_sheet[table.ref]
 		headers = [cell.value for cell in table_range[0]]
-		
+
 		# Prepare the data to be updated in the table
 		data_to_update = []
 		for _, row in source_data.iterrows():
@@ -478,19 +478,19 @@ class ppv_report():
 			for header in headers:
 				data_row.append(row[header])
 			data_to_update.append(data_row)
-		
+
 		# Update the table data
 		start_row = table_range[1][0].row
 		start_col = table_range[1][0].column
-		
+
 		for i, data_row in enumerate(data_to_update):
 			for j, value in enumerate(data_row):
 				target_sheet.cell(row=start_row + i, column=start_col + j, value=value)
-		
+
 		# Update the table range to include the new data
 		end_row = start_row + len(data_to_update) - 1
 		table.ref = f"{table_range[0][0].coordinate}:{target_sheet.cell(row=end_row, column=start_col + len(headers) - 1).coordinate}"
-		
+
 		# Save the updated target workbook
 		target_workbook.save(target_file)
 
@@ -499,21 +499,21 @@ class ppv_report():
 		# Variables Init
 		#source_wb = self.data_file
 		#target_wb = self.mca_file
-		
+
 		## Selects which table to update
-		if option == 'MESH': 
+		if option == 'MESH':
 			sheet_name = self.sheet_CHA
 			table_name = self.table_cha
 
-		elif option == 'CORE': 
+		elif option == 'CORE':
 			sheet_name = self.sheet_CORE
 			table_name = self.table_core
 
-		elif option == 'PPV': 
+		elif option == 'PPV':
 			sheet_name = self.sheet_PPV
 			table_name = self.table_ppv
 
-		else: 
+		else:
 			print('No valid option selected, use: MESH or CORE')
 			sys.exit()
 
@@ -544,19 +544,19 @@ class ppv_report():
 		return target_file, target_file_MC, target_file_ovw
 
 	def parse_mcas(self, source_file, source_sheet):
-		
+
 		mcas = pd.read_excel(source_file, sheet_name=source_sheet)
 
 		# Call decoder
 		mc = mcparse.decoder(data= mcas, product=self.product)
-		
+
 		# Decode different IP blocks
 		cha_df = mc.cha()  # CCF for DMR (includes LLC), CHA for GNR/CWF
 		llc_df = mc.llc()  # Empty for DMR (LLC is in CCF), LLC for GNR/CWF
 		mem_df = mc.mem()  # Memory Controller MCAs (MSE, MCCHAN, B2CMI, SCA for DMR)
 		io_df = mc.io()    # IO MCAs (UBOX, UPI, ULA, IOCACHE)
 		ubox_df = mc.portids()  # Port ID decoding
-		
+
 		print(f' -- DataFrame sizes: CHA={len(cha_df)}, LLC={len(llc_df)}, MEM={len(mem_df)}, IO={len(io_df)}, UBOX={len(ubox_df)}')
 
 		# Save dataframes to Excel only if they contain data
@@ -578,7 +578,7 @@ class ppv_report():
 				for sheet_name, df in sheets_to_create.items():
 					print(f' -- Writing {sheet_name} sheet with {len(df)} rows')
 					df.to_excel(writer, sheet_name=sheet_name, index=False)
-		
+
 		# Add tables for each created sheet
 		if not cha_df.empty:
 			addtable(df=cha_df, excel_file=source_file, sheet='CHA_MCAS', table_name='chadecode')
@@ -592,9 +592,9 @@ class ppv_report():
 			addtable(df=ubox_df, excel_file=source_file, sheet='UBOX', table_name='uboxdecode')
 
 	def parse_CORE_mcas(self, source_file, source_sheet):
-    		
+
 		mcas = pd.read_excel(source_file, sheet_name=source_sheet)
-	
+
 		# Call decoder
 		mc = mcparse.decoder(data= mcas, product=self.product)
 		core_df = mc.core()
@@ -617,16 +617,16 @@ def file_open(file):
 	return wb
 
 def file_close(file, save = True): #source_wb, target_wb):
-		
+
 	# Variables Init
 	#source_wb = self.source_wb
 	#target_wb = self.target_wb
-		
+
 	# Save and close the workbooks
 	if save: file.save()
 	file.close()
 	#target_wb.close()
-		
+
 def filecopy(src, dst):
 	print(f' -- Duplicating file from template, new file located in: {dst}.')
 	shutil.copy(src, dst)
@@ -637,7 +637,7 @@ def addtable(df, excel_file, sheet, table_name ):
 	wb = load_workbook(excel_file)
 	ws = wb[sheet]
 
-	# Define the table range, in case there is no data add blanks to the first column, this is just to be consistent with data 
+	# Define the table range, in case there is no data add blanks to the first column, this is just to be consistent with data
 	table_range = f'A1:{chr(64+len(df.columns))}{len(df)+1 if not df.empty else 2}'
 
 	# Create a table
@@ -671,15 +671,15 @@ def load_dataframe_to_excel(df, excel_file, sheet_name, table_name):
 	"""
 	# Load the existing workbook
 	workbook = load_workbook(excel_file)
-		
+
 	# Select the sheet
 	sheet = workbook[sheet_name]
-		
+
 	# Find the table in the sheet
 	table = None
 	if table_name in sheet.tables.values():
 		table = table_name
-		
+
 	else:
 		table_range = f"A1:{chr(64+len(df.columns))}{len(df)+1}"
 		table = table_name
@@ -692,25 +692,25 @@ def load_dataframe_to_excel(df, excel_file, sheet_name, table_name):
 			showRowStripes=True,
 			showColumnStripes=True
 		)
-		table.tableStyleInfo = style	
-		
+		table.tableStyleInfo = style
+
 		# Add the table to the sheet
 		sheet.add_table(table)
 
 	if table is None:
 		raise ValueError(f"Table {table_name} not found in sheet {sheet_name}")
-	
+
 	# Get the headers from the table
 	table_range = sheet[table.ref]
 	# Update the table data
 	start_row = table_range[0][0].row
 	start_col = table_range[0][0].column
-	
+
 	# Write the DataFrame to the sheet starting from the table's starting cell
 	for r_idx, row in enumerate(df.itertuples(index=False), 1):
 		for c_idx, value in enumerate(row, 1):
 			sheet.cell(row=start_row + r_idx, column=start_col + c_idx, value=value)
-		
+
 	# Save the workbook
 	workbook.save(excel_file)
 
@@ -734,7 +734,7 @@ def test(): ## Comment and run with above line, not setting args for this one, u
 	name = 'GNR'
 	week = 'WW24'
 	label = 'LLC_DATA_PAR'
-	
+
 	reduced_data_cha = {'UTIL__MC_STATUS': '0X20000000000000', 'LLC':'0X20000000000000', 'BIOS':None}
 	reduced_data_core = {'ML2_CR_MC3_STATUS': '0X20000000000000', 'PMSB':None}
 	table_dict = {'CHA':'cha_mc', 'CORE':'core_mc'}
@@ -759,8 +759,8 @@ def test(): ## Comment and run with above line, not setting args for this one, u
 	#PPVMCAs.parse_data(option = 'CORE')
 
 
-	# 
-	## Update MCA file with the PPV MCA data 
+	#
+	## Update MCA file with the PPV MCA data
 	#source_wb, target_wb = file_open(data_file=target_file, mca_file=target_file_MC)
 	#PPVMCAs.copy_table_data(source_wb=source_wb, target_wb=target_wb)
 	#file_close(source_wb=source_wb, target_wb=target_wb)

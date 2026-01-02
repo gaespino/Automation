@@ -169,7 +169,7 @@ class FrameworkUtils:
 		elif state == 'off':
 			dpm.power_off(ports=[1,2])
 		elif state == 'cycle':
-			dpm.powercycle(stime=stime, ports=[1,2], stime=stime)
+			dpm.powercycle(stime=stime, ports=[1,2])
 		else:
 			FrameworkUtils.FrameworkPrint('-- No valid power configuration selected use: on, off or cycle', 2)
 

@@ -854,8 +854,12 @@ class ErrorReportGenerator:
 
 		try:
 			print("\nTile View\n")
-			if self.mca_decoders and self.mca_decoders.tileview:
+			if self.mca_decoders and self.mca_decoders.tileview and self.product == 'GNR':
 				self.mca_decoders.tileview.tileview(sv.socket0).show_soc()
+			if self.mca_decoders and self.mca_decoders.tileview and self.product == 'CWF':
+				self.mca_decoders.tileview.tileview(sv.socket0).show_soc()
+			if self.mca_decoders and self.mca_decoders.tileview and self.product == 'DMR':
+				self.mca_decoders.tileview.DmrTileview().show_table()
 			print("[+] TILEVIEW SAVED SUCCESSFULLY")
 		except Exception as e:
 			print(f"[X] TILEVIEW COULD NOT BE SAVED: {e}")
@@ -1200,7 +1204,7 @@ class ErrorReportGenerator:
 			return mca_banks.read_scratchpad(sv)
 		except Exception as e:
 			print(f"[X] Error reading scratchpad: {e}")
-			return None
+			return 'READERROR'
 
 # =================================================================
 # BACKWARD COMPATIBILITY WRAPPER

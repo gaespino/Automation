@@ -122,7 +122,8 @@ class QuickDefeatureTool:
 		self.s2t = s2t
 		self.features = s2t.features() if s2t != None else None
 		self.variables = s2t.variables() if s2t != None else None
-		self.core_type = s2t.core_type if s2t != None else None
+		self.core_type = s2t.core_type if s2t != None else 'bigcore'
+		self.core_string = s2t.core_string if s2t != None else 'CORE'
 
 		# Use domains instead of computes (works for computes, cbbs, etc.)
 		self.domains = [d.capitalize() for d in s2t.domains] if s2t != None else ['Compute0', 'Compute1', 'Compute2']
@@ -160,7 +161,7 @@ class QuickDefeatureTool:
 		row += 1
 
 		# Domain/Mask Configuration
-		config_label_text = f"{self.domain_type} Configuration:" if self.mode == 'mesh' else "Target Physical Core:"
+		config_label_text = f"{self.domain_type} Configuration:" if self.mode == 'mesh' else f"Target Physical {self.core_string.capitalize()}:"
 		ttk.Label(main_frame, text=config_label_text).grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.mesh_config_var = tk.StringVar(value="None")
 		self.mesh_config_dropdown = ttk.Combobox(main_frame, textvariable=self.mesh_config_var, values=self.mesh_config_options)
@@ -337,8 +338,10 @@ class QuickDefeatureTool:
 
 	def corelist(self):
 		cores = []
-		for listkeys in self.s2t.array['CORES'].keys():
-			cores.extend(self.s2t.array['CORES'][listkeys])
+		fallback_DICT = {'CBB0': [0,1,2,3,4,5,6,7]}
+		s2t_cores = self.s2t.array['CORES'] if self.s2t != None else fallback_DICT
+		for listkeys in s2t_cores.keys():
+			cores.extend(s2t_cores[listkeys])
 
 		self.enabledCores = cores
 
@@ -369,8 +372,9 @@ class QuickDefeatureTool:
 			if not self.s2t.qdf600w:
 				self.w600_checkbox.config(state=tk.DISABLED)
 
-		if self.mesh_config_var.get() == 'None' or self.mode == 'slice':
-			self.fastboot_checkbox.config(state='normal')
+		self.check_fastboot()
+		#if self.mesh_config_var.get() == 'None' or self.mode == 'slice':
+		#	self.fastboot_checkbox.config(state='normal')
 
 	def show_ate(self):
 		print('--- ATE Frequency Configurations Available --- ')
@@ -458,7 +462,8 @@ class QuickDefeatureTool:
 		self.registers_max_entry.insert(0, max_val)
 
 	def check_fastboot(self, *args):
-		if (self.mesh_config_var.get() == "None") or self.mode == 'slice':
+		fastboot_enabled = self.features['fastboot']['enabled'] if self.s2t != None else False
+		if ((self.mesh_config_var.get() == "None") or (self.mode == 'slice')) and fastboot_enabled:
 			self.fastboot_var.set(True)
 			self.fastboot_checkbox.config(state='normal')
 		else:
@@ -830,7 +835,8 @@ if __name__ == "__main__":
 		print("RUNNING IN PRODUCTION MODE (requires S2T connection)")
 	print("=" * 60 + "\n")
 
-	mesh_ui(s2t, 'DMR', test_mode=TEST_MODE)
+	#mesh_ui(s2t, 'DMR', test_mode=TEST_MODE)
+	slice_ui(s2t, 'DMR', test_mode=TEST_MODE)
 	#root = tk.Tk()
 	#app = QuickDefeatureTool(s2t, 'mesh', 'GNR')
 	#root.mainloop()

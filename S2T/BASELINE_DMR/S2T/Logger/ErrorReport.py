@@ -284,7 +284,12 @@ def mca_dump_dmr(verbose=True):
 
 def readscratchpad():
 	"""Read scratchpad value"""
-	return ErrorReportGenerator.readscratchpad(sv = sv, product=SELECTED_PRODUCT, base_path = BASE_PATH)
+	dev_base_path = 'users.gaespino.dev'
+	if pe.DEV_MODE:
+		import_path = dev_base_path
+	else:
+		import_path = BASE_PATH
+	return ErrorReportGenerator.readscratchpad(sv = sv, product=SELECTED_PRODUCT, base_path = import_path)
 
 __all__ = ['run', 'quick_run', 'get_decoder', 'list_decoders', 'get_generator',
 		   'mca_dump_gnr', 'mca_dump_cwf', 'mca_dump_dmr', 'mca_init',
