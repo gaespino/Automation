@@ -861,11 +861,11 @@ class LayoutManager:
 	def _calculate_node_levels_bfs(self, start_node_id, builder):
 		"""Calculate node levels using breadth-first search."""
 		node_levels = {}
-		queue = [(start_node_id, 0)]
+		node_queue = [(start_node_id, 0)]
 		visited = set()
 
-		while queue:
-			node_id, level = queue.pop(0)
+		while node_queue:
+			node_id, level = node_queue.pop(0)
 
 			if node_id in visited:
 				continue
@@ -884,7 +884,7 @@ class LayoutManager:
 
 			for target_id in output_map.values():
 				if target_id in builder.structureFile and target_id not in visited:
-					queue.append((target_id, level + 1))
+					node_queue.append((target_id, level + 1))
 
 		# Handle unconnected nodes
 		for node_id in builder.structureFile.keys():
@@ -1547,7 +1547,7 @@ class CanvasInteractionHandler:
 				exp_text.insert(tk.END, f"{key}:\n")
 				if isinstance(value, (dict, list)):
 					# Pretty print complex values
-					import json
+
 					try:
 						formatted_value = json.dumps(value, indent=2)
 						exp_text.insert(tk.END, f"{formatted_value}\n\n")
@@ -1593,7 +1593,7 @@ class CanvasInteractionHandler:
 		# Copy to clipboard button (for experiment config)
 		def copy_to_clipboard():
 			if hasattr(node, 'Experiment') and node.Experiment:
-				import json
+
 				try:
 					clipboard_text = json.dumps(node.Experiment, indent=2)
 					popup.clipboard_clear()
@@ -1779,7 +1779,5 @@ __all__ = [
 	'LayoutManager',
 	'NodeDragHandler',
 	'CanvasInteractionHandler',
-	'FlowControlPanel',
-	'FileManagementPanel',
 	'StatusDisplayPanel'
 ]

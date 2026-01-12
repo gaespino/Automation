@@ -1,0 +1,598 @@
+{
+      "cr_dict": {
+            "brkptfilctl": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "brkptfilstate": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "brkptfiltrignow": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "vdmpg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "uclkdcm": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "ulcppulse": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "uelcpload": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "ulcpload": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "ljpll_calib_config": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "ljpll_tapconfig": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "ljpll_flltapconfig": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "ljpll_odcs_tapconfig": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "fsmisrctl": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "scanbicfg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "scanbiresult": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "tap2pmasurv": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "atomipidcode": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "cpubist": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "readpdrlt1": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "readpdrht1": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "readpdrht0": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "brkpttrignow": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "brkptctl0": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "mbpinsynctrig": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "brkptctl1": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "brkptctl2": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "crbusgo64": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "crbusnogo64": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "clkcompstrap": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "stopclk": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "ondiedroop": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "aryfrz": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "brkptinfrctl": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "brkptinfrstate": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "brkptinfrtrignow": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "viewdigital": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "bilbocfg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "bilboext": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "tap2vrc": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "tap2vrcstrap": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "ccmctl": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "ifdimen": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "tap2crislvstrap": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "tap2crislvpll": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "tap2crislvplldetmode": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "tap2crislvdts": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "tap2crislvdtsdetmode": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "indiectl": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "lcpctl": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "centrallcp": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "iosfsbovrgo": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "iosfsbovrrsp": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "iosfsbovrnogo": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "detmodes": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "stfstrap": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "epbistcfg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "epbiststatus": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "stfcfg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "tap2stf": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "dat": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "scandumpuclk": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "scandumpxclk": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "fusacfg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "fusastatus": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "brkptstate0": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "brkptstate1": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "brkptstate2": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "fusaaddr": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "scanclkfrzinfr": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "scancfg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "atpgcfg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "scanclkfrz": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "scancapttrig": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "udscreg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_bus_scmisr_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_bus_scmask_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_bus_sccfg_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_iec_scmisr_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_iec_scmask_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_iec_sccfg_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_rsv_scmisr_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_rsv_scmask_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_rsv_sccfg_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_arr_scmisr_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_arr_scmask_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_arr_sccfg_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_fec_scmisr_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_fec_scmask_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_fec_sccfg_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_fpa_scmisr_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_fpa_scmask_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_fpa_sccfg_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_mec_scmisr_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_mec_scmask_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "sib_c0_mec_sccfg_sib_reg": {
+                  "description": "N/A",
+                  "cr_offset": "N/A",
+                  "numbits": "N/A"
+            },
+            "ucode_cr_probe_lt_spc_cyc": {
+                  "description": "This is special creg for Probe Mode, used for issuing LT Special Cycles to the chipset in RED unlocked part",
+                  "cr_offset": 8987,
+                  "numbits": 64,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "ia32_cr_probe_to_pdr": {
+                  "description": "This is special creg for Probe Mode, details later",
+                  "cr_offset": 8986,
+                  "numbits": 64,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "ia32_cr_uarch_misc_ctl": {
+                  "description": "CMT 14015767073: Use MEC bit, no need for SCP backup",
+                  "cr_offset": 273,
+                  "numbits": 8,
+                  "desired_value": "0x3440580000",
+                  "ref_value": "0x0"
+            },
+            "thread0.ia32_cr_ler_to_lip": {
+                  "description": "One of the 3 MSRs that make up the Last Exception Record i.e. the last branch instruction that the processor executed prior to the last exception that was generated or the last interrupt that was handled. This part of the stack has the LIP of the destination instruction",
+                  "cr_offset": 46,
+                  "numbits": 64,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "thread0.ia32_cr_ler_from_lip": {
+                  "description": "One of the 3 MSRs that make up the Last Exception Record i.e. the last branch instruction that the processor executed prior to the last exception that was generated or the last interrupt that was handled. This part of the stack has the LIP of the source instruction",
+                  "cr_offset": 45,
+                  "numbits": 64,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "thread0.ia32_cr_ler_info": {
+                  "description": "One of the 3 MSRs that make up the Last Exception Record i.e. the last branch instruction that the processor executed prior to the last exception that was generated or the last interrupt that was handled. This part of the LER contains flag and elapsed cycle information",
+                  "cr_offset": 51,
+                  "numbits": 64,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "thread0.ucode_cr_pic_msg_control": {
+                  "description": "MSR used to enable/disable TPR messages. See Nehalem-B bug 2425138.",
+                  "cr_offset": 8900,
+                  "numbits": 16,
+                  "desired_value": "0x801400",
+                  "ref_value": "0x1000"
+            },
+            "thread0.virt_cr_smm_clear_smi": {
+                  "description": "SMM Write only server MSR",
+                  "cr_offset": 8862,
+                  "numbits": 8,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "thread0.virt_cr_pppe_event_status": {
+                  "description": "    This is a virtual register to combine the PPPE-accessible    events into a single XuMSR. The bits are sourced from    BUS_CR_PENDING_* and ARR_CR_VMCTL",
+                  "cr_offset": 8863,
+                  "numbits": 64,
+                  "desired_value": "0x2000",
+                  "ref_value": "0x0"
+            },
+            "thread0.ucode_cr_bios_done": {
+                  "description": "BIOS Done MSR for Cannonlake i1351547. This replaces MSR 0x120 POWER_MISC[ENABLE_IA_UNTRUSTED_MODE]",
+                  "cr_offset": 9095,
+                  "numbits": 8,
+                  "desired_value": "0x0",
+                  "ref_value": "0x1"
+            },
+            "thread0.virt_cr_vmx_control": {
+                  "description": "    This MSR provides PPPE access to the POST_VMXON bit. No reserved bit checks currently to match Skylake.",
+                  "cr_offset": 1731,
+                  "numbits": 64,
+                  "desired_value": "0x1819",
+                  "ref_value": "0x1a1b"
+            },
+            "thread0.virt_cr_stlb_fill_translation": {
+                  "description": "STLB QoS MSR (Atom specific) to fill translations into STLB",
+                  "cr_offset": 1352,
+                  "numbits": 64,
+                  "desired_value": "0x3f",
+                  "ref_value": "0x3f"
+            },
+            "thread0.virt_cr_rtit_fup_data": {
+                  "description": "\n        Used by the RTIT FUP generating ucode and ARR HW\n      ",
+                  "cr_offset": 128,
+                  "numbits": 16,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "thread0.virt_cr_rtit_tip_data": {
+                  "description": "\n        Used by the RTIT FUP generating ucode and ARR HW\n      ",
+                  "cr_offset": 129,
+                  "numbits": 16,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "thread0.virt_cr_rtit_ptwrite32_command": {
+                  "description": "\n        Used by the PTWRITE32 ucode and ARR HW\n      ",
+                  "cr_offset": 130,
+                  "numbits": 16,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "thread0.virt_cr_rtit_generic_command": {
+                  "description": "\n        Used by the RTIT ucode packets and ARR HW\n      ",
+                  "cr_offset": 131,
+                  "numbits": 16,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "thread0.ucode_cr_unwind": {
+                  "description": "unwind creg.",
+                  "cr_offset": 0,
+                  "numbits": 32,
+                  "desired_value": "0x14",
+                  "ref_value": "0x14"
+            }
+      }
+}

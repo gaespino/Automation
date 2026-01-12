@@ -1,0 +1,52 @@
+
+; Start Mesh Content
+sendln '#Starting MESH Testing FLOW -- Debug Framework'
+sendln '#Starting Test Capture...'
+mpause 100
+:resendx2
+sendln 'fs1:'
+mpause 100
+sendln 'cd EFI'
+pause 5
+sendln 'initdbm.nsh'
+pause 5
+
+; Select VVARS
+sendln 'dbmvars.nsh'
+;sendln 'slicevars.nsh'
+pause 5
+
+; Choose APIC IDs based on CDIE -- For Slice only
+;sendln 'apic_cdie2.nsh'
+;pause 5
+
+; Default timeout for seed loops
+timeout = 9999999
+
+; Start first Loop -- might fail, which is why there is resend labels
+:resend
+
+; Line for Dragon BareMetal
+sendln 'runregression %MM%'
+
+; Line for Dragon Pseudo
+;sendln 'runregression %PSEUDO%'
+
+mpause 100
+wait "!!!!! EXITING...... !!!!!" "FS0" "CHANGING BACK TO DIR: FS1:\MerlinX"
+if result=1 goto resend
+if result=2 goto resendx2
+if result=3 goto nextseed
+
+pause 5
+
+:nextseed
+sendln '#LoopSeed1 Done'
+wait "LoopSeed1 Done"
+
+if result=0 goto error
+if result=1 goto seed1
+
+:testdone
+pause 5
+sendln '#Test Complete'

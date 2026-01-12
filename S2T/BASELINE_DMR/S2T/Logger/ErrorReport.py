@@ -30,7 +30,7 @@ BASE_PATH = pe.BASE_PATH
 try:
 	import CoreManipulation as core_manipulation
 except ImportError:
-	print(f"[!] CoreManipulation module not available - some features will be disabled")
+	print("[!] CoreManipulation module not available - some features will be disabled")
 
 try:
 	if dev_mode:
@@ -38,12 +38,12 @@ try:
 	else:
 		import users.gaespino.DebugFramework.FileHandler as file_handler
 except ImportError:
-	print(f"[!] FileHandler module not available - upload features will be disabled")
+	print("[!] FileHandler module not available - upload features will be disabled")
 
 try:
 	import dpmChecks as dpm_checks
 except ImportError:
-	print(f"[!] dpmChecks module not available - fuse/voltage operations will be disabled")
+	print("[!] dpmChecks module not available - fuse/voltage operations will be disabled")
 
 try:
 	import ipccli
@@ -51,7 +51,7 @@ try:
 	sv = namednodes.sv
 
 except ImportError:
-	print(f"[!] ipccli/namednodes not available - MCA dump features will be disabled")
+	print("[!] ipccli/namednodes not available - MCA dump features will be disabled")
 
 ErrorReportGenerator = erg.ErrorReportGenerator
 
@@ -64,7 +64,7 @@ FRAMEWORK_RUNSTATUS = ["PASS", "FAIL"]
 FRAMEWORK_CONTENT = ["Dragon", "Linux", "PYSVConsole"]
 
 FRAMEWORK_VARS = {
-	'qdf': '', 'tnum': '', 'mask': '', 'corelic': '', 'bumps': '',
+	'qd': '', 'tnum': '', 'mask': '', 'corelic': '', 'bumps': '',
 	'htdis': '', 'dis2CPM': '', 'dis1CPM': '', 'freqIA': '', 'voltIA': '',
 	'freqCFC': '', 'voltCFC': '', 'content': '', 'passstring': '',
 	'failstring': '', 'runName': '', 'runStatus': '', 'scratchpad': '',

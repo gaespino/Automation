@@ -1,0 +1,788 @@
+{
+      "cr_dict": {
+            "brkptfilctl": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 40,
+                  "desired_value": "0x0000000000",
+                  "ref_value": "0x0000000000"
+            },
+            "brkptfilstate": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 14,
+                  "desired_value": "0x0000",
+                  "ref_value": "0x0000"
+            },
+            "brkptfiltrignow": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 2,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "vdmpg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 211,
+                  "desired_value": "0x00000000000000000000000000000000000000000000000000000",
+                  "ref_value": "0x00000000000000000000000000000000000000000000000000000"
+            },
+            "uclkdcm": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 29,
+                  "desired_value": "0x00000000",
+                  "ref_value": "0x00000000"
+            },
+            "ulcppulse": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 18,
+                  "desired_value": "0x00000",
+                  "ref_value": "0x00000"
+            },
+            "uelcpload": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 65,
+                  "desired_value": "0x00000000000000000",
+                  "ref_value": "0x00000000000000000"
+            },
+            "ulcpload": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 33,
+                  "desired_value": "0x000000000",
+                  "ref_value": "0x000000000"
+            },
+            "ljpll_calib_config": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 41,
+                  "desired_value": "0x00000000000",
+                  "ref_value": "0x00000000000"
+            },
+            "ljpll_tapconfig": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 120,
+                  "desired_value": "0x000000000000000000000000000000",
+                  "ref_value": "0x000000000000000000000000000000"
+            },
+            "ljpll_flltapconfig": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 30,
+                  "desired_value": "0x00000000",
+                  "ref_value": "0x00000000"
+            },
+            "ljpll_odcs_tapconfig": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 113,
+                  "desired_value": "0x00000000000000000000000000000",
+                  "ref_value": "0x00000000000000000000000000000"
+            },
+            "fsmisrctl": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 65,
+                  "desired_value": "0x00000000000000000",
+                  "ref_value": "0x00000000000000000"
+            },
+            "scanbicfg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 53,
+                  "desired_value": "0x00000000000000",
+                  "ref_value": "0x00000000000000"
+            },
+            "scanbiresult": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 65,
+                  "desired_value": "0x00000000000000000",
+                  "ref_value": "0x00000000000000000"
+            },
+            "tap2pmasurv": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 22,
+                  "desired_value": "0x000000",
+                  "ref_value": "0x000000"
+            },
+            "atomipidcode": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 8,
+                  "desired_value": "0x00",
+                  "ref_value": "0x00"
+            },
+            "cpubist": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 1,
+                  "desired_value": "0x1",
+                  "ref_value": "0x1"
+            },
+            "readpdrlt1": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 1,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "readpdrht1": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 1,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "readpdrht0": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 65,
+                  "desired_value": "0x00000000000000000",
+                  "ref_value": "0x00000000000000000"
+            },
+            "brkpttrignow": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 7,
+                  "desired_value": "0x00",
+                  "ref_value": "0x00"
+            },
+            "brkptctl0": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 121,
+                  "desired_value": "0x0000000000000000000000000000004",
+                  "ref_value": "0x0000000000000000000000000000004"
+            },
+            "mbpinsynctrig": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 1,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "brkptctl1": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 121,
+                  "desired_value": "0x0000000000000000000000000000004",
+                  "ref_value": "0x0000000000000000000000000000004"
+            },
+            "brkptctl2": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 121,
+                  "desired_value": "0x0000000000000000000000000000004",
+                  "ref_value": "0x0000000000000000000000000000004"
+            },
+            "crbusgo64": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 83,
+                  "desired_value": "0x0000000000000000000FF",
+                  "ref_value": "0x0000000000000000000FF"
+            },
+            "crbusnogo64": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 83,
+                  "desired_value": "0x000000000000000000004",
+                  "ref_value": "0x000000000000000000004"
+            },
+            "clkcompstrap": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 10,
+                  "desired_value": "0x000",
+                  "ref_value": "0x000"
+            },
+            "stopclk": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 7,
+                  "desired_value": "0x7F",
+                  "ref_value": "0x7F"
+            },
+            "ondiedroop": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 797,
+                  "desired_value": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                  "ref_value": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            },
+            "aryfrz": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 2,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "brkptinfrctl": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 38,
+                  "desired_value": "0x0000000000",
+                  "ref_value": "0x0000000000"
+            },
+            "brkptinfrstate": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 16,
+                  "desired_value": "0x0000",
+                  "ref_value": "0x0000"
+            },
+            "brkptinfrtrignow": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 1,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "viewdigital": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 37,
+                  "desired_value": "0x0000000000",
+                  "ref_value": "0x0000000000"
+            },
+            "bilbocfg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 5,
+                  "desired_value": "0x00",
+                  "ref_value": "0x00"
+            },
+            "bilboext": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 940,
+                  "desired_value": "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE",
+                  "ref_value": "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE"
+            },
+            "tap2vrc": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 54,
+                  "desired_value": "0x00000000000000",
+                  "ref_value": "0x00000000000000"
+            },
+            "tap2vrcstrap": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 1,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "ccmctl": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 34,
+                  "desired_value": "0x000000000",
+                  "ref_value": "0x000000000"
+            },
+            "ifdimen": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 6,
+                  "desired_value": "0x00",
+                  "ref_value": "0x00"
+            },
+            "tap2crislvstrap": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 3,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "tap2crislvpll": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 54,
+                  "desired_value": "0x00000000000000",
+                  "ref_value": "0x00000000000000"
+            },
+            "tap2crislvplldetmode": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 6,
+                  "desired_value": "0x00",
+                  "ref_value": "0x00"
+            },
+            "tap2crislvdts": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 54,
+                  "desired_value": "0x00000000000000",
+                  "ref_value": "0x00000000000000"
+            },
+            "tap2crislvdtsdetmode": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 6,
+                  "desired_value": "0x00",
+                  "ref_value": "0x00"
+            },
+            "indiectl": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 2966,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "lcpctl": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 45,
+                  "desired_value": "0x000000000000",
+                  "ref_value": "0x000000000000"
+            },
+            "centrallcp": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 32,
+                  "desired_value": "0x00000000",
+                  "ref_value": "0x00000000"
+            },
+            "iosfsbovrgo": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 69,
+                  "desired_value": "0x000000000000000000",
+                  "ref_value": "0x000000000000000000"
+            },
+            "iosfsbovrrsp": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 69,
+                  "desired_value": "0x000000000000000001",
+                  "ref_value": "0x000000000000000001"
+            },
+            "iosfsbovrnogo": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 69,
+                  "desired_value": "0x00E000329E00035800",
+                  "ref_value": "0x00E000329E00035800"
+            },
+            "detmodes": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 6,
+                  "desired_value": "0x00",
+                  "ref_value": "0x00"
+            },
+            "stfstrap": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 4,
+                  "desired_value": "0xF",
+                  "ref_value": "0xF"
+            },
+            "epbistcfg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 11,
+                  "desired_value": "0x000",
+                  "ref_value": "0x000"
+            },
+            "epbiststatus": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 50,
+                  "desired_value": "0x0000000000000",
+                  "ref_value": "0x0000000000000"
+            },
+            "stfcfg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 14,
+                  "desired_value": "0x0000",
+                  "ref_value": "0x0000"
+            },
+            "tap2stf": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 86,
+                  "desired_value": "0x0000000010080000000402",
+                  "ref_value": "0x0000000010080000000402"
+            },
+            "dat": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 6,
+                  "desired_value": "0x3F",
+                  "ref_value": "0x3F"
+            },
+            "scandumpuclk": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 90,
+                  "desired_value": "0x00000000000000000000000",
+                  "ref_value": "0x00000000000000000000000"
+            },
+            "scandumpxclk": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 222,
+                  "desired_value": "0x00000000000000000000000000000000000000000000000000000000",
+                  "ref_value": "0x00000000000000000000000000000000000000000000000000000000"
+            },
+            "fusacfg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 65,
+                  "desired_value": "0x00000000000000000",
+                  "ref_value": "0x00000000000000000"
+            },
+            "fusastatus": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 65,
+                  "desired_value": "0x00000000000000000",
+                  "ref_value": "0x00000000000000000"
+            },
+            "brkptstate0": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 46,
+                  "desired_value": "0x200000040000",
+                  "ref_value": "0x200000040000"
+            },
+            "brkptstate1": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 46,
+                  "desired_value": "0x200000800000",
+                  "ref_value": "0x200000800000"
+            },
+            "brkptstate2": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 46,
+                  "desired_value": "0x204000000000",
+                  "ref_value": "0x204000000000"
+            },
+            "fusaaddr": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 108,
+                  "desired_value": "0x000000000000000000000000000",
+                  "ref_value": "0x000000000000000000000000000"
+            },
+            "scanclkfrzinfr": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 4,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "scancfg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 53,
+                  "desired_value": "0x00000000000000",
+                  "ref_value": "0x00000000000000"
+            },
+            "atpgcfg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 1286,
+                  "desired_value": "0x0",
+                  "ref_value": "0x0"
+            },
+            "scanclkfrz": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 5,
+                  "desired_value": "0x00",
+                  "ref_value": "0x00"
+            },
+            "scancapttrig": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 18,
+                  "desired_value": "0x00000",
+                  "ref_value": "0x00000"
+            },
+            "udscreg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 54,
+                  "desired_value": "0x00000000000000",
+                  "ref_value": "0x00000000000000"
+            },
+            "sib_bus_scmisr_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 8,
+                  "desired_value": "0xDF",
+                  "ref_value": "0xDF"
+            },
+            "sib_bus_scmask_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 45,
+                  "desired_value": "0x1FFFFFFFFFFF",
+                  "ref_value": "0x1FFFFFFFFFFF"
+            },
+            "sib_bus_sccfg_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 8,
+                  "desired_value": "0x03",
+                  "ref_value": "0x03"
+            },
+            "sib_c0_iec_scmisr_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 8,
+                  "desired_value": "0x2E",
+                  "ref_value": "0x2E"
+            },
+            "sib_c0_iec_scmask_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 45,
+                  "desired_value": "0x1FFFFFFFFFFF",
+                  "ref_value": "0x1FFFFFFFFFFF"
+            },
+            "sib_c0_iec_sccfg_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 8,
+                  "desired_value": "0x03",
+                  "ref_value": "0x03"
+            },
+            "sib_c0_rsv_scmisr_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 8,
+                  "desired_value": "0x92",
+                  "ref_value": "0x92"
+            },
+            "sib_c0_rsv_scmask_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 45,
+                  "desired_value": "0x1FFFFFFFFFFF",
+                  "ref_value": "0x1FFFFFFFFFFF"
+            },
+            "sib_c0_rsv_sccfg_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 8,
+                  "desired_value": "0x03",
+                  "ref_value": "0x03"
+            },
+            "sib_c0_arr_scmisr_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 8,
+                  "desired_value": "0xDE",
+                  "ref_value": "0xDE"
+            },
+            "sib_c0_arr_scmask_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 45,
+                  "desired_value": "0x1FFFFFFFFFFF",
+                  "ref_value": "0x1FFFFFFFFFFF"
+            },
+            "sib_c0_arr_sccfg_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 8,
+                  "desired_value": "0x03",
+                  "ref_value": "0x03"
+            },
+            "sib_c0_fec_scmisr_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 8,
+                  "desired_value": "0x2A",
+                  "ref_value": "0x2A"
+            },
+            "sib_c0_fec_scmask_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 45,
+                  "desired_value": "0x1FFFFFFFFFFF",
+                  "ref_value": "0x1FFFFFFFFFFF"
+            },
+            "sib_c0_fec_sccfg_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 8,
+                  "desired_value": "0x03",
+                  "ref_value": "0x03"
+            },
+            "sib_c0_fpa_scmisr_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 8,
+                  "desired_value": "0x02",
+                  "ref_value": "0x02"
+            },
+            "sib_c0_fpa_scmask_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 45,
+                  "desired_value": "0x1FFFFFFFFFFF",
+                  "ref_value": "0x1FFFFFFFFFFF"
+            },
+            "sib_c0_fpa_sccfg_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 8,
+                  "desired_value": "0x03",
+                  "ref_value": "0x03"
+            },
+            "sib_c0_mec_scmisr_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 8,
+                  "desired_value": "0xC2",
+                  "ref_value": "0xC2"
+            },
+            "sib_c0_mec_scmask_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 45,
+                  "desired_value": "0x1FFFFFFFFFFF",
+                  "ref_value": "0x1FFFFFFFFFFF"
+            },
+            "sib_c0_mec_sccfg_sib_reg": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 8,
+                  "desired_value": "0x03",
+                  "ref_value": "0x03"
+            },
+            "ucode_cr_probe_lt_spc_cyc": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 64,
+                  "desired_value": "0x0000000000000000",
+                  "ref_value": "0x0000000000000000"
+            },
+            "ia32_cr_probe_to_pdr": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 64,
+                  "desired_value": "0x0000000000000000",
+                  "ref_value": "0x0000000000000000"
+            },
+            "ia32_cr_uarch_misc_ctl": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 64,
+                  "desired_value": "0x0000003440580000",
+                  "ref_value": "0x0000003440580000"
+            },
+            "ia32_cr_ler_to_lip": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 64,
+                  "desired_value": "0x0000000000000000",
+                  "ref_value": "0x0000000000000000"
+            },
+            "ia32_cr_ler_from_lip": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 64,
+                  "desired_value": "0x0000000000000000",
+                  "ref_value": "0x0000000000000000"
+            },
+            "ia32_cr_ler_info": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 64,
+                  "desired_value": "0x0000000000000000",
+                  "ref_value": "0x0000000000000000"
+            },
+            "ucode_cr_pic_msg_control": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 32,
+                  "desired_value": "0x00801400",
+                  "ref_value": "0x00801400"
+            },
+            "virt_cr_smm_clear_smi": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 32,
+                  "desired_value": "0x00000000",
+                  "ref_value": "0x00000000"
+            },
+            "virt_cr_pppe_event_status": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 32,
+                  "desired_value": "0x00002000",
+                  "ref_value": "0x00002000"
+            },
+            "ucode_cr_bios_done": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 32,
+                  "desired_value": "0x00000000",
+                  "ref_value": "0x00000000"
+            },
+            "virt_cr_vmx_control": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 32,
+                  "desired_value": "0x00001819",
+                  "ref_value": "0x00001819"
+            },
+            "virt_cr_stlb_fill_translation": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 32,
+                  "desired_value": "0x0000003F",
+                  "ref_value": "0x0000003F"
+            },
+            "virt_cr_rtit_fup_data": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 64,
+                  "desired_value": "0x0000000000000000",
+                  "ref_value": "0x0000000000000000"
+            },
+            "virt_cr_rtit_tip_data": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 64,
+                  "desired_value": "0x0000000000000000",
+                  "ref_value": "0x0000000000000000"
+            },
+            "virt_cr_rtit_ptwrite32_command": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 64,
+                  "desired_value": "0x0000000000000000",
+                  "ref_value": "0x0000000000000000"
+            },
+            "virt_cr_rtit_generic_command": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 64,
+                  "desired_value": "0x0000000000000000",
+                  "ref_value": "0x0000000000000000"
+            },
+            "ucode_cr_unwind": {
+                  "description": "",
+                  "cr_offset": null,
+                  "numbits": 32,
+                  "desired_value": "0x00000014",
+                  "ref_value": "0x00000014"
+            }
+      }
+}

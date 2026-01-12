@@ -1,0 +1,155 @@
+; Mesh Flow TTL Macro - Uses CSV parameters from framework configuration
+; Reads parameters from mesh_flow_params.csv
+
+; Initialize variables
+STARTUP_EFI = ""
+ULX_PATH = ""
+ULX_CPU = ""
+PRODUCT_CHOP = ""
+VVAR0 = ""
+VVAR1 = ""
+VVAR2 = ""
+VVAR3 = ""
+VVAR_EXTRA = ""
+MESH_CONTENT = ""
+DRAGON_CONTENT_LINE = ""
+MERLIN = ""
+MERLIN_DRIVE = ""
+MERLIN_DIR = ""
+STOP_ON_FAIL = ""
+EFI_PRE_EXEC_CMD = ""
+EFI_POST_EXEC_CMD = ""
+remaining_params = ""
+remaining_params2 = ""
+timeout_str = ""
+
+; Read CSV file
+fileopen fh "mesh_flow_params.csv" 0
+if result = 0 then
+    messagebox "Cannot open mesh_flow_params.csv file!" "Error"
+    end
+endif
+
+filereadln fh line
+fileclose fh
+
+; Parse parameters in chunks
+strsplit line ',' 9
+STARTUP_EFI = groupmatchstr1
+ULX_PATH = groupmatchstr2
+ULX_CPU = groupmatchstr3
+PRODUCT_CHOP = groupmatchstr4
+VVAR0 = groupmatchstr5
+VVAR1 = groupmatchstr6
+VVAR2 = groupmatchstr7
+VVAR3 = groupmatchstr8
+remaining_params = groupmatchstr9
+
+strsplit remaining_params ',' 9
+VVAR_EXTRA = groupmatchstr1
+MESH_CONTENT = groupmatchstr2
+DRAGON_CONTENT_LINE = groupmatchstr3
+MERLIN = groupmatchstr4
+MERLIN_DRIVE = groupmatchstr5
+MERLIN_DIR = groupmatchstr6
+STOP_ON_FAIL = groupmatchstr7
+EFI_PRE_EXEC_CMD = groupmatchstr8
+remaining_params2 = groupmatchstr9
+
+strsplit remaining_params2 ','
+EFI_POST_EXEC_CMD = groupmatchstr1
+timeout_str = groupmatchstr2
+
+str2int command_timeout timeout_str
+
+; Start Mesh Content
+sendln '#Starting MESH Testing FLOW -- Debug Framework'
+sendln '#Starting Test Capture...'
+mpause 100
+
+strlen STARTUP_EFI
+if result > 0 then
+	sendln STARTUP_EFI
+	pause 5
+endif
+
+sendln 'cd EFI'
+pause 5
+
+
+; Default timeout configuration setup
+timeout = 10
+
+; Clear up any previous variable setting
+sendln 'runregression.nsh clear'
+
+sprintf2 cmd "SetupInit.nsh %s %s %s" ULX_PATH ULX_CPU PRODUCT_CHOP
+sendln cmd
+mpause 100
+
+wait "ERROR" "Test Failed"
+if result=1 goto testfailed
+
+sprintf2 cmd "SetupVVARS.nsh %s %s %s %s %s" VVAR0 VVAR1 VVAR2 VVAR3 VVAR_EXTRA
+sendln cmd
+mpause 100
+
+wait "ERROR" "Test Failed"
+if result=1 goto testfailed
+
+sprintf2 cmd "SetupMesh.nsh %s %s" PRODUCT_CHOP MESH_CONTENT
+sendln cmd
+mpause 100
+
+wait "ERROR" "Test Failed"
+if result=1 goto testfailed
+
+sprintf2 cmd "SetupMerlin.nsh %s %s %s" MERLIN MERLIN_DRIVE MERLIN_DIR
+sendln cmd
+mpause 100
+
+wait "ERROR" "Test Failed"
+if result=1 goto testfailed
+
+sprintf2 cmd "SetupRegression.nsh %s" STOP_ON_FAIL
+sendln cmd
+pause 5
+
+wait "ERROR" "Test Failed"
+if result=1 goto testfailed
+
+strlen EFI_PRE_EXEC_CMD
+if result > 0 then
+    sendln EFI_PRE_EXEC_CMD
+    pause 5
+endif
+
+; Default timeout for seed loops
+timeout = command_timeout
+
+sprintf2 cmd "runregression.nsh %s %s" MESH_CONTENT DRAGON_CONTENT_LINE
+sendln cmd
+mpause 500
+
+strlen EFI_POST_EXEC_CMD
+if result > 0 then
+    sendln EFI_POST_EXEC_CMD
+    pause 5
+endif
+
+
+wait "Test Complete" "Test Failed"
+if result=1 goto testdone
+if result=2 goto testfailed
+
+:testfailed
+pause 5
+sendln '#Test Failed'
+goto testended
+
+:testdone
+pause 5
+sendln '#Test Complete'
+
+:testended
+end

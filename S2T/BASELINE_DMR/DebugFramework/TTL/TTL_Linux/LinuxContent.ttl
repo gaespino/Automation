@@ -1,0 +1,215 @@
+; Linux Flow TTL Macro - Uses CSV parameters from framework configuration
+; Reads parameters from linux_flow_params.csv
+
+; Initialize variables
+STARTUP_LINUX = ""
+WAIT_STRING1 = ""
+WAIT_STRING2 = ""
+WAIT_STRING3 = ""
+WAIT_STRING4 = ""
+LINUX_PATH = ""
+LINUX_PASS_STRING = ""
+LINUX_FAIL_STRING = ""
+LINUX_CONTENT_LINE_0 = ""
+LINUX_CONTENT_LINE_1 = ""
+LINUX_CONTENT_LINE_2 = ""
+LINUX_CONTENT_LINE_3 = ""
+LINUX_CONTENT_LINE_4 = ""
+LINUX_CONTENT_LINE_5 = ""
+LINUX_CONTENT_LINE_6 = ""
+LINUX_CONTENT_LINE_7 = ""
+LINUX_CONTENT_LINE_8 = ""
+LINUX_CONTENT_LINE_9 = ""
+LNX_PRE_EXEC_CMD = ""
+LNX_POST_EXEC_CMD = ""
+remaining_params = ""
+remaining_params2 = ""
+timeout_str = ""
+
+; Read CSV file
+fileopen fh "linux_flow_params.csv" 0
+if result = 0 then
+    messagebox "Cannot open linux_flow_params.csv file!" "Error"
+    end
+endif
+
+filereadln fh line
+fileclose fh
+
+; Parse parameters in chunks
+strsplit line ',' 9
+STARTUP_LINUX = groupmatchstr1
+WAIT_STRING1 = groupmatchstr2
+WAIT_STRING2 = groupmatchstr3
+WAIT_STRING3 = groupmatchstr4
+WAIT_STRING4 = groupmatchstr5
+LINUX_PATH = groupmatchstr6
+linux_wait_str = groupmatchstr7
+LINUX_PASS_STRING = groupmatchstr8
+remaining_params = groupmatchstr9
+
+str2int LINUX_CONTENT_WAIT linux_wait_str
+
+strsplit remaining_params ',' 9
+LINUX_FAIL_STRING = groupmatchstr1
+LINUX_CONTENT_LINE_0 = groupmatchstr2
+LINUX_CONTENT_LINE_1 = groupmatchstr3
+LINUX_CONTENT_LINE_2 = groupmatchstr4
+LINUX_CONTENT_LINE_3 = groupmatchstr5
+LINUX_CONTENT_LINE_4 = groupmatchstr6
+LINUX_CONTENT_LINE_5 = groupmatchstr7
+LINUX_CONTENT_LINE_6 = groupmatchstr8
+remaining_params2 = groupmatchstr9
+
+strsplit remaining_params2 ','
+LINUX_CONTENT_LINE_7 = groupmatchstr1
+LINUX_CONTENT_LINE_8 = groupmatchstr2
+LINUX_CONTENT_LINE_9 = groupmatchstr3
+LNX_PRE_EXEC_CMD = groupmatchstr4
+LNX_POST_EXEC_CMD = groupmatchstr5
+timeout_str = groupmatchstr6
+
+str2int command_timeout timeout_str
+
+; Connection establish
+sendln '#Starting Linux Testing FLOW -- GNR Debug Framework'
+timeout = 20
+
+sendln 'fs1:'
+mpause 100
+
+sendln STARTUP_LINUX
+pause 15
+
+:check
+;sprintf2 waitstring "%s %s %s %s" WAIT_STRING1 WAIT_STRING2 WAIT_STRING3 WAIT_STRING4
+;wait waitstring
+wait "Press any key to continue..." "GRUB version" "Loading Linux" "--MORE--"
+if result=0 goto continuelogin
+if result=1 goto moreset
+if result=2 goto nextos
+if result=3 goto moreset
+if result=4 goto startlogin
+
+:moreset
+sendln ''
+goto check
+
+:nextos
+sendkcode 336 1
+pause 3
+sendln ''
+
+:startlogin
+pause 3
+wait 'GRUB version' 'CentOS' 'Loading Linux'
+if result=1 goto nextos
+if result=2 goto nextos
+if result=3 goto continuelogin
+
+:continuelogin
+include 'Connect.ttl'
+
+wait '#CONNECTED'
+if result=0 goto errorlinux
+if result=1 goto content
+
+:content
+strlen LINUX_PATH
+if result > 0 then
+    sendln LINUX_PATH
+    mpause 10
+endif
+
+strlen LNX_PRE_EXEC_CMD
+if result > 0 then
+    sendln LNX_PRE_EXEC_CMD
+    pause 5
+endif
+
+timeout = LINUX_CONTENT_WAIT
+sendln '#Starting Linux Content Loops'
+wait 'Starting Linux Content Loops'
+if result=0 goto errorlinux
+
+strlen LINUX_CONTENT_LINE_0
+if result > 0 then
+    sendln LINUX_CONTENT_LINE_0
+    pause 5
+endif
+
+strlen LINUX_CONTENT_LINE_1
+if result > 0 then
+    sendln LINUX_CONTENT_LINE_1
+    pause 5
+endif
+
+strlen LINUX_CONTENT_LINE_2
+if result > 0 then
+    sendln LINUX_CONTENT_LINE_2
+    pause 5
+endif
+
+strlen LINUX_CONTENT_LINE_3
+if result > 0 then
+    sendln LINUX_CONTENT_LINE_3
+    pause 5
+endif
+
+strlen LINUX_CONTENT_LINE_4
+if result > 0 then
+    sendln LINUX_CONTENT_LINE_4
+    pause 5
+endif
+
+strlen LINUX_CONTENT_LINE_5
+if result > 0 then
+    sendln LINUX_CONTENT_LINE_5
+    pause 5
+endif
+
+strlen LINUX_CONTENT_LINE_6
+if result > 0 then
+    sendln LINUX_CONTENT_LINE_6
+    pause 5
+endif
+
+strlen LINUX_CONTENT_LINE_7
+if result > 0 then
+    sendln LINUX_CONTENT_LINE_7
+    pause 5
+endif
+
+strlen LINUX_CONTENT_LINE_8
+if result > 0 then
+    sendln LINUX_CONTENT_LINE_8
+    pause 5
+endif
+
+strlen LINUX_CONTENT_LINE_9
+if result > 0 then
+    sendln LINUX_CONTENT_LINE_9
+    pause 5
+endif
+
+strlen LNX_POST_EXEC_CMD
+if result > 0 then
+    sendln LNX_POST_EXEC_CMD
+    pause 5
+endif
+
+
+sendln '#Execution Complete'
+
+; The PASS / FAIL Condition will be handled by Framework, checking the logfile
+;:errorlinux
+;sendln '#Test FAILED'
+;end
+
+;:connerror
+;sendln '#Connection Error'
+;end
+
+;:success
+;sendln '#Test Complete'
+;end

@@ -1037,7 +1037,7 @@ class EditExperimentWindow(tk.Toplevel):
 
 				# Boolean validation (usually handled by checkboxes, but validate string input)
 				elif bool in field_types and isinstance(value, str):
-					if value.lower() not in ['true', 'false', '1', '0', 'yes', 'no', 'on', 'off']:
+					if value.lower() not in ['true', 'false', '1', '0', 'yes', 'no', 'on', 'of']:
 						is_valid = False
 						error_message = "Must be true/false"
 
@@ -1556,7 +1556,7 @@ class EditExperimentWindow(tk.Toplevel):
 			state = self._validation_state
 
 			print(f"\n{'='*50}")
-			print(f"VALIDATION SUMMARY")
+			print("VALIDATION SUMMARY")
 			print(f"{'='*50}")
 			print(f"Total Fields: {state['total_fields']}")
 			print(f"Valid Fields: {state['valid_fields']}")
@@ -1565,7 +1565,7 @@ class EditExperimentWindow(tk.Toplevel):
 			print(f"Overall Valid: {state['is_valid']}")
 
 			if state['error_fields']:
-				print(f"\nFields with Errors:")
+				print("\nFields with Errors:")
 				for field in state['error_fields']:
 					indicator = self.validation_indicators.get(field)
 					if indicator and hasattr(indicator, 'tooltip_text'):
@@ -1574,7 +1574,7 @@ class EditExperimentWindow(tk.Toplevel):
 						print(f"  - {field}")
 
 			if state['warning_fields']:
-				print(f"\nFields with Warnings:")
+				print("\nFields with Warnings:")
 				for field in state['warning_fields']:
 					print(f"  - {field}")
 
@@ -3029,7 +3029,7 @@ class DebugFrameworkControlPanel:
 
 			# Verify framework instance at start
 			if framework_instance_id != self.current_framework_instance_id:
-				self.log_status(f"[ERROR] Framework instance mismatch - aborting thread")
+				self.log_status("[ERROR] Framework instance mismatch - aborting thread")
 				return
 
 			total_experiments = len(experiments_list)
@@ -3060,7 +3060,7 @@ class DebugFrameworkControlPanel:
 			for index, exp_data in enumerate(experiments_list):
 				# Verify framework instance during execution
 				if framework_instance_id != self.current_framework_instance_id:
-					self.log_status(f"[ERROR] Framework instance changed during execution - aborting")
+					self.log_status("[ERROR] Framework instance changed during execution - aborting")
 					break
 
 				self.execution_state.update_state(experiment_index=index)
@@ -3305,7 +3305,7 @@ class DebugFrameworkControlPanel:
 
 			# Framework instance verification
 			if framework_instance_id and framework_instance_id != self.current_framework_instance_id:
-				self.log_status(f"[ERROR] Framework instance mismatch during execution")
+				self.log_status("[ERROR] Framework instance mismatch during execution")
 				return False
 
 			if not self.framework_api:
@@ -3796,7 +3796,7 @@ class DebugFrameworkControlPanel:
 			# Schedule priority reset after delay
 			self.root.after(2000, lambda: setattr(self, '_current_button_priority', 40))
 		else:
-			print(f"  Skipping update due to lower priority")
+			print("  Skipping update due to lower priority")
 
 	def _coordinate_status_updates(self, update_data: Dict[str, Any]):
 		"""Coordinate status label updates to prevent conflicts"""
@@ -5633,7 +5633,7 @@ class DebugFrameworkControlPanel:
 			return
 
 		try:
-			print(f"=== PROGRESS DEBUG ===")
+			print("=== PROGRESS DEBUG ===")
 			print(f"Progress Bar Value: {self.overall_progress_bar.get()}")
 			print(f"Current Experiment Index: {self.current_experiment_index}")
 			print(f"Total Experiments: {self.total_experiments}")
@@ -5654,7 +5654,7 @@ class DebugFrameworkControlPanel:
 				print(f"  Exp Progress: {exp_progress:.3f}")
 				print(f"  Iter Progress: {iter_progress:.3f}")
 
-			print(f"======================")
+			print("======================")
 		except Exception as e:
 			print(f"Debug error: {e}")
 
@@ -5906,7 +5906,7 @@ class PowerControlWindow:
 
 	def create_widgets(self):
 		tk.Button(self.top, width= 12, text=" Power ON ", command=lambda: self.control_power("on")).pack(side=tk.LEFT, padx=10, pady=5)
-		tk.Button(self.top, width= 12, text=" Power OFF ", command=lambda: self.control_power("off")).pack(side=tk.LEFT, padx=10, pady=5)
+		tk.Button(self.top, width= 12, text=" Power OFF ", command=lambda: self.control_power("of")).pack(side=tk.LEFT, padx=10, pady=5)
 		tk.Button(self.top, width= 12, text=" Power CYCLE ", command=lambda: self.control_power("cycle")).pack(side=tk.LEFT, padx=10, pady=5)
 
 	def control_power(self, state):

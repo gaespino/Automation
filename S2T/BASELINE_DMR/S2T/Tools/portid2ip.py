@@ -1,6 +1,6 @@
 
 # Code Snippet taken from /pythonsv/graniterapids/ras/ras_master/portid2ip
-''' 
+'''
 Code used to translate PortID Data into Current System IP Information
 
 The main call for this script will be made by dpm script
@@ -84,7 +84,7 @@ def find_ip(portid, db = False):
 	computes = sv.sockets.computes
 	ios = sv.sockets.ios
 	#cpus = sv.sockets.cpus
-   
+
 	for skt in sockets:
 		#computes = psv.get_cdies()
 		for io in ios:#range(2):
@@ -97,7 +97,7 @@ def find_ip(portid, db = False):
 			if ret !=None: return ret
 			#ret = finder(die.uncore,portid)
 			#if ret != None: return ret
-			
+
 			#attributes_and_methods = die.uncore.sub_components
 			#attributes_and_methods = [x for x in attributes_and_methods.keys()]# if not x.startswith('_')]
 			#attributes = [x for x in attributes_and_methods if 'target_info' in dir(die.uncore.getbypath(x))]
@@ -107,13 +107,13 @@ def find_ip(portid, db = False):
 			#		if ret != None: return ret
 			#	except:pass
 			#if ret != None: return ret
-			
+
 			### IO -> FUSES
 			ret = find_component(io, portid, component='fuses', db=False)
 			if ret !=None: return ret
 			#ret = finder(die.fuses,portid)
 			#if ret != None: return ret
-			
+
 			#attributes_and_methods = die.fuses.sub_components
 			#attributes_and_methods = [x for x in attributes_and_methods.keys()]# if not x.startswith('_')]
 			#attributes = [x for x in attributes_and_methods if 'target_info' in dir(die.fuses.getbypath(x))]
@@ -123,14 +123,14 @@ def find_ip(portid, db = False):
 			#		if ret != None: return ret
 			#	except:pass
 			#if ret != None: return ret
-			
+
 		for die in computes:
 			ret = find_component(die, portid, component='uncore', db=False)
 			if ret !=None: return ret
 			### COMPUTE -> UNCORE
 			#ret = finder(die.uncore,portid)
 			#if ret != None: return ret
-			
+
 			#attributes_and_methods = dir(die.uncore)
 			#attributes_and_methods = [x for x in attributes_and_methods.keys()]# if not x.startswith('_')]
 			#attributes = [x for x in attributes_and_methods if 'target_info' in dir(die.uncore.getbypath(x))]
@@ -140,13 +140,13 @@ def find_ip(portid, db = False):
 			#		if ret != None: return ret
 			#	except:pass
 			#if ret != None: return ret
-			
+
 			### COMPUTE -> CPU
 			ret = find_component(die, portid, component='cpu', db=False)
 			if ret !=None: return ret
 			#ret = finder(die.cpu,portid)
 			#if ret != None: return ret
-			
+
 			#attributes_and_methods = dir(die.cpu)
 			#attributes_and_methods = [x for x in attributes_and_methods.keys()]# if not x.startswith('_')]
 			#attributes = [x for x in attributes_and_methods if 'target_info' in dir(die.cpu.getbypath(x))]
@@ -156,13 +156,13 @@ def find_ip(portid, db = False):
 			#		if ret != None: return ret
 			#	except:pass
 			#if ret != None: return ret
-			
+
 			### COMPUTE -> FUSES
 			ret = find_component(die, portid, component='fuses', db=False)
 			if ret !=None: return ret
 			#ret = finder(die.fuses,portid)
 			#if ret != None: return ret
-			
+
 			#attributes_and_methods = dir(die.fuses)
 			#attributes_and_methods = [x for x in attributes_and_methods.keys()]# if not x.startswith('_')]
 			#attributes = [x for x in attributes_and_methods if 'target_info' in dir(die.fuses.getbypath(x))]
@@ -181,9 +181,9 @@ def find_component(die, portid, component = 'uncore', db = False):
 	### IO -> UNCORE
 	if db: db_gen(ip)
 	else:ret = finder(ip,portid)
-	
+
 	if ret != None: return ret
-	attributes = find_subcomponent(ip)	
+	attributes = find_subcomponent(ip)
 	#attributes_and_methods = ip.sub_components
 	#attributes_and_methods = [x for x in attributes_and_methods.keys()]# if not x.startswith('_')]
 	#attributes = [x for x in attributes_and_methods if 'target_info' in dir(ip.getbypath(x))]
@@ -191,25 +191,25 @@ def find_component(die, portid, component = 'uncore', db = False):
 	for sub in attributes:
 		try:
 			#if 'scf_cms' in sub: print(sub)
-			if db: 
+			if db:
 				db_gen(ip.getbypath(sub))
-			else: 
+			else:
 				ret = finder(ip.getbypath(sub),portid)
-			
-			if ret != None: 
+
+			if ret != None:
 				return ret
-			
+
 			# Search in a lower layer
 			attributes_l2 = find_subcomponent(ip.getbypath(sub))
 			for sub_l2 in attributes_l2:
 
-				if db: 
+				if db:
 					db_gen(ip.getbypath(sub).getbypath(sub_l2))
-				else: 
+				else:
 					ret = finder(ip.getbypath(sub).getbypath(sub_l2),portid)
-				if ret != None: 
-					return ret		
-		
+				if ret != None:
+					return ret
+
 		except:
 			#print('Failed in Find Component')
 			pass
@@ -226,8 +226,8 @@ def find_subcomponent(ip):
 def database_generator(filename = 'C:/pythonsv/graniterapids/ras/ras_master/10nm_Wave4_PortID_HAS_1p0_WW28p3_2021.xlsx'):
 	sockets = sv.sockets
 	computes = sv.sockets.computes
-	ios = sv.sockets.ios	
-	
+	ios = sv.sockets.ios
+
 	#sockets = psv.get_sockets()
 	for skt in sockets:
 			#computes = psv.get_cdies()
@@ -237,29 +237,29 @@ def database_generator(filename = 'C:/pythonsv/graniterapids/ras/ras_master/10nm
 				find_component(io, portid=None, component='fuses', db=True)
 
 				#die = psv.get_iodie(int(skt.name.split('socket')[1]),io)
-				
+
 				### IO -> UNCORE
 				#print('IO:UNCORE')
 				#ret = db_gen(die.uncore)
-				
+
 				#attributes_and_methods = die.uncore.sub_components
 				#attributes_and_methods = [x for x in attributes_and_methods.keys()]# if not x.startswith('_')]
 				#attributes = [x for x in attributes_and_methods if 'target_info' in dir(die.uncore.getbypath(x))]
 				#for ip in attributes:
 				#	try:ret = db_gen(die.uncore.getbypath(ip))
 				#	except:pass
-				
+
 				### IO -> FUSES
 				#print("IO:FUSES")
 				#ret = db_gen(die.fuses)
-				
+
 				#attributes_and_methods = dir(die.fuses)
 				#attributes_and_methods = [x for x in attributes_and_methods if not x.startswith('_')]
 				#attributes = [x for x in attributes_and_methods if 'target_info' in dir(die.fuses.getbypath(x))]
 				#for ip in attributes:
 				#	try:ret = db_gen(die.uncore.getbypath(ip))
 				#	except:pass
-			
+
 			for die in computes:
 				### COMPUTE -> UNCORE
 				find_component(die, portid=None, component='uncore', db=True)
@@ -267,19 +267,19 @@ def database_generator(filename = 'C:/pythonsv/graniterapids/ras/ras_master/10nm
 				find_component(die, portid=None, component='fuses', db=True)
 				#print("COMPUTES:UNCORE")
 				#ret = db_gen(die.uncore)
-				
+
 				#attributes_and_methods = dir(die.uncore)
 				#attributes_and_methods = [x for x in attributes_and_methods if not x.startswith('_')]
 				#attributes = [x for x in attributes_and_methods if 'target_info' in dir(die.uncore.getbypath(x))]
 				#for ip in attributes:
 				#	try:ret = db_gen(die.uncore.getbypath(ip))
 				#	except:pass
-	
-	f = open("C:\Temp\portid_to_path.csv", 'w', newline='')
+
+	f = open(r"C:\Temp\portid_to_path.csv", 'w', newline='')
 	writer = csv.writer(f)
 	for item in sorted(ret_csv, key=lambda x: x[1:]): writer.writerows([item])
 	print(r"portid_to_path.csv is saved at C:\Temp\portid_to_path.csv")
-	
+
 	try:
 		import pandas as pd
 		import numpy as np

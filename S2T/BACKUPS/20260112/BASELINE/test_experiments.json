@@ -1,0 +1,91 @@
+{
+    "Power_On_Test": {
+        "Experiment": "Enabled",
+        "Test Name": "Power On Self Test",
+        "Test Mode": "Functional",
+        "Test Type": "Single",
+        "Description": "Basic power-on functionality test",
+        "Timeout": 30,
+        "Expected_Result": "PASS"
+    },
+    "Voltage_Sweep": {
+        "Experiment": "Enabled",
+        "Test Name": "Core Voltage Sweep",
+        "Test Mode": "Characterization",
+        "Test Type": "Sweep",
+        "Start": 0.8,
+        "End": 1.2,
+        "Steps": 0.05,
+        "Description": "Sweep core voltage and measure functionality",
+        "Parameter": "Core_Voltage"
+    },
+    "Frequency_Loop": {
+        "Experiment": "Disabled",
+        "Test Name": "Frequency Stability Loop",
+        "Test Mode": "Stress",
+        "Test Type": "Loops",
+        "Loops": 10,
+        "Description": "Run frequency stability test multiple times",
+        "Frequency": 500
+    },
+    "Temperature_Shmoo": {
+        "Experiment": "Enabled",
+        "Test Name": "Temperature vs Voltage Shmoo",
+        "Test Mode": "Characterization",
+        "Test Type": "Shmoo",
+        "X_Axis": {
+            "Type": "Temperature",
+            "Start": -40,
+            "End": 85,
+            "Steps": 25
+        },
+        "Y_Axis": {
+            "Type": "Voltage",
+            "Start": 0.8,
+            "End": 1.2,
+            "Steps": 0.1
+        },
+        "Description": "Two-dimensional characterization"
+    },
+    "Memory_Test": {
+        "Experiment": "Enabled",
+        "Test Name": "Memory Pattern Test",
+        "Test Mode": "Functional",
+        "Test Type": "Loops",
+        "Loops": 5,
+        "Description": "Test memory with various patterns",
+        "Patterns": [
+            "0x55",
+            "0xAA",
+            "0xFF",
+            "0x00"
+        ]
+    },
+    "IO_Stress": {
+        "Experiment": "Disabled",
+        "Test Name": "IO Pin Stress Test",
+        "Test Mode": "Stress",
+        "Test Type": "Loops",
+        "Loops": 20,
+        "Description": "Stress test all IO pins",
+        "Duration": 120
+    },
+    "Clock_Jitter": {
+        "Experiment": "Enabled",
+        "Test Name": "Clock Jitter Measurement",
+        "Test Mode": "Measurement",
+        "Test Type": "Single",
+        "Description": "Measure clock jitter characteristics",
+        "Clock_Frequency": 1000,
+        "Measurement_Time": 10
+    },
+    "Debug_Mode": {
+        "Experiment": "Enabled",
+        "Test Name": "Debug Interface Test",
+        "Test Mode": "Debug",
+        "Test Type": "Single",
+        "Description": "Test debug interface functionality",
+        "Debug_Level": "Verbose",
+        "Trace_Enable": true
+    }
+}

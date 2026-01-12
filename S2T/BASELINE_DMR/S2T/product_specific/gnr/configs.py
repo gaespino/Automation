@@ -117,8 +117,8 @@ class configurations:
 										'pn':'pcode_cfc_pn_ratio', 
 										'min':'pcode_cfc_min_ratio'}
 					}
-		ia_ratio_curves = {	'limits': [f'pcode_sst_pp_##profile##_turbo_ratio_limit_ratios_cdyn_index##idx##_ratio##ratio##'],
-						'p1': [f'pcode_sst_pp_##profile##_sse_p1_ratio',f'pcode_sst_pp_##profile##_avx2_p1_ratio',f'pcode_sst_pp_##profile##_avx512_p1_ratio',f'pcode_sst_pp_##profile##_amx_p1_ratio'],
+		ia_ratio_curves = {	'limits': ['pcode_sst_pp_##profile##_turbo_ratio_limit_ratios_cdyn_index##idx##_ratio##ratio##'],
+						'p1': ['pcode_sst_pp_##profile##_sse_p1_ratio','pcode_sst_pp_##profile##_avx2_p1_ratio','pcode_sst_pp_##profile##_avx512_p1_ratio','pcode_sst_pp_##profile##_amx_p1_ratio'],
 						'vf_curve': ['pcode_ia_vf_ratio_voltage_index##idx##_ratio_point0','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point1','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point2','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point3','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point4','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point5'],
 						'pstates' : {	'p0':'pcode_ia_p0_ratio', 
 										'pn':'pcode_ia_pn_ratio', 
@@ -137,8 +137,8 @@ class configurations:
 		ia_voltage_curves = {	'vf_curve': ['pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point0','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point1','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point2','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point3','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point4','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point5'],
 					}		
 			
-		fuses_600w_comp = ['pcu.pcode_sst_pp_0_power=0x226','pcu.punit_ptpcioregs_package_power_sku_pkg_min_pwr_fuse=0xa50','pcu.pcode_non_vccin_power=0x300','pcu.pcode_pkg_icc_max_app=0x23f','pcu.pcode_loadline_res=0x4','pcu.pcode_loadline_res_rev2=0x190','pcu.pcode_pkg_icc_max=0x2ee','pcu.pcode_pkg_icc_p1_max=0x2ee']
-		fuses_600w_io = ['punit_iosf_sb.pcode_sst_pp_0_power=0x266','punit_iosf_sb.pmsrvr_ptpcioregs_package_power_sku_pkg_min_pwr_fuse=0xa50','punit_iosf_sb.pcode_non_vccin_power=0x300','punit_iosf_sb.pcode_pkg_icc_max_app=0x23f','punit_iosf_sb.pcode_loadline_res=0x4','punit_iosf_sb.pcode_loadline_res_rev2=0x190','punit_iosf_sb.pcode_pkg_icc_max=0x2ee','punit_iosf_sb.pcode_pkg_icc_p1_max=0x2ee']
+		fuses_600w_comp = ['pcu.pcode_sst_pp_0_power=0x226','pcu.punit_ptpcioregs_package_power_sku_pkg_min_pwr_fuse=0xa50','pcu.pcode_non_vccin_power=0x300','pcu.pcode_pkg_icc_max_app=0x23','pcu.pcode_loadline_res=0x4','pcu.pcode_loadline_res_rev2=0x190','pcu.pcode_pkg_icc_max=0x2ee','pcu.pcode_pkg_icc_p1_max=0x2ee']
+		fuses_600w_io = ['punit_iosf_sb.pcode_sst_pp_0_power=0x266','punit_iosf_sb.pmsrvr_ptpcioregs_package_power_sku_pkg_min_pwr_fuse=0xa50','punit_iosf_sb.pcode_non_vccin_power=0x300','punit_iosf_sb.pcode_pkg_icc_max_app=0x23','punit_iosf_sb.pcode_loadline_res=0x4','punit_iosf_sb.pcode_loadline_res_rev2=0x190','punit_iosf_sb.pcode_pkg_icc_max=0x2ee','punit_iosf_sb.pcode_pkg_icc_p1_max=0x2ee']
 
 		htdis_comp = ['scf_gnr_maxi_coretile_c0_r1.core_core_fuse_misc_fused_ht_dis=0x1', 'pcu.capid_capid0_ht_dis_fuse=0x1','pcu.pcode_lp_disable=0x2','pcu.capid_capid0_max_lp_en=0x1']
 		htdis_io = ['punit_iosf_sb.soc_capid_capid0_max_lp_en=0x1','punit_iosf_sb.soc_capid_capid0_ht_dis_fuse=0x1']

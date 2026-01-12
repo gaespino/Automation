@@ -1,0 +1,42 @@
+disconnect
+
+; Get User and Password from env Variables
+getenv 'FrameworkIPAdress' IPaddress
+getenv 'FrameworkDefaultPass' FramePass
+getenv 'FrameworkDefaultUser' FrameUser
+
+connection_str = IPaddress
+strconcat connection_str ' /ssh /2 /auth=password /user='
+strconcat connection_str FrameUser
+strconcat connection_str ' /passwd='
+strconcat connection_str FramePass
+
+; Connect to host
+; SSH connection macro with retry
+retry_count = 0
+max_retries = 10
+
+:retry
+if retry_count >= max_retries then
+    messagebox 'Failed to connect after 10 attempts.' 'Fail'
+    end
+endif
+
+;connect 'IPaddress /ssh /2 /auth=password /user=FrameUser /passwd=FramePass'
+connect connection_str
+
+wait 'WELCOME TO LINUX STACK FOR'
+if result = 1 then
+	goto continue
+else
+    retry_count = retry_count + 1
+    pause 20 ; Wait for 1 second before retrying
+    goto retry
+endif
+
+
+
+:continue
+pause 5
+logopen 'C:\Temp\capture.log' 0 1
+sendln "#CONNECTED"

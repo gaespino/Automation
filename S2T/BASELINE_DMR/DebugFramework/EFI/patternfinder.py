@@ -311,7 +311,7 @@ class PListSearchGUI:
             results_text += "=" * 100 + "\n\n"
             
             # Summary
-            results_text += f"Summary:\n"
+            results_text += "Summary:\n"
             results_text += f"- Total matches: {len(df)}\n"
             results_text += f"- Unique files: {df['File_Path'].nunique()}\n"
             results_text += f"- Unique PLists: {df['PList_Name'].nunique()}\n"

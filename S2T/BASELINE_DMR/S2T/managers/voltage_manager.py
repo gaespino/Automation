@@ -186,7 +186,7 @@ class VoltageManager:
 	def _prompt_voltage_option(self, input_func: Callable) -> int:
 		"""Prompt user to select voltage configuration option."""
 		print(f"\n{'*' * 80}")
-		print(f"> Set System Voltage?")
+		print("> Set System Voltage?")
 		print("\t> 1. No")
 		print("\t> 2. Fixed Voltage")
 		print("\t> 3. Voltage Bumps")
@@ -234,8 +234,8 @@ class VoltageManager:
 								 input_func: Callable) -> bool:
 		"""Configure fixed voltage values."""
 		if not external:
-			print(f"\n> Fixed Voltage Configuration Selected\n")
-			print(f"\n> Tester Safe values for reference:\n")
+			print("\n> Fixed Voltage Configuration Selected\n")
+			print("\n> Tester Safe values for reference:\n")
 			print(self.voltstable)
 
 			# Prompt for core voltage
@@ -307,7 +307,7 @@ class VoltageManager:
 						  input_func: Callable) -> bool:
 		"""Configure voltage bumps."""
 		if not external:
-			print(f"\n> Vbumps Configuration selected, use values in volts range of -0.2V to 0.2V:")
+			print("\n> Vbumps Configuration selected, use values in volts range of -0.2V to 0.2V:")
 
 			# Prompt for core vbump
 			core_vbump = self._prompt_float_voltage(
@@ -503,7 +503,7 @@ class VoltageManager:
 
 		# Mode 3: External mode
 		elif uncore_mode == 3:
-			print(f'\n> External Uncore Voltage Configuration Selected\n')
+			print('\n> External Uncore Voltage Configuration Selected\n')
 			selection = f'{"Fixed" if fixed else ""}{"vBumps" if vbumps else ""}'
 			for domain in domains:
 				print(f'--> Setting {domain} Uncore Mesh {selection} Voltage to: {qvbumps_mesh}')
@@ -519,7 +519,7 @@ class VoltageManager:
 
 	def _prompt_uncore_option(self, input_func: Callable) -> int:
 		"""Prompt user for uncore voltage configuration option."""
-		print(f"\n> Uncore Voltage Options?")
+		print("\n> Uncore Voltage Options?")
 		print("\t> 1. Same for all " + self.strategy.get_domain_display_name() + "s")
 		print("\t> 2. Set per " + self.strategy.get_domain_display_name())
 

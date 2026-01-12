@@ -30,7 +30,7 @@ except ImportError:
 
 def display_banner():
     # Create the banner text
-    banner_text = rf'''
+    banner_text = r'''
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║                                                                            ║
 ║  ████████╗██╗  ██╗██████╗     ██████╗ ███████╗██████╗ ██╗   ██╗ ██████╗    ║
@@ -497,7 +497,7 @@ class Tools(tk.Frame):
 
 	def create_compact_flow_box(self, parent, number, title, tool, color, row=0, col=0, optional=False):
 		"""Create a compact visual flow box"""
-		box = tk.Frame(parent, bg='#ffffff', relief=tk.SOLID, borderwidth=2,
+		box = tk.Frame(parent, bg='#fffff', relief=tk.SOLID, borderwidth=2,
 					  highlightbackground=color, highlightthickness=3, width=220)
 		box.grid(row=row, column=col, padx=2, pady=3, sticky="ew")
 		box.grid_propagate(True)  # Allow box to resize to content
@@ -527,7 +527,7 @@ class Tools(tk.Frame):
 			content,
 			text=title,
 			font=("Segoe UI", 9, "bold"),
-			bg='#ffffff',
+			bg='#fffff',
 			fg='#1a1a1a',
 			wraplength=190,
 			justify='left'
@@ -539,7 +539,7 @@ class Tools(tk.Frame):
 			content,
 			text=f"🔧 {tool}",
 			font=("Segoe UI", 8, "italic"),
-			bg='#ffffff',
+			bg='#fffff',
 			fg='#2c3e50',
 			wraplength=190,
 			justify='left'
@@ -753,8 +753,8 @@ class Tools(tk.Frame):
 				anchor="w"
 			)
 			action_label.pack(anchor="w", padx=20, pady=2)
-		y = (window.winfo_screenheight() // 2) - (height // 2)
-		window.geometry(f'{width}x{height}+{x}+{y}')
+		#y = (window.winfo_screenheight() // 2) - (height // 2)
+		#window.geometry(f'{width}x{height}+{x}+{y}')
 
 if __name__ == "__main__":
 	from ProductSelector import show_product_selector

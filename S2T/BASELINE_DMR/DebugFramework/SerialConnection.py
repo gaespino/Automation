@@ -108,7 +108,7 @@ class teraterm():
 		elif self.content == 'Linux': tstPass = self.linuxcheck(last_line, unchanged_checks, endcount)
 		elif self.content == 'PYSVConsole': tstPass = self.pysvcheck()
 		elif self.content == 'BootBreaks': tstPass = self.pysvcheck()
-		else: self.DebugLog(f"No valid content option selected... ")
+		else: self.DebugLog("No valid content option selected... ")
 
 		return tstPass
 
@@ -126,10 +126,10 @@ class teraterm():
 			try:
 				current_last_line, total_lines = self.get_last_line()
 			except:
-				self.DebugLog(f"Failed reading Teraterm data log")
+				self.DebugLog("Failed reading Teraterm data log")
 				return False
 			if total_lines == None:
-				self.DebugLog(f"Failed reading Teraterm data log")
+				self.DebugLog("Failed reading Teraterm data log")
 				return False
 
 			numlines = len(total_lines)# if total_lines != None else 0
@@ -156,7 +156,7 @@ class teraterm():
 				if self.search_in_file(lines=total_lines, string=[self.ttendfail], casesens=False, search_up_to_line=10, reverse=True):
 					return False
 
-			if 'fs1:\efi\>' in current_last_line.lower() and numlines >= 2:
+			if r'fs1:\efi\>' in current_last_line.lower() and numlines >= 2:
 				previousline = total_lines[numlines-2]
 				self.DebugLog(f'Last line {-1} --times:{endcount} --> {previousline}', 1)
 				endcount += 1
@@ -220,10 +220,10 @@ class teraterm():
 			try:
 				current_last_line, total_lines = self.get_last_line()
 			except:
-				self.DebugLog(f"Failed reading Teraterm data log")
+				self.DebugLog("Failed reading Teraterm data log")
 				return False
 			if total_lines == None:
-				self.DebugLog(f"Failed reading Teraterm data log")
+				self.DebugLog("Failed reading Teraterm data log")
 				return False
 
 			numlines = len(total_lines)# if total_lines != None else 0
@@ -363,8 +363,8 @@ class teraterm():
 
 			except Exception as e:
 				self.DebugLog( f" Failed collecting data for --> Core / Module:{core} -- {e}")
-				self.DebugLog(F" Disablomg Check Core/Module routine for CORE/MOD: {core}")
-				self.DebugLog(F" Check if your Module/Core is disabled or PythonSV is having issues")
+				self.DebugLog(f" Disablomg Check Core/Module routine for CORE/MOD: {core}")
+				self.DebugLog(" Check if your Module/Core is disabled or PythonSV is having issues")
 				self.chkcore = None
 
 	def run_tera_term_macro(self):

@@ -16,11 +16,11 @@ class SystemMaskEditor:
         if 'CWF' in product:
             self.disabled_rows = [0, 1, 2, 3]
             self.disabled_cols = [0,10]
-            self.corebtname = 'MODULE'   
+            self.corebtname = 'MODULE'
         else:
             self.disabled_rows = [2, 3]
             self.disabled_cols = [0, 10]
-            self.corebtname = 'CORE'         
+            self.corebtname = 'CORE'
         ## Init returning variable
         self.masks =  {
         "ia_compute_0": compute0_core_hex,
@@ -33,11 +33,11 @@ class SystemMaskEditor:
 
     # Convert hex string to bit string
     def hex_to_bit_string(self, hex_str) -> str:
-        #print(hex_str, type(hex_str))
-        if isinstance(hex_str, int):
-            return bin(hex_str)[2:].zfill(num_of_bits)[::-1]
+
         scale = 16  # base of hexadecimal
         num_of_bits = 60  # number of bits in the bitstring
+        if isinstance(hex_str, int):
+            return bin(hex_str)[2:].zfill(num_of_bits)[::-1]
         return bin(int(hex_str, scale))[2:].zfill(num_of_bits)[::-1]  # Reverse the bit string
 
     # Convert bit string to hex string
@@ -67,7 +67,7 @@ class SystemMaskEditor:
             if bit_string[index] == "1":
                 state = "disabled"
                 fg = "orange"
-            btn = tk.Button(root, text=text, width=10, height=2, bg=bg, fg=fg, state=state, 
+            btn = tk.Button(root, text=text, width=10, height=2, bg=bg, fg=fg, state=state,
                             font=("Helvetica", 10, "bold"), command=lambda: toggle_button(btn, index, bit_string))
             if bit_string[index] == "1":
                 btn.config(bg="red")
@@ -186,7 +186,7 @@ class SystemMaskEditor:
 
         #return self.compute0_core_hex, self.compute0_cha_hex, self.compute1_core_hex, self.compute1_cha_hex, self.compute2_core_hex, self.compute2_cha_hex
         return self.masks
-    
+
     def save_all(self) -> None:
         self.masks =  {
         "ia_compute_0": self.compute0_core_hex,
@@ -197,7 +197,7 @@ class SystemMaskEditor:
         "llc_compute_2": self.compute2_cha_hex
     }
         if self.callback:
-            self.callback(self.masks)  # Use callback to pass data back        
+            self.callback(self.masks)  # Use callback to pass data back
         self.root.destroy()
 
     def cancel(self) -> None:
@@ -245,9 +245,9 @@ def test_UI(root) -> None:
     print("Compute1 CHA:", masks["llc_compute_1"])
     print("Compute2 Core:", masks["ia_compute_2"])
     print("Compute2 CHA:", masks["llc_compute_2"])
-    
+
 if __name__ == "__main__":
-        
+
     root = tk.Tk()
     #root.title("System Mask Edit")
     test_UI(root)

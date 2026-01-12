@@ -579,7 +579,7 @@ class AutomationFlowDesigner:
             
             if missing_files:
                 messagebox.showerror("Missing Files", 
-                                   f"The following required files are missing:\n" + 
+                                   "The following required files are missing:\n" + 
                                    "\n".join(f"• {f}" for f in missing_files))
                 return
             
@@ -1365,8 +1365,8 @@ class AutomationFlowDesigner:
             return
         
         # Calculate bounds
-        min_x = min_y = float('inf')
-        max_x = max_y = float('-inf')
+        min_x = min_y = float('in')
+        max_x = max_y = float('-in')
         
         for node_data in self.flow_nodes.values():
             x, y = node_data['x'], node_data['y']
@@ -1432,7 +1432,7 @@ class AutomationFlowDesigner:
             if node_id != self.connection_start:
                 self.create_connection_dialog(self.connection_start, node_id)
             else:
-                self.log_message("Cannot connect node to itself", "warning")
+                self.log_message("Cannot connect node to itsel", "warning")
             
             self.connection_start = None
             self.toggle_connection_mode()  # Exit connection mode
@@ -1923,7 +1923,7 @@ class AutomationFlowDesigner:
             
             self.log_message(f"Flow exported successfully to {export_dir}", "success")
             messagebox.showinfo("Export Complete", 
-                              f"Flow exported successfully!\n\nFiles created:\n"
+                              "Flow exported successfully!\n\nFiles created:\n"
                               f"• {os.path.basename(structure_file)}\n"
                               f"• {os.path.basename(flows_file)}\n"
                               f"• {os.path.basename(ini_file)}\n"
@@ -2762,9 +2762,9 @@ class ExperimentEditor:
                 result = messagebox.askyesnocancel(
                     "Experiment Exists", 
                     f"An experiment named '{new_exp_name}' already exists.\n\n"
-                    f"Click 'Yes' to override the existing experiment.\n"
-                    f"Click 'No' to choose a different name.\n"
-                    f"Click 'Cancel' to abort the save operation.",
+                    "Click 'Yes' to override the existing experiment.\n"
+                    "Click 'No' to choose a different name.\n"
+                    "Click 'Cancel' to abort the save operation.",
                     icon='warning'
                 )
                 

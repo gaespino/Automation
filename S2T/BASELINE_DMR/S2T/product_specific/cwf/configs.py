@@ -116,8 +116,8 @@ class configurations:
 										'pn':'pcode_cfc_pn_ratio', 
 										'min':'pcode_cfc_min_ratio'}
 					}
-		ia_ratio_curves = {	'limits': [f'pcode_sst_pp_##profile##_turbo_ratio_limit_ratios_cdyn_index##idx##_ratio##ratio##'],
-						'p1': [f'pcode_sst_pp_##profile##_sse_p1_ratio'],
+		ia_ratio_curves = {	'limits': ['pcode_sst_pp_##profile##_turbo_ratio_limit_ratios_cdyn_index##idx##_ratio##ratio##'],
+						'p1': ['pcode_sst_pp_##profile##_sse_p1_ratio'],
 						'vf_curve': ['pcode_ia_vf_ratio_voltage_index##idx##_ratio_point0','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point1','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point2','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point3','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point4','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point5'],
 						'pstates' : {	'p0':'pcode_ia_p0_ratio', 
 										'pn':'pcode_ia_pn_ratio', 

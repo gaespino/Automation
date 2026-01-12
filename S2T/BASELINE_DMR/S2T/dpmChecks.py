@@ -345,7 +345,7 @@ class cfc():
 						'all':	{'fuses': True, 	'cv':True}}
 
 		if regs not in valid_regs.keys():
-			print (f'No valid register selection to be read, valid options are: \n' +
+			print ('No valid register selection to be read, valid options are: \n' +
 					'fuses:	Reads all fused data configured for CFC Ratios. \n' +
 					'cv: 	Reads current mesh value for CFC ratios. \n' +
 					'all: 	Reads fuses and current values for CFC ratios. (default) '  )
@@ -443,7 +443,7 @@ class cfc():
 						'all':	{'fuses': True, 	'cv':True}}
 
 		if regs not in valid_regs.keys():
-			print (f'No valid register selection to be read, valid options are: \n' +
+			print ('No valid register selection to be read, valid options are: \n' +
 					'fuses:	Reads all fused data configured for CFC Ratios. \n' +
 					'cv: 	Reads current mesh value for CFC ratios. \n' +
 					'all: 	Reads fuses and current values for CFC ratios. (default) '  )
@@ -640,7 +640,7 @@ class ia():
 						'all':	{'fuses': True, 	'cv':True}}
 
 		if regs not in valid_regs.keys():
-			print (f'No valid register selection to be read, valid options are: \n' +
+			print ('No valid register selection to be read, valid options are: \n' +
 					'fuses:	Reads all fused data configured for IA Ratios. \n' +
 					'cv: 	Reads current mesh value for IA ratios. \n' +
 					'all: 	Reads fuses and current values for IA ratios. (default) '  )
@@ -788,7 +788,7 @@ class ia():
 						'all':	{'fuses': True, 	'cv':True}}
 
 		if regs not in valid_regs.keys():
-			print (f'No valid register selection to be read, valid options are: \n' +
+			print ('No valid register selection to be read, valid options are: \n' +
 					'fuses:	Reads all fused data configured for IA Ratios. \n' +
 					'cv: 	Reads current mesh value for IA ratios. \n' +
 					'all: 	Reads fuses and current values for IA ratios. (default) '  )
@@ -899,7 +899,7 @@ def u600w(check=True):
 
 def reset_600w():
 	u600f = u600w(check = False)
-	print(f'>>> Using Bootscript to start the unit <<< ')
+	print('>>> Using Bootscript to start the unit <<< ')
 	print(f'>>> Compute fuses: {u600f["computes"]}')
 	print(f'>>> IO fuses: {u600f["ios"]}')
 	b.go(pwrgoodmethod='usb', pwrgoodport=1, pwrgooddelay=30, fused_unit=True, enable_strap_checks=False,compute_config=COMPUTE_CONFIG,enable_pm=True,segment=SEGMENT, fuse_str_compute = u600f['computes'], fuse_str_io = u600f['ios'])
@@ -915,7 +915,7 @@ def hwls_miscompare(logger=None):
 		gcm.svStatus()
 		modules = sv.sockets.computes.cpu.modules
 		try:
-			logger(f'Collecting HWLS Data')
+			logger('Collecting HWLS Data')
 			for module in modules:
 				pair_0 = module.bus_cr_lockstep_miscompare_status_core_pair_0
 				pair_1 = module.bus_cr_lockstep_miscompare_status_core_pair_1
@@ -933,7 +933,7 @@ def bsknobs(readonly = False, skipinit = False):
 	ram = nvram.getNVRAM()
 	if not skipinit: gcm.svStatus()
 	#knobs = {'DfxS3mSoftStrap':0, 'DfxSkipWarmResetPromotion':1}
-	print(f'>>> Checking BIOS configuration knobs: DfxS3mSoftStrap, DfxSkipWarmResetPromotion, DwrEnable and IerrResetEnabled <<< ')
+	print('>>> Checking BIOS configuration knobs: DfxS3mSoftStrap, DfxSkipWarmResetPromotion, DwrEnable and IerrResetEnabled <<< ')
 	#biosknobs(knobs=knobs, readonly=False)
 
 	try:
@@ -1076,7 +1076,7 @@ def fuses(rdFuses=True, sktnum=[0], printFuse=False):
 		fusetable.append([f'llc_{cbb_name}',hex(masks[f"llc_{cbb_name}"])])
 
 	if printFuse:
-		print (f'\n>>> Current System fused masks:\n')
+		print ('\n>>> Current System fused masks:\n')
 		print(tabulate(fusetable, headers="firstrow", tablefmt='grid'))
 
 	return masks
@@ -1329,13 +1329,13 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 				#print(valid_masks)
 				if mvalue.upper() not in valid_masks:
 
-					print(f'>>> Masks to be used in Custom, should be either:')
+					print('>>> Masks to be used in Custom, should be either:')
 					#print(f' -- ClassMasks:{ValidClass}')
 					print(f'> Rows:{ValidRows}')
 					print(f'> Columns:{ValidCols}')
 					sys.exit()
 		elif ClassMask == 'External':
-			print(f'>>> Using external Debug Mask found in file ../ConfigFiles/DMRMasksDebug.json')
+			print('>>> Using external Debug Mask found in file ../ConfigFiles/DMRMasksDebug.json')
 		else:
 			print(f'>>> Not a valid ClassMask selected use: {valid_masks}')
 			sys.exit()
@@ -1426,19 +1426,19 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 		all_fuses = ia_array + cfc_array + dis_1CPM_cbb + fuse_cbb + all_ppvc_fuses
 
 		if fast:
-			print (f'>>>  FastBoot option is selected - Starting Boot with Warm Reset')
-			print (f'>>>  Be aware, this only changes the CoreMasks keeping current CHA configuration')
+			print ('>>>  FastBoot option is selected - Starting Boot with Warm Reset')
+			print ('>>>  Be aware, this only changes the CoreMasks keeping current CHA configuration')
 			fast_fuses = all_fuses
 
 			fast_fuses += gcm.mask_fuse_module_array(ia_masks = {'cbb0':int(core_cbb0,16), 'cbb1':int(core_cbb1,16), 'cbb2':int(core_cbb2,16)})
 
-			print (f'>>>  Fuse Configuration to be used in FastBoot\n',fast_fuses)
+			print ('>>>  Fuse Configuration to be used in FastBoot\n',fast_fuses)
 
 			# Execute only if Debug is not selected
 			if not debug:
 				gcm.fuse_cmd_override_reset(fuse_cmd_array=fast_fuses, skip_init=False, boot = boot, s2t=s2t)
 			else:
-				print (f'>>>  Debug mode selected, skipping FastBoot fuse application step\n')
+				print ('>>>  Debug mode selected, skipping FastBoot fuse application step\n')
 				for fuse in fast_fuses:
 					print (f'>>>  Fuse to be applied: {fuse}\n')
 
@@ -1456,15 +1456,15 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 				fuse_str_3 = dmr_fuse_fix(fuse_str = all_fuses, cbb_name= 'cbb3')
 				llc_fuse_data = {'cbb_base0':llc_cbb0, 'cbb_base1':llc_cbb1, 'cbb_base2':llc_cbb2, 'cbb_base3':llc_cbb3}
 				ia_fuse_data = {'cbb_base0':core_cbb0, 'cbb_base1':core_cbb1, 'cbb_base2':core_cbb2, 'cbb_base3':core_cbb3}
-				bscript_0 = (	f'pwrgoodmethod="usb", '
-								f'pwrgoodport=[1,2], '
-								f'pwrgooddelay=30, '
-								f'fused_unit=True, '
+				bscript_0 = (	'pwrgoodmethod="usb", '
+								'pwrgoodport=[1,2], '
+								'pwrgooddelay=30, '
+								'fused_unit=True, '
 								f'disable_mask_checker={dis_mask_checker}, '
 								f'disable_axon={dis_axon}, '
-								f'enable_strap_checks=False, '
+								'enable_strap_checks=False, '
 								f'compute_config="{chipConfig}", '
-								f'enable_pm=True, '
+								'enable_pm=True, '
 								f'ia_core_disable= {ia_fuse_data}, '
 								f'llc_slice_disable={llc_fuse_data}'
 								)
@@ -1496,15 +1496,15 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 				fuse_str_0 = dmr_fuse_fix(fuse_str = all_fuses, cbb_name= 'cbb0')
 				llc_fuse_data = {'cbb_base0':llc_cbb0}
 				ia_fuse_data = {'cbb_base0':core_cbb0}
-				bscript_0 = (	f'pwrgoodmethod="usb", '
-								f'pwrgoodport=[1,2], '
-								f'pwrgooddelay=30, '
-								f'fused_unit=True, '
-								f'enable_strap_checks=False, '
+				bscript_0 = (	'pwrgoodmethod="usb", '
+								'pwrgoodport=[1,2], '
+								'pwrgooddelay=30, '
+								'fused_unit=True, '
+								'enable_strap_checks=False, '
 								f'disable_mask_checker={dis_mask_checker}, '
 								f'disable_axon={dis_axon}, '
 								f'compute_config="{chipConfig}", '
-								f'enable_pm=True, '
+								'enable_pm=True, '
 								f'ia_core_disable= {ia_fuse_data}, '
 								f'llc_slice_disable={llc_fuse_data}'
 								)
@@ -1518,9 +1518,9 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 							}
 
 				bscript_1 = (
-				f', fuse_str='
+				', fuse_str='
 				f'{fuse_str}'
-				f','# dynamic_fuse_inject={{"top":my_method}}'
+				','# dynamic_fuse_inject={{"top":my_method}}'
 				)
 			## Display data on screen, showing configuration to be used based on selection
 			print (f'\n>>>  Bootscript configuration for {ClassMask} ')
@@ -1536,16 +1536,16 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 				print (f'>>>  Using Compute 3 Masks: CORE = {core_cbb3}, LLC = {llc_cbb3}')
 			# if htdis:print (f'>>>  Applying HT Disabled Fuses : Computes = {htdis_comp}')
 			# if htdis:print (f'>>>  Applying HT Disabled Fuses : Computes = {htdis_io} \n')
-			print (f'>>>  Running Bootscript: \n')
+			print ('>>>  Running Bootscript: \n')
 			print (f">>>  b.go({bscript_0}{bscript_1})")
 
 
-			fuse_option = {'cbb0':fuse_str_0,'cbb1':fuse_str_1,'cbb2':fuse_str_2, 'cbb2':fuse_str_3}
+			fuse_option = {'cbb0':fuse_str_0,'cbb1':fuse_str_1,'cbb2':fuse_str_2, 'cbb3':fuse_str_3}
 
 			## Either run the bootscript or just print the bootscript string in case additional feats need to be added on it.
 			# pending pereiras -- Not finished yet
 			if not debug and boot:
-				print (f'>>>  Boot option is selected - Starting Bootscript')
+				print ('>>>  Boot option is selected - Starting Bootscript')
 			#	if htdis:
 
 				if chipConfig == 'X4': b.go(pwrgoodmethod="usb",
@@ -1573,9 +1573,9 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 											ia_core_disable={"cbb_base0":core_cbb0}, llc_slice_disable={"cbb_base0":llc_cbb0},
 											fuse_str=fuse_str)
 			else:
-				if debug: print (f'>>>  Debug mode selected, skipping Bootscript execution step\n')
+				if debug: print ('>>>  Debug mode selected, skipping Bootscript execution step\n')
 				# Waits for EFI and checks fuse application
-				print (f'\n>>>  Boot option not selected -- Copy bootscript code  above and edit if needed to run manually')
+				print ('\n>>>  Boot option not selected -- Copy bootscript code  above and edit if needed to run manually')
 	else:
 
 		# Returning counts in case we need to validate something in S2T -- Not used currently
@@ -1584,7 +1584,7 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 
 # pereiras, pending to add the correct regs, currently it's dummy function
 def my_method(socket: str, die: str, fuse_override_iteration=None)->int:
-	print(f"Testing")
+	print("Testing")
 	socket_id = int(socket)
 	if 'cbb' in die:
 		cbb_name = die.split('.')
@@ -1595,11 +1595,11 @@ def my_method(socket: str, die: str, fuse_override_iteration=None)->int:
 ## Looks for fuse application, in case one of them is not applied will raise a flag
 ## Checks masking with coresenabled and fuse applied with the fuse override check script
 def pseudo_efi_check(fuses):
-		print(f'>>>  Waiting for EFI PostCode')
+		print('>>>  Waiting for EFI PostCode')
 		EFI_POST = gcm.EFI_POST
 		gcm._wait_for_post(EFI_POST, sleeptime=60)
 
-		print(f'>>>  Checking all Fuses for Compute0 Applied correctly')
+		print('>>>  Checking all Fuses for Compute0 Applied correctly')
 		fuseRAM(refresh=True)
 
 		for f in fuses.keys():
@@ -1716,10 +1716,10 @@ def dmr_fuse_fix(fuse_str = {}, cbb_name = 'cbb0', sockets = ['0','s']):
 		else:
 			fstring = bs_fuse_fix(fuse_str = fuse_str, bases = top_bases)
 
-			fuses[f'top0'].extend(fstring)
-			fuses[f'top1'].extend(fstring)
-			fuses[f'top2'].extend(fstring)
-			fuses[f'top3'].extend(fstring)
+			fuses['top0'].extend(fstring)
+			fuses['top1'].extend(fstring)
+			fuses['top2'].extend(fstring)
+			fuses['top3'].extend(fstring)
 
 	return fuses
 
@@ -1727,7 +1727,7 @@ def dmr_fuse_fix(fuse_str = {}, cbb_name = 'cbb0', sockets = ['0','s']):
 ## PPVC Fuses configuration,
 def ppvc(bsformat = False, ppvc_fuses = [], updateram=False):
 	print("\n***********************************v********************************************")
-	print(f'Searching for PPVC fuses, please enter requested values for proper configuration:')
+	print('Searching for PPVC fuses, please enter requested values for proper configuration:')
 	#ppvc_fuses = f.ppvc_rgb_reduction(boot=False)
 	## I have rebuilt the ppvc script here instead of using what is in GFO in case additional customization is needed
 	if updateram: fuseRAM(refresh = False)
@@ -1749,7 +1749,7 @@ def ppvc(bsformat = False, ppvc_fuses = [], updateram=False):
 		if user_input.upper() == 'Y':
 			rgb_values = f.get_rgb_values()
 		else:
-			print(f'Skipping PPVC Configuration --')
+			print('Skipping PPVC Configuration --')
 			return ppvc_confg
 
 	#computes = len(syscomputes)
@@ -1781,7 +1781,7 @@ def ppvc(bsformat = False, ppvc_fuses = [], updateram=False):
 					'compute2':fuses_compute2,
 					'io0':fuses_io0,
 					'io1':fuses_io1,}
-	print(f'PPVC configuration fuses collected adding them to boot configuration')
+	print('PPVC configuration fuses collected adding them to boot configuration')
 	print("***********************************v********************************************\n")
 	return ppvc_confg
 
@@ -1904,7 +1904,7 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 					'imh0':fuses_imh0,
 					'imh1':fuses_imh1,}
 
-	print(f'Voltage configuration fuses collected, adding them to boot configuration')
+	print('Voltage configuration fuses collected, adding them to boot configuration')
 	print("***********************************v********************************************\n")
 	return volt_config
 
@@ -2421,11 +2421,11 @@ def burnin(domains=['mesh'], level='mid', boot = True):
 			_fuse_str_io = bs_fuse_fix(fuse_str = _fuse_str_io, bases = ['sv.sockets.ios.fuses.punit_iosf_sb.','sv.socket0.io0.fuses.punit_iosf_sb.','sv.socket0.io1.fuses.punit_iosf_sb.'])
 
 	if boot:
-		print (f' ---  Boot option is selected - Starting Bootscript')
+		print (' ---  Boot option is selected - Starting Bootscript')
 		if variant == 'AP': b.go(pwrgoodmethod='usb', pwrgoodport=1, pwrgooddelay=30, fused_unit=True, enable_strap_checks=False,compute_config=COMPUTE_CONFIG,enable_pm=True,segment=SEGMENT, fuse_str_compute = _fuse_str_compute,fuse_str_io = _fuse_str_io)
 		if variant == 'SP': b.go(pwrgoodmethod='usb', pwrgoodport=1, pwrgooddelay=30, fused_unit=True, enable_strap_checks=False,compute_config=COMPUTE_CONFIG,enable_pm=True,segment=SEGMENT, fuse_str_compute = _fuse_str_compute,fuse_str_io = _fuse_str_io)
 	else:
-		print (f'\n ---  Boot option not selected -- Copy bootscript code  above and edit if needed to run manually')
+		print ('\n ---  Boot option not selected -- Copy bootscript code  above and edit if needed to run manually')
 		print(f'Compute Fuses: \n {_fuse_str_compute}')
 		print(f'IO Fuses: \n {_fuse_str_io}')
 

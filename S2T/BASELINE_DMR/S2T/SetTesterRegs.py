@@ -84,7 +84,6 @@ import os
 from ipccli import BitData
 import json
 import importlib
-import os
 import time
 from tabulate import tabulate
 from importlib import import_module
@@ -1762,7 +1761,7 @@ class S2TFlow():
 
 		elif self.targetTile == 4:
 			# Full Chip
-			print(f'--> System 2 Tester Configured in Full Chip Mode')
+			print('--> System 2 Tester Configured in Full Chip Mode')
 			self.target = 'FULLCHIP'
 
 	def mesh_misc(self):
@@ -2002,49 +2001,6 @@ class S2TFlow():
 #=============== HELPER FUNCTIONS ======================================================================#
 #========================================================================================================#
 
-## PM Mode need to revisit at some point -- Will add this to the Class once implemented
-def setupMeshPMMode(target_tile = None, pm_default=None):
-	if target_tile == None: target_tile = int(input("Enter Tile: "))
-	if pm_default == None:
-		print("  Do you want PM defaults? ")
-		print("\t1. Default: IA_P0=32, IA_P1=32, IA_PN=8, IA_PN=8,  CFC_P0=20, CFC_P1=20, CFC_PN=8, CFC_MIN=8")
-		print("\tHT_ENABLED,  UCODE CLEARED, APIC ID FIXED , MLC WAYMASK=2")
-		print("\t2. NO_VF")
-		#pm_default = _yorn("PM DEFAULTS? Y or N (enter for Y)? ","Y")
-		while pm_default not in range (1,3):
-			pm_default = input("Enter 1-2: (enter for 1) ")
-			if pm_default == "":
-				pm_default = 1
-			pm_default = int(pm_default)
-	if pm_default == 1:
-		scm.global_ia_p0=32
-		scm.global_ia_p1=32
-		scm.global_ia_pn=8
-		scm.global_ia_pm=8
-		scm.global_cfc_p0=20
-		scm.global_cfc_p1=20
-		scm.global_cfc_pn=8
-		scm.global_cfc_pm=8
-		scm.global_boot_stop_after_mrc=True
-		scm.setTile(target_tile, ht_dis=False, stop_after_mrc=True, fresh_state=False)
-
-		# should be waiting after MRC
-		scm.read_biospost()
-		tester_apic_id()
-		scm.go_to_efi()
-		scm.read_biospost()
-		# CoreDebugUtils.set_mlc_waymask(mesh_tester = True )
-		# TODO: Add tester regs?
-	elif pm_default == 2:
-		scm.setTile(target_tile, ht_dis=False, stop_after_mrc=True, fresh_state=False,pm_enable_no_vf=True)
-		# should be waiting after MRC
-		scm.read_biospost()
-		tester_apic_id()
-		scm.go_to_efi()
-		scm.read_biospost()
-	else:
-		setupMeshMode(targetTile=target_tile, clear_ucode=False, halt_pcu=False)
-
 def reboot_pm():
 	sv.socket0.io0.uncore.ubox.ncdecs.biosscratchpad6_cfg=scm.AFTER_MRC_POST
 	itp.resettarget()
@@ -2088,34 +2044,34 @@ def vvars_call(slice = True, logCore=None, corestring = 'CORE'):
 		print(f'{bullets} MerlinX.efi -otl -x2ar <path to seed> -d 0 989680 1 0x80064000 2 1000002 3 0x4210000 4 {apic_0} 5 {apic_1} ')
 		print ("----------------------------------------------------------------\n")
 		print(f'{bullets} If using runregression.nsh, set the following variables in console:\n')
-		print(f'set SEEDS_PATH <path to slice content>')
-		print(f'set SEEDS_PATH')
-		print(f'set MERLIN_DIR <path to Merlin 8.23>')
-		print(f'set MERLIN_DIR')
-		print(f'set MERLIN_DRIVE <Merlin 8.23 drive>')
-		print(f'set MERLIN_DRIVE')
-		print(f'set DRG_START_FRESH 1')
-		print(f'set DRG_START_FRESH')
-		print(f'set DRG_STOP_ON_FAIL 0')
-		print(f'set DRG_STOP_ON_FAIL')
+		print('set SEEDS_PATH <path to slice content>')
+		print('set SEEDS_PATH')
+		print('set MERLIN_DIR <path to Merlin 8.23>')
+		print('set MERLIN_DIR')
+		print('set MERLIN_DRIVE <Merlin 8.23 drive>')
+		print('set MERLIN_DRIVE')
+		print('set DRG_START_FRESH 1')
+		print('set DRG_START_FRESH')
+		print('set DRG_STOP_ON_FAIL 0')
+		print('set DRG_STOP_ON_FAIL')
 		print(f'set VVAR0 "{vvars[0]:#x}"')
-		print(f'set VVAR0')
+		print('set VVAR0')
 		print(f'set VVAR1 "{vvars[1]:#x}"')
-		print(f'set VVAR1')
+		print('set VVAR1')
 		print(f'set VVAR2 "{vvars[2]:#x}"')
-		print(f'set VVAR2')
+		print('set VVAR2')
 		print(f'set VVAR3 "{vvars[3]:#x}"')
-		print(f'set VVAR3')
+		print('set VVAR3')
 		if vvars[4] != None: print(f'set VVAR4 "{vvars[4]:#x}"')
-		else: print(f'set VVAR4 "None - Error Collecting Data"')
-		print(f'set VVAR4')
+		else: print('set VVAR4 "None - Error Collecting Data"')
+		print('set VVAR4')
 		if vvars[5] != None: print(f'set VVAR5 "{vvars[5]:#x}"')
-		else: print(f'set VVAR5 "None - HT Disabled"')
-		print(f'set VVAR5')
+		else: print('set VVAR5 "None - HT Disabled"')
+		print('set VVAR5')
 		print(f'set VVAR_EXTRA "0 {vvars[0]:#x}"')
-		print(f'set VVAR_EXTRA')
-		print(f'set MERLIN "MerlinX.efi"')
-		print(f'set MERLIN')
+		print('set VVAR_EXTRA')
+		print('set MERLIN "MerlinX.efi"')
+		print('set MERLIN')
 		print('\nOnce set run: ../slice_regression.nsh %SEEDS_PATH% <Optional seeds filter>')
 		print ("----------------------------------------------------------------\n")
 	# MESH
@@ -2136,7 +2092,7 @@ def vvars_call(slice = True, logCore=None, corestring = 'CORE'):
 		print(f'\t> VVAR1 = {vvars[1]:#x}  ---> Optional Base timing / multiplying factor of VVAR0')
 		print(f'\t> VVAR2 = {vvars[2]:#x}  ---> Running Threads = Default(all)')
 		print(f'\t> VVAR3 = {vvars[3]:#x}  ---> PM enabled seeds will skip the end of test PState restore verification.')
-		print(f'\t> If running in HWLS configuration set the following:')
+		print('\t> If running in HWLS configuration set the following:')
 		print(f'\t> VVAR3 = {vvars[103]:#x}  ---> Change for VVAR3 for HWLS seeds')
 		print(f'\t> VVAR5 = {vvars[105]:#x}  ---> APIC ID for thread1 for HWLS seeds')
 
@@ -2146,33 +2102,33 @@ def vvars_call(slice = True, logCore=None, corestring = 'CORE'):
 		print(f'{bullets} MerlinX.efi -otl -x2ar <path to seed> -d 0 0x4C4B40 1 0x80064000 2 1000000 3 0x4200000 ')
 		print ("----------------------------------------------------------------\n")
 		print(f'{bullets} If using runregression.nsh, set the following variables in console:\n')
-		print(f'set SEEDS_PATH <path to slice content>')
-		print(f'set SEEDS_PATH')
-		print(f'set MERLIN_DIR <path to Merlin 8.23>')
-		print(f'set MERLIN_DIR')
-		print(f'set MERLIN_DRIVE <Merlin 8.23 drive>')
-		print(f'set MERLIN_DRIVE')
-		print(f'set DRG_START_FRESH 1')
-		print(f'set DRG_START_FRESH')
-		print(f'set DRG_STOP_ON_FAIL 0')
-		print(f'set DRG_STOP_ON_FAIL')
+		print('set SEEDS_PATH <path to slice content>')
+		print('set SEEDS_PATH')
+		print('set MERLIN_DIR <path to Merlin 8.23>')
+		print('set MERLIN_DIR')
+		print('set MERLIN_DRIVE <Merlin 8.23 drive>')
+		print('set MERLIN_DRIVE')
+		print('set DRG_START_FRESH 1')
+		print('set DRG_START_FRESH')
+		print('set DRG_STOP_ON_FAIL 0')
+		print('set DRG_STOP_ON_FAIL')
 		print(f'set VVAR0 "{vvars[0]:#x}"')
-		print(f'set VVAR0')
+		print('set VVAR0')
 		print(f'set VVAR1 "{vvars[1]:#x}"')
-		print(f'set VVAR1')
+		print('set VVAR1')
 		print(f'set VVAR2 "{vvars[2]:#x}"')
-		print(f'set VVAR2')
+		print('set VVAR2')
 		print(f'set VVAR3 "{vvars[3]:#x}"')
-		print(f'set VVAR3')
+		print('set VVAR3')
 
 		#print(f'set VVAR4 "{vvars[4]:#x}"')
 		#print(f'set VVAR4')
 		#print(f'set VVAR5 "{vvars[5]:#x}"')
 		#print(f'set VVAR5')
-		print(f'set VVAR_EXTRA ""')
-		print(f'set VVAR_EXTRA')
-		print(f'set MERLIN "MerlinX.efi"')
-		print(f'set MERLIN')
+		print('set VVAR_EXTRA ""')
+		print('set VVAR_EXTRA')
+		print('set MERLIN "MerlinX.efi"')
+		print('set MERLIN')
 		print('\nOnce set run: ../runregression.nsh %SEEDS_PATH% <Optional seeds filter>')
 		print ("----------------------------------------------------------------\n")
 
@@ -2391,7 +2347,7 @@ def set_tester(
 	# Check if there is any register to set if not just dont go here
 	#if cr_array_end != cr_array_start:
 	if (cr_array_start < 0xffff): _set_crs(crarray, cr_array_start, cr_array_end, skip_index_array, clear_ucode,  halt_pcu, skip_wbinvd, SVrefresh = False)
-	else: print (f" Skipping Registers Configuration...")
+	else: print (" Skipping Registers Configuration...")
 	if (license_level != None and product in lic_allowed):
 		print (f"Setting AVX license : {license_level}")
 		CoreDebugUtils.set_license(lic=license_level)

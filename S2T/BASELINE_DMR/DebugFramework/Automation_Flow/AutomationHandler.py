@@ -1304,7 +1304,7 @@ class FlowProgressInterface:
 		if missing_files:
 			# Show message about missing files
 			missing_list = [self.default_files[ft] for ft in missing_files]
-			message = f"Missing files:\n" + "\n".join(f"• {f}" for f in missing_list)
+			message = "Missing files:\n" + "\n".join(f"• {f}" for f in missing_list)
 			message += "\n\nPlease use the Browse buttons to select these files individually."
 			
 			messagebox.showwarning("Missing Configuration Files", message)
@@ -1524,8 +1524,8 @@ class FlowProgressInterface:
 			return
 		
 		# Calculate bounds
-		min_x = min_y = float('inf')
-		max_x = max_y = float('-inf')
+		min_x = min_y = float('in')
+		max_x = max_y = float('-in')
 		
 		for pos in positions.values():
 			min_x = min(min_x, pos['x'])

@@ -122,7 +122,7 @@ def init_select_data(product):
 								'_MC_MISC':'0X80',
 								#'MEMSS__B2CMI': '0X7F', # ML2 MCAs
 								#'MCCHAN__IMC':None, # mcchcnl
-								'_MC8_ADDR':None, # mcchnl
+								#'_MC8_ADDR':None, # mcchnl
 	#							'__MC_MISC3':None,
 	#							'BIOS':None,
 								'UBOX':None,
@@ -301,7 +301,7 @@ class ppv_report():
 
 		self.gen_auxfiles(data_file = self.data_file, mca_file=self.mca_file, ovw_file=self.ovw_file, mcfile_on=mcfile_on, ovw_on= ovw_on, options = options)
 
-		print(f' !!! New file report created succesfully !!!')
+		print(' !!! New file report created succesfully !!!')
 
 	def gen_auxfiles(self, data_file, mca_file, ovw_file, mcfile_on=False, ovw_on= True, options = ['MESH', 'CORE']):
 
@@ -436,7 +436,7 @@ class ppv_report():
 		target_file = self.data_file
 		#reduced = self.reduced
 
-		print(f' -- Checking for final bucket data...')
+		print(' -- Checking for final bucket data...')
 
 		# Read data from the source Excel file and sheet
 		source_data = pd.read_excel(source_file, sheet_name='final_bucket')

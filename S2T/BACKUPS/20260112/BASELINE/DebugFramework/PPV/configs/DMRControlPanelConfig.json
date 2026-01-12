@@ -1,0 +1,815 @@
+{
+    "field_configs": {
+        "Experiment": {
+            "section": "Basic Information",
+            "type": "str",
+            "default": "",
+            "description": "Experiment name/identifier",
+            "required": true
+        },
+        "Test Name": {
+            "section": "Basic Information",
+            "type": "str",
+            "default": "",
+            "description": "Unique test identifier",
+            "required": true
+        },
+        "Test Mode": {
+            "section": "Basic Information",
+            "type": "str",
+            "default": "Mesh",
+            "description": "Test execution mode",
+            "required": true,
+            "options": [
+                "Mesh",
+                "Slice"
+            ]
+        },
+        "Test Type": {
+            "section": "Basic Information",
+            "type": "str",
+            "default": "Loops",
+            "description": "Type of test to run",
+            "required": true,
+            "options": [
+                "Loops",
+                "Sweep",
+                "Shmoo"
+            ]
+        },
+        "Visual ID": {
+            "section": "Unit Data",
+            "type": "str",
+            "default": "",
+            "description": "Visual identifier for UI display",
+            "required": false
+        },
+        "Bucket": {
+            "section": "Unit Data",
+            "type": "str",
+            "default": "",
+            "description": "Test bucket/category classification",
+            "required": false
+        },
+        "COM Port": {
+            "section": "Unit Data",
+            "type": "int",
+            "default": 1,
+            "description": "Serial COM port number for communication",
+            "required": false
+        },
+        "IP Address": {
+            "section": "Unit Data",
+            "type": "str",
+            "default": "",
+            "description": "Target device IP address",
+            "required": false
+        },
+        "TTL Folder": {
+            "section": "Advanced Configuration",
+            "type": "str",
+            "default": "",
+            "description": "TTL scripts folder path",
+            "required": false
+        },
+        "Scripts File": {
+            "section": "Advanced Configuration",
+            "type": "str",
+            "default": "",
+            "description": "Test scripts file path",
+            "required": false
+        },
+        "Pass String": {
+            "section": "Advanced Configuration",
+            "type": "str",
+            "default": "",
+            "description": "String pattern indicating test pass",
+            "required": false
+        },
+        "Fail String": {
+            "section": "Advanced Configuration",
+            "type": "str",
+            "default": "",
+            "description": "String pattern indicating test failure",
+            "required": false
+        },
+        "Stop on Fail": {
+            "section": "Advanced Configuration",
+            "type": "bool",
+            "default": false,
+            "description": "Stop test execution on first failure",
+            "required": false
+        },
+        "Content": {
+            "section": "Test Configuration",
+            "type": "str",
+            "default": "Linux",
+            "description": "Content type to execute",
+            "required": false,
+            "options": [
+                "Linux",
+                "Dragon",
+                "PYSVConsole"
+            ]
+        },
+        "Test Number": {
+            "section": "Test Configuration",
+            "type": "int",
+            "default": 0,
+            "description": "Test sequence number",
+            "required": false
+        },
+        "Test Time": {
+            "section": "Test Configuration",
+            "type": "int",
+            "default": 0,
+            "description": "Test timeout in seconds",
+            "required": false
+        },
+        "Reset": {
+            "section": "Test Configuration",
+            "type": "bool",
+            "default": false,
+            "description": "Reset system before test",
+            "required": false
+        },
+        "Reset on PASS": {
+            "section": "Test Configuration",
+            "type": "bool",
+            "default": false,
+            "description": "Reset system after successful test",
+            "required": false
+        },
+        "FastBoot": {
+            "section": "Test Configuration",
+            "type": "bool",
+            "default": false,
+            "description": "Enable fast boot mode",
+            "required": false
+        },
+        "Core License": {
+            "section": "Test Configuration",
+            "type": "str",
+            "default": "",
+            "description": "Core license key",
+            "required": false,
+            "options": [
+				"",
+                "1: SSE/128",
+                "2: AVX2/256 Light",
+                "3: AVX2/256 Heavy",
+                "4: AVX3/512 Light",
+                "5: AVX3/512 Heavy",
+                "6: TMUL Light",
+                "7: TMUL Heavy"
+            ]
+        },
+        "600W Unit": {
+            "section": "Test Configuration",
+            "type": "bool",
+            "default": false,
+            "description": "Use 600W power supply unit",
+            "required": false
+        },
+        "Pseudo Config": {
+            "section": "Test Configuration",
+            "type": "bool",
+            "default": false,
+            "description": "Enable pseudo configuration mode",
+            "required": false
+        },
+        "Post Process": {
+            "section": "Test Configuration",
+            "type": "str",
+            "default": "",
+            "description": "Post-processing script to execute",
+            "required": false
+        },
+        "Configuration (Mask)": {
+            "section": "Test Configuration",
+            "type": "str",
+            "default": "",
+            "description": "Mesh: Mask options | Slice: Core number (0-128)",
+            "required": false,
+            "conditional_options": {
+                "field": "Test Mode",
+                "Mesh": {
+                    "type": "str",
+                    "options": [
+						"",
+                        "Compute0",
+                        "Compute1",
+                        "Compute2",
+                        "Compute3"
+                    ]
+                },
+                "Slice": {
+                    "type": "int",
+                    "range": {
+                        "GNR": [0, 179],
+                        "CWF": [0, 179],
+                        "DMR": [0, 128]
+                    }
+                }
+            }
+        },
+        "Boot Breakpoint": {
+            "section": "Test Configuration",
+            "type": "str",
+            "default": "",
+            "description": "Boot breakpoint location",
+            "required": false
+        },
+        "Disable 2 Cores": {
+            "section": "Test Configuration",
+            "type": "str",
+            "default": "",
+            "description": "Cores to disable (2-core configuration)",
+            "required": false,
+            "options": [
+                "",
+                "0x3",
+                "0xc",
+                "0x9",
+                "0xa",
+                "0x5"
+            ]
+        },
+        "Disable 1 Core": {
+            "section": "Test Configuration",
+            "type": "str",
+            "default": "",
+            "description": "Core to disable (1-core configuration)",
+            "required": false,
+            "options": [
+                "",
+                "0x1",
+                "0x2"
+            ]
+        },
+        "Check Core": {
+            "section": "Test Configuration",
+            "type": "int",
+            "default": 0,
+            "description": "Specific core to check/monitor",
+            "required": false
+        },
+        "Voltage Type": {
+            "section": "Voltage & Frequency",
+            "type": "str",
+            "default": "vbump",
+            "description": "Voltage control type",
+            "required": false,
+            "options": [
+                "vbump",
+                "fixed",
+                "ppvc"
+            ]
+        },
+        "Voltage IA": {
+            "section": "Voltage & Frequency",
+            "type": "float",
+            "default": 0.0,
+            "description": "IA domain voltage level (V)",
+            "required": false
+        },
+        "Voltage CFC": {
+            "section": "Voltage & Frequency",
+            "type": "float",
+            "default": 0.0,
+            "description": "CFC domain voltage level (V)",
+            "required": false
+        },
+        "Frequency IA": {
+            "section": "Voltage & Frequency",
+            "type": "int",
+            "default": 0,
+            "description": "IA domain frequency (MHz)",
+            "required": false
+        },
+        "Frequency CFC": {
+            "section": "Voltage & Frequency",
+            "type": "int",
+            "default": 0,
+            "description": "CFC domain frequency (MHz)",
+            "required": false
+        },
+        "Loops": {
+            "section": "Loops",
+            "type": "int",
+            "default": 1,
+            "description": "Number of test iterations to execute",
+            "required": false,
+            "condition": {
+                "field": "Test Type",
+                "value": "Loops"
+            }
+        },
+        "Type": {
+            "section": "Sweep",
+            "type": "str",
+            "default": "Voltage",
+            "description": "Parameter type to sweep",
+            "required": false,
+            "options": [
+                "Voltage",
+                "Frequency"
+            ],
+            "condition": {
+                "field": "Test Type",
+                "value": "Sweep"
+            }
+        },
+        "Domain": {
+            "section": "Sweep",
+            "type": "str",
+            "default": "IA",
+            "description": "Domain to sweep",
+            "required": false,
+            "options": [
+                "CFC",
+                "IA"
+            ],
+            "condition": {
+                "field": "Test Type",
+                "value": "Sweep"
+            }
+        },
+        "Start": {
+            "section": "Sweep",
+            "type": "float",
+            "default": 0.0,
+            "description": "Sweep start value",
+            "required": false,
+            "condition": {
+                "field": "Test Type",
+                "value": "Sweep"
+            }
+        },
+        "End": {
+            "section": "Sweep",
+            "type": "float",
+            "default": 0.0,
+            "description": "Sweep end value",
+            "required": false,
+            "condition": {
+                "field": "Test Type",
+                "value": "Sweep"
+            }
+        },
+        "Steps": {
+            "section": "Sweep",
+            "type": "float",
+            "default": 1.0,
+            "description": "Sweep step size/increment",
+            "required": false,
+            "condition": {
+                "field": "Test Type",
+                "value": "Sweep"
+            }
+        },
+        "ShmooFile": {
+            "section": "Shmoo",
+            "type": "str",
+            "default": "",
+            "description": "Shmoo configuration file path",
+            "required": false,
+            "condition": {
+                "field": "Test Type",
+                "value": "Shmoo"
+            }
+        },
+        "ShmooLabel": {
+            "section": "Shmoo",
+            "type": "str",
+            "default": "",
+            "description": "Shmoo label/identifier",
+            "required": false,
+            "condition": {
+                "field": "Test Type",
+                "value": "Shmoo"
+            }
+        },
+        "Linux Path": {
+            "section": "Linux",
+            "type": "str",
+            "default": "",
+            "description": "Linux binary/script path",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Linux"
+            }
+        },
+        "Linux Pre Command": {
+            "section": "Linux",
+            "type": "str",
+            "default": "",
+            "description": "Command to execute before Linux test",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Linux"
+            }
+        },
+        "Linux Post Command": {
+            "section": "Linux",
+            "type": "str",
+            "default": "",
+            "description": "Command to execute after Linux test",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Linux"
+            }
+        },
+        "Linux Pass String": {
+            "section": "Linux",
+            "type": "str",
+            "default": "",
+            "description": "String pattern indicating Linux test pass",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Linux"
+            }
+        },
+        "Linux Fail String": {
+            "section": "Linux",
+            "type": "str",
+            "default": "",
+            "description": "String pattern indicating Linux test failure",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Linux"
+            }
+        },
+        "Linux Content Wait Time": {
+            "section": "Linux",
+            "type": "int",
+            "default": 0,
+            "description": "Wait time in seconds before checking Linux content",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Linux"
+            }
+        },
+        "Startup Linux": {
+            "section": "Linux",
+            "type": "str",
+            "default": "",
+            "description": "Linux startup script/command",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Linux"
+            }
+        },
+        "Linux Content Line 0": {
+            "section": "Linux",
+            "type": "str",
+            "default": "",
+            "description": "Linux content command line 0",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Linux"
+            }
+        },
+        "Linux Content Line 1": {
+            "section": "Linux",
+            "type": "str",
+            "default": "",
+            "description": "Linux content command line 1",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Linux"
+            }
+        },
+        "Linux Content Line 2": {
+            "section": "Linux",
+            "type": "str",
+            "default": "",
+            "description": "Linux content command line 2",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Linux"
+            }
+        },
+        "Linux Content Line 3": {
+            "section": "Linux",
+            "type": "str",
+            "default": "",
+            "description": "Linux content command line 3",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Linux"
+            }
+        },
+        "Linux Content Line 4": {
+            "section": "Linux",
+            "type": "str",
+            "default": "",
+            "description": "Linux content command line 4",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Linux"
+            }
+        },
+        "Linux Content Line 5": {
+            "section": "Linux",
+            "type": "str",
+            "default": "",
+            "description": "Linux content command line 5",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Linux"
+            }
+        },
+        "Linux Content Line 6": {
+            "section": "Linux",
+            "type": "str",
+            "default": "",
+            "description": "Linux content command line 6",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Linux"
+            }
+        },
+        "Linux Content Line 7": {
+            "section": "Linux",
+            "type": "str",
+            "default": "",
+            "description": "Linux content command line 7",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Linux"
+            }
+        },
+        "Linux Content Line 8": {
+            "section": "Linux",
+            "type": "str",
+            "default": "",
+            "description": "Linux content command line 8",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Linux"
+            }
+        },
+        "Linux Content Line 9": {
+            "section": "Linux",
+            "type": "str",
+            "default": "",
+            "description": "Linux content command line 9",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Linux"
+            }
+        },
+        "Dragon Pre Command": {
+            "section": "Dragon",
+            "type": "str",
+            "default": "",
+            "description": "Command to execute before Dragon test",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Dragon"
+            }
+        },
+        "Dragon Post Command": {
+            "section": "Dragon",
+            "type": "str",
+            "default": "",
+            "description": "Command to execute after Dragon test",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Dragon"
+            }
+        },
+        "Startup Dragon": {
+            "section": "Dragon",
+            "type": "str",
+            "default": "",
+            "description": "Dragon startup script/command",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Dragon"
+            }
+        },
+        "ULX Path": {
+            "section": "Dragon",
+            "type": "str",
+            "default": "",
+            "description": "ULX file path for Dragon",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Dragon"
+            }
+        },
+        "ULX CPU": {
+            "section": "Dragon",
+            "type": "str",
+            "default": "",
+            "description": "ULX CPU identifier/configuration",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Dragon"
+            }
+        },
+        "Product Chop": {
+            "section": "Dragon",
+            "type": "str",
+            "default": "",
+            "description": "Product chop identifier",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Dragon"
+            }
+        },
+        "VVAR0": {
+            "section": "Dragon",
+            "type": "str",
+            "default": "",
+            "description": "Dragon variable 0",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Dragon"
+            }
+        },
+        "VVAR1": {
+            "section": "Dragon",
+            "type": "str",
+            "default": "",
+            "description": "Dragon variable 1",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Dragon"
+            }
+        },
+        "VVAR2": {
+            "section": "Dragon",
+            "type": "str",
+            "default": "",
+            "description": "Dragon variable 2",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Dragon"
+            }
+        },
+        "VVAR3": {
+            "section": "Dragon",
+            "type": "str",
+            "default": "",
+            "description": "Dragon variable 3",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Dragon"
+            }
+        },
+        "VVAR_EXTRA": {
+            "section": "Dragon",
+            "type": "str",
+            "default": "",
+            "description": "Dragon extra variables",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Dragon"
+            }
+        },
+        "Dragon Content Path": {
+            "section": "Dragon",
+            "type": "str",
+            "default": "",
+            "description": "Dragon content file path",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Dragon"
+            }
+        },
+        "Dragon Content Line": {
+            "section": "Dragon",
+            "type": "str",
+            "default": "",
+            "description": "Dragon content command line",
+            "required": false,
+            "condition": {
+                "field": "Content",
+                "value": "Dragon"
+            }
+        },
+        "Merlin Name": {
+            "section": "Merlin",
+            "type": "str",
+            "default": "",
+            "description": "Merlin configuration name",
+            "required": false
+        },
+        "Merlin Drive": {
+            "section": "Merlin",
+            "type": "str",
+            "default": "",
+            "description": "Merlin drive letter/path",
+            "required": false
+        },
+        "Merlin Path": {
+            "section": "Merlin",
+            "type": "str",
+            "default": "",
+            "description": "Merlin executable path",
+            "required": false
+        },
+        "Fuse File": {
+            "section": "Advanced Configuration",
+            "type": "str",
+            "default": "",
+            "description": "Fuse configuration file path",
+            "required": false
+        },
+        "Bios File": {
+            "section": "Advanced Configuration",
+            "type": "str",
+            "default": "",
+            "description": "BIOS file path",
+            "required": false
+        },
+        "Product": {
+            "section": "Unit Data",
+            "type": "str",
+            "default": "DMR",
+            "description": "Product type",
+            "required": true,
+            "options": [
+                "GNR",
+                "CWF",
+                "DMR"
+            ]
+        }
+    },
+    "TEST_MODES": [
+        "Mesh",
+        "Slice"
+    ],
+    "TEST_TYPES": [
+        "Loops",
+        "Sweep",
+        "Shmoo"
+    ],
+    "CONTENT_OPTIONS": [
+        "Linux",
+        "Dragon",
+        "PYSVConsole"
+    ],
+    "VOLTAGE_TYPES": [
+        "vbump",
+        "fixed",
+        "ppvc"
+    ],
+    "TYPES": [
+        "Voltage",
+        "Frequency"
+    ],
+    "DOMAINS": [
+        "CFC",
+        "IA"
+    ],
+    "PRODUCT": "DMR",
+    "DESCRIPTION": "DMR (Diamond Rapids) Control Panel Configuration",
+    "field_enable_config": {
+        "Pseudo Config": [
+            "GNR"
+        ],
+        "Disable 2 Cores": [
+            "CWF"
+        ],
+        "Disable 1 Core": [
+            "DMR"
+        ],
+        "Core License": [
+            "GNR",
+            "DMR"
+        ]
+    }
+}

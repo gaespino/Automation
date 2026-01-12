@@ -15,7 +15,7 @@ try:
 	FRAMEWORK_CONTENT = dpmlog.FRAMEWORK_CONTENT
 except: 
 	dpmlog = None
-	FRAMEWORK_VARS = {	'qdf':'', 
+	FRAMEWORK_VARS = {	'qd':'', 
 			   		'tnum':'', 
 					'mask':'', 
 					'corelic':'', 
@@ -313,7 +313,7 @@ class loggerGUI:
 
 		# Collect additional data if upload options are selected
 		if upload_to_disk or upload_to_danta:
-			self.default_vars_dict['qdf'] = self.qdf_entry.get()
+			self.default_vars_dict['qd'] = self.qdf_entry.get()
 			self.default_vars_dict['tnum'] = self.testnumber_entry.get()
 			self.default_vars_dict['runName'] = self.testname_entry.get()
 			self.default_vars_dict['content'] = self.content_var.get()
@@ -333,7 +333,7 @@ class loggerGUI:
 		else:
 			framework_data = None
 
-		print(f"Creating System Log with the following configuration")
+		print("Creating System Log with the following configuration")
 		print(f"\tVisual ID: {visual}")
 		print(f"\tQDF: {qdf}")
 		print(f"\tProduct: {product}")

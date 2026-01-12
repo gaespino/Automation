@@ -40,7 +40,7 @@ class ExecutionEvent:
 
 class ExecutionStateMachine:
 	"""Complete state machine with all handlers"""
-	
+
 	def __init__(self, ui_updater: Callable[[Dict[str, Any]], None]):
 		self.current_state = ExecutionState.IDLE
 		self.ui_updater = ui_updater
@@ -55,7 +55,7 @@ class ExecutionStateMachine:
 			'start_time': None,
 			'is_active': False
 		}
-			
+
 		# Complete handler registry - ALL original handlers
 		self.handlers = {
 			# Core execution handlers
@@ -70,7 +70,7 @@ class ExecutionStateMachine:
 			'strategy_complete': self._handle_strategy_complete,
 			'experiment_complete': self._handle_experiment_complete,
 			'experiment_failed': self._handle_experiment_failed,
-			'execution_ended': self._handle_execution_ended,	
+			'execution_ended': self._handle_execution_ended,
 
 			# Control command handlers
 			'experiment_ended_by_command': self._handle_experiment_ended_by_command,
@@ -90,11 +90,11 @@ class ExecutionStateMachine:
 
 			# Waiting Handlers
 			'step_waiting': self._handle_step_waiting,
-			'halt_waiting': self._handle_halt_waiting,			
+			'halt_waiting': self._handle_halt_waiting,
 
 			# Additional handlers for completeness
 			#'all_experiments_complete': self._handle_all_complete,
-			
+
 
 			# ADD these handlers for ControlPanel
 			'experiment_status_update': self._handle_experiment_status_update,
@@ -142,31 +142,31 @@ class ExecutionStateMachine:
 				'total_iterations': self.current_experiment_stats['total_iterations'],
 				'experiment_name': self.current_experiment_stats['experiment_name']
 			}
-		
+
 		# Calculate statistics
 		total_completed = len(results)
-		
+
 		# Count different result types
 		status_counts = {}
 		for result in results:
 			status = result['status'].upper()
 			status_counts[status] = status_counts.get(status, 0) + 1
-		
+
 		# Calculate pass/fail counts
-		pass_count = (status_counts.get('PASS', 0) + 
-					 status_counts.get('SUCCESS', 0) + 
+		pass_count = (status_counts.get('PASS', 0) +
+					 status_counts.get('SUCCESS', 0) +
 					 status_counts.get('*', 0))
-		
-		fail_count = status_counts.get('FAIL', 0) 
-		
+
+		fail_count = status_counts.get('FAIL', 0)
+
 		cancelled_count = status_counts.get('CANCELLED', 0)
-		execution_fail_count = (	status_counts.get('EXECUTIONFAIL', 0) + 
-					 				status_counts.get('FAILED', 0)+ 
+		execution_fail_count = (	status_counts.get('EXECUTIONFAIL', 0) +
+					 				status_counts.get('FAILED', 0)+
 					 				status_counts.get('ERROR', 0))
-		
+
 		# Calculate valid tests (excluding cancelled and execution failures)
 		valid_tests = total_completed - cancelled_count - execution_fail_count
-		
+
 		# Calculate rates
 		if valid_tests > 0:
 			pass_rate = (pass_count / valid_tests) * 100
@@ -174,7 +174,7 @@ class ExecutionStateMachine:
 		else:
 			pass_rate = 0.0
 			fail_rate = 0.0
-		
+
 		return {
 			'total_completed': total_completed,
 			'pass_count': pass_count,
@@ -195,13 +195,13 @@ class ExecutionStateMachine:
 			'latest_status': results[-1]['status'] if results else 'None',
 			'latest_iteration': results[-1]['iteration'] if results else 0
 		}
-	
+
 	def _analyze_recent_trend(self, results: List[Dict], pass_rate: float, fail_rate: float, total: int) -> str:
 		"""Analyze recent trend in results"""
-		
+
 		if not self._has_sufficient_data(pass_rate,fail_rate, total):
 			return "insufficient_data"
-		
+
 		recent_3 = results[-3:]
 		fails = sum(1 for r in recent_3 if r['status'].upper() in ['FAIL'])
 		passes = sum(1 for r in recent_3 if r['status'].upper() in ['PASS'])
@@ -216,7 +216,7 @@ class ExecutionStateMachine:
 			return "no-repro"
 		else:
 			return "mixed"
-	
+
 	def _get_recommendation(self, pass_rate: float, fail_rate: float, total: int) -> str:
 		"""Get recommendation based on current statistics"""
 		if total < 3:
@@ -234,7 +234,7 @@ class ExecutionStateMachine:
 			return "trending_poor"
 		else:
 			return "continue"
-	
+
 	def _has_sufficient_data(self, pass_rate: float, fail_rate: float, total: int) -> bool:
 		"""Determine if we have sufficient data for decision making"""
 		if total >= 5:
@@ -256,9 +256,9 @@ class ExecutionStateMachine:
 				print(f"Handler error for {event.type}: {e}")
 		else:
 			print(f"Unknown event type: {event.type}")
-	
+
 	# ==================== CORE EXECUTION HANDLERS ====================
-	
+
 	def _handle_experiment_start(self, data) -> Dict[str, Any]:
 		"""Handle experiment start status"""
 		self.current_state = ExecutionState.EXPERIMENT_RUNNING
@@ -293,7 +293,7 @@ class ExecutionStateMachine:
 			}
 		}
 
-	
+
 	def _handle_iteration_start(self, data) -> Dict[str, Any]:
 		"""Handle iteration start"""
 		self.current_state = ExecutionState.ITERATION_RUNNING
@@ -305,11 +305,11 @@ class ExecutionStateMachine:
 			},
 			'update_progress': True
 		}
-	
+
 	def _handle_iteration_progress(self, data) -> Dict[str, Any]:
 		"""Handle iteration progress updates with enhanced boot detection"""
 		status = data['status']
-		
+
 		# Detect phase and set appropriate state
 		if self._is_boot_phase(status):
 			self.current_state = ExecutionState.BOOT_PHASE
@@ -328,7 +328,7 @@ class ExecutionStateMachine:
 				'update_progress': True,
 				'status_update': status
 			}
-	
+
 	def _handle_iteration_complete(self, data) -> Dict[str, Any]:
 		"""Handle iteration completion"""
 		self.current_state = ExecutionState.EXPERIMENT_RUNNING
@@ -344,7 +344,7 @@ class ExecutionStateMachine:
 
 			self.current_experiment_stats['iteration_results'].append(iteration_result)
 			self.current_experiment_stats['current_iteration'] = data['iteration']
-							
+
 		# Build status message with details
 		status_msg = f"[DONE] Completed Iteration {data['iteration']}: {data['status']}"
 		if data.get('scratchpad'):
@@ -354,7 +354,7 @@ class ExecutionStateMachine:
 
 		# ADDED: Get current statistics for UI update
 		current_stats = self.get_current_statistics()
-		
+
 		return {
 			'log_message': status_msg,
 			'iteration_info': {
@@ -376,7 +376,7 @@ class ExecutionStateMachine:
 				'recent_trend': current_stats['recent_trend']
 			}
 		}
-	
+
 	def _handle_iteration_failed(self, data) -> Dict[str, Any]:
 		"""Handle iteration failure - UPDATED"""
 		if self.current_experiment_stats['is_active']:
@@ -387,15 +387,15 @@ class ExecutionStateMachine:
 				'seed': '',
 				'timestamp': time.time()
 			}
-			
+
 			self.current_experiment_stats['iteration_results'].append(iteration_result)
 			self.current_experiment_stats['current_iteration'] = data['iteration']
-		
+
 
 		error_msg = f"[FAIL] FAILED Iteration {data['iteration']}: {data['status']}"
 		if data.get('error'):
 			error_msg += f" - {data['error']}"
-		
+
 		return {
 			'log_message': error_msg,
 			'iteration_info': {
@@ -408,7 +408,7 @@ class ExecutionStateMachine:
 			'reset_progress_bar_after': 2000,
 			'current_statistics': self.get_current_statistics()
 		}
-	
+
 	def _handle_iteration_cancelled(self, data) -> Dict[str, Any]:
 		"""Handle iteration cancellation"""
 		self.current_state = ExecutionState.CANCELLED
@@ -421,7 +421,7 @@ class ExecutionStateMachine:
 			'update_progress': True,
 			'result_status': "CANCELLED"
 		}
-	
+
 	def _handle_strategy_progress(self, data) -> Dict[str, Any]:
 		"""Handle strategy progress updates with enhanced Shmoo support"""
 		progress_percent = data.get('progress_percent', 0)
@@ -433,7 +433,7 @@ class ExecutionStateMachine:
 		if self.current_experiment_stats['is_active']:
 			self.current_experiment_stats['current_iteration'] = current_iteration
 			self.current_experiment_stats['total_iterations'] = total_iterations
-				
+
 		# Build status message based on strategy type
 		if strategy_type == 'Shmoo':
 			status_msg = f"[SHMOO] Progress: {progress_percent:.1f}% - {data['test_name']}"
@@ -454,7 +454,7 @@ class ExecutionStateMachine:
 
 		# ADDED: Get current statistics
 		current_stats = self.get_current_statistics()
-		
+
 		return {
 			'log_message': status_msg,
 			'strategy_progress': {
@@ -473,12 +473,12 @@ class ExecutionStateMachine:
 				'recent_trend': current_stats['recent_trend']
 			}
 		}
-	
+
 	def _handle_strategy_complete(self, data) -> Dict[str, Any]:
 		"""Handle strategy completion with enhanced summary"""
 		strategy_type = data.get('strategy_type', 'Unknown Strategy')
 		self.current_experiment_stats['is_active'] = False
-		
+
 		final_stats = self.get_current_statistics()
 
 		log_messages = [
@@ -498,7 +498,7 @@ class ExecutionStateMachine:
 				f"[DATA] Valid Tests: {final_stats['valid_tests']}, Cancelled: {final_stats['cancelled_count']}",
 				f"[DATA] Recent Trend: {final_stats['recent_trend']}"
 			])
-					
+
 		# Add Shmoo-specific information
 		if strategy_type == 'Shmoo':
 			if data.get('shmoo_dimensions'):
@@ -509,7 +509,7 @@ class ExecutionStateMachine:
 			if data.get('y_axis_config'):
 				y_config = data['y_axis_config']
 				log_messages.append(f"[INFO] Y-Axis: {y_config.get('Type', 'Unknown')} - {y_config.get('Domain', 'Unknown')}")
-		
+
 		# Add status breakdown
 		if 'status_counts' in data and data['status_counts']:
 			log_messages.append("[DATA] Results Summary:")
@@ -517,15 +517,15 @@ class ExecutionStateMachine:
 				total_tests = data.get('total_tests', 1)
 				percentage = (count / total_tests * 100) if total_tests > 0 else 0
 				log_messages.append(f"  {status}: {count} ({percentage:.1f}%)")
-		
+
 		# Add failure patterns
 		if data.get('failure_patterns'):
 			log_messages.append("[DATA] Top Failure Patterns:")
 			for pattern, count in list(data['failure_patterns'].items())[:3]:
 				log_messages.append(f"  {pattern}: {count} occurrences")
-		
+
 		log_messages.append("=" * 50)
-		
+
 		return {
 			'log_messages': log_messages,
 			'experiment_reset': True,
@@ -540,12 +540,12 @@ class ExecutionStateMachine:
 				'recommendation': f"Complete - {final_stats['recommendation']}"
 			}
 		}
-	
+
 	def _handle_experiment_complete(self, data) -> Dict[str, Any]:
 		"""Handle overall experiment completion"""
 		test_folder = data.get('test_folder', '')
 		summary_path = data.get('summary_path', '')
-		
+
 		return {
 			'log_message': f"[SUCCESS] EXPERIMENT COMPLETED: '{data['test_name']}'",
 			'log_message_2': f"[INFO] Test folder: {test_folder}",
@@ -557,7 +557,7 @@ class ExecutionStateMachine:
 				'experiment_name': data['test_name']
 			}
 		}
-	
+
 	def _handle_experiment_failed(self, data) -> Dict[str, Any]:
 		"""Handle experiment failure"""
 		self.current_state = ExecutionState.FAILED
@@ -594,22 +594,22 @@ class ExecutionStateMachine:
 	def _handle_execution_cancelled(self, data) -> Dict[str, Any]:
 		"""Handle execution cancellation - FIXED with button states"""
 		self.current_state = ExecutionState.CANCELLED
-		
+
 		reason = data.get('reason', 'User requested')
 		experiment_name = data.get('experiment_name', 'Unknown')
-		
+
 		log_messages = [
 			f"[CANCEL] Execution CANCELLED: {reason}",
 		]
-		
+
 		if 'completed_experiments' in data and 'total_experiments' in data:
 			completed = data['completed_experiments']
 			total = data['total_experiments']
 			log_messages.append(f"[INFO] Progress: {completed}/{total} experiments completed before cancellation")
-		
+
 		if experiment_name != 'Unknown':
 			log_messages.append(f"[INFO] Last experiment: {experiment_name}")
-		
+
 		return {
 			'log_messages': log_messages,
 			'status_label': {'text': ' Cancelled ', 'bg': 'gray', 'fg': 'white'},
@@ -628,24 +628,24 @@ class ExecutionStateMachine:
 	def _handle_execution_ended(self, data) -> Dict[str, Any]:
 		"""Handle execution ended by END command"""
 		self.current_state = ExecutionState.COMPLETED
-		
+
 		reason = data.get('reason', 'END command')
 		experiment_name = data.get('experiment_name', 'Unknown')
-		
+
 		log_messages = [
 			f"[INFO] Execution ENDED: {reason}",
 		]
-		
+
 		# Add progress info if available
 		if 'completed_experiments' in data and 'total_experiments' in data:
 			completed = data['completed_experiments']
 			total = data['total_experiments']
 			log_messages.append(f"[DONE] Progress: {completed}/{total} experiments completed before ending")
-		
+
 		# Add current experiment info if available
 		if experiment_name != 'Unknown':
 			log_messages.append(f"[DONE] Last experiment: {experiment_name}")
-		
+
 		return {
 			'log_messages': log_messages,
 			'status_label': {'text': ' Ended ', 'bg': 'orange', 'fg': 'black'},
@@ -659,7 +659,7 @@ class ExecutionStateMachine:
 		completed = data['completed_iterations']
 		total = data['total_iterations']
 		reason = data['reason']
-		
+
 		return {
 			'log_message': f"[END] Experiment ended by {reason} after {completed}/{total} iterations"
 		}
@@ -667,7 +667,7 @@ class ExecutionStateMachine:
 	def _handle_experiment_end_command(self, data) -> Dict[str, Any]:
 		"""Handle experiment ended by END command"""
 		message = data['message']
-		
+
 		return {
 			'log_message': f"{message}",
 			'status_label': {'text': ' Ending ', 'bg': 'red', 'fg': 'white'},
@@ -680,7 +680,7 @@ class ExecutionStateMachine:
 		test_name = data.get('test_name', 'Unknown')
 		iteration = data.get('current_iteration', 0)
 		message = data.get('message', f'Execution halted at iteration {iteration}')
-		
+
 		return {
 			'log_message': f"[HALT] EXECUTION HALTED: {message}",
 			'status_label': {'text': ' Halted ', 'bg': 'orange', 'fg': 'black'},
@@ -699,7 +699,7 @@ class ExecutionStateMachine:
 		test_name = data.get('test_name', 'Unknown')
 		iteration = data.get('current_iteration', 0)
 		message = data.get('message', f'Execution resumed from iteration {iteration}')
-		
+
 		return {
 			'log_message': f"[RUN] EXECUTION RESUMED: {message}",
 			'status_label': {'text': ' Running ', 'bg': '#BF0000', 'fg': 'white'},
@@ -765,13 +765,13 @@ class ExecutionStateMachine:
 		iteration = data['current_iteration']
 		total = data['total_iterations']
 		stats = data.get('current_stats', {})
-		
+
 		log_messages = [
 			f"[INFO] STEP MODE: Iteration {iteration}/{total} COMPLETE",
 			f"[DATA] Current Stats - Pass: {stats.get('pass_count', 0)}, Fail: {stats.get('fail_count', 0)}",
 			"[INFO] Waiting for command..."
 		]
-		
+
 		return {
 			'log_messages': log_messages,
 			'status_update': "Step: Waiting for Command",
@@ -781,12 +781,12 @@ class ExecutionStateMachine:
 	def _handle_step_continue_issued(self, data) -> Dict[str, Any]:
 		"""Handle step continue command issued - ENHANCED"""
 		self.current_state = ExecutionState.ITERATION_RUNNING
-		
+
 		current_iteration = data.get('current_iteration', 0)
 		total_iterations = data.get('total_iterations', 0)
 		next_iteration = data.get('next_iteration', current_iteration + 1)
 		message = data.get('message', 'Step continue processed')
-		
+
 		return {
 			'log_message': f"[RUN] STEP CONTINUE: {message} - proceeding to iteration {next_iteration}/{total_iterations}",
 			'status_update': "Step: Continuing to Next Iteration",
@@ -803,29 +803,29 @@ class ExecutionStateMachine:
 	def _handle_step_waiting(self, data) -> Dict[str, Any]:
 		"""Handle step mode waiting for command state"""
 		self.current_state = ExecutionState.STEP_WAITING
-		
+
 		current_iteration = data.get('current_iteration', 0)
 		total_iterations = data.get('total_iterations', 0)
 		available_commands = data.get('available_commands', [])
 		next_iteration = data.get('next_iteration', current_iteration + 1)
-		
+
 		log_messages = [
 			f"[INFO] STEP MODE: Waiting for command after iteration {current_iteration}/{total_iterations}",
 			f"[INFO] Next iteration will be: {next_iteration}/{total_iterations}",
 			"[INFO] Available commands:"
 		]
-		
+
 		# Add available commands to log
 		command_descriptions = {
 			'step_continue': '  • step_continue() - Continue to next iteration',
-			'end_experiment': '  • end_experiment() - End after current iteration', 
+			'end_experiment': '  • end_experiment() - End after current iteration',
 			'cancel_execution': '  • cancel_execution() - Cancel immediately'
 		}
-		
+
 		for cmd in available_commands:
 			if cmd in command_descriptions:
 				log_messages.append(command_descriptions[cmd])
-		
+
 		return {
 			'log_messages': log_messages,
 			'status_label': {'text': ' Step Wait ', 'bg': 'orange', 'fg': 'black'},
@@ -847,29 +847,29 @@ class ExecutionStateMachine:
 	def _handle_halt_waiting(self, data) -> Dict[str, Any]:
 		"""Handle halt mode waiting for command state"""
 		self.current_state = ExecutionState.HALTED
-		
+
 		current_iteration = data.get('current_iteration', 0)
 		total_iterations = data.get('total_iterations', 0)
 		available_commands = data.get('available_commands', [])
 		message = data.get('message', 'Execution halted')
-		
+
 		log_messages = [
 			f"[INFO] HALT MODE: {message}",
 			f"[INFO] Will resume from iteration {current_iteration + 1}/{total_iterations}",
 			"[INFO] Available commands:"
 		]
-		
+
 		# Add available commands to log
 		command_descriptions = {
 			'continue_execution': '  • continue_execution() - Resume execution',
 			'cancel_execution': '  • cancel_execution() - Cancel execution',
 			'end_experiment': '  • end_experiment() - End experiment'
 		}
-		
+
 		for cmd in available_commands:
 			if cmd in command_descriptions:
 				log_messages.append(command_descriptions[cmd])
-		
+
 		return {
 			'log_messages': log_messages,
 			'status_label': {'text': ' Halted ', 'bg': 'orange', 'fg': 'black'},
@@ -905,7 +905,7 @@ class ExecutionStateMachine:
 		else:
 			node_id = getattr(data, 'ID', 'Unknown')
 			node_name = getattr(data, 'Name', 'Unknown')
-		
+
 		return {
 			'log_message': f"[NODE] Starting: {node_name} ({node_id})",
 			'current_node_update': {
@@ -923,7 +923,7 @@ class ExecutionStateMachine:
 		else:
 			node_id = getattr(data, 'ID', 'Unknown')
 			node_name = getattr(data, 'Name', 'Unknown')
-		
+
 		return {
 			'log_message': f"[NODE] Completed: {node_name} ({node_id})",
 			# Note: This is different from 'node_completed' which updates the visual status
@@ -934,7 +934,7 @@ class ExecutionStateMachine:
 		"""Handle hardware failure termination"""
 		failed_node = data.get('failed_node', 'Unknown') if isinstance(data, dict) else 'Unknown'
 		reason = data.get('reason', 'Hardware failure') if isinstance(data, dict) else str(data)
-		
+
 		return {
 			'log_message': f"[CRITICAL] Hardware failure termination: {reason}",
 			'log_message_2': f"[CRITICAL] Failed node: {failed_node}",
@@ -948,7 +948,7 @@ class ExecutionStateMachine:
 		node_name = data.get('node_name', 'Unknown') if isinstance(data, dict) else 'Unknown'
 		termination_type = data.get('termination_type', 'unwired_port') if isinstance(data, dict) else 'unwired_port'
 		reason = data.get('reason', 'Unwired port') if isinstance(data, dict) else str(data)
-		
+
 		return {
 			'log_message': f"[FLOW] Unwired port termination: {reason}",
 			'log_message_2': f"[FLOW] Terminating node: {node_name}",
@@ -961,7 +961,7 @@ class ExecutionStateMachine:
 		"""Handle flow abort request"""
 		reason = data.get('reason', 'Flow aborted') if isinstance(data, dict) else str(data)
 		failed_node = data.get('failed_node', 'Unknown') if isinstance(data, dict) else 'Unknown'
-		
+
 		return {
 			'log_message': f"[ABORT] Flow abort requested: {reason}",
 			'log_message_2': f"[ABORT] Node: {failed_node}",
@@ -1003,7 +1003,7 @@ class ExecutionStateMachine:
 		"""Handle all experiments completion - FIXED with button states"""
 		self.current_state = ExecutionState.COMPLETED
 		framework_instance_id = data.get('framework_instance_id', 'unknown')
-		
+
 		return {
 			'log_message': f"[SUCCESS] All {data['total_executed']} experiments completed successfully",
 			'status_label': {'text': ' Completed ', 'bg': '#006400', 'fg': 'white'},
@@ -1043,10 +1043,10 @@ class ExecutionStateMachine:
 		status = data['status']
 		progress_weight = data.get('progress_weight', 0.0)
 		iteration = data['iteration']
-		
+
 		boot_stage = self._extract_boot_stage(status)
 		progress_percent = int(progress_weight * 100)
-		
+
 		return {
 			'log_message': f"[INFO] Boot Progress [{progress_percent}%]: {boot_stage}",
 			'iteration_info': {
@@ -1065,10 +1065,10 @@ class ExecutionStateMachine:
 		status = data['status']
 		progress_weight = data.get('progress_weight', 0.0)
 		iteration = data['iteration']
-		
+
 		content_stage = self._extract_content_stage(status)
 		progress_percent = int(progress_weight * 100)
-		
+
 		return {
 			'log_message': f"[INFO] Test Content [{progress_percent}%]: {content_stage}",
 			'iteration_info': {
@@ -1088,7 +1088,7 @@ class ExecutionStateMachine:
 			'Starting S2T Flow': 'Boot - S2T Flow',
 			'Boot Failed - Retrying': 'Boot Failed - Retry'
 		}
-		
+
 		status_lower = status.lower()
 		for key, friendly_name in stage_mapping.items():
 			if key in status_lower:
@@ -1103,7 +1103,7 @@ class ExecutionStateMachine:
 			'processing results': 'Processing Results',
 			'analyzing results': 'Analyzing Results'
 		}
-		
+
 		status_lower = status.lower()
 		for key, friendly_name in stage_mapping.items():
 			if key in status_lower:
@@ -1116,7 +1116,7 @@ class ExecutionStateMachine:
 		"""Handle flow execution setup"""
 		total_nodes = data.get('total_nodes', 0)
 		framework_instance_id = data.get('framework_instance_id', 'unknown')
-		
+
 		return {
 			'log_message': f"[FLOW] Setup: {total_nodes} nodes queued for execution",
 			'log_message_2': f"[INFO] Framework Instance: {framework_instance_id}",
@@ -1140,7 +1140,7 @@ class ExecutionStateMachine:
 			node_id = getattr(data, 'ID', 'Unknown')
 			node_name = getattr(data, 'Name', 'Unknown')
 			exp_name = getattr(data, 'Experiment', {}).get('Test Name', 'No Experiment')
-		
+
 		return {
 			'log_message': f"[NODE] Executing: {node_name} ({node_id})",
 			'log_message_2': f"[INFO] Experiment: {exp_name}",
@@ -1155,7 +1155,7 @@ class ExecutionStateMachine:
 	def _handle_node_running(self, data) -> Dict[str, Any]:
 		"""Handle node running status"""
 		node_id = data.get('node_id', 'Unknown') if isinstance(data, dict) else getattr(data, 'ID', 'Unknown')
-		
+
 		return {
 			'log_message': f"[RUN] Node {node_id} experiment started",
 			'status_label': {'text': ' Running Exp ', 'bg': '#FF5722', 'fg': 'white'},
@@ -1170,7 +1170,7 @@ class ExecutionStateMachine:
 	def _handle_node_completed(self, data) -> Dict[str, Any]:
 		"""Handle node completion"""
 		node_id = data.get('node_id', 'Unknown') if isinstance(data, dict) else getattr(data, 'ID', 'Unknown')
-		
+
 		return {
 			'log_message': f"[DONE] Node {node_id} completed successfully",
 			'node_status_update': {
@@ -1186,11 +1186,11 @@ class ExecutionStateMachine:
 		"""Handle node test failure (red)"""
 		node_id = data.get('node_id', 'Unknown') if isinstance(data, dict) else getattr(data, 'ID', 'Unknown')
 		error = data.get('error', '') if isinstance(data, dict) else ''
-		
+
 		log_msg = f"[FAIL] Node {node_id} test failed"
 		if error:
 			log_msg += f": {error}"
-		
+
 		return {
 			'log_message': log_msg,
 			'node_status_update': {
@@ -1206,11 +1206,11 @@ class ExecutionStateMachine:
 		"""Handle node execution failure (yellow)"""
 		node_id = data.get('node_id', 'Unknown') if isinstance(data, dict) else getattr(data, 'ID', 'Unknown')
 		error = data.get('error', '') if isinstance(data, dict) else ''
-		
+
 		log_msg = f"[EXEC FAIL] Node {node_id} execution failed"
 		if error:
 			log_msg += f": {error}"
-		
+
 		return {
 			'log_message': log_msg,
 			'node_status_update': {
@@ -1230,7 +1230,7 @@ class ExecutionStateMachine:
 		else:
 			node_id = node_data.get('node_id', 'Unknown') if isinstance(node_data, dict) else 'Unknown'
 			error = node_data.get('error', 'Unknown error') if isinstance(node_data, dict) else str(node_data)
-		
+
 		return {
 			'log_message': f"[ERROR] Node {node_id} error: {error}",
 			'node_status_update': {
@@ -1244,7 +1244,7 @@ class ExecutionStateMachine:
 	def _handle_flow_execution_complete(self, data) -> Dict[str, Any]:
 		"""Handle flow execution completion"""
 		framework_instance_id = data.get('framework_instance_id', 'unknown')
-		
+
 		return {
 			'log_message': "[FLOW] Flow execution completed successfully",
 			'log_message_2': f"[INFO] Framework Instance: {framework_instance_id}",
@@ -1256,7 +1256,7 @@ class ExecutionStateMachine:
 	def _handle_flow_execution_ended_complete(self, data) -> Dict[str, Any]:
 		"""Handle flow execution ended by command"""
 		framework_instance_id = data.get('framework_instance_id', 'unknown')
-		
+
 		return {
 			'log_message': "[FLOW] Flow execution ended by command",
 			'log_message_2': f"[INFO] Framework Instance: {framework_instance_id}",
@@ -1268,7 +1268,7 @@ class ExecutionStateMachine:
 	def _handle_flow_execution_cancelled(self, data) -> Dict[str, Any]:
 		"""Handle flow execution cancellation"""
 		reason = data.get('reason', 'User requested') if isinstance(data, dict) else str(data)
-		
+
 		return {
 			'log_message': f"[FLOW] Flow execution cancelled: {reason}",
 			'status_label': {'text': ' Cancelled ', 'bg': 'gray', 'fg': 'white'},
@@ -1279,7 +1279,7 @@ class ExecutionStateMachine:
 	def _handle_flow_execution_error(self, data) -> Dict[str, Any]:
 		"""Handle flow execution error"""
 		error_msg = data if isinstance(data, str) else data.get('error', 'Unknown error')
-		
+
 		return {
 			'log_message': f"[ERROR] Flow execution error: {error_msg}",
 			'status_label': {'text': ' Error ', 'bg': 'red', 'fg': 'white'},
@@ -1293,7 +1293,7 @@ class ExecutionStateMachine:
 			'flow_progress_update': True,
 			'status_update': "Flow Progress Updated"
 		}
-	
+
 	def _handle_status_update(self, data) -> Dict[str, Any]:
 		"""Handle generic status updates"""
 		message = data.get('message', '') if isinstance(data, dict) else str(data)
@@ -1313,10 +1313,10 @@ class MainThreadHandler(IStatusReporter):
 		self._callback_enabled = True
 		self._after_id = None  # Track the after callback ID
 		self._is_destroyed = False  # Track if we've been destroyed
-			
+
 		# Replace complex handlers with complete state machine
 		self.state_machine = ExecutionStateMachine(self._apply_ui_updates)
-		
+
 		# Start processor
 		self._start_processor()
 
@@ -1332,14 +1332,14 @@ class MainThreadHandler(IStatusReporter):
 		# Check if we've been destroyed
 		if self._is_destroyed or not self._callback_enabled:
 			return
-		
+
 		"""Process updates in main thread"""
 		try:
 			# Check if root still exists
 			if not self.root or not self.root.winfo_exists():
 				self._is_destroyed = True
 				return
-	
+
 			while not self._update_queue.empty():
 				try:
 					update_data = self._update_queue.get_nowait()
@@ -1365,38 +1365,14 @@ class MainThreadHandler(IStatusReporter):
 		"""Process single update through state machine"""
 		if not self._callback_enabled:
 			return
-			
+
 		event = ExecutionEvent(
 			type=update_data.get('type'),
 			data=update_data.get('data', {}),
 			timestamp=update_data.get('timestamp', '')
 		)
-		
+
 		self.state_machine.process_event(event)
-
-	def cleanup(self):
-		"""Proper cleanup method"""
-		self._is_destroyed = True
-		self._callback_enabled = False
-		
-		# Cancel any pending after callbacks
-		if self._after_id and self.root:
-			try:
-				self.root.after_cancel(self._after_id)
-				self._after_id = None
-			except tk.TclError:
-				pass  # Root already destroyed
-		
-		# Clear the queue
-		self.clear_queue()
-
-		# Give time for any pending operations to complete
-		time.sleep(0.1)
-
-	def disable_callbacks(self):
-		"""Disable callback processing and cleanup"""
-		self._callback_enabled = False
-		self.cleanup()	
 
 	def _apply_ui_updates(self, updates: Dict[str, Any]):
 
@@ -1418,71 +1394,71 @@ class MainThreadHandler(IStatusReporter):
 			# ADDED: Experiment statistics update
 			self._safe_update_wrapper('experiment_stats_update', updates,
 				lambda: self._handle_experiment_stats_update_safe(updates['experiment_stats_update']))
-			
+
 			# Wrap all updates in try-catch for individual error handling
-			self._safe_update_wrapper('log_message', updates, 
+			self._safe_update_wrapper('log_message', updates,
 				lambda: self.ui.log_status(updates['log_message']))
-			
+
 			self._safe_update_wrapper('log_messages', updates,
 				lambda: [self.ui.log_status(msg) for msg in updates['log_messages']])
-			
+
 			self._safe_update_wrapper('log_message_2', updates,
 				lambda: self.ui.log_status(updates['log_message_2']))
-			
+
 			self._safe_update_wrapper('status_label', updates,
 				lambda: self.ui._coordinate_status_updates(updates['status_label']))
-				
+
 			# ENHANCED: Strategy progress handling for dual progress bars
 			self._safe_update_wrapper('strategy_progress', updates,
 				lambda: self.ui._coordinate_progress_updates('strategy_progress', updates['strategy_progress']))
-				
+
 			# ENHANCED: Experiment info updates
 			self._safe_update_wrapper('experiment_info', updates,
 				lambda: self._handle_experiment_info_dual_progress(updates['experiment_info']))
-			
+
 			# ENHANCED: Iteration info updates
 			self._safe_update_wrapper('iteration_info', updates,
 				lambda: self.ui._coordinate_progress_updates('iteration_progress', updates['iteration_info']))
-			
+
 			self._safe_update_wrapper('update_progress', updates,
 				lambda: self._handle_progress_update_safe())
-			
+
 			self._safe_update_wrapper('result_status', updates,
 				lambda: self.ui.update_progress_display(result_status=updates['result_status']))
-			
+
 			self._safe_update_wrapper('status_update', updates,
 				lambda: self.ui.update_progress_display(status=updates['status_update']))
-			
+
 			self._safe_update_wrapper('progress_bar_style', updates,
 				lambda: self._handle_progress_bar_style_safe(updates))
-			
+
 			self._safe_update_wrapper('button_update', updates,
 				lambda: self._handle_button_update_safe(updates['button_update']))
-			
+
 			self._safe_update_wrapper('strategy_label_update', updates,
 				lambda: self.ui.strategy_label.configure(**updates['strategy_label_update']))
-			
+
 			self._safe_update_wrapper('progress_reset', updates,
 				lambda: self.ui.reset_progress_tracking())
-			
+
 			self._safe_update_wrapper('experiment_reset', updates,
 				lambda: self._handle_experiment_reset_safe())
-			
+
 			self._safe_update_wrapper('boot_visual_feedback', updates,
 				lambda: self._update_boot_visual_feedback(updates['boot_visual_feedback']))
-			
+
 			self._safe_update_wrapper('enable_buttons', updates,
 				lambda: self.ui._coordinate_button_states('enable_after_completion'))
 
 			self._safe_update_wrapper('reset_thread_state', updates,
 				lambda: self._handle_thread_state_reset())
-		
+
 			self._safe_update_wrapper('experiment_status_update', updates,
 				lambda: self._update_experiment_status_in_ui(updates['experiment_status_update']))
 
 			self._safe_update_wrapper('finalize_execution', updates,
 				lambda: self._finalize_execution_ui())
-						
+
 			self._safe_update_wrapper('execution_setup', updates,
 				lambda: self._handle_execution_setup_safe(updates['execution_setup']))
 
@@ -1510,7 +1486,7 @@ class MainThreadHandler(IStatusReporter):
 		try:
 			boot_stage = feedback_data['stage']
 			progress_weight = feedback_data['progress_weight']
-			
+
 			if 'preparing' in boot_stage.lower():
 				# Update iteration progress bar for boot phase
 				if hasattr(self.ui, 'iteration_progress_bar'):
@@ -1519,7 +1495,7 @@ class MainThreadHandler(IStatusReporter):
 					self.ui.iteration_status_label.configure(text=f"Status: 🔧 {boot_stage}")
 				if hasattr(self.ui, 'phase_label'):
 					self.ui.phase_label.configure(text="[BOOT] Preparing", foreground="orange")
-					
+
 			elif 'initializing' in boot_stage.lower():
 				if hasattr(self.ui, 'iteration_progress_bar'):
 					self.ui.iteration_progress_bar.configure(style="Iteration.Boot.Horizontal.TProgressbar")
@@ -1527,7 +1503,7 @@ class MainThreadHandler(IStatusReporter):
 					self.ui.iteration_status_label.configure(text=f"Status: 🔄 {boot_stage}")
 				if hasattr(self.ui, 'phase_label'):
 					self.ui.phase_label.configure(text="[BOOT] Initializing", foreground="orange")
-					
+
 			elif 'boot' in boot_stage.lower() and 'complete' not in boot_stage.lower():
 				if hasattr(self.ui, 'iteration_progress_bar'):
 					self.ui.iteration_progress_bar.configure(style="Iteration.Running.Horizontal.TProgressbar")
@@ -1535,7 +1511,7 @@ class MainThreadHandler(IStatusReporter):
 					self.ui.iteration_status_label.configure(text=f"Status: ⚡ {boot_stage}")
 				if hasattr(self.ui, 'phase_label'):
 					self.ui.phase_label.configure(text="[BOOT] In Progress", foreground="blue")
-					
+
 			elif 'complete' in boot_stage.lower():
 				if hasattr(self.ui, 'iteration_progress_bar'):
 					self.ui.iteration_progress_bar.configure(style="Iteration.Horizontal.TProgressbar")
@@ -1543,7 +1519,7 @@ class MainThreadHandler(IStatusReporter):
 					self.ui.iteration_status_label.configure(text=f"Status: ✅ {boot_stage}")
 				if hasattr(self.ui, 'phase_label'):
 					self.ui.phase_label.configure(text="[BOOT] Complete", foreground="green")
-					
+
 		except Exception as e:
 			print(f"Error updating boot visual feedback: {e}")
 
@@ -1568,9 +1544,9 @@ class MainThreadHandler(IStatusReporter):
 			status = status_data['status']
 			bg_color = status_data['bg_color']
 			fg_color = status_data['fg_color']
-			
+
 			self.ui._update_experiment_status_safe(experiment_name, status, bg_color, fg_color)
-			
+
 		except Exception as e:
 			print(f"Error updating experiment status: {e}")
 
@@ -1599,13 +1575,13 @@ class MainThreadHandler(IStatusReporter):
 					fail_rate=stats_data.get('fail_rate'),
 					recommendation=stats_data.get('recommendation')
 				)
-				
+
 			# Also update any direct UI elements if they exist
 			if hasattr(self.ui, 'exp_iteration_label'):
 				iteration = stats_data.get('iteration', 0)
 				total_iterations = stats_data.get('total_iterations', 0)
 				self.ui.exp_iteration_label.configure(text=f"Iteration: {iteration}/{total_iterations}")
-				
+
 			if hasattr(self.ui, 'exp_pass_rate_label'):
 				pass_rate = stats_data.get('pass_rate', 0)
 				self.ui.exp_pass_rate_label.configure(text=f"Pass Rate: {pass_rate:.1f}%")
@@ -1613,23 +1589,23 @@ class MainThreadHandler(IStatusReporter):
 			if hasattr(self.ui, 'exp_fail_rate_label'):
 				pass_rate = stats_data.get('fail_rate', 0)
 				self.ui.exp_fail_rate_label.configure(text=f"Fail Rate: {pass_rate:.1f}%")
-												
+
 			if hasattr(self.ui, 'exp_recommendation_label'):
 				recommendation = stats_data.get('recommendation', '--')
 				self.ui.exp_recommendation_label.configure(text=f"Recommendation: {recommendation}")
-				
+
 		except Exception as e:
 			print(f"Experiment stats update error: {e}")
-			
+
 	def _handle_experiment_info_dual_progress(self, exp_info):
 		"""Handle experiment info updates for dual progress system"""
 		try:
 			self.ui.current_experiment_name = exp_info['name']
 			self.ui.total_iterations_in_experiment = exp_info['total_iterations']
-			
+
 			# Reset iteration progress for new experiment
 			self.ui._coordinate_progress_updates('experiment_start', {})
-			
+
 			self.ui.update_progress_display(
 				experiment_name=exp_info['name'],
 				strategy_type=exp_info['strategy'],
@@ -1638,18 +1614,18 @@ class MainThreadHandler(IStatusReporter):
 			)
 		except Exception as e:
 			print(f"Dual progress experiment info update error: {e}")
-	
+
 	def _handle_progress_update_safe(self):
 		"""Handle progress updates safely"""
 		try:
-			self.show_debug_messages(f"BEFORE Overall Progress Update:")
-			
+			self.show_debug_messages("BEFORE Overall Progress Update:")
+
 			# Only update if no strategy progress is active
 			if not getattr(self.ui, '_strategy_progress_active', False):
 				self.ui._coordinate_progress_updates('overall_calculation', {})
-			
-			self.show_debug_messages(f"AFTER Overall Progress Update:")
-			
+
+			self.show_debug_messages("AFTER Overall Progress Update:")
+
 		except Exception as e:
 			print(f"Progress update error: {e}")
 
@@ -1658,7 +1634,7 @@ class MainThreadHandler(IStatusReporter):
 		try:
 			style_name = updates['progress_bar_style']
 			duration = updates.get('reset_progress_bar_after')
-			
+
 			# Determine which progress bar to update based on style name
 			if style_name.startswith('Overall.'):
 				bar_type = 'overall'
@@ -1675,9 +1651,9 @@ class MainThreadHandler(IStatusReporter):
 					"Error.Horizontal.TProgressbar": "Iteration.Error.Horizontal.TProgressbar"
 				}
 				style_name = style_mapping.get(style_name, style_name)
-			
+
 			self.ui._coordinate_progress_bar_styles(style_name, duration, bar_type)
-			
+
 		except Exception as e:
 			print(f"Progress bar style update error: {e}")
 
@@ -1734,7 +1710,7 @@ class MainThreadHandler(IStatusReporter):
 								print(f"Updated {button_name}: {config}")
 						except Exception as e:
 							print(f"Error updating {button_name}: {e}")
-							
+
 		except Exception as e:
 			print(f"Button update error: {e}")
 
@@ -1756,11 +1732,11 @@ class MainThreadHandler(IStatusReporter):
 				self.ui.total_nodes = setup_data['total_nodes']
 			if hasattr(self.ui, 'flow_execution_state'):
 				self.ui.flow_execution_state.total_nodes = setup_data['total_nodes']
-			
+
 			# Update total nodes label if it exists
 			if hasattr(self.ui, 'total_nodes_label'):
 				self.ui.total_nodes_label.configure(text=f"Total: {setup_data['total_nodes']}")
-				
+
 		except Exception as e:
 			print(f"Flow setup update error: {e}")
 
@@ -1772,17 +1748,17 @@ class MainThreadHandler(IStatusReporter):
 				self.ui.current_node_label.configure(
 					text=f"Node: {node_data['node_name']} ({node_data['node_id']})"
 				)
-			
+
 			if hasattr(self.ui, 'current_experiment_label'):
 				self.ui.current_experiment_label.configure(
 					text=f"Experiment: {node_data['experiment_name']}"
 				)
-			
+
 			if hasattr(self.ui, 'current_status_label'):
 				self.ui.current_status_label.configure(
 					text="Status: Preparing", foreground='blue'
 				)
-			
+
 			# Update current node reference
 			if hasattr(self.ui, 'current_node'):
 				# Find the actual node object if needed
@@ -1790,7 +1766,7 @@ class MainThreadHandler(IStatusReporter):
 					actual_node = self.ui.builder.builtNodes.get(node_data['node_id'])
 					if actual_node:
 						self.ui.current_node = actual_node
-						
+
 		except Exception as e:
 			print(f"Current node update error: {e}")
 
@@ -1801,7 +1777,7 @@ class MainThreadHandler(IStatusReporter):
 			status = status_data['status']
 			bg_color = status_data['bg_color']
 			fg_color = status_data['fg_color']
-			
+
 			# Update node visual status
 			if hasattr(self.ui, 'node_drawer') and self.ui.node_drawer:
 				# Find the node object
@@ -1809,31 +1785,31 @@ class MainThreadHandler(IStatusReporter):
 					node = self.ui.builder.builtNodes.get(node_id)
 					if node:
 						self.ui.node_drawer.redraw_node(node, status)
-			
+
 			# Update current status label if this is the current node
-			if (hasattr(self.ui, 'current_node') and self.ui.current_node and 
+			if (hasattr(self.ui, 'current_node') and self.ui.current_node and
 				self.ui.current_node.ID == node_id):
-				
+
 				status_text_map = {
 					'running': 'Status: Running Experiment',
 					'completed': 'Status: Completed',
 					'failed': 'Status: Test Failed',
 					'execution_fail': 'Status: Execution Failed'
 				}
-				
+
 				status_color_map = {
 					'running': 'red',
 					'completed': 'green',
 					'failed': 'red',
 					'execution_fail': 'orange'
 				}
-				
+
 				if hasattr(self.ui, 'current_status_label'):
 					self.ui.current_status_label.configure(
 						text=status_text_map.get(status, f"Status: {status}"),
 						foreground=status_color_map.get(status, 'black')
 					)
-					
+
 		except Exception as e:
 			print(f"Node status update error: {e}")
 
@@ -1843,7 +1819,7 @@ class MainThreadHandler(IStatusReporter):
 			# Update progress if we have the necessary components
 			if hasattr(self.ui, 'update_progress'):
 				self.ui.update_progress()
-			
+
 			# Update statistics
 			if hasattr(self.ui, 'completed_count') and hasattr(self.ui, 'failed_count'):
 				if hasattr(self.ui, 'completed_nodes_label'):
@@ -1854,7 +1830,7 @@ class MainThreadHandler(IStatusReporter):
 					self.ui.failed_nodes_label.configure(
 						text=f"✗ Failed: {self.ui.failed_count}"
 					)
-					
+
 		except Exception as e:
 			print(f"Flow progress update error: {e}")
 
@@ -1881,20 +1857,44 @@ class MainThreadHandler(IStatusReporter):
 		"""Enable callback processing"""
 		self._callback_enabled = True
 
-	def disable_callbacks(self):
-		"""Disable callback processing"""
+	#def disable_callbacks(self):
+	#	"""Disable callback processing"""
+	#	self._callback_enabled = False
+
+	def cleanup(self):
+		"""Proper cleanup method"""
+		self._is_destroyed = True
 		self._callback_enabled = False
+
+		# Cancel any pending after callbacks
+		if self._after_id and self.root:
+			try:
+				self.root.after_cancel(self._after_id)
+				self._after_id = None
+			except tk.TclError:
+				pass  # Root already destroyed
+
+		# Clear the queue
+		self.clear_queue()
+
+		# Give time for any pending operations to complete
+		time.sleep(0.1)
+
+	def disable_callbacks(self):
+		"""Disable callback processing and cleanup"""
+		self._callback_enabled = False
+		self.cleanup()
 
 	def clear_queue(self):
 		"""Clear pending updates"""
-		cleared_count = 0 
+		cleared_count = 0
 		while not self._update_queue.empty():
 			try:
 				self._update_queue.get_nowait()
 				cleared_count += 1
 			except queue.Empty:
 				break
-		
+
 		if cleared_count > 0:
 			print(f"Cleared {cleared_count} pending status updates")
 
@@ -1916,10 +1916,10 @@ class SecondThreadHandler(IStatusReporter):
 		self._callback_enabled = True
 		self._after_id = None  # Track the after callback ID
 		self._is_destroyed = False  # Track if we've been destroyed
-			
+
 		# Replace complex handlers with complete state machine
 		self.state_machine = ExecutionStateMachine(self._apply_ui_updates)
-		
+
 		# Start processor
 		self._start_processor()
 
@@ -1935,7 +1935,7 @@ class SecondThreadHandler(IStatusReporter):
 		# Check if we've been destroyed
 		if self._is_destroyed or not self._callback_enabled:
 			return
-		
+
 		"""Process updates in main thread"""
 		try:
 			# Check if root still exists
@@ -1968,46 +1968,22 @@ class SecondThreadHandler(IStatusReporter):
 		"""Process single update through state machine AND UI handler"""
 		if not self._callback_enabled:
 			return
-			
+
 		# FIXED: Call the UI's specific handler first
 		if hasattr(self.ui, 'handle_main_thread_update'):
 			try:
 				self.ui.handle_main_thread_update(update_data)
 			except Exception as e:
 				print(f"UI handler error: {e}")
-		
+
 		# Then process through state machine for logging and status
 		event = ExecutionEvent(
 			type=update_data.get('type'),
 			data=update_data.get('data', {}),
 			timestamp=update_data.get('timestamp', '')
 		)
-		
+
 		self.state_machine.process_event(event)
-
-	def cleanup(self):
-		"""Proper cleanup method"""
-		self._is_destroyed = True
-		self._callback_enabled = False
-		
-		# Cancel any pending after callbacks
-		if self._after_id and self.root:
-			try:
-				self.root.after_cancel(self._after_id)
-				self._after_id = None
-			except tk.TclError:
-				pass  # Root already destroyed
-		
-		# Clear the queue
-		self.clear_queue()
-
-		# Give time for any pending operations to complete
-		time.sleep(0.1)
-
-	def disable_callbacks(self):
-		"""Disable callback processing and cleanup"""
-		self._callback_enabled = False
-		self.cleanup()	
 
 	def _apply_ui_updates(self, updates: Dict[str, Any]):
 		"""Apply comprehensive UI updates safely in main thread"""
@@ -2026,59 +2002,59 @@ class SecondThreadHandler(IStatusReporter):
 			# ADDED: Experiment statistics update
 			self._safe_update_wrapper('experiment_stats_update', updates,
 				lambda: self._handle_experiment_stats_update_safe(updates['experiment_stats_update']))
-			
+
 			# Basic logging and status updates
-			self._safe_update_wrapper('log_message', updates, 
+			self._safe_update_wrapper('log_message', updates,
 				lambda: self.ui.log_status(updates['log_message']))
-			
+
 			self._safe_update_wrapper('log_messages', updates,
 				lambda: [self.ui.log_status(msg) for msg in updates['log_messages']])
-			
+
 			self._safe_update_wrapper('log_message_2', updates,
 				lambda: self.ui.log_status(updates['log_message_2']))
-			
+
 			self._safe_update_wrapper('status_label', updates,
 				lambda: self.ui._coordinate_status_updates(updates['status_label']))
-				
+
 			# Progress updates - delegate to UI
 			self._safe_update_wrapper('strategy_progress', updates,
 				lambda: self.ui._coordinate_progress_updates('strategy_progress', updates['strategy_progress']))
-				
+
 			self._safe_update_wrapper('experiment_info', updates,
 				lambda: self._handle_experiment_info_dual_progress(updates['experiment_info']))
-			
+
 			self._safe_update_wrapper('iteration_info', updates,
 				lambda: self.ui._coordinate_progress_updates('iteration_progress', updates['iteration_info']))
-			
+
 			self._safe_update_wrapper('update_progress', updates,
 				lambda: self._handle_progress_update_safe())
-			
+
 			self._safe_update_wrapper('result_status', updates,
 				lambda: self.ui.update_progress_display(result_status=updates['result_status']))
-			
+
 			self._safe_update_wrapper('status_update', updates,
 				lambda: self.ui.update_progress_display(status=updates['status_update']))
-			
+
 			self._safe_update_wrapper('progress_bar_style', updates,
 				lambda: self._handle_progress_bar_style_safe(updates))
-			
+
 			# Button and UI state updates - delegate to UI
 			self._safe_update_wrapper('button_update', updates,
 				lambda: self.ui._coordinate_button_states('specific_button_update', updates['button_update']))
-			
+
 			self._safe_update_wrapper('enable_buttons', updates,
 				lambda: self.ui._coordinate_button_states('enable_after_completion'))
 
 			self._safe_update_wrapper('reset_thread_state', updates,
 				lambda: self._handle_thread_state_reset())
-		
+
 			# Experiment status updates (ControlPanel specific)
 			self._safe_update_wrapper('experiment_status_update', updates,
 				lambda: self._update_experiment_status_in_ui(updates['experiment_status_update']))
 
 			self._safe_update_wrapper('finalize_execution', updates,
 				lambda: self._finalize_execution_ui())
-						
+
 			self._safe_update_wrapper('execution_setup', updates,
 				lambda: self._handle_execution_setup_safe(updates['execution_setup']))
 
@@ -2108,9 +2084,9 @@ class SecondThreadHandler(IStatusReporter):
 			status = status_data['status']
 			bg_color = status_data['bg_color']
 			fg_color = status_data['fg_color']
-			
+
 			self.ui._update_experiment_status_safe(experiment_name, status, bg_color, fg_color)
-			
+
 		except Exception as e:
 			print(f"Error updating experiment status: {e}")
 
@@ -2160,13 +2136,13 @@ class SecondThreadHandler(IStatusReporter):
 					fail_rate=stats_data.get('fail_rate'),
 					recommendation=stats_data.get('recommendation')
 				)
-		
+
 			# Also update any direct UI elements if they exist
 			if hasattr(self.ui, 'exp_iteration_label'):
 				iteration = stats_data.get('iteration', 0)
 				total_iterations = stats_data.get('total_iterations', 0)
 				self.ui.exp_iteration_label.configure(text=f"Iteration: {iteration}/{total_iterations}")
-				
+
 			if hasattr(self.ui, 'exp_pass_rate_label'):
 				pass_rate = stats_data.get('pass_rate', 0)
 				self.ui.exp_pass_rate_label.configure(text=f"Pass Rate: {pass_rate:.1f}%")
@@ -2174,23 +2150,23 @@ class SecondThreadHandler(IStatusReporter):
 			if hasattr(self.ui, 'exp_fail_rate_label'):
 				pass_rate = stats_data.get('fail_rate', 0)
 				self.ui.exp_fail_rate_label.configure(text=f"Fail Rate: {pass_rate:.1f}%")
-								
+
 			if hasattr(self.ui, 'exp_recommendation_label'):
 				recommendation = stats_data.get('recommendation', '--')
 				self.ui.exp_recommendation_label.configure(text=f"Recommendation: {recommendation}")
-								
+
 		except Exception as e:
 			print(f"Experiment stats update error: {e}")
-			
+
 	def _handle_experiment_info_dual_progress(self, exp_info):
 		"""Handle experiment info updates for dual progress system"""
 		try:
 			self.ui.current_experiment_name = exp_info['name']
 			self.ui.total_iterations_in_experiment = exp_info['total_iterations']
-			
+
 			# Reset iteration progress for new experiment
 			self.ui._coordinate_progress_updates('experiment_start', {})
-			
+
 			self.ui.update_progress_display(
 				experiment_name=exp_info['name'],
 				strategy_type=exp_info['strategy'],
@@ -2204,14 +2180,14 @@ class SecondThreadHandler(IStatusReporter):
 	def _handle_progress_update_safe(self):
 		"""Handle progress updates safely"""
 		try:
-			self.show_debug_messages(f"BEFORE Overall Progress Update:")
-			
+			self.show_debug_messages("BEFORE Overall Progress Update:")
+
 			# Only update if no strategy progress is active
 			if not getattr(self.ui, '_strategy_progress_active', False):
 				self.ui._coordinate_progress_updates('overall_calculation', {})
-			
-			self.show_debug_messages(f"AFTER Overall Progress Update:")
-			
+
+			self.show_debug_messages("AFTER Overall Progress Update:")
+
 		except Exception as e:
 			print(f"Progress update error: {e}")
 
@@ -2220,7 +2196,7 @@ class SecondThreadHandler(IStatusReporter):
 		try:
 			style_name = updates['progress_bar_style']
 			duration = updates.get('reset_progress_bar_after')
-			
+
 			# Determine which progress bar to update based on style name
 			if style_name.startswith('Overall.'):
 				bar_type = 'overall'
@@ -2237,9 +2213,9 @@ class SecondThreadHandler(IStatusReporter):
 					"Error.Horizontal.TProgressbar": "Iteration.Error.Horizontal.TProgressbar"
 				}
 				style_name = style_mapping.get(style_name, style_name)
-			
+
 			self.ui._coordinate_progress_bar_styles(style_name, duration, bar_type)
-			
+
 		except Exception as e:
 			print(f"Progress bar style update error: {e}")
 
@@ -2296,7 +2272,7 @@ class SecondThreadHandler(IStatusReporter):
 								print(f"Updated {button_name}: {config}")
 						except Exception as e:
 							print(f"Error updating {button_name}: {e}")
-							
+
 		except Exception as e:
 			print(f"Button update error: {e}")
 
@@ -2335,20 +2311,44 @@ class SecondThreadHandler(IStatusReporter):
 		"""Enable callback processing"""
 		self._callback_enabled = True
 
-	def disable_callbacks(self):
-		"""Disable callback processing"""
+	#def disable_callbacks(self):
+	#	"""Disable callback processing"""
+	#	self._callback_enabled = False
+
+	def cleanup(self):
+		"""Proper cleanup method"""
+		self._is_destroyed = True
 		self._callback_enabled = False
+
+		# Cancel any pending after callbacks
+		if self._after_id and self.root:
+			try:
+				self.root.after_cancel(self._after_id)
+				self._after_id = None
+			except tk.TclError:
+				pass  # Root already destroyed
+
+		# Clear the queue
+		self.clear_queue()
+
+		# Give time for any pending operations to complete
+		time.sleep(0.1)
+
+	def disable_callbacks(self):
+		"""Disable callback processing and cleanup"""
+		self._callback_enabled = False
+		self.cleanup()
 
 	def clear_queue(self):
 		"""Clear pending updates"""
-		cleared_count = 0 
+		cleared_count = 0
 		while not self._update_queue.empty():
 			try:
 				self._update_queue.get_nowait()
 				cleared_count += 1
 			except queue.Empty:
 				break
-		
+
 		if cleared_count > 0:
 			print(f"Cleared {cleared_count} pending status updates")
 

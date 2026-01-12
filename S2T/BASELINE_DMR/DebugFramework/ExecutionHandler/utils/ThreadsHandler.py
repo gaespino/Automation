@@ -137,7 +137,7 @@ class EnhancedThreadSafeState:
 				# Command lifecycle info
 				if command in self._command_lifecycle:
 					lifecycle = self._command_lifecycle[command]
-					self._debug_log(f"Command Lifecycle:", 1, "DEBUG_BREAKPOINT")
+					self._debug_log("Command Lifecycle:", 1, "DEBUG_BREAKPOINT")
 					for event, event_time in lifecycle.items():
 						event_timestamp = time.strftime("%H:%M:%S")
 						self._debug_log(f"  {event}: {event_timestamp}", 1, "DEBUG_BREAKPOINT")
@@ -150,7 +150,7 @@ class EnhancedThreadSafeState:
 				
 				# Recent command history
 				recent_commands = self._command_history[-3:] if self._command_history else []
-				self._debug_log(f"Recent Commands:", 1, "DEBUG_BREAKPOINT")
+				self._debug_log("Recent Commands:", 1, "DEBUG_BREAKPOINT")
 				for cmd_data in recent_commands:
 					status = " Acked" if cmd_data.acknowledged else (" Processing" if cmd_data.processing_started else " Pending")
 					self._debug_log(f"  {cmd_data.command.name}: {status}", 1, "DEBUG_BREAKPOINT")
@@ -307,7 +307,7 @@ class EnhancedThreadSafeState:
 		if command in [ExecutionCommand.CANCEL, ExecutionCommand.END_EXPERIMENT]:
 			import traceback
 			thread_name = threading.current_thread().name
-			timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+			timestamp = datetime.now().strftime("%H:%M:%S.%")[:-3]
 			
 			self._debug_log(f"CRITICAL COMMAND ISSUED: {command.name}", 2, "CRITICAL_COMMAND")
 			self._debug_log(f"  Thread: {thread_name}", 2, "CRITICAL_COMMAND")
@@ -608,7 +608,7 @@ class EnhancedThreadSafeState:
 	
 	def step_continue(self, callback: Optional[Callable] = None) -> bool:
 
-		self._debug_log(f"=== STEP CONTINUE REQUESTED ===", 1, "STEP_CONTINUE")
+		self._debug_log("=== STEP CONTINUE REQUESTED ===", 1, "STEP_CONTINUE")
 		
 		# Get current state for debugging
 		with self._lock:
@@ -616,7 +616,7 @@ class EnhancedThreadSafeState:
 			step_mode = self._state.get('step_mode_enabled', False)
 			waiting = self._state.get('waiting_for_step', False)
 			
-			self._debug_log(f"Step continue state check:", 1, "STEP_CONTINUE")
+			self._debug_log("Step continue state check:", 1, "STEP_CONTINUE")
 			self._debug_log(f"  execution_active: {exec_active}", 1, "STEP_CONTINUE")
 			self._debug_log(f"  step_mode_enabled: {step_mode}", 1, "STEP_CONTINUE")
 			self._debug_log(f"  waiting_for_step: {waiting}", 1, "STEP_CONTINUE")
@@ -638,13 +638,13 @@ class EnhancedThreadSafeState:
 			#return False
 
 		# ALWAYS issue the command (no validation)
-		self._debug_log(f"Issuing STEP_CONTINUE command (validation warnings only)", 1, "STEP_CONTINUE")
+		self._debug_log("Issuing STEP_CONTINUE command (validation warnings only)", 1, "STEP_CONTINUE")
 		success = self.issue_command(ExecutionCommand.STEP_CONTINUE, {}, callback)
 		
 		if success:
-			self._debug_log(f"STEP_CONTINUE command issued successfully", 1, "STEP_CONTINUE")
+			self._debug_log("STEP_CONTINUE command issued successfully", 1, "STEP_CONTINUE")
 		else:
-			self._debug_log(f"STEP_CONTINUE command FAILED to issue", 3, "STEP_CONTINUE_ERROR")
+			self._debug_log("STEP_CONTINUE command FAILED to issue", 3, "STEP_CONTINUE_ERROR")
 
 					
 		"""Issue step continue command"""
@@ -699,7 +699,7 @@ class EnhancedThreadSafeState:
 			result = ExecutionCommand.END_EXPERIMENT in self._active_commands
 			
 			if result:
-				self._debug_log(f"End experiment check: TRUE", 1, "END_CHECK")
+				self._debug_log("End experiment check: TRUE", 1, "END_CHECK")
 			
 			return result
 		   
@@ -760,7 +760,7 @@ class EnhancedThreadSafeState:
 			if key == 'execution_active':
 				import traceback
 				thread_name = threading.current_thread().name
-				timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+				timestamp = datetime.now().strftime("%H:%M:%S.%")[:-3]
 				
 				if old_value != value:
 					self._debug_log(f"EXECUTION_ACTIVE CHANGE: {old_value} -> {value} (Thread: {thread_name}) at {timestamp}", 2, "EXECUTION_STATE")
@@ -803,7 +803,7 @@ class EnhancedThreadSafeState:
 				
 				import traceback
 				thread_name = threading.current_thread().name
-				timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+				timestamp = datetime.now().strftime("%H:%M:%S.%")[:-3]
 				
 				self._debug_log(f"EXECUTION_ACTIVE UPDATE START: {old_value} -> {new_value} (Thread: {thread_name}) at {timestamp}", 2, "EXECUTION_STATE")
 				
@@ -952,7 +952,7 @@ class EnhancedThreadSafeState:
 					break
 			
 			if cmd_data:
-				print(f" Command Status:")
+				print(" Command Status:")
 				print(f"   Processing Started: {cmd_data.processing_started}")
 				print(f"   Processed: {cmd_data.processed}")
 				print(f"   Acknowledged: {cmd_data.acknowledged}")
@@ -980,7 +980,7 @@ class EnhancedThreadSafeState:
 			active_cmds = [cmd.name for cmd in self._active_commands]
 			recent_cmds = [f"{cmd.command.name}({cmd.processed})" for cmd in self._command_history[-5:]]
 			
-			return f"""
+			return """
 === Enhanced Thread Safe State Debug ===
 Active Commands: {active_cmds}
 Recent Commands: {recent_cmds}

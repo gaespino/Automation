@@ -326,7 +326,7 @@ class TestUpload:
 
 	def TestBanner(self, qdf, tnum, mask, corelic, bumps, htdis, dis2CPM, freqIA, voltIA, freqCFC, voltCFC, content, passstring, failstring):
 
-		self.print(f' -- Test Start --- ')
+		self.print(' -- Test Start --- ')
 		self.print(f' -- Debug Framework {self.name} --- ')
 		self.print(f' -- Performing test iteration {tnum} with the following parameters: ')
 
@@ -352,7 +352,7 @@ class TestUpload:
 		self.print(f'\t > Pass String: {passstring} ')
 		self.print(f'\t > Fail String: {failstring} ')
 
-		if qdf in u600w: self.print(f'\t > Unit 600w Fuses Applied ')
+		if qdf in u600w: self.print('\t > Unit 600w Fuses Applied ')
 		#if self.extMask != None:
 		#	printmasks = [["Type", "Value"]]
 		#	printmasks.append([[k,v] for k, v in self.extMask.items()])
@@ -362,7 +362,7 @@ class TestUpload:
 	def Iteration_end(self, tnum, runName, runStatus, scratchpad, seed):
 
 		self.print(f'tdata_{tnum}::{runName}::{runStatus}::{scratchpad}::{seed}')
-		self.print(f' -- Test End --- ')
+		self.print(' -- Test End --- ')
 
 	@staticmethod
 	def manual_upload(tfolder, visual, Product, UPLOAD_TO_DISK = True, UPLOAD_DATA = True, logger = None, ):
@@ -1009,7 +1009,7 @@ def copy_folder(src, dest, visual = "unknown", zipdata=True , logger = None):
 		# Create zipfile with source folder name
 		#dest_path = os.path.join(dest, hostname.lower(), current_date, visual)
 
-		zip_file_name = f'ExperimentData.zip'
+		zip_file_name = 'ExperimentData.zip'
 		zip_file_path = os.path.join(dest_path, zip_file_name)
 
 
@@ -1562,11 +1562,11 @@ def create_default_framework_config(filename="framework_config.ini"):
 		'LINUX_CONTENT_WAIT': '20',
 		'LINUX_PASS_STRING': 'Test Completed',
 		'LINUX_FAIL_STRING': 'Test_Failed',
-		'LINUX_CONTENT_LINE_0': '/usr/local/bin/ocelot --flow /root/content/LOS/LOS-23WW24/Mlc/flows/Mlc_data_n3.xml --write_log_file_to_stdout=on --ituff=off',
-		'LINUX_CONTENT_LINE_1': '/usr/local/bin/ocelot --flow /root/content/LOS/LOS-23WW24/Mlc/flows/Mlc_data_n3.xml --write_log_file_to_stdout=on --ituff=off',
-		'LINUX_CONTENT_LINE_2': '/usr/local/bin/ocelot --flow /root/content/LOS/LOS-23WW24/Mlc/flows/Mlc_data_n3.xml --write_log_file_to_stdout=on --ituff=off',
-		'LINUX_CONTENT_LINE_3': '/usr/local/bin/ocelot --flow /root/content/LOS/LOS-23WW24/Mlc/flows/Mlc_data_n3.xml --write_log_file_to_stdout=on --ituff=off',
-		'LINUX_CONTENT_LINE_4': '/usr/local/bin/ocelot --flow /root/content/LOS/LOS-23WW24/Mlc/flows/Mlc_data_n3.xml --write_log_file_to_stdout=on --ituff=off',
+		'LINUX_CONTENT_LINE_0': '/usr/local/bin/ocelot --flow /root/content/LOS/LOS-23WW24/Mlc/flows/Mlc_data_n3.xml --write_log_file_to_stdout=on --ituff=of',
+		'LINUX_CONTENT_LINE_1': '/usr/local/bin/ocelot --flow /root/content/LOS/LOS-23WW24/Mlc/flows/Mlc_data_n3.xml --write_log_file_to_stdout=on --ituff=of',
+		'LINUX_CONTENT_LINE_2': '/usr/local/bin/ocelot --flow /root/content/LOS/LOS-23WW24/Mlc/flows/Mlc_data_n3.xml --write_log_file_to_stdout=on --ituff=of',
+		'LINUX_CONTENT_LINE_3': '/usr/local/bin/ocelot --flow /root/content/LOS/LOS-23WW24/Mlc/flows/Mlc_data_n3.xml --write_log_file_to_stdout=on --ituff=of',
+		'LINUX_CONTENT_LINE_4': '/usr/local/bin/ocelot --flow /root/content/LOS/LOS-23WW24/Mlc/flows/Mlc_data_n3.xml --write_log_file_to_stdout=on --ituff=of',
 		'LINUX_CONTENT_LINE_5': '',
 		'LINUX_CONTENT_LINE_6': '',
 		'LINUX_CONTENT_LINE_7': '',

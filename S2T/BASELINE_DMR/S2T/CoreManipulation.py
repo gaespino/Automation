@@ -82,13 +82,11 @@ pf = config.get_functions()
 #=================================== IPC AND SV SETUP ===================================================#
 #========================================================================================================#
 
-from namednodes import sv
 from ipccli import BitData
 
 ipc = None
 api = None
 
-sv = None
 sv = namednodes.sv #shortcut
 sv.initialize()
 
@@ -450,7 +448,7 @@ class BootConfiguration:
 		print(f'\tConfigured License Mode: {self.avx_mode}')
 
 		# Core frequencies
-		print(f'\tCore Frequencies:')
+		print('\tCore Frequencies:')
 		print(f'\t\tIA p1: {self.ia_fw_p1}')
 		print(f'\t\tIA pn: {self.ia_fw_pn}')
 		print(f'\t\tIA pm: {self.ia_fw_pm}')
@@ -463,7 +461,7 @@ class BootConfiguration:
 		print(f'\t\tIA imh turbo: {self.ia_imh_pturbo}')
 
 		# Mesh frequencies
-		print(f'\tCompute Mesh Frequencies:')
+		print('\tCompute Mesh Frequencies:')
 		print(f'\t\tCFC MESH fw p0: {self.cfc_fw_p0}')
 		print(f'\t\tCFC MESH fw p1: {self.cfc_fw_p1}')
 		print(f'\t\tCFC MESH fw pn: {self.cfc_fw_pm}')
@@ -479,7 +477,7 @@ class BootConfiguration:
 
 		# Voltages
 		voltage_word = 'vBump' if self.vbumps_configuration else 'Volt'
-		print(f'\tVoltage Bumps Configurations:' if self.vbumps_configuration else f'\tFixed Voltage Configurations:')
+		print('\tVoltage Bumps Configurations:' if self.vbumps_configuration else '\tFixed Voltage Configurations:')
 		print(f'\t\tCore {voltage_word}: {self.fixed_core_volt}{"V" if self.fixed_core_volt is not None else ""}')
 		print(f'\t\tCFC CBB {voltage_word}: {self.fixed_cfc_volt}{"V" if self.fixed_cfc_volt is not None else ""}')
 		print(f'\t\tHDC CBB {voltage_word}: {self.fixed_hdc_volt}{"V" if self.fixed_hdc_volt is not None else ""}')
@@ -799,17 +797,18 @@ class SystemBooter:
 			#fuse_str_imh.extend(self._assign_values_to_regs(
 			#	self.boot_fuses['IA']['imhFreq']['pn'], self.config.ia_fw_p1))
 
-		if self.config.ia_fw_pm:
-			fuse_str_cbb.extend(self._assign_values_to_regs(
-				self.boot_fuses['IA']['fwFreq']['min'], self.config.ia_fw_pm))
-			#fuse_str_imh.extend(self._assign_values_to_regs(
-			#	self.boot_fuses['IA']['imhFreq']['min'], self.config.ia_fw_p1))
+		# Removing Min and Boot fuses as they are causing boot issues
+		#if self.config.ia_fw_pm:
+		#	fuse_str_cbb.extend(self._assign_values_to_regs(
+		#		self.boot_fuses['IA']['fwFreq']['min'], self.config.ia_fw_pm))
+		#	#fuse_str_imh.extend(self._assign_values_to_regs(
+		#	#	self.boot_fuses['IA']['imhFreq']['min'], self.config.ia_fw_p1))
 
-		if self.config.ia_fw_pboot:
-			fuse_str_cbb.extend(self._assign_values_to_regs(
-				self.boot_fuses['IA']['fwFreq']['boot'], self.config.ia_fw_pboot))
-			#fuse_str_imh.extend(self._assign_values_to_regs(
-			#	self.boot_fuses['IA']['imhFreq']['boot'], self.config.ia_fw_p1))
+		#if self.config.ia_fw_pboot:
+		#	fuse_str_cbb.extend(self._assign_values_to_regs(
+		#		self.boot_fuses['IA']['fwFreq']['boot'], self.config.ia_fw_pboot))
+		#	#fuse_str_imh.extend(self._assign_values_to_regs(
+		#	#	self.boot_fuses['IA']['imhFreq']['boot'], self.config.ia_fw_p1))
 
 		if self.config.ia_fw_pturbo:
 			fuse_str_cbb.extend(self._assign_values_to_regs(
@@ -1128,7 +1127,7 @@ class SystemBooter:
 				print(Fore.LIGHTGREEN_EX + Back.YELLOW + "Performing power cycle..." + Back.RESET + Fore.RESET)
 
 				if 'RSP 11 - Multicast Mixed stats' in str(e):
-					print(Back.RED + f"Performing IPC Reconnect.. Trying to fix RSP 11 issue" + Back.RESET)
+					print(Back.RED + "Performing IPC Reconnect.. Trying to fix RSP 11 issue" + Back.RESET)
 					dpm.powercycle()
 					time.sleep(120)
 
@@ -1792,7 +1791,7 @@ class System2Tester():
 			#_moduleMasks= {cbb.name: extMasks[f'ia_{cbb.name}'] for cbb in cbbs}
 			#_llcMasks= {cbb.name: extMasks[f'llc_{cbb.name}'] for cbb in cbbs}
 
-			print(f'\nSetting New Mask Based on External Masks Configuration:\n')
+			print('\nSetting New Mask Based on External Masks Configuration:\n')
 			modules, llcs = self.generate_mesh_masking(masks=extMasks)
 
 			# Setting the Class masks in script arrays
@@ -1829,7 +1828,7 @@ class System2Tester():
 			'avx_mode': avx_mode,
 			'acode_dis': acode_dis,
 			'vp2intersect_en': vp2intersect_en,
-			'pm_enable_no_vf': pm_enable_no_vf,
+			'pm_enable_no_v': pm_enable_no_vf,
 			'u600w': u600w,
 			'ia_fw_p1': ia_fw_p1,
 			'ia_fw_pn': ia_fw_pn,
@@ -2047,7 +2046,7 @@ def fuse_cmd_override_reset(fuse_cmd_array, skip_init=False, boot = True, s2t=Fa
 		ipc.resettarget()
 
 		if not s2t:
-			print(Fore.YELLOW + f'>>> Waiting for EFI... ')
+			print(Fore.YELLOW + '>>> Waiting for EFI... ')
 			_wait_for_post(EFI_POST, sleeptime=EFI_POSTCODE_WT, timeout=EFI_POSTCODE_CHECK_COUNT, additional_postcode= LINUX_POST, execution_state=execution_state)
 			fuse_cmd_override_check(fuse_cmd_array)
 
@@ -2321,7 +2320,7 @@ def CheckMasks(readfuse = True, extMasks=None):
 		masks = dpm.fuses(rdFuses = readfuse, sktnum =[0], printFuse=False)
 
 	else:
-		print(Fore.YELLOW +f' !!! Using External masking as base instead of system values' + Fore.WHITE)
+		print(Fore.YELLOW +' !!! Using External masking as base instead of system values' + Fore.WHITE)
 		print(Fore.YELLOW +f' !!! ({type(extMasks)} : {extMasks})' + Fore.WHITE)
 		masks = extMasks
 
@@ -2784,7 +2783,7 @@ def _module_apic_id(phys_module, verbose=False):
 		if ipc.isrunning: ipc.halt()
 	except Exception as e:
 		print(Fore.RED  +f'IPC Failed with Exception {e}'+ Fore.RESET)
-		print(Fore.RED  + f'Unable Halt the unit, script will continue, assure there is no issue with IPC.' + Fore.RESET )
+		print(Fore.RED  + 'Unable Halt the unit, script will continue, assure there is no issue with IPC.' + Fore.RESET )
 
 	if phys_module == None: phys_module = global_slice_core
 	cbb_index = int(phys_module/config.MODS_PER_CBB)

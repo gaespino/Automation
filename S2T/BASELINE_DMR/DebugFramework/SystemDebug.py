@@ -3,7 +3,6 @@ import os, sys
 import ipccli
 import namednodes
 import pandas as pd
-import time
 import shutil
 from tabulate import tabulate
 from datetime import datetime
@@ -506,7 +505,7 @@ class TestExecutor:
 	def _log_test_banner(self):
 		"""Log test information banner"""
 		debug_log("Generating test information banner", 1, "BANNER")
-		self.gdflog.log(f' -- Test Start --- ')
+		self.gdflog.log(' -- Test Start --- ')
 		self.gdflog.log(f' -- Debug Framework {self.config.name} --- ')
 		self.gdflog.log(f' -- Performing test iteration {self.config.tnumber} with the following parameters: ')
 
@@ -544,7 +543,7 @@ class TestExecutor:
 		"""Get TTL files from configuration (already copied at strategy level)"""
 		debug_log("Retrieving TTL files configuration", 1, "TTL_CONFIG")
 		if self.config.ttl_files_dict:
-			debug_log(f"Using pre-copied TTL files from strategy setup", 1, "TTL_SOURCE")
+			debug_log("Using pre-copied TTL files from strategy setup", 1, "TTL_SOURCE")
 
 			if self.config.ttl_path:
 				debug_log(f"TTL files location: {self.config.ttl_path}", 1, "TTL_PATH")
@@ -802,10 +801,10 @@ class TestExecutor:
 
 		# Log results
 		self.gdflog.log(f'tdata_{self.config.tnumber}::{run_name}::{run_status}::{scratchpad}::{seed}')
-		self.gdflog.log(print_custom_separator(f'Test iteration summary'))
+		self.gdflog.log(print_custom_separator('Test iteration summary'))
 		self.gdflog.log(f' -- Test Name: {run_name} --- ')
 		self.gdflog.log(f' -- Test Result: {run_status} --- ')
-		self.gdflog.log(f' -- Test End --- ')
+		self.gdflog.log(' -- Test End --- ')
 
 		return TestResult(
 			status=run_status,
@@ -1110,7 +1109,7 @@ class LoopTestStrategy(TestStrategy):
 
 				else:
 					executor.config.reset = True # Always reset if FAIL or any other condition
-					debug_log(f"Test failed or other status - reset enabled", 1, "RESET_CONFIG")
+					debug_log("Test failed or other status - reset enabled", 1, "RESET_CONFIG")
 
 				executor.gdflog.log(f'{print_separator_box(direction="up")}')
 
@@ -1151,11 +1150,11 @@ class LoopTestStrategy(TestStrategy):
 					# Acknowledge the step continue command AFTER processing
 					if command_result == "CONTINUE" and halt_controller.execution_state.has_command(ExecutionCommand.STEP_CONTINUE):
 						debug_log("Step continue processed - moving to next iteration", 1, "STEP_CONTINUE_PROCESS")
-						executor.gdflog.log(f"Step continue processed - moving to next iteration", 1)
+						executor.gdflog.log("Step continue processed - moving to next iteration", 1)
 
 					elif command_result == "END_REQUESTED":
 						debug_log("END command received during step mode", 2, "STEP_END_REQUEST")
-						executor.gdflog.log(f"Loops Received END command - completing strategy", 1)
+						executor.gdflog.log("Loops Received END command - completing strategy", 1)
 						# Acknowledge end command
 						if halt_controller.execution_state.has_command(ExecutionCommand.END_EXPERIMENT):
 							halt_controller.status_manager.send_update(
@@ -1168,11 +1167,11 @@ class LoopTestStrategy(TestStrategy):
 
 					elif command_result == "CANCELLED":
 						debug_log("CANCEL command received during step mode", 3, "STEP_CANCEL")
-						executor.gdflog.log(f"Loops Received CANCEL command in step mode (wait) - stopping strategy", 2)
+						executor.gdflog.log("Loops Received CANCEL command in step mode (wait) - stopping strategy", 2)
 						results.append(TestResult(status="CANCELLED", name=executor.config.name, iteration=i + 1))
 						break
 				else:
-					debug_log(f"Normal mode - continuing to next iteration", 1, "NORMAL_MODE")
+					debug_log("Normal mode - continuing to next iteration", 1, "NORMAL_MODE")
 					executor.gdflog.log(f'Loop Strategy in Normal Mode -- {i+1}:{self.loops}')
 
 				time.sleep(10)  # Brief pause between iterations
@@ -1346,7 +1345,7 @@ class SweepTestStrategy(TestStrategy):
 					debug_log(f"Sweep test passed - reset on pass: {executor.config.resetonpass}", 1, "RESET_CONFIG")
 				else:
 					executor.config.reset = True # Always reset if FAIL or any other condition
-					debug_log(f"Sweep test failed or other status - reset enabled", 1, "RESET_CONFIG")
+					debug_log("Sweep test failed or other status - reset enabled", 1, "RESET_CONFIG")
 
 				executor.gdflog.log(f'{print_separator_box(direction="up")}')
 
@@ -1378,7 +1377,7 @@ class SweepTestStrategy(TestStrategy):
 					executor.gdflog.log(f'Sweep Strategy in Step Mode -- {i+1}:{total_tests}')
 					halt_controller.execution_state.set_state('waiting_for_step', True)
 
-					debug_log(f"Sweep strategy waiting for step command", 1, "STEP_WAIT")
+					debug_log("Sweep strategy waiting for step command", 1, "STEP_WAIT")
 					executor.gdflog.log(f"Sweep Strategy in Step Mode -- {i+1}:{total_tests} (waiting for command)", 1)
 
 					command_result = halt_controller._check_commands()
@@ -1387,11 +1386,11 @@ class SweepTestStrategy(TestStrategy):
 					# Acknowledge the step continue command AFTER processing
 					if command_result == "CONTINUE" and halt_controller.execution_state.has_command(ExecutionCommand.STEP_CONTINUE):
 						debug_log("Sweep step continue processed - moving to next iteration", 1, "STEP_CONTINUE_PROCESS")
-						executor.gdflog.log(f"Step continue processed - moving to next iteration", 1)
+						executor.gdflog.log("Step continue processed - moving to next iteration", 1)
 
 					elif command_result == "END_REQUESTED":
 						debug_log("END command received during sweep step mode", 2, "STEP_END_REQUEST")
-						executor.gdflog.log(f"Sweep Received END command - completing strategy", 1)
+						executor.gdflog.log("Sweep Received END command - completing strategy", 1)
 						# Acknowledge end command
 						if halt_controller.execution_state.has_command(ExecutionCommand.END_EXPERIMENT):
 							halt_controller.status_manager.send_update(
@@ -1405,11 +1404,11 @@ class SweepTestStrategy(TestStrategy):
 
 					elif command_result == "CANCELLED":
 						debug_log("CANCEL command received during sweep step mode", 3, "STEP_CANCEL")
-						executor.gdflog.log(f"Sweep Received CANCEL command in step mdoe (wait) - stopping strategy", 2)
+						executor.gdflog.log("Sweep Received CANCEL command in step mdoe (wait) - stopping strategy", 2)
 						results.append(TestResult(status="CANCELLED", name=executor.config.name, iteration=i + 1))
 						break
 				else:
-					debug_log(f"Sweep normal mode - continuing to next iteration", 1, "NORMAL_MODE")
+					debug_log("Sweep normal mode - continuing to next iteration", 1, "NORMAL_MODE")
 					executor.gdflog.log(f'Sweep Strategy in Normal Mode -- {i+1}:{total_tests}')
 
 				debug_log("Brief pause between sweep iterations", 1, "ITERATION_PAUSE")
@@ -1632,14 +1631,14 @@ class ShmooTestStrategy(TestStrategy):
 
 						# Acknowledge the step continue command AFTER processing
 						if command_result == "CONTINUE" and halt_controller.execution_state.has_command(ExecutionCommand.STEP_CONTINUE):
-							executor.gdflog.log(f"Step continue processed - moving to next iteration", 1)
+							executor.gdflog.log("Step continue processed - moving to next iteration", 1)
 							#halt_controller.execution_state.acknowledge_command(
 							#	ExecutionCommand.STEP_CONTINUE,
 							#	"Step continue processed"
 							#)
 
 						elif command_result == "END_REQUESTED":
-							executor.gdflog.log(f"Shmoo Received END command - completing strategy", 1)
+							executor.gdflog.log("Shmoo Received END command - completing strategy", 1)
 							# Acknowledge end command
 							if halt_controller.execution_state.has_command(ExecutionCommand.END_EXPERIMENT):
 								halt_controller.status_manager.send_update(
@@ -1655,7 +1654,7 @@ class ShmooTestStrategy(TestStrategy):
 							break
 
 						elif command_result == "CANCELLED":
-							executor.gdflog.log(f"Shmoo Received CANCEL command in step mode (wait) - stopping strategy", 2)
+							executor.gdflog.log("Shmoo Received CANCEL command in step mode (wait) - stopping strategy", 2)
 							results.append(TestResult(status="CANCELLED", name=executor.config.name, iteration=iteration))
 							break
 					else:
@@ -2180,7 +2179,7 @@ class Framework:
 		debug_log(f"=== FINALIZING EXECUTION: {reason} ===", 1, "EXECUTION_FINALIZE")
 
 		try:
-			debug_log(f"Starting execution finalization process", 1, "FINALIZE_START")
+			debug_log("Starting execution finalization process", 1, "FINALIZE_START")
 			FrameworkUtils.FrameworkPrint(f"Finalizing execution: {reason}", 1)
 
 			# Finalize execution state
@@ -2596,7 +2595,7 @@ class Framework:
 		log_func(f"End Requested: {status.get('end_requested', False)}", 1)
 
 		if self._step_mode_enabled:
-			log_func(f"Step Mode: Enabled", 1)
+			log_func("Step Mode: Enabled", 1)
 			log_func(f"Waiting for Command: {status['waiting_for_command']}", 1)
 		else:
 			log_func(f"Halted: {status.get('is_halted', False)}", 1)
@@ -2814,7 +2813,7 @@ class Framework:
 				results, x_values, y_values
 			)
 
-			logger.log(f'\n2D Shmoo Plot Configuration:', 1)
+			logger.log('\n2D Shmoo Plot Configuration:', 1)
 			logger.log(f'X-axis ({self._current_strategy.x_config["Type"]} - {self._current_strategy.x_config["Domain"]}): {x_values}', 1)
 			logger.log(f'Y-axis ({self._current_strategy.y_config["Type"]} - {self._current_strategy.y_config["Domain"]}): {y_values}', 1)
 			logger.log(f'Matrix Dimensions: {shmoo_df.shape[0]} rows x {shmoo_df.shape[1]} columns', 1)
@@ -3473,7 +3472,7 @@ class FrameworkExternalAPI:
 						print(f"Experiment thread completed: {event_data.get('thread_name')}")
 						# Don't return this to client, wait for next event
 						if timeout and (time.time() - start_time) >= timeout:
-							debug_log(f"Overall timeout reached after thread completion", 2, "TIMEOUT_REACHED")
+							debug_log("Overall timeout reached after thread completion", 2, "TIMEOUT_REACHED")
 							return {
 								'success': False,
 								'error': f'No iteration event received within {timeout} seconds',
