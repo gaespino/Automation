@@ -15,7 +15,7 @@ try:
 	FRAMEWORK_CONTENT = dpmlog.FRAMEWORK_CONTENT
 except: 
 	dpmlog = None
-	FRAMEWORK_VARS = {	'qd':'', 
+	FRAMEWORK_VARS = {	'qdf':'', 
 			   		'tnum':'', 
 					'mask':'', 
 					'corelic':'', 
@@ -313,7 +313,7 @@ class loggerGUI:
 
 		# Collect additional data if upload options are selected
 		if upload_to_disk or upload_to_danta:
-			self.default_vars_dict['qd'] = self.qdf_entry.get()
+			self.default_vars_dict['qdf'] = self.qdf_entry.get()
 			self.default_vars_dict['tnum'] = self.testnumber_entry.get()
 			self.default_vars_dict['runName'] = self.testname_entry.get()
 			self.default_vars_dict['content'] = self.content_var.get()

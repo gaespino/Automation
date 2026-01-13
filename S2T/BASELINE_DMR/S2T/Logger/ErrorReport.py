@@ -64,7 +64,7 @@ FRAMEWORK_RUNSTATUS = ["PASS", "FAIL"]
 FRAMEWORK_CONTENT = ["Dragon", "Linux", "PYSVConsole"]
 
 FRAMEWORK_VARS = {
-	'qd': '', 'tnum': '', 'mask': '', 'corelic': '', 'bumps': '',
+	'qdf': '', 'tnum': '', 'mask': '', 'corelic': '', 'bumps': '',
 	'htdis': '', 'dis2CPM': '', 'dis1CPM': '', 'freqIA': '', 'voltIA': '',
 	'freqCFC': '', 'voltCFC': '', 'content': '', 'passstring': '',
 	'failstring': '', 'runName': '', 'runStatus': '', 'scratchpad': '',

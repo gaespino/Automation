@@ -3065,7 +3065,7 @@ class DebugFrameworkControlPanel:
 
 				self.execution_state.update_state(experiment_index=index)
 
-				'experiment_index_update'
+				#'experiment_index_update'
 				# Send setup notification
 				self.main_thread_handler.queue_status_update({
 					'type': 'experiment_index_update',
@@ -3277,7 +3277,7 @@ class DebugFrameworkControlPanel:
 				experiments_list.clear()
 				s2t_config.clear()
 				options.clear()
-				self.log_status(f"[INFO] Executino completed for FID: {framework_instance_id}")
+				self.log_status(f"[INFO] Execution completed for FID: {framework_instance_id}")
 
 				# Queue completion
 				if self.execution_state.is_ended():

@@ -307,7 +307,7 @@ class EnhancedThreadSafeState:
 		if command in [ExecutionCommand.CANCEL, ExecutionCommand.END_EXPERIMENT]:
 			import traceback
 			thread_name = threading.current_thread().name
-			timestamp = datetime.now().strftime("%H:%M:%S.%")[:-3]
+			timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 			
 			self._debug_log(f"CRITICAL COMMAND ISSUED: {command.name}", 2, "CRITICAL_COMMAND")
 			self._debug_log(f"  Thread: {thread_name}", 2, "CRITICAL_COMMAND")
@@ -760,7 +760,7 @@ class EnhancedThreadSafeState:
 			if key == 'execution_active':
 				import traceback
 				thread_name = threading.current_thread().name
-				timestamp = datetime.now().strftime("%H:%M:%S.%")[:-3]
+				timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 				
 				if old_value != value:
 					self._debug_log(f"EXECUTION_ACTIVE CHANGE: {old_value} -> {value} (Thread: {thread_name}) at {timestamp}", 2, "EXECUTION_STATE")
@@ -803,7 +803,7 @@ class EnhancedThreadSafeState:
 				
 				import traceback
 				thread_name = threading.current_thread().name
-				timestamp = datetime.now().strftime("%H:%M:%S.%")[:-3]
+				timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 				
 				self._debug_log(f"EXECUTION_ACTIVE UPDATE START: {old_value} -> {new_value} (Thread: {thread_name}) at {timestamp}", 2, "EXECUTION_STATE")
 				

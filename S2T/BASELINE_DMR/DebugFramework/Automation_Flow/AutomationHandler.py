@@ -1524,8 +1524,8 @@ class FlowProgressInterface:
 			return
 		
 		# Calculate bounds
-		min_x = min_y = float('in')
-		max_x = max_y = float('-in')
+		min_x = min_y = float('inf')
+		max_x = max_y = float('-inf')
 		
 		for pos in positions.values():
 			min_x = min(min_x, pos['x'])

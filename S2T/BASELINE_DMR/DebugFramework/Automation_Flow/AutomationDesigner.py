@@ -1364,8 +1364,8 @@ class AutomationFlowDesigner:
             return
         
         # Calculate bounds
-        min_x = min_y = float('in')
-        max_x = max_y = float('-in')
+        min_x = min_y = float('inf')
+        max_x = max_y = float('-inf')
         
         for node_data in self.flow_nodes.values():
             x, y = node_data['x'], node_data['y']

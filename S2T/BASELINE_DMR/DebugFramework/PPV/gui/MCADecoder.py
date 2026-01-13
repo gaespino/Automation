@@ -161,7 +161,7 @@ class MCADecoderGUI:
                                                      font=("Consolas", 10), wrap=tk.WORD,
                                                      bg="#1e1e1e", fg="#d4d4d4", relief=tk.FLAT,
                                                      borderwidth=2, highlightthickness=0,
-                                                     insertbackground="#fffff")
+                                                     insertbackground="#ffffff")
         self.results_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=2, pady=2)
 
         # Configure text tags for syntax highlighting

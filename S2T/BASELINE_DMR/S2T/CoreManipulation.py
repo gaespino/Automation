@@ -813,6 +813,10 @@ class SystemBooter:
 		if self.config.ia_fw_pturbo:
 			fuse_str_cbb.extend(self._assign_values_to_regs(
 				self.boot_fuses['IA']['fwFreq']['turbo'], self.config.ia_fw_pturbo))
+
+			#Including the top DIE fuses as well
+			fuse_str_cbb.extend(self._assign_values_to_regs(
+				self.boot_fuses['IA']['fwFreq']['top_p0'], self.config.ia_fw_pturbo))
 			#fuse_str_imh.extend(self._assign_values_to_regs(
 			#	self.boot_fuses['IA']['imhFreq']['turbo'], self.config.ia_fw_p1))
 
