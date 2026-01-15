@@ -1,0 +1,15 @@
+; Commands.ttl
+; Set up the serial port connection
+; COM Port to be used taken from Env Variable
+
+; Open the serial port
+; Below an example of how to manually set this up
+; connect '/C=11'
+; Wil use an env variable to set the port -- configuration is being taken care at .ini file
+
+; Get Framework SerialHost
+getenv 'FrameworkSerial' SerialHost
+connect '/C=SerialHost'
+
+timeout = 10
+logopen 'C:\Temp\capture.log'

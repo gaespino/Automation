@@ -240,7 +240,7 @@ def get_voltages_uncore(visual, ate_freq='F1',  hot=True):
 		#coreLOG = Phys2log10x5[core%60] + 44*compute
 
 
-		print(f' -- DFF data for UNCORE -- ATE DFF Data')
+		print(' -- DFF data for UNCORE -- ATE DFF Data')
 		data, printdata = dump_uncore_curves(visual=visual, hot=hot, s2tcollect = True)
 		filtered_data = [row for row in printdata if row[2] == ate_freq or row[2] == "CRVE"]
 		print(tabulate(filtered_data, headers="firstrow", tablefmt="grid"))
@@ -251,7 +251,7 @@ def get_voltages_l2(visual, ate_freq='F1',  hot=True):
 		#coreLOG = Phys2log10x5[core%60] + 44*compute
 
 
-		print(f' -- DFF data for L2 -- ATE DFF Data')
+		print(' -- DFF data for L2 -- ATE DFF Data')
 		data, printdata = dump_uncore_curves(visual=visual, hot=hot, s2tcollect = True)
 		filtered_data = [row for row in printdata if row[2] == ate_freq or row[2] == "CRVE"]
 		print(tabulate(filtered_data, headers="firstrow", tablefmt="grid"))
@@ -291,7 +291,7 @@ def filter_uncore_voltage(data, ip, die, ate_freq):
 def get_ratios_core(ate_freq, flowid=1):
 	index = flowid-1
 	if ate_freq not in CORE_FREQ.keys() or ate_freq not in CORE_CFC_FREQ.keys():
-		print (f"ATE FREQ: F%d is not in %s_FREQ list" % (ate_freq, CORESTRING))
+		print ("ATE FREQ: F%d is not in %s_FREQ list" % (ate_freq, CORESTRING))
 		return False
 	if (flowid > len(CORE_FREQ[ate_freq]) ):
 		print ("FLOWID is not correct: %d" % flowid)

@@ -30,17 +30,16 @@ import getpass
 import re
 import csv
 
-from datetime import datetime
 from os.path import exists
 from turtle import end_fill
 import statistics
 
 product = 'gnr'
-path = r'C:\ParsingFiles\Aqua_QDF_Data\TORTO\20241125_units_qdf.csv'
+path = r'C:\ParsingFiles\GNR\Masks_GNR\MaskingFile_001.csv'
 
 #path = 'Q:\\Gaespino\\GNR\\EMR_fuse_check.csv'#EMR_fuse_check
 
-try: 
+try:
 	#my try
 	verbose = False
 	i = 0
@@ -56,7 +55,7 @@ try:
 #
 except IndexError:
   print("Error: Invalid format\n")
-  print("Valid format: \n \n spr_data_processing.py -dat <Path to Datafile> -v (Verbose: Optional)\n \n ") 
+  print("Valid format: \n \n spr_data_processing.py -dat <Path to Datafile> -v (Verbose: Optional)\n \n ")
   sys.exit(2)
 
 
@@ -65,7 +64,7 @@ except IndexError:
 
 def read(path):
 	with open(path,'r', newline= '\n') as csvinput:
-			
+
 		scriptHome = os.path.dirname(os.path.realpath(__file__))
 		inputFile = open(path)
 		o_path = re.sub(r'\.csv$','',path)
@@ -75,7 +74,7 @@ def read(path):
 		datafile = csv.reader(csvinput)
 		#header = (datafile[0])
 		#headers = (headers).split(',')
-	   # rows = next(datafile)    
+	   # rows = next(datafile)
 
 		for row in datafile:
 			if not columns:
@@ -84,19 +83,19 @@ def read(path):
 				columns[i].append(value)
 
 		data = {i[0]: i for i in columns}
-		
+
 	return data
 
 def qdf_parse(path):
 	## Read aque reported data
 	data = read(path)
 
-	split_pat= [ 
+	split_pat= [
 				'^', #qdfsplit = '^'
 				'~' ,#fusesplit = '|'
 				'|' #fusesplit old = '|'
 				]
-	
+
 
 	patterns = {
 			'VID': r'VISUAL_ID',	#Bucket QDF
@@ -113,16 +112,16 @@ def qdf_parse(path):
 	patdata = {}
 
 	VID = next(iter(data.keys()))
-	
+
 	for key in data.keys():
 		#for pattern in patterns:
 		content = data[key]
 		for patkey in patterns.keys():
 			if (re.search(patterns[patkey], key)) :
 				patdata[patkey] = patfinder(content, split_pat)
-	
+
 	index = 0
-	xlsdata = { 
+	xlsdata = {
 		'VISUAL_ID': [],
 		'BUCKET_QDF': [],
 		'FUSES::CORE::COMPUTE1': [],
@@ -130,7 +129,7 @@ def qdf_parse(path):
 		'FUSES::CORE::COMPUTE2': [],
 		'FUSES::LLC::COMPUTE2': [],
 		'FUSES::CORE::COMPUTE3': [],
-		'FUSES::LLC::COMPUTE3': [],		
+		'FUSES::LLC::COMPUTE3': [],
 	}
 
 	for vid in patdata['VID']:
@@ -147,7 +146,7 @@ def qdf_parse(path):
 			xlsdata['FUSES::LLC::COMPUTE1'].append(patdata['LLC_C1'][vididx][index] if qdfb != '' else '')
 			# Cpmpute 2 Fuse Data for QDF
 			xlsdata['FUSES::CORE::COMPUTE2'].append(patdata['CORE_C2'][vididx][index] if qdfb != '' else '')
-			xlsdata['FUSES::LLC::COMPUTE2'].append(patdata['LLC_C2'][vididx][index] if qdfb != '' else '')			
+			xlsdata['FUSES::LLC::COMPUTE2'].append(patdata['LLC_C2'][vididx][index] if qdfb != '' else '')
 			# Cpmpute 3 Fuse Data for QDF
 			xlsdata['FUSES::CORE::COMPUTE3'].append(patdata['CORE_C3'][vididx][index] if qdfb != '' else '')
 			xlsdata['FUSES::LLC::COMPUTE3'].append(patdata['LLC_C3'][vididx][index] if qdfb != '' else '')
@@ -158,11 +157,11 @@ def legacy_qdf_parse(path):
 	## Read aque reported data
 	data = read(path)
 
-	split_pat= [ 
+	split_pat= [
 				'^', #qdfsplit = '^'
 				'~' #fusesplit = '~'
 				]
-	
+
 
 	patterns = {
 			'VID': r'VISUAL_ID',	#Bucket QDF
@@ -184,16 +183,16 @@ def legacy_qdf_parse(path):
 	patdata = {}
 
 	VID = next(iter(data.keys()))
-	
+
 	for key in data.keys():
 		#for pattern in patterns:
 		content = data[key]
 		for patkey in patterns.keys():
 			if (re.search(patterns[patkey], key)) :
 				patdata[patkey] = patfinder(content, split_pat)
-	
+
 	index = 0
-	xlsdata = { 
+	xlsdata = {
 		'VISUAL_ID': [],
 		'BUCKET_QDF': [],
 		'FUSES::CORE::COMPUTE': [],
@@ -201,8 +200,8 @@ def legacy_qdf_parse(path):
 		'FUSES::HCX::IO': [],
 		'FUSES::MC::IO': [],
 		'FUSES::PI5::IO': [],
-		'FUSES::SCF_IO::IO': [],		
-		'FUSES::UPI::IO': [],		
+		'FUSES::SCF_IO::IO': [],
+		'FUSES::UPI::IO': [],
 	}
 
 	for vid in patdata['VID']:
@@ -218,7 +217,7 @@ def legacy_qdf_parse(path):
 			xlsdata['FUSES::LLC::COMPUTE'].append(patdata['LLC_C1'][vididx][index])
 			# Cpmpute 2 Fuse Data for QDF
 			xlsdata['FUSES::HCX::IO'].append(patdata['HCX'][vididx][index])
-			xlsdata['FUSES::MC::IO'].append(patdata['MC'][vididx][index])			
+			xlsdata['FUSES::MC::IO'].append(patdata['MC'][vididx][index])
 			# Cpmpute 3 Fuse Data for QDF
 			xlsdata['FUSES::PI5::IO'].append(patdata['PI5'][vididx][index])
 			xlsdata['FUSES::SCF_IO::IO'].append(patdata['SCF_IO'][vididx][index])
@@ -245,18 +244,18 @@ def patfinder(content, split_pat):
 		_splitpat = split_pat[0]
 	else:
 		_splitpat = split_pat[1]
-	
+
 	for cont in content[1:]:
 		if _splitpat == '~':
 			_dataline = [s for s in cont.split(_splitpat) if s]
 		else:
 			_dataline = cont.split(_splitpat)
-		
+
 		dataline.append(_dataline)
 
 	return dataline
 
-if __name__ == '__main__' : 
+if __name__ == '__main__' :
 	if product == 'emr':
 		legacy_qdf_parse(path)
 	elif product == 'spr':

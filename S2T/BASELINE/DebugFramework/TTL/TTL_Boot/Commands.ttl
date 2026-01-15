@@ -1,14 +1,18 @@
 ; Commands.ttl
-; Send the following commands
-;call 'C:\PythonSV\graniterapids\users\gaespino\DebugFramework\TTL\StartLog.ttl'
-
 ; Set up the serial port connection
-; COM8 with a baud rate of 115200
+; COM Port to be used taken from Env Variable
 
 ; Open the serial port
-connect '/C=8 /BAUD=115200'
+; Below an example of how to manually set this up
+; connect '/C=11'
+; Wil use an env variable to set the port -- configuration is being taken care at .ini file
+
+; Get Framework SerialHost
+getenv 'FrameworkSerial' SerialHost
+connect '/C=SerialHost'
+
 timeout = 10
-logopen 'C:\Temp\capture.log'
+logopen 'C:\Temp\capture.log' 0 1
 
 ; Wait for the connection to establish
 sendln '#CONNECT'
@@ -31,6 +35,6 @@ include 'MeshContent.ttl'
 ;include 'SliceContent.ttl'
 
 ; Macro for Linux OS Contents
-include 'LinuxContent.ttl'
+;include 'LinuxContent.ttl'
 
 end

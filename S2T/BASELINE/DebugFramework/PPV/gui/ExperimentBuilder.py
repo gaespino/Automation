@@ -268,15 +268,15 @@ class ExperimentBuilderGUI:
                 "Merlin Drive": {"section": "Merlin", "type": "str", "default": "", "description": "Merlin drive letter", "required": False},
                 "Merlin Path": {"section": "Merlin", "type": "str", "default": "", "description": "Merlin executable path", "required": False},
                 "Fuse File": {"section": "Merlin", "type": "str", "default": "", "description": "Fuse configuration file", "required": False},
-                "Bios File": {"section": "Merlin", "type": "str", "default": "", "description": "BIOS file path", "required": False},
-                "Disable 1 Core": {"section": "Test Configuration", "type": "str", "default": "", "description": "Core to disable (1)", "required": False}
+                "Bios File": {"section": "Merlin", "type": "str", "default": "", "description": "BIOS file path", "required": False}
             },
             "TEST_MODES": ["Mesh", "Slice"],
             "TEST_TYPES": ["Loops", "Sweep", "Shmoo"],
             "CONTENT_OPTIONS": ["Linux", "Dragon", "PYSVConsole"],
             "VOLTAGE_TYPES": ["vbump", "fixed", "ppvc"],
             "TYPES": ["Voltage", "Frequency"],
-            "DOMAINS": ["CFC", "IA"]
+            "DOMAINS": ["CFC", "IA"],
+            "CORE_DISABLE_OPTIONS": ["None", "Disable 1 Core", "Disable 2 Cores"]  # Store core disable options separately
         }
 
     def create_main_layout(self):
@@ -1459,7 +1459,7 @@ class ExperimentBuilderGUI:
 
             messagebox.showinfo("Product Changed",
                               f"Configuration updated for {new_product}.\n"
-                              f"All fields have been refreshed for the new product.")
+                              "All fields have been refreshed for the new product.")
 
     def create_tooltip(self, widget, text):
         """Create a tooltip for a widget"""
@@ -2886,7 +2886,7 @@ class ExperimentBuilderGUI:
                     json.dump(output, f, indent=4)
 
                 messagebox.showinfo("Success",
-                                   f"Configuration saved successfully!\n\n"
+                                   "Configuration saved successfully!\n\n"
                                    f"Unit Data: {len(unit_data)} fields\n"
                                    f"Experiments: {len(experiments_data)}\n"
                                    f"Templates: {len(self.templates)}\n\n"
@@ -2970,7 +2970,7 @@ class ExperimentBuilderGUI:
                     self.select_custom_tab(first_exp, 'primary')
 
                 messagebox.showinfo("Success",
-                                   f"Configuration loaded successfully!\n\n"
+                                   "Configuration loaded successfully!\n\n"
                                    f"Unit Data: {len(config.get('unit_data', {}))} fields\n"
                                    f"Experiments: {len(experiments)}\n"
                                    f"Templates: {len(config.get('templates', {}))}")
@@ -3612,7 +3612,7 @@ class ExperimentBuilderGUI:
             if exp_warnings:
                 warnings.extend([f"{exp_name}: {w}" for w in exp_warnings])
 
-        message = f"Validation Results:\n\n"
+        message = "Validation Results:\n\n"
         message += f"Experiments: {len(self.experiments)}\n"
         message += f"Errors: {len(errors)}\n"
         message += f"Warnings: {len(warnings)}\n\n"

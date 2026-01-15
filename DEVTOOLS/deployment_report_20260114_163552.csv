@@ -1,0 +1,51 @@
+Deployment Report
+Timestamp,20260114_163552
+Product,GNR
+Source Type,BASELINE
+Deployment Type,S2T
+Target,Q:\Gaespino\scripts\s2t\Deploys\GNR\dev\S2T
+Total Files Scanned,32
+Product Filtered,4
+Deployed Successfully,28
+Errors,0
+
+DEPLOYED FILES
+Source File,Target File,Renamed,Old Name,New Name,Status,Similarity,Import Replacements,Filename Import Updates,Import Change Lines,Rename Change Lines
+Tools\utils.py,Tools\utils.py,No,utils.py,utils.py,new,0.0%,-,-,-,-
+dpmChecks.py,dpmChecks.py,No,dpmChecks.py,dpmChecks.py,new,0.0%,-,-,-,-
+CoreManipulation.py,CoreManipulation.py,No,CoreManipulation.py,CoreManipulation.py,new,0.0%,-,-,-,-
+product_specific\gnr\configs.py,product_specific\gnr\configs.py,No,configs.py,configs.py,new,0.0%,-,-,-,-
+SetTesterRegs.py,SetTesterRegs.py,No,SetTesterRegs.py,SetTesterRegs.py,new,0.0%,-,-,-,-
+product_specific\gnr\mca_banks.py,product_specific\gnr\mca_banks.py,No,mca_banks.py,mca_banks.py,new,0.0%,-,-,-,-
+product_specific\gnr\ConfigFiles\GNRMasksConfig.json,product_specific\gnr\ConfigFiles\GNRMasksConfig.json,No,GNRMasksConfig.json,GNRMasksConfig.json,new,0.0%,-,-,-,-
+ConfigsLoader.py,ConfigsLoader.py,No,ConfigsLoader.py,ConfigsLoader.py,new,0.0%,-,-,-,-
+managers\product_strategy.py,managers\product_strategy.py,No,product_strategy.py,product_strategy.py,new,0.0%,-,-,-,-
+product_specific\gnr\functions.py,product_specific\gnr\functions.py,No,functions.py,functions.py,new,0.0%,-,-,-,-
+DffDataCollector.py,DffDataCollector.py,No,DffDataCollector.py,DffDataCollector.py,new,0.0%,-,-,-,-
+product_specific\gnr\RegFiles\s2tmeshdata.json,product_specific\gnr\RegFiles\s2tmeshdata.json,No,s2tmeshdata.json,s2tmeshdata.json,new,0.0%,-,-,-,-
+product_specific\gnr\strategy.py,product_specific\gnr\strategy.py,No,strategy.py,strategy.py,new,0.0%,-,-,-,-
+product_specific\gnr\ConfigFiles\GNRBurnInFuses.json,product_specific\gnr\ConfigFiles\GNRBurnInFuses.json,No,GNRBurnInFuses.json,GNRBurnInFuses.json,new,0.0%,-,-,-,-
+UI\System2TesterUI.py,UI\System2TesterUI.py,No,System2TesterUI.py,System2TesterUI.py,new,0.0%,-,-,-,-
+Logger\ErrorReportClass.py,Logger\ErrorReportClass.py,No,ErrorReportClass.py,ErrorReportClass.py,new,0.0%,-,-,-,-
+Logger\logger.py,Logger\logger.py,No,logger.py,logger.py,new,0.0%,-,-,-,-
+UI\DffDataUI.py,UI\DffDataUI.py,No,DffDataUI.py,DffDataUI.py,new,0.0%,-,-,-,-
+Logger\ErrorReport.py,Logger\ErrorReport.py,No,ErrorReport.py,ErrorReport.py,new,0.0%,-,-,-,-
+product_specific\gnr\ConfigFiles\GNRFuseFileConfigs.json,product_specific\gnr\ConfigFiles\GNRFuseFileConfigs.json,No,GNRFuseFileConfigs.json,GNRFuseFileConfigs.json,new,0.0%,-,-,-,-
+product_specific\gnr\RegFiles\s2tregdata.json,product_specific\gnr\RegFiles\s2tregdata.json,No,s2tregdata.json,s2tregdata.json,new,0.0%,-,-,-,-
+managers\frequency_manager.py,managers\frequency_manager.py,No,frequency_manager.py,frequency_manager.py,new,0.0%,-,-,-,-
+GetTesterCurves.py,GetTesterCurves.py,No,GetTesterCurves.py,GetTesterCurves.py,new,0.0%,-,-,-,-
+product_specific\gnr\registers.py,product_specific\gnr\registers.py,No,registers.py,registers.py,new,0.0%,-,-,-,-
+Tools\portid2ip.py,Tools\portid2ip.py,No,portid2ip.py,portid2ip.py,new,0.0%,-,-,-,-
+Tools\requests_unit_info.py,Tools\requests_unit_info.py,No,requests_unit_info.py,requests_unit_info.py,new,0.0%,-,-,-,-
+product_specific\gnr\ConfigFiles\GNRMasksDebug.json,product_specific\gnr\ConfigFiles\GNRMasksDebug.json,No,GNRMasksDebug.json,GNRMasksDebug.json,new,0.0%,-,-,-,-
+managers\voltage_manager.py,managers\voltage_manager.py,No,voltage_manager.py,voltage_manager.py,new,0.0%,-,-,-,-
+
+DETAILED LINE CHANGES
+File,Line,Change Type,Old Content,New Content
+
+SKIPPED FILES
+File,Reason,Status,Renamed,New Name
+Logger\ErrorReport_legacy.py,Not selected,new,No,-
+UI\ExperimentsForm.py,Not selected,new,No,-
+Logger\ErrorReport_original_backup.py,Not selected,new,No,-
+UI\System2TesterUI_Modern.py,Not selected,new,No,-

@@ -656,8 +656,8 @@ class DeveloperEnvironmentGUI:
             temp = ExperimentBuilderGUI()
             config = temp.config_template
             temp.root.destroy()
-            
-            results.append(f"✓ Config loaded successfully")
+
+            results.append("✓ Config loaded successfully")
             results.append(f"✓ Fields defined: {len(config.get('data_types', {}))}")
             results.append(f"✓ Test modes: {len(config.get('TEST_MODES', []))}")
             results.append(f"✓ Test types: {len(config.get('TEST_TYPES', []))}")

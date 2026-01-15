@@ -192,7 +192,7 @@ class PTCReportGUI:
         print(f' {"#"*120}\n')
         print(f'\t{"-"*10} PPV Loops Parser {"-"*10}')
         print(f'\tParsed file will be saved at: {data["output_file"]}\n')
-        print(f'\tUsing Configuration:')
+        print('\tUsing Configuration:')
         #print(f'\tvpos:   \t{vpo}')		
         print(f'\tBucket:   \t{data["bucket"]}')	
         print(f'\tWeek: \t\t{data["week"]}')	

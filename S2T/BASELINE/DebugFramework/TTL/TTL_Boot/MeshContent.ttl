@@ -1,6 +1,6 @@
--=
+
 ; Start Mesh Content
-sendln '#Starting MESH Testing FLOW -- GNR Debug Framework'
+sendln '#Starting MESH Testing FLOW -- Debug Framework'
 sendln '#Starting Test Capture...'
 mpause 100
 :resendx2
@@ -12,8 +12,7 @@ sendln 'initdbm.nsh'
 pause 5
 
 ; Select VVARS
-sendln 'dbmvvars.nsh'
-sendln 'drgtime_30s.nsh'
+sendln 'dbmvars.nsh'
 ;sendln 'slicevars.nsh'
 pause 5
 
@@ -28,13 +27,13 @@ timeout = 9999999
 :resend
 
 ; Line for Dragon BareMetal
-sendln 'runregression %MM% Ditto'
+sendln 'runregression %MM%'
 
 ; Line for Dragon Pseudo
 ;sendln 'runregression %PSEUDO%'
 
 mpause 100
-wait "!!!!! EXITING...... !!!!!" "FS0" "CHANGING BACK TO DIR: FS1:\EFI"
+wait "!!!!! EXITING...... !!!!!" "FS0" "CHANGING BACK TO DIR: FS1:\MerlinX"
 if result=1 goto resend
 if result=2 goto resendx2
 if result=3 goto nextseed
@@ -47,35 +46,6 @@ wait "LoopSeed1 Done"
 
 if result=0 goto error
 if result=1 goto seed1
-
-; Start second loop
-:seed1
-pause 5
-sendln 'runregression %MM% Skipper'
-pause 5
-
-
-sendln '#LoopSeed2 Done'
-wait "LoopSeed2 Done"
-
-if result=0 goto error
-if result=1 goto seed2
-
-; Start third loop
-:seed2
-;pause 5
-;sendln 'runregression %MM% Twiddle'
-;pause 5
-
-sendln '#LoopSeed3 Done'
-wait "LoopSeed3 Done"
-
-if result=0 goto error
-if result=1 goto seed3
-
-; Start fourth loop
-:seed3
-; Disconnects, close Teraterm and stop logging
 
 :testdone
 pause 5

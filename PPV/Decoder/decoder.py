@@ -314,7 +314,7 @@ class decoder():
 		if missing_columns:
 			print(f' !!! ERROR: Missing required columns in MCA data: {missing_columns}')
 			print(f' !!! Available columns: {list(mcdata.columns)}')
-			print(f' !!! Returning empty DataFrame. Please check your input Excel file structure.')
+			print(' !!! Returning empty DataFrame. Please check your input Excel file structure.')
 			return pd.DataFrame()
 		
 		# Initialize the new dataframe
@@ -455,7 +455,7 @@ class decoder():
 		if missing_columns:
 			print(f' !!! ERROR: Missing required columns in MCA data: {missing_columns}')
 			print(f' !!! Available columns: {list(mcdata.columns)}')
-			print(f' !!! Returning empty DataFrame. Please check your input Excel file structure.')
+			print(' !!! Returning empty DataFrame. Please check your input Excel file structure.')
 			return pd.DataFrame()
 		
 		# Initialize the new dataframe
@@ -1029,7 +1029,7 @@ class decoder():
 		if missing_columns:
 			print(f' !!! ERROR: Missing required columns in MCA data: {missing_columns}')
 			print(f' !!! Available columns: {list(mcdata.columns)}')
-			print(f' !!! Returning empty DataFrame. Please check your input Excel file structure.')
+			print(' !!! Returning empty DataFrame. Please check your input Excel file structure.')
 			return pd.DataFrame()
 		
 		# Initialize the new dataframe - Added Type column
@@ -1250,7 +1250,7 @@ class decoder():
 		if missing_columns:
 			print(f' !!! ERROR: Missing required columns in MCA data: {missing_columns}')
 			print(f' !!! Available columns: {list(mcdata.columns)}')
-			print(f' !!! Returning empty DataFrame. Please check your input Excel file structure.')
+			print(' !!! Returning empty DataFrame. Please check your input Excel file structure.')
 			return pd.DataFrame()
 		
 		# Initialize the new dataframe - Added IO# column

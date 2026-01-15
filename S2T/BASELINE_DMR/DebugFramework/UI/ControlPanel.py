@@ -1037,7 +1037,7 @@ class EditExperimentWindow(tk.Toplevel):
 
 				# Boolean validation (usually handled by checkboxes, but validate string input)
 				elif bool in field_types and isinstance(value, str):
-					if value.lower() not in ['true', 'false', '1', '0', 'yes', 'no', 'on', 'of']:
+					if value.lower() not in ['true', 'false', '1', '0', 'yes', 'no', 'on', 'off']:
 						is_valid = False
 						error_message = "Must be true/false"
 
@@ -5906,7 +5906,7 @@ class PowerControlWindow:
 
 	def create_widgets(self):
 		tk.Button(self.top, width= 12, text=" Power ON ", command=lambda: self.control_power("on")).pack(side=tk.LEFT, padx=10, pady=5)
-		tk.Button(self.top, width= 12, text=" Power OFF ", command=lambda: self.control_power("of")).pack(side=tk.LEFT, padx=10, pady=5)
+		tk.Button(self.top, width= 12, text=" Power OFF ", command=lambda: self.control_power("off")).pack(side=tk.LEFT, padx=10, pady=5)
 		tk.Button(self.top, width= 12, text=" Power CYCLE ", command=lambda: self.control_power("cycle")).pack(side=tk.LEFT, padx=10, pady=5)
 
 	def control_power(self, state):

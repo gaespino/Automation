@@ -240,7 +240,7 @@ class PPVReportGUI:
         print(f' {"#"*120}\n')
         print(f'\t{"-"*10} MCA Parser {"-"*10}')
         print(f'\tParsed datafiles will be saved at location: {data["report"]}\n')
-        print(f'\tUsing Configuration:')
+        print('\tUsing Configuration:')
         #print(f'\tvpos:   \t{vpo}')		
         print(f'\tName:   \t{data["name"]}')	
         print(f'\tWeek: \t\t{data["week"]}')	

@@ -166,7 +166,7 @@ class FlowInstance(ABC):
 				)
 			except Exception as e:
 				if hasattr(self.experiment_tracker, 'debugger'):
-					self.experiment_tracker.debugger.log_error(f"Error completing experiment tracking", e)
+					self.experiment_tracker.debugger.log_error("Error completing experiment tracking", e)
 					
 	def _determine_final_result(self):
 		"""
@@ -232,7 +232,7 @@ class FlowInstance(ABC):
 			self.logger(f"Failed to start experiment: {e}")
 			self.runStatusHistory = [TestStatus.FAILED.value]
 		except KeyboardInterrupt:
-			self.logger(f"Experiment interrupted by user")
+			self.logger("Experiment interrupted by user")
 			self.runStatusHistory = [TestStatus.CANCELLED.value]
 		except Exception as e:
 			self.logger(f"Experiment execution error: {e}")
@@ -271,7 +271,7 @@ class FlowInstance(ABC):
 				if not event_result['success']:
 					# Only handle timeout if timeout is enabled
 					if event_result.get('timeout') and USE_TIMEOUT:
-						self.logger(f"Timeout waiting for iteration event - experiment may be stuck")
+						self.logger("Timeout waiting for iteration event - experiment may be stuck")
 						try:
 							cancel_result = self.framework_api.cancel_experiment_with_ack(max_wait_time=5.0)
 							self.logger(f"Cancel command sent and acknowledged: {cancel_result.get('acknowledged', False)}")
@@ -280,11 +280,11 @@ class FlowInstance(ABC):
 						experiment_active = False
 					
 					elif event_result.get('cleanup_requested'):
-						self.logger(f"Experiment cleanup was requested externally")
+						self.logger("Experiment cleanup was requested externally")
 						experiment_active = False
 					
 					elif event_result.get('thread_died'):
-						self.logger(f"Experiment thread died unexpectedly")
+						self.logger("Experiment thread died unexpectedly")
 						experiment_active = False
 					
 					else:
@@ -293,7 +293,7 @@ class FlowInstance(ABC):
 						if USE_TIMEOUT:
 							experiment_active = False
 						else:
-							self.logger(f"Continuing to wait (timeout disabled)...")
+							self.logger("Continuing to wait (timeout disabled)...")
 							continue
 					
 					if not collected_results and not experiment_active:
@@ -307,7 +307,7 @@ class FlowInstance(ABC):
 				self.logger(f"Received event: {event_type}")
 				
 				if event_type == StatusEventType.EXPERIMENT_COMPLETE.value:
-					self.logger(f"Experiment completed successfully")
+					self.logger("Experiment completed successfully")
 					final_results = event_data.get('final_results', [])
 					self._process_final_results_from_events(collected_results, final_results)
 					experiment_active = False
@@ -401,7 +401,7 @@ class FlowInstance(ABC):
 						
 						if is_last_iteration:
 							if waiting_step:
-								self.logger(f"Last iteration completed - sending END command")
+								self.logger("Last iteration completed - sending END command")
 								
 								# Use API method with acknowledgment
 								end_result = self.framework_api.end_current_experiment_with_ack(max_wait_time=60.0)
@@ -411,7 +411,7 @@ class FlowInstance(ABC):
 								else:
 									self.logger(f"End command not confirmed: {end_result.get('reason', 'unknown')}")
 							else:
-								self.logger(f"Experiment will be ended by normal execution flow.")
+								self.logger("Experiment will be ended by normal execution flow.")
 								
 						else:
 							# Use statistics from status handler for decision making
@@ -420,8 +420,8 @@ class FlowInstance(ABC):
 							print(f' - Flow Execution iteration: {iteration_num} -- Decision: {decision}')
 					
 							if decision == 'continue':
-								print(f"Sending continue command for next iteration...")
-								self.logger(f"Sending continue command for next iteration...")
+								print("Sending continue command for next iteration...")
+								self.logger("Sending continue command for next iteration...")
 								
 								# Use API method with acknowledgment
 								if waiting_step:
@@ -436,15 +436,15 @@ class FlowInstance(ABC):
 										
 										# Check if we should continue anyway or abort
 										if continue_result.get('reason') == 'timeout':
-											self.logger(f"Continuing despite timeout - command might still be processed")
+											self.logger("Continuing despite timeout - command might still be processed")
 										else:
-											self.logger(f"Aborting due to command confirmation failure")
+											self.logger("Aborting due to command confirmation failure")
 											experiment_active = False
 								else:
-									self.logger(f"Execution not in waiting step mode... Continue")
+									self.logger("Execution not in waiting step mode... Continue")
 										
 							elif decision == 'end':
-								self.logger(f"Early termination - sending END command")
+								self.logger("Early termination - sending END command")
 								
 								# Use API method with acknowledgment
 								end_result = self.framework_api.end_current_experiment_with_ack(max_wait_time=60.0)
@@ -455,7 +455,7 @@ class FlowInstance(ABC):
 									self.logger(f"End command not confirmed: {end_result.get('reason', 'unknown')}")
 							
 							else:  # cancel
-								self.logger(f"Sending cancel command...")
+								self.logger("Sending cancel command...")
 								
 								# Use API method with acknowledgment
 								cancel_result = self.framework_api.cancel_experiment_with_ack(max_wait_time=10.0)
@@ -475,7 +475,7 @@ class FlowInstance(ABC):
 					self.logger(f"Unknown event type: {event_type} - continuing to monitor")
 		
 		except KeyboardInterrupt:
-			self.logger(f"Monitoring interrupted by user")
+			self.logger("Monitoring interrupted by user")
 			try:
 				cancel_result = self.framework_api.cancel_experiment_with_ack(max_wait_time=5.0)
 				self.logger(f"Experiment cancelled due to interruption - acknowledged: {cancel_result.get('acknowledged', False)}")
@@ -529,7 +529,7 @@ class FlowInstance(ABC):
 			
 			# If no valid test results, this indicates a system issue
 			if not self.runStatusHistory:
-				self.logger(f"No valid test results found - marking as system failure")
+				self.logger("No valid test results found - marking as system failure")
 				self.runStatusHistory = [TestStatus.FAILED.value]  # This will trigger flow abortion
 			
 			self.logger(f"Processed {len(collected_results)} iteration results into {len(self.runStatusHistory)} valid test results")
@@ -617,7 +617,7 @@ class FlowInstance(ABC):
 				
 				if self.outputPort == 3:
 					self.logger(f"HARDWARE FAILURE PORT (3) wired to: {nextNode.Name}")
-					self.logger(f"Following hardware failure path instead of auto-termination")
+					self.logger("Following hardware failure path instead of auto-termination")
 				else:
 					self.logger(f"Next node: {nextNode.Name} (Port: {self.outputPort})")
 				
@@ -647,17 +647,17 @@ class FlowInstance(ABC):
 		port_desc = port_descriptions.get(self.outputPort, f"Port {self.outputPort}")
 		
 		self.logger(f"UNWIRED PORT TERMINATION: Port {self.outputPort} ({port_desc}) is not wired")
-		self.logger(f"Flow will terminate with appropriate error flag")
+		self.logger("Flow will terminate with appropriate error flag")
 		
 		# Set termination reason based on port type
 		if self.outputPort == 3:
-			self._set_termination_flag("hardware_failure", f"Hardware failure detected but port 3 not wired")
+			self._set_termination_flag("hardware_failure", "Hardware failure detected but port 3 not wired")
 		elif self.outputPort == 2:
-			self._set_termination_flag("intermittent_results", f"Intermittent results detected but port 2 not wired")
+			self._set_termination_flag("intermittent_results", "Intermittent results detected but port 2 not wired")
 		elif self.outputPort == 1:
-			self._set_termination_flag("repro_found", f"Solid repro found but port 1 not wired")
+			self._set_termination_flag("repro_found", "Solid repro found but port 1 not wired")
 		elif self.outputPort == 0:
-			self._set_termination_flag("no_repro", f"No repro found but port 0 not wired")
+			self._set_termination_flag("no_repro", "No repro found but port 0 not wired")
 		else:
 			self._set_termination_flag("unwired_port", f"Port {self.outputPort} not wired")
 
@@ -736,7 +736,7 @@ class FlowInstance(ABC):
 		
 		# Check hardware failure threshold first
 		if self._check_hardware_failure_threshold(stats):
-			self.logger(f"HARDWARE FAILURE THRESHOLD EXCEEDED - ending experiment")
+			self.logger("HARDWARE FAILURE THRESHOLD EXCEEDED - ending experiment")
 			return 'end'
 		
 		# Check for sufficient data from status handler
@@ -756,7 +756,7 @@ class FlowInstance(ABC):
 
 		# Check base conditions first (hardware failures only)
 		if self._check_hardware_failure_threshold(stats):
-			self.logger(f"HARDWARE FAILURE THRESHOLD EXCEEDED - ending experiment")
+			self.logger("HARDWARE FAILURE THRESHOLD EXCEEDED - ending experiment")
 			return 'end'
 		
 		# Check iteration limits
@@ -775,8 +775,8 @@ class FlowInstance(ABC):
 		if hasattr(self, 'execution_stats') and self.execution_stats:
 			if self._check_hardware_failure_threshold(self.execution_stats):
 				self.outputPort = 3  # Hardware failure port
-				self.logger(f"HARDWARE FAILURE THRESHOLD EXCEEDED - Setting port 3")
-				self.logger(f"This will trigger immediate flow termination")
+				self.logger("HARDWARE FAILURE THRESHOLD EXCEEDED - Setting port 3")
+				self.logger("This will trigger immediate flow termination")
 				return True
 		
 		# Check for hardware failure statuses in results
@@ -788,9 +788,9 @@ class FlowInstance(ABC):
 		
 		if total_results > 0 and (hardware_failures / total_results) > 0.40:
 			self.outputPort = 3  # Hardware failure port
-			self.logger(f"HARDWARE FAILURE IN RESULTS - Setting port 3")
+			self.logger("HARDWARE FAILURE IN RESULTS - Setting port 3")
 			self.logger(f"Hardware failures: {hardware_failures}/{total_results} = {hardware_failures/total_results:.1%}")
-			self.logger(f"This will trigger immediate flow termination")
+			self.logger("This will trigger immediate flow termination")
 			return True
 		
 		return False  # Let subclass set the port
@@ -905,13 +905,13 @@ class SingleFailFlowInstance(FlowInstance):
 		
 		if total_completed >= 3:
 			if recent_trend == "no-repro":
-				self.logger(f"Consistent failures detected - ending")
+				self.logger("Consistent failures detected - ending")
 				return 'end'
 			elif fail_rate > 0 and total_completed >= 5:
-				self.logger(f"Some failures detected - ending for analysis")
+				self.logger("Some failures detected - ending for analysis")
 				return 'end'
 			elif total_completed >= 5 and fail_rate == 0:
-				self.logger(f"No failures after sufficient testing - ending")
+				self.logger("No failures after sufficient testing - ending")
 				return 'end'
 		
 		return 'continue'
@@ -1000,21 +1000,21 @@ class AllFailFlowInstance(FlowInstance):
 		# For debugging, we want to establish a clear pattern
 		if total_completed >= 5:
 			if recent_trend == "repro":
-				self.logger(f"Solid failure reproduction detected - ending")
+				self.logger("Solid failure reproduction detected - ending")
 				return 'end'
 			elif recent_trend == "no-repro":
-				self.logger(f"No failure reproduction (all passes) - ending")
+				self.logger("No failure reproduction (all passes) - ending")
 				return 'end'
 			elif total_completed >= 10 and recent_trend in ["flaky", "unstable", "mixed"]:
-				self.logger(f"Intermittent pattern established - ending")
+				self.logger("Intermittent pattern established - ending")
 				return 'end'
 		
 		# Need more data for clear pattern
 		if total_completed >= 15:
-			self.logger(f"Sufficient iterations for pattern analysis - ending")
+			self.logger("Sufficient iterations for pattern analysis - ending")
 			return 'end'
 		
-		self.logger(f"Continuing - need clearer reproduction pattern")
+		self.logger("Continuing - need clearer reproduction pattern")
 		return 'continue'
  
 	def set_output_port(self):
@@ -1035,10 +1035,10 @@ class AllFailFlowInstance(FlowInstance):
 			
 			if pattern == "solid_repro":
 				self.outputPort = 1  # Solid failure reproduction found
-				self.logger(f"Port 1 - Solid failure reproduction detected")
+				self.logger("Port 1 - Solid failure reproduction detected")
 			elif pattern == "no_repro":
 				self.outputPort = 0  # No failures found (no repro)
-				self.logger(f"Port 0 - No failure reproduction (all passes)")
+				self.logger("Port 0 - No failure reproduction (all passes)")
 			else:  # intermittent or insufficient_data
 				self.outputPort = 2  # Mixed/intermittent results
 			valid_results = [s for s in self.runStatusHistory if s in ['PASS', 'FAIL']]
@@ -1095,7 +1095,7 @@ class MajorityFailFlowInstance(FlowInstance):
 				self.logger(f"Clear pattern established: {recent_trend} - ending")
 				return 'end'
 			elif total_completed >= 15:
-				self.logger(f"Sufficient data for failure rate analysis - ending")
+				self.logger("Sufficient data for failure rate analysis - ending")
 				return 'end'
 		
 		return 'continue'
@@ -1260,7 +1260,7 @@ class AdaptiveFlowInstance(FlowInstance):
 			# Filter to only include experiment parameters (not execution metadata)
 			experiment_only_config = self._filter_to_experiment_parameters(recommended_config)
 			self.optimized_config.update(experiment_only_config)
-			print(f"[CONFIG] DEBUG: AdaptiveFlowInstance - Applied filtered experiment config from analysis")
+			print("[CONFIG] DEBUG: AdaptiveFlowInstance - Applied filtered experiment config from analysis")
 		
 		# Apply sweep-based optimizations
 		sweep_insights = self.analyzed_data.get('sweep_insights')
@@ -1420,7 +1420,7 @@ class AdaptiveFlowInstance(FlowInstance):
 		self.Experiment['Test Name'] = original_test_name
 		print(f"[CONFIG] DEBUG: AdaptiveFlowInstance - Kept original Test Name: {original_test_name}")
 		
-		self.logger(f"Applied optimized configuration")
+		self.logger("Applied optimized configuration")
 		
 		print("[CONFIG] DEBUG: AdaptiveFlowInstance - AFTER applying optimized config:")
 		for key in key_params:
@@ -1459,7 +1459,7 @@ class AdaptiveFlowInstance(FlowInstance):
 		self.outputPort = 0
 		
 		self.logger('='*50)
-		self.logger(f' Adaptive Analysis Complete')
+		self.logger(' Adaptive Analysis Complete')
 		self.logger(f' Source: {self.analyzed_data.get("source_experiment", {}).get("node_name", "Default")}')
 		self.logger(f' Recovery Potential: {self.analyzed_data.get("recovery_potential", "unknown")}')
 		self.logger(f' Voltage Type Applied: {self.optimized_config.get("Voltage Type", "vbump")}')
@@ -2289,16 +2289,16 @@ class CharacterizationFlowInstance(FlowInstance):
 		
 		inherited_count = len([k for k, v in self.previous_node_config.items() if v is not None])
 		
-		print(f"[DEBUG] DEBUG: CharacterizationFlowInstance - Inheritance Summary:")
+		print("[DEBUG] DEBUG: CharacterizationFlowInstance - Inheritance Summary:")
 		print(f"[DEBUG] DEBUG:   Inherited experiment parameters: {inherited_count}")
-		print(f"[DEBUG] DEBUG:   Filtered out execution metadata (timing, results, etc.)")
+		print("[DEBUG] DEBUG:   Filtered out execution metadata (timing, results, etc.)")
 		
 		# Show key inherited parameters
 		key_inherited = ['Content', 'Voltage IA', 'Voltage CFC', 'Frequency IA', 'Frequency CFC', 'Voltage Type', 'Configuration (Mask)']
 		inherited_key_params = {k: v for k, v in self.previous_node_config.items() if k in key_inherited and v is not None}
 		
 		if inherited_key_params:
-			print(f"[DEBUG] DEBUG:   Key inherited parameters:")
+			print("[DEBUG] DEBUG:   Key inherited parameters:")
 			for key, value in inherited_key_params.items():
 				print(f"[DEBUG] DEBUG:     {key}: {value}")
 				
@@ -2939,7 +2939,7 @@ class AnalysisFlowInstance(FlowInstance):
 			self._print_experiment_proposals()
 		
 		self.logger('='*50)
-		self.logger(f' Comprehensive Analysis Complete')
+		self.logger(' Comprehensive Analysis Complete')
 		self.logger(f' Summary Report: {self.summary_report_path}')
 		self.logger(f' Smart Proposals Generated: {self.smart_experiment_proposal.get("total_proposals", 0) if self.smart_experiment_proposal else 0}')
 		self.logger(f' AnalysisFlow Node Complete - Port: {self.outputPort}')
@@ -3022,7 +3022,7 @@ class AnalysisFlowInstance(FlowInstance):
 		vf_analysis = comprehensive_data.get('voltage_frequency_analysis', {})
 		
 		# Flow Overview
-		print(f"\n[DEBUG] FLOW OVERVIEW:")
+		print("\n[DEBUG] FLOW OVERVIEW:")
 		print(f"   Total Nodes Executed: {flow_summary.get('total_nodes_executed', 0)}")
 		print(f"   Total Experiments: {len(self.experiment_tracker.experiments_history)}")
 		print(f"   Recovery Conditions Found: {len(flow_summary.get('recovery_conditions', []))}")
@@ -3061,7 +3061,7 @@ class AnalysisFlowInstance(FlowInstance):
 			print(f"\n[INFO] CONTENT ANALYSIS: {content_analysis.get('status', 'Unknown')} - {content_analysis.get('message', 'No data')}")
 			return
 		
-		print(f"\n[INFO] CONTENT ANALYSIS:")
+		print("\n[INFO] CONTENT ANALYSIS:")
 		print("="*80)
 		
 		content_types = content_analysis.get('content_types_found', [])
@@ -3071,7 +3071,7 @@ class AnalysisFlowInstance(FlowInstance):
 		# Best overall failure reproduction
 		best_overall = content_analysis.get('best_failure_reproduction')
 		if best_overall:
-			print(f"\n   [RESULTS] BEST FAILURE REPRODUCTION:")
+			print("\n   [RESULTS] BEST FAILURE REPRODUCTION:")
 			print(f"     Content Type: {best_overall['content_type']}")
 			print(f"     Failure Count: {best_overall['failure_count']}")
 			print(f"     Experiments: {', '.join(best_overall['experiments'])}")
@@ -3081,7 +3081,7 @@ class AnalysisFlowInstance(FlowInstance):
 			if best_overall['scratchpads']:
 				print(f"     Scratchpads: {', '.join(best_overall['scratchpads'][:3])}{'...' if len(best_overall['scratchpads']) > 3 else ''}")
 			
-			print(f"     Configuration:")
+			print("     Configuration:")
 			config = best_overall['configuration']
 			
 			# Show base configuration
@@ -3095,14 +3095,14 @@ class AnalysisFlowInstance(FlowInstance):
 				dragon_fields = ['vvar0', 'vvar1', 'vvar2', 'vvar3', 'vvar_extra', 'dragon_content_path', 'dragon_content_line']
 				dragon_config = {k: v for k, v in config.items() if k in dragon_fields and v is not None}
 				if dragon_config:
-					print(f"       Dragon-specific config:")
+					print("       Dragon-specific config:")
 					for key, value in dragon_config.items():
 						print(f"         {key}: {value}")
 			
 			elif best_overall['content_type'].lower() == 'linux':
 				linux_fields = [k for k in config.keys() if k.startswith('linux_content_line_')]
 				if linux_fields:
-					print(f"       Linux Content Lines:")
+					print("       Linux Content Lines:")
 					for field in sorted(linux_fields):
 						line_num = field.split('_')[-1]
 						print(f"         Line {line_num}: {config[field]}")
@@ -3127,7 +3127,7 @@ class AnalysisFlowInstance(FlowInstance):
 				
 				# Show configuration details
 				config = best_config['config']
-				print(f"       Configuration Details:")
+				print("       Configuration Details:")
 				
 				# Base configuration
 				base_fields = ['mask', 'check_core', 'voltage_type', 'voltage_ia', 'voltage_cfc', 'frequency_ia', 'frequency_cfc']
@@ -3145,7 +3145,7 @@ class AnalysisFlowInstance(FlowInstance):
 				elif content_type.lower() == 'linux':
 					linux_fields = [k for k in config.keys() if k.startswith('linux_content_line_')]
 					if linux_fields:
-						print(f"         Linux Content Lines:")
+						print("         Linux Content Lines:")
 						for field in sorted(linux_fields):
 							line_num = field.split('_')[-1]
 							print(f"           Line {line_num}: {config[field]}")
@@ -3159,7 +3159,7 @@ class AnalysisFlowInstance(FlowInstance):
 
 	def _print_detailed_iteration_table(self):
 		"""Print detailed iteration-by-iteration results in table format"""
-		print(f"\n[INFO] DETAILED ITERATION RESULTS:")
+		print("\n[INFO] DETAILED ITERATION RESULTS:")
 		print("="*120)
 		
 		# Define columns - easily configurable
@@ -3270,7 +3270,7 @@ class AnalysisFlowInstance(FlowInstance):
 
 	def _print_sweep_analysis_tables(self):
 		"""Print detailed sweep analysis tables showing values and results"""
-		print(f"\n[INFO] SWEEP ANALYSIS DETAILS:")
+		print("\n[INFO] SWEEP ANALYSIS DETAILS:")
 		print("="*80)
 		
 		sweep_experiments = [exp for exp in self.experiment_tracker.experiments_history 
@@ -3327,7 +3327,7 @@ class AnalysisFlowInstance(FlowInstance):
 			description = sensitivity.get('description', 'No description')
 			recommendation = sensitivity.get('recommendation', 'No recommendation')
 			
-			print(f"\n   Analysis:")
+			print("\n   Analysis:")
 			print(f"     Pattern: {pattern}")
 			print(f"     Description: {description}")
 			print(f"     Recommendation: {recommendation}")
@@ -3346,7 +3346,7 @@ class AnalysisFlowInstance(FlowInstance):
 
 	def _print_enhanced_vf_analysis(self, vf_analysis):
 		"""Print enhanced voltage/frequency analysis with detailed statistics"""
-		print(f"\n[INFO] VOLTAGE/FREQUENCY SENSITIVITY ANALYSIS:")
+		print("\n[INFO] VOLTAGE/FREQUENCY SENSITIVITY ANALYSIS:")
 		print("="*80)
 		
 		voltage_sens = vf_analysis.get('voltage_sensitivity', {})
@@ -3356,7 +3356,7 @@ class AnalysisFlowInstance(FlowInstance):
 		# Voltage Analysis
 		if voltage_sens.get('status') == 'analyzed':
 			debug_info = voltage_sens.get('debug_info', {})
-			print(f"\n[DEBUG] VOLTAGE ANALYSIS:")
+			print("\n[DEBUG] VOLTAGE ANALYSIS:")
 			print(f"   Total Voltage Experiments: {debug_info.get('total_voltage_experiments', 0)}")
 			print(f"   Experiment Names: {', '.join(debug_info.get('voltage_experiment_names', []))}")
 			
@@ -3377,7 +3377,7 @@ class AnalysisFlowInstance(FlowInstance):
 		# Frequency Analysis
 		if frequency_sens.get('status') == 'analyzed':
 			debug_info = frequency_sens.get('debug_info', {})
-			print(f"\n[DEBUG] FREQUENCY ANALYSIS:")
+			print("\n[DEBUG] FREQUENCY ANALYSIS:")
 			print(f"   Total Frequency Experiments: {debug_info.get('total_frequency_experiments', 0)}")
 			print(f"   Experiment Names: {', '.join(debug_info.get('frequency_experiment_names', []))}")
 			
@@ -3397,7 +3397,7 @@ class AnalysisFlowInstance(FlowInstance):
 		
 		# Combined Analysis
 		if combined.get('conclusion'):
-			print(f"\n[DEBUG] COMBINED ANALYSIS:")
+			print("\n[DEBUG] COMBINED ANALYSIS:")
 			print(f"   Voltage Sensitive: {combined.get('voltage_sensitive', False)}")
 			print(f"   Frequency Sensitive: {combined.get('frequency_sensitive', False)}")
 			print(f"   Conclusion: {combined['conclusion']}")
@@ -3413,7 +3413,7 @@ class AnalysisFlowInstance(FlowInstance):
 
 	def _print_recovery_analysis(self, recovery_analysis):
 		"""Print detailed recovery analysis"""
-		print(f"\n[INFO] RECOVERY ANALYSIS:")
+		print("\n[INFO] RECOVERY ANALYSIS:")
 		print("="*50)
 		
 		if recovery_analysis.get('status') == 'recovery_found':
@@ -3422,14 +3422,14 @@ class AnalysisFlowInstance(FlowInstance):
 			
 			best_recovery = recovery_analysis.get('best_recovery_condition', {})
 			if best_recovery:
-				print(f"\n   Best Recovery Condition:")
+				print("\n   Best Recovery Condition:")
 				print(f"     Node: {best_recovery.get('node_name', 'Unknown')}")
 				print(f"     Success Rate: {best_recovery.get('pass_rate', 0):.1%}")
 				
 				# Show recovery configuration
 				config = best_recovery.get('config', {})
 				if config:
-					print(f"     Configuration:")
+					print("     Configuration:")
 					for key, value in config.items():
 						if value is not None:
 							print(f"       {key}: {value}")
@@ -3437,7 +3437,7 @@ class AnalysisFlowInstance(FlowInstance):
 			# Show recovery patterns
 			recovery_patterns = recovery_analysis.get('recovery_patterns', {})
 			if recovery_patterns:
-				print(f"\n   Recovery Patterns:")
+				print("\n   Recovery Patterns:")
 				print(f"     Voltage-based: {recovery_patterns.get('voltage_based_recoveries', 0)}")
 				print(f"     Frequency-based: {recovery_patterns.get('frequency_based_recoveries', 0)}")
 				print(f"     Content-based: {recovery_patterns.get('content_based_recoveries', 0)}")
@@ -3448,7 +3448,7 @@ class AnalysisFlowInstance(FlowInstance):
 		"""Print smart experiment proposals"""
 		if hasattr(self, 'smart_experiment_proposal') and self.smart_experiment_proposal:
 			proposals = self.smart_experiment_proposal.get('recommended_sequence', [])
-			print(f"\n[DEBUG] SMART EXPERIMENT PROPOSALS:")
+			print("\n[DEBUG] SMART EXPERIMENT PROPOSALS:")
 			print("="*60)
 			print(f"   Total Proposals: {len(proposals)}")
 			
@@ -3467,7 +3467,7 @@ class AnalysisFlowInstance(FlowInstance):
 
 	def _print_file_locations(self):
 		"""Print file locations and output paths"""
-		print(f"\n[INFO]OUTPUT FILES:")
+		print("\n[INFO]OUTPUT FILES:")
 		print("="*40)
 		
 		if hasattr(self, 'summary_report_path') and self.summary_report_path:
@@ -3480,7 +3480,7 @@ class AnalysisFlowInstance(FlowInstance):
 				test_folders.add(exp['test_folder'])
 		
 		if test_folders:
-			print(f"   Test Folders:")
+			print("   Test Folders:")
 			for folder in sorted(test_folders):
 				print(f"     {folder}")
 		
@@ -3789,7 +3789,7 @@ class FlowTestExecutor:
 			
 			# [DONE] Check if node set output port to 3 (hardware failure port)
 			if hasattr(node, 'outputPort') and node.outputPort == 3:
-				self.log_execution(f"Node routed to hardware failure port (3)")
+				self.log_execution("Node routed to hardware failure port (3)")
 				return True
 			
 			return False
@@ -4144,18 +4144,18 @@ class FlowTestExecutor:
 		NEW: Log comprehensive final termination status.
 		"""
 		if self._hardware_failure_termination:
-			self.log_execution(f"FINAL STATUS: HARDWARE FAILURE TERMINATION")
+			self.log_execution("FINAL STATUS: HARDWARE FAILURE TERMINATION")
 			self.log_execution(f"Reason: {self._abort_reason}")
 		elif self._unwired_port_termination:
-			self.log_execution(f"FINAL STATUS: UNWIRED PORT TERMINATION")
+			self.log_execution("FINAL STATUS: UNWIRED PORT TERMINATION")
 			self.log_execution(f"Termination Type: {self._termination_type}")
 			self.log_execution(f"Terminating Node: {self._termination_node.Name if self._termination_node else 'Unknown'}")
 			self.log_execution(f"Reason: {self._abort_reason}")
 		elif self._flow_abort_requested:
-			self.log_execution(f"FINAL STATUS: FLOW ABORTED")
+			self.log_execution("FINAL STATUS: FLOW ABORTED")
 			self.log_execution(f"Reason: {self._abort_reason}")
 		else:
-			self.log_execution(f"FINAL STATUS: NORMAL COMPLETION")
+			self.log_execution("FINAL STATUS: NORMAL COMPLETION")
 
 	def log_execution(self, message):
 		"""Thread-safe logging that doesn't interfere with UI."""

@@ -67,7 +67,7 @@ class FrequencyManager:
 				table.append([f'F{k}', v, cfc_val])
 			
 			print(tabulate(table, headers="firstrow", tablefmt="grid"))
-			print(f'--> Multiple freqs are FLOWID 1-4')
+			print('--> Multiple freqs are FLOWID 1-4')
 		
 		elif mode == 'mesh':
 			print(f"\n{'*' * 80}")
@@ -79,7 +79,7 @@ class FrequencyManager:
 				table.append([f'F{k}', v, ia_val])
 			
 			print(tabulate(table, headers="firstrow", tablefmt="grid"))
-			print(f'--> Multiple freqs are FLOWID 1-4')
+			print('--> Multiple freqs are FLOWID 1-4')
 	
 	def configure_ate_frequency(self, 
 								mode: str = 'mesh',
@@ -104,7 +104,7 @@ class FrequencyManager:
 		
 		print(f"\n{'*' * 80}")
 		print(f"> FLOWID {self.flowid} ate_freq F{ate_freq}")
-		print(f"> Setting system with ATE configuration:")
+		print("> Setting system with ATE configuration:")
 		print(f"  - {core_string.upper()}: {self.core_freq}")
 		print(f"  - CFCCOMP: {self.mesh_freq}")
 		print(f"  - CFCIO: {self.io_freq}")
@@ -140,7 +140,7 @@ class FrequencyManager:
 	
 	def _prompt_flowid(self, input_func: Callable) -> int:
 		"""Prompt user to select flow ID for multi-frequency configurations."""
-		print(f"\n> Multiple frequencies available, select FLOWID:")
+		print("\n> Multiple frequencies available, select FLOWID:")
 		print("\t> 1. Highest frequency")
 		print("\t> 2. Second highest")
 		print("\t> 3. Third highest")

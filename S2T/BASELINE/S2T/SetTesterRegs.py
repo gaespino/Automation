@@ -84,7 +84,6 @@ import os
 from ipccli import BitData
 import json
 import importlib
-import os
 import time
 from tabulate import tabulate
 from importlib import import_module
@@ -159,6 +158,8 @@ if cfl.DEV_MODE:
 	importlib.reload(UI)
 	importlib.reload(vmgr)
 	importlib.reload(fmgr)
+	importlib.reload(cfl)
+	config = cfl.config
 	config.reload()
 
 bullets = '>>>'
@@ -761,6 +762,8 @@ class S2TFlow():
 		self.voltage_mgr.ddra_volt = self.ddra_volt
 		self.voltage_mgr.use_ate_volt = self.use_ate_volt
 
+		# Set external voltage variables
+		self.quick()
 	#========================================================================================================#
 	#=============== INITIALIZATION AND FLOW CONTROL =======================================================#
 	#========================================================================================================#
@@ -1138,7 +1141,7 @@ class S2TFlow():
 		scm.global_avx_mode = self.license_level
 		scm.global_vbumps_configuration=self.vbumps_volt
 		scm.global_u600w=self.u600w
-		scm.global_boot_extra=",pwrgoodmethod='usb', pwrgoodport=1, pwrgooddelay=45 "
+		scm.global_boot_extra=",pwrgoodmethod='usb', pwrgoodport=[1,2], pwrgooddelay=45 "
 
 		# Flow specific
 		if flow =='mesh':
@@ -1166,6 +1169,15 @@ class S2TFlow():
 			scm.BOOT_STOP_POSTCODE = self.boot_postcode_break
 		else:
 			scm.global_boot_postcode=False
+
+	def tileview(self, rdfuses=False):
+		"""Display Tile View"""
+		if hasattr(scm, 'coresEnabled'):
+			scm.coresEnabled(rdfuses=rdfuses)
+		elif hasattr(scm, 'modulesEnabled'):
+			scm.modulesEnabled(rdfuses=rdfuses)
+		else:
+			print(f"{bullets} Tile view not supported for this product.")
 
 	#========================================================================================================#
 	#=============== SLICE MODE IMPLEMENTATION ==============================================================#
@@ -1459,7 +1471,7 @@ class S2TFlow():
 		print (f"\n{'='*80}")
 		print ("\tUnit Tileview")
 		print (f"{'='*80}\n")
-		scm.coresEnabled(rdfuses=False)
+		self.tileview(rdfuses=False)
 		print (f"\n{'='*80}")
 		print ("\tConfiguration Summary")
 		print (f"{'='*80}\n")
@@ -1738,7 +1750,7 @@ class S2TFlow():
 
 		elif self.targetTile == 4:
 			# Full Chip
-			print(f'--> System 2 Tester Configured in Full Chip Mode')
+			print('--> System 2 Tester Configured in Full Chip Mode')
 			self.target = 'FULLCHIP'
 
 	def mesh_misc(self):
@@ -1934,7 +1946,7 @@ class S2TFlow():
 		print (f"\n{'='*80}")
 		print ("\tUnit Tileview")
 		print (f"{'='*80}\n")
-		scm.coresEnabled(rdfuses=False)
+		self.tileview(rdfuses=False)
 		print (f"\n{'='*80}")
 		print ("\tConfiguration Summary")
 		print (f"{'='*80}\n")
@@ -1951,6 +1963,7 @@ class S2TFlow():
 		if self.vbumps_volt: print("\t> Voltage Bumps fuses set")
 		if self.use_ate_volt: print("\t> ATE Fixed Voltage fuses set")
 		if self.core_volt != None: print ("\t> %s Volt = %f" % (self.coremenustring,self.core_volt))
+		if self.core_mlc_volt != None: print (f"\t> {self.coremenustring} MLC Volt = {self.core_mlc_volt}" )
 		if self.mesh_cfc_volt != None: print (f"\t> Mesh CFC Volt = {self.mesh_cfc_volt}" )
 		if self.mesh_hdc_volt != None: print (f"\t> Mesh HDC Volt = {self.mesh_hdc_volt}" )
 		if self.io_cfc_volt != None: print ("\t> IO CFC Volt = %f" % self.io_cfc_volt)
@@ -2351,7 +2364,7 @@ def set_tester(
 	# Check if there is any register to set if not just dont go here
 	#if cr_array_end != cr_array_start:
 	if (cr_array_start < 0xffff): _set_crs(crarray, cr_array_start, cr_array_end, skip_index_array, clear_ucode,  halt_pcu, skip_wbinvd, SVrefresh = False)
-	else: print (f" Skipping Registers Configuration...")
+	else: print (" Skipping Registers Configuration...")
 	if (license_level != None and product in lic_allowed):
 		print (f"Setting AVX license : {license_level}")
 		CoreDebugUtils.set_license(lic=license_level)

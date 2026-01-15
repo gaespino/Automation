@@ -62,7 +62,7 @@ class DB_Client:
                 if result.deleted_count > 0:
                     self.logger(f"Last updated item deleted from collection {collection_name}.")
                 else:
-                    self.logger(f"No item deleted, although a match was found.")
+                    self.logger("No item deleted, although a match was found.")
             else:
                 self.logger(f"No item matching the query found in collection {collection_name}.")
         else:

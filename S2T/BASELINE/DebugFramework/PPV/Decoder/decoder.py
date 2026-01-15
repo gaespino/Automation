@@ -257,7 +257,7 @@ class decoder():
 	def mem_lookup_pattern(self, mc='', ch='', b2cmi='', imc='', suffix='ADDR', ptype='b2cmi'):
 		"""
 		Generate lookup patterns for memory subsystem registers
-		
+
 		Args:
 			mc: Memory Controller number
 			ch: Channel number
@@ -265,7 +265,7 @@ class decoder():
 			imc: iMC instance number
 			suffix: Register suffix (ADDR, MISC, etc.)
 			ptype: Pattern type (b2cmi, mse, mcchan)
-		
+
 		Returns:
 			Lookup pattern string
 		"""
@@ -314,7 +314,7 @@ class decoder():
 		if missing_columns:
 			print(f' !!! ERROR: Missing required columns in MCA data: {missing_columns}')
 			print(f' !!! Available columns: {list(mcdata.columns)}')
-			print(f' !!! Returning empty DataFrame. Please check your input Excel file structure.')
+			print(' !!! Returning empty DataFrame. Please check your input Excel file structure.')
 			return pd.DataFrame()
 		
 		# Initialize the new dataframe
@@ -455,7 +455,7 @@ class decoder():
 		if missing_columns:
 			print(f' !!! ERROR: Missing required columns in MCA data: {missing_columns}')
 			print(f' !!! Available columns: {list(mcdata.columns)}')
-			print(f' !!! Returning empty DataFrame. Please check your input Excel file structure.')
+			print(' !!! Returning empty DataFrame. Please check your input Excel file structure.')
 			return pd.DataFrame()
 		
 		# Initialize the new dataframe
@@ -1011,7 +1011,7 @@ class decoder():
 		Memory Controller MCA decoder for MSE, MCCHAN (iMC), and B2CMI
 		Extracts instance name, MCACOD (numeric), and MC_DECODE (MSCOD value from JSON)
 		Similar structure to LLC decoder
-		
+
 		Register path patterns:
 		- B2CMI: SOCKET0__SOC__MEMSS__B2CMI{n}__MCI_STATUS
 		- MCCHAN: SOCKET0__SOC__MEMSS__MC{n}__CH{n}__MCCHAN__IMC0_MC_STATUS
@@ -1029,7 +1029,7 @@ class decoder():
 		if missing_columns:
 			print(f' !!! ERROR: Missing required columns in MCA data: {missing_columns}')
 			print(f' !!! Available columns: {list(mcdata.columns)}')
-			print(f' !!! Returning empty DataFrame. Please check your input Excel file structure.')
+			print(' !!! Returning empty DataFrame. Please check your input Excel file structure.')
 			return pd.DataFrame()
 		
 		# Initialize the new dataframe - Added Type column
@@ -1192,11 +1192,11 @@ class decoder():
 		"""
 		Decode Memory MCA MSCOD based on instance type and JSON configuration
 		Uses JSON data loaded from mcadata class
-		
+
 		Args:
 			value: MC_STATUS register value (hex string)
 			instance_type: Type of memory instance (MSE, MCCHAN, B2CMI)
-		
+
 		Returns:
 			Decoded MSCOD string from JSON or raw value
 		"""
@@ -1233,7 +1233,7 @@ class decoder():
 		"""
 		IO MCA decoder for UBOX and UPI registers
 		Extracts instance name, IO#, MCACOD (numeric), and MC_DECODE (MSCOD from JSON or raw value)
-		
+
 		Register path patterns:
 		- UBOX: sv.sockets.io0.uncore.ubox.ncevents.ncevents_cr_ubox_mci_status
 		- UPI: sv.sockets.io0.uncore.upi.upi0.upi_regs.kti_mc_st
@@ -1250,7 +1250,7 @@ class decoder():
 		if missing_columns:
 			print(f' !!! ERROR: Missing required columns in MCA data: {missing_columns}')
 			print(f' !!! Available columns: {list(mcdata.columns)}')
-			print(f' !!! Returning empty DataFrame. Please check your input Excel file structure.')
+			print(' !!! Returning empty DataFrame. Please check your input Excel file structure.')
 			return pd.DataFrame()
 		
 		# Initialize the new dataframe - Added IO# column
@@ -1372,16 +1372,16 @@ class decoder():
 		"""
 		Decode IO MCA MCACOD and MSCOD based on instance type and JSON configuration
 		Uses JSON data loaded from mcadata class for UPI and UBOX
-		
+
 		Special handling for UBOX based on MCACOD:
 		- MCACOD 1042 (SCF Bridge IP:CMS error): Use CMS_MSCOD table
 		- MCACOD 1043 (SCF Bridge IP:SBO error): Use SBO_MSCOD table
 		- MCACOD 1036 (Shutdown suppression): Use SHUTDOWN_ERR_MSCOD table
-		
+
 		Args:
 			value: MC_STATUS register value (hex string)
 			instance_type: Type of IO instance (UBOX, UPI)
-		
+
 		Returns:
 			Tuple of (mcacod_decoded, mscod_decoded) strings
 		"""
@@ -1443,13 +1443,13 @@ class decoder():
 	def io_lookup_pattern(self, io='', upi='', suffix='ADDR', ptype='upi'):
 		"""
 		Build register path patterns for IO MCA ADDR/MISC lookup
-		
+
 		Args:
 			io: IO number (string)
 			upi: UPI number (string)
 			suffix: 'ADDR' or 'MISC'
 			ptype: 'ubox' or 'upi'
-		
+
 		Returns:
 			Register path pattern string
 		"""

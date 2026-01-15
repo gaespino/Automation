@@ -804,6 +804,10 @@ class SystemBooter:
 		#	#fuse_str_imh.extend(self._assign_values_to_regs(
 		#	#	self.boot_fuses['IA']['imhFreq']['min'], self.config.ia_fw_p1))
 
+			#Including the top DIE fuses as well
+			#fuse_str_cbb.extend(self._assign_values_to_regs(
+			#	self.boot_fuses['IA']['fwFreq']['top_min'], self.config.ia_fw_pturbo))
+
 		#if self.config.ia_fw_pboot:
 		#	fuse_str_cbb.extend(self._assign_values_to_regs(
 		#		self.boot_fuses['IA']['fwFreq']['boot'], self.config.ia_fw_pboot))
@@ -815,8 +819,8 @@ class SystemBooter:
 				self.boot_fuses['IA']['fwFreq']['turbo'], self.config.ia_fw_pturbo))
 
 			#Including the top DIE fuses as well
-			fuse_str_cbb.extend(self._assign_values_to_regs(
-				self.boot_fuses['IA']['fwFreq']['top_p0'], self.config.ia_fw_pturbo))
+			#fuse_str_cbb.extend(self._assign_values_to_regs(
+			#	self.boot_fuses['IA']['fwFreq']['top_p0'], self.config.ia_fw_pturbo))
 			#fuse_str_imh.extend(self._assign_values_to_regs(
 			#	self.boot_fuses['IA']['imhFreq']['turbo'], self.config.ia_fw_p1))
 
@@ -1009,11 +1013,21 @@ class SystemBooter:
 
 		_base_cbb_fuses = []
 		_base_imh_fuses = []
+
+		_top_cbb_fuses = []
+
 		print(fuse_str_cbb)
 		if fuse_str_cbb:
 			for fuse in fuse_str_cbb:
-				if cbbs_common_string in fuse:
+				if cbbs_common_string in fuse and 'computes' in fuse:
+					#print('Top Fuse Found: ', fuse)
+					_top_cbb_fuses.append(fuse.replace('sv.sockets.cbbs.computes.fuses.', ''))
+				elif cbbs_common_string in fuse and 'base' in fuse:
+					#print('Bae Fuse Found: ', fuse)
 					_base_cbb_fuses.append(fuse.replace('sv.sockets.cbbs.base.fuses.', ''))
+				else:
+					continue
+
 		print(fuse_str_imh)
 		if fuse_str_imh:
 			for fuse in fuse_str_imh:
@@ -1025,15 +1039,19 @@ class SystemBooter:
 			cbb_name = cbb.name.lower() if hasattr(cbb, 'name') else str(cbb).lower()
 			if 'cbb0' in cbb_name:
 				self._extend_cbb_fuses('fuse_str_cbb_0', _base_cbb_fuses, fuse_keys = ['base'])
+				self._extend_cbb_fuses('fuse_str_cbb_0', _top_cbb_fuses, fuse_keys = ['top0', 'top1', 'top2', 'top3'])
 
 			if 'cbb1' in cbb_name:
 				self._extend_cbb_fuses('fuse_str_cbb_1', _base_cbb_fuses, fuse_keys = ['base'])
+				self._extend_cbb_fuses('fuse_str_cbb_1', _top_cbb_fuses, fuse_keys = ['top0', 'top1', 'top2', 'top3'])
 
 			if 'cbb2' in cbb_name:
 				self._extend_cbb_fuses('fuse_str_cbb_2', _base_cbb_fuses, fuse_keys = ['base'])
+				self._extend_cbb_fuses('fuse_str_cbb_2', _top_cbb_fuses, fuse_keys = ['top0', 'top1', 'top2', 'top3'])
 
 			if 'cbb3' in cbb_name:
 				self._extend_cbb_fuses('fuse_str_cbb_3', _base_cbb_fuses, fuse_keys = ['base'])
+				self._extend_cbb_fuses('fuse_str_cbb_3', _top_cbb_fuses, fuse_keys = ['top0', 'top1', 'top2', 'top3'])
 
 		for imh in self.imhs:
 			imh_name = imh.name.lower() if hasattr(imh, 'name') else str(imh).lower()
@@ -1201,8 +1219,14 @@ class SystemBooter:
 			dict_keys = fuse_dict.keys() if fuse_dict else []
 
 			for dict_key in dict_keys:
+				top_fuse = 'top' in dict_key
+				top_not_available = not(check_compute_fuses(f'compute{dict_key[-1]}'))
+
+				if top_fuse and top_not_available:
+					continue
 				print(Fore.LIGHTCYAN_EX + f"{'>' * 3} Checking {dict_key.upper()} Fuse for {cbb_name.upper()}: total of {len(fuse_dict[dict_key])} entries	---")
 				fuse_cmd_override_check(fuse_dict[dict_key], showresults=showresults, skip_init=skip_init, bsFuses=f'{cbb_name}{dict_key if "base" not in dict_key else ""}')
+
 
 		print(Fore.LIGHTCYAN_EX + "*" * 90)
 		print(Fore.LIGHTCYAN_EX + f"{'>' * 3} Checking fuse application after boot")
@@ -2056,6 +2080,7 @@ def fuse_cmd_override_reset(fuse_cmd_array, skip_init=False, boot = True, s2t=Fa
 
 ## Fuse Read --- Added to validate fuse application after bootscript is completed - either Fast or normal
 def fuse_cmd_override_check(fuse_cmd_array, showresults = False, skip_init= False, bsFuses = None):
+
 	sv = _get_global_sv()
 	ipc = ipccli.baseaccess()
 	## This part is just to complete the fuses in case they are coming from a Bootscript String
@@ -2137,6 +2162,37 @@ def fuse_cmd_override_check(fuse_cmd_array, showresults = False, skip_init= Fals
 	# Print the table
 	if (not All_true or showresults) and not bserror:
 		print(tabulate(fuse_table, headers=["Fuse", "Requested", "System Value", "Changed"], tablefmt="grid"))
+
+
+def check_compute_fuses(compute):
+	'''
+	Checks if the fuses in the compute match the requested values.
+
+	Inputs:
+		compute: (Compute Node) Compute to check fuses.
+		fuse_cmd_array: (String Array) Input fuses to be checked.
+	'''
+	return compute in sv.sockets.cbbs.computes.name
+
+def check_cbb_fuses(cbb):
+	'''
+	Checks if the fuses in the cbb match the requested values.
+
+	Inputs:
+		cbb: (CBB Node) CBB to check fuses.
+		fuse_cmd_array: (String Array) Input fuses to be checked.
+	'''
+	return cbb in sv.sockets.cbbs.name
+
+def check_imh_fuses(imh):
+	'''
+	Checks if the fuses in the cbb match the requested values.
+
+	Inputs:
+		cbb: (CBB Node) CBB to check fuses.
+		fuse_cmd_array: (String Array) Input fuses to be checked.
+	'''
+	return imh in sv.sockets.imhs.name
 
 #========================================================================================================#
 #=============== DEBUG SCRIPTS ==========================================================================#

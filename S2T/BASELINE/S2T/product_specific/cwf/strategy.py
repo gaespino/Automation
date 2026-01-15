@@ -18,9 +18,9 @@ from tabulate import tabulate
 class CWFStrategy(ProductStrategy):
 	"""
 	Product strategy implementation for CWF.
-	
+
 	CWF uses:
-	- 'computes' for voltage domains  
+	- 'computes' for voltage domains
 	- 'atomcore' architecture (HDC at core level)
 	- Standard compute-based structure
 	"""
@@ -155,7 +155,7 @@ class CWFStrategy(ProductStrategy):
 		return {
 			'core_volt': True,
 			'mesh_cfc_volt': True,   # Per compute
-			'mesh_hdc_volt': False,  # HDC is at core (L2) level for atomcore
+			'mesh_hdc_volt': True,  # HDC is at core (L2) level for atomcore
 			'core_mlc_volt': False,  # Not used in CWF
 			'io_cfc_volt': True,
 			'ddrd_volt': True,

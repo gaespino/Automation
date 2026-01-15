@@ -75,6 +75,39 @@ class printlog():
 		
 			f.write(message + '\n')
 
+class SafeStreamHandler(logging.StreamHandler):
+	"""Custom StreamHandler that handles Unicode encoding errors gracefully"""
+
+	def emit(self, record):
+		try:
+			msg = self.format(record)
+			stream = self.stream
+			# Handle encoding errors by replacing problematic characters
+			stream.write(msg + self.terminator)
+			self.flush()
+		except UnicodeEncodeError as e:
+			# Print encoding error on screen with red text
+			try:
+				error_msg = f"{Fore.RED}[ENCODING ERROR] Unable to encode message to console: {str(e)}{Fore.WHITE}"
+				stream.write(error_msg + self.terminator)
+				stream.flush()
+			except:
+				pass  # If even error message fails, silently continue
+
+			# Fallback: encode to ASCII, replacing problematic characters
+			try:
+				msg = self.format(record)
+				stream = self.stream
+				# Add encoding error marker to the log
+				sanitized_msg = msg.encode('ascii', 'replace').decode('ascii')
+				stream.write(f"[ENCODING_ERROR_OCCURRED] {sanitized_msg}{self.terminator}")
+				self.flush()
+			except Exception:
+				# Last resort: just print the error without the message
+				self.handleError(record)
+		except Exception:
+			self.handleError(record)
+
 class FrameworkLogger:
 
 	def __init__(self, log_file='app.log', logger_name = 'FrameworkLogger', console_output=False, pythonconsole = False, reset_handlers=True):
@@ -95,16 +128,17 @@ class FrameworkLogger:
 		# Framework Format
 		self.formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
-		# Create file handler
-		file_handler = logging.FileHandler(self.log_file, mode='w')
+		# Create file handler with UTF-8 encoding
+		file_handler = logging.FileHandler(self.log_file, mode='w', encoding='utf-8')
 		file_handler.setLevel(logging.DEBUG)
 		file_handler.setFormatter(self.formatter)
 		self.logger.addHandler(file_handler)
 	
 		# Create console handler
 		if self.console_output:
-			console_handler = logging.StreamHandler()
+			console_handler = SafeStreamHandler()
 			console_handler.setLevel(logging.DEBUG)
+			console_handler.setFormatter(self.formatter)
 
 		#	# Add console handler to logger if not already added
 		#	if not any(isinstance(handler, logging.StreamHandler) for handler in self.logger.handlers):
@@ -137,7 +171,7 @@ class FrameworkLogger:
 		if self.pythonconsole and not self.capture_active:
 			# Create file handler with specified mode
 			self.reset_all_handlers()
-			file_handler = logging.FileHandler(self.log_file, mode=file_mode)
+			file_handler = logging.FileHandler(self.log_file, mode=file_mode, encoding='utf-8')
 			file_handler.setLevel(logging.DEBUG)
 			file_handler.setFormatter(self.pysvfomatter)
 			self.logger.addHandler(file_handler)
@@ -169,7 +203,23 @@ class FrameworkLogger:
 				self.level = level
 
 			def write(self, message):
-				self.stream.write(message)
+				try:
+					self.stream.write(message)
+				except UnicodeEncodeError as e:
+					# Print encoding error on screen with red text
+					try:
+						error_msg = f"{Fore.RED}[ENCODING ERROR] Unable to encode to console: {str(e)}{Fore.WHITE}\n"
+						self.stream.write(error_msg)
+					except:
+						pass  # If even error message fails, silently continue
+
+					# Handle encoding errors for console output
+					try:
+						self.stream.write(message.encode('ascii', 'replace').decode('ascii'))
+					except:
+						pass
+
+				# Logger will handle encoding errors via SafeStreamHandler
 				self.logger.log(self.level, message.strip())
 
 			def readline(self):
@@ -276,7 +326,7 @@ class TestUpload:
 
 	def TestBanner(self, qdf, tnum, mask, corelic, bumps, htdis, dis2CPM, freqIA, voltIA, freqCFC, voltCFC, content, passstring, failstring):
 
-		self.print(f' -- Test Start --- ')
+		self.print(' -- Test Start --- ')
 		self.print(f' -- Debug Framework {self.name} --- ')
 		self.print(f' -- Performing test iteration {tnum} with the following parameters: ')
 
@@ -302,7 +352,7 @@ class TestUpload:
 		self.print(f'\t > Pass String: {passstring} ')
 		self.print(f'\t > Fail String: {failstring} ')
 
-		if qdf in u600w: self.print(f'\t > Unit 600w Fuses Applied ')
+		if qdf in u600w: self.print('\t > Unit 600w Fuses Applied ')
 		#if self.extMask != None:
 		#	printmasks = [["Type", "Value"]]
 		#	printmasks.append([[k,v] for k, v in self.extMask.items()])
@@ -312,7 +362,7 @@ class TestUpload:
 	def Iteration_end(self, tnum, runName, runStatus, scratchpad, seed):
 
 		self.print(f'tdata_{tnum}::{runName}::{runStatus}::{scratchpad}::{seed}')
-		self.print(f' -- Test End --- ')
+		self.print(' -- Test End --- ')
 
 	@staticmethod
 	def manual_upload(tfolder, visual, Product, UPLOAD_TO_DISK = True, UPLOAD_DATA = True, logger = None, ):
@@ -364,11 +414,11 @@ class TestUpload:
 def find_name_regex(file_path, pattern=r"-- Debug Framework (\w+) ---"):
 	"""
 	Searches for a line using regex pattern and extracts the core name.
-	
+
 	Args:
 		file_path (str): Path to the file to search
 		pattern (str): Regex pattern to match (default captures word between the fixed parts)
-	
+
 	Returns:
 		str: The extracted core name or None if not found
 	"""
@@ -401,7 +451,7 @@ def manual_upload():
 def extract_data_from_named_table(sheet):
 	"""
 	Extracts data from a named table within an Excel sheet.
-	
+
 	param: sheet = An openpyxl worksheet object from which data is to be extracted.
 	return: A dictionary containing 'Field' and 'Value' pairs if the table is found, otherwise None.
 	"""    
@@ -429,7 +479,7 @@ def extract_data_from_named_table(sheet):
 def process_excel_file(file_path):
 	"""
 	Processes an Excel file to extract data from named tables in each sheet.
-	
+
 	param: file_path = Path to the Excel file to be processed.
 	return: A dictionary containing data from all sheets, with sheet names as keys.
 	"""
@@ -452,7 +502,7 @@ def process_excel_file(file_path):
 def create_tabulated_format(data_from_sheets):
 	"""
 	Creates a tabulated DataFrame from extracted data across multiple sheets.
-	
+
 	param: data_from_sheets = A dictionary containing data from multiple sheets.
 	return: A pandas DataFrame with fields as rows and sheet names as columns.
 	"""
@@ -480,7 +530,7 @@ def create_tabulated_format(data_from_sheets):
 def create_log_folder(logs_dest, description =None):
 	"""
 	Creates a log folder with a timestamp and optional description.
-	
+
 	:param logs_dest: Destination path where the log folder will be created.
 	:param description: Optional description to append to the folder name.
 	:return log_folder_path: The path to the created log folder.
@@ -496,7 +546,7 @@ def create_log_folder(logs_dest, description =None):
 def create_folder_if_not_exists(folder):
 	"""
 	Creates a folder if it does not already exist.
-	
+
 	:param folder: Path to the folder to be created.
 	:return folderisthere: Boolean indicating whether the folder already existed.
 	"""
@@ -526,7 +576,7 @@ def remove_folder_if_exists(folder_path):
 def create_path(folder, file):
 	"""
 	Creates a file path by joining a folder and file name.
-	
+
 	:param folder: Path to the folder.
 	:param file: Name of the file.
 	:return filepath: The full file path.
@@ -539,7 +589,7 @@ def create_path(folder, file):
 def copy_files(src, dest, uinput = ""):
 	"""
 	Copies files from a source directory to a destination directory, with user confirmation.
-	
+
 	:param src: Source directory path.
 	:param dest: Destination directory path.
 	:param uinput: User input for file override confirmation ('Y' or 'N').
@@ -565,7 +615,7 @@ def copy_single_file(full_file_name, dest):
 def merge_mca_files(input_folder: str, output_file: str):
 	"""
 	Merges MCA Excel files from an input folder into a single output file.
-	
+
 	:param input_folder: Path to the folder containing MCA Excel files.
 	:param output_file: Path to the output Excel file.
 	"""	
@@ -574,7 +624,7 @@ def merge_mca_files(input_folder: str, output_file: str):
 def decode_mcas(name:str, week:str, source_file:str, label:str, path:str, product:str):
 	"""
 	Decode MCAs from a Raw Data Debug Framework Summary File
-	
+
 	:param name: Name to be used on the PPV Report.
 	:param week: WW to be used in the PPV Report.
 	:param source_file: Path to the MCA Log file in xlsx format to be used to generate the report
@@ -595,7 +645,7 @@ def extract_fail_seed(log_file_path: str,
 					  CheckString: list = [r"CHANGING BACK TO DIR: FS1:\EFI"], casesens=False):
 	"""
 	Extracts the failing seed from a log file.
-	
+
 	:param log_file_path: Path to log file.
 	:param PassString: Search Strings to declare a PASS condition.
 	:param FailString: Search Strings to declare a FAIL condition.
@@ -668,7 +718,7 @@ def extract_fail_seed(log_file_path: str,
 def loops_fails(path: str):
 	"""
 	Iterates over log files in a directory to extract failing seeds.
-	
+
 	:param path: Path for seed files.
 	:return seeds: A dictionary with filenames and their corresponding failing seeds.
 	"""
@@ -782,16 +832,16 @@ def ini_to_dict_with_types(file_path, convert_section_underscores=False, convert
 	"""
 	Reads an INI file and returns it as a nested dictionary with automatic type conversion.
 	Attempts to convert values to int, float, or boolean when possible.
-	
+
 	Args:
 		file_path (str): Path to the .ini file
 		convert_section_underscores (bool): If True, converts underscores to spaces in section names
 		convert_key_underscores (bool): If True, converts underscores to spaces in key names
-		
+
 	Returns:
 		dict: Dictionary with sections as keys and their key-value pairs as nested dictionaries.
 			  Values are automatically converted to appropriate Python types.
-			  
+
 	Raises:
 		FileNotFoundError: If the file doesn't exist
 		configparser.Error: If there's an error parsing the INI file
@@ -864,7 +914,7 @@ def load_json(filepath):
 def execute_file(file_path: str, logger = None):
 	"""
 	Executes Python code lines from a .txt file.
-	
+
 	:param file_path: Path to the .txt file containing Python code lines to be executed.
 	:param logger: Logging instance if not used will use print
 	"""
@@ -959,7 +1009,7 @@ def copy_folder(src, dest, visual = "unknown", zipdata=True , logger = None):
 		# Create zipfile with source folder name
 		#dest_path = os.path.join(dest, hostname.lower(), current_date, visual)
 
-		zip_file_name = f'ExperimentData.zip'
+		zip_file_name = 'ExperimentData.zip'
 		zip_file_path = os.path.join(dest_path, zip_file_name)
 		
 
@@ -990,7 +1040,7 @@ class FrameworkConfigConverter:
 	def __init__(self, ini_file_path="framework_config.ini", logger=None):
 		"""
 		Initialize the converter with INI file path
-		
+
 		Args:
 			ini_file_path (str): Path to the INI configuration file
 		"""
@@ -1029,7 +1079,7 @@ class FrameworkConfigConverter:
 				   flow_type=None, command_timeout=None, output_path=None):
 		"""
 		Update existing INI configuration file with new values
-		
+
 		Args:
 			dragon_config: Dragon configuration dataclass object
 			linux_config: Linux configuration dataclass object
@@ -1037,7 +1087,7 @@ class FrameworkConfigConverter:
 			flow_type (str): Flow type - 'LINUX', 'SLICE', 'MESH', or 'CUSTOM'
 			command_timeout (int): Command timeout value
 			output_path (str): Path where to save the INI file. If None, uses self.ini_file_path
-			
+
 		Returns:
 			bool: True if successful, False otherwise
 		"""
@@ -1091,7 +1141,7 @@ class FrameworkConfigConverter:
 		"""
 		Define mapping between dataclass fields and INI sections/keys
 		This is the SINGLE SOURCE OF TRUTH for field mappings
-		
+
 		Returns:
 			dict: Mapping configuration
 		"""
@@ -1317,13 +1367,13 @@ class FrameworkConfigConverter:
 	def get_flow_config_data(self, flow_type=None, include_empty=True, use_cache=True):
 		"""
 		Get flow configuration data as a dictionary - THE MAIN METHOD
-		
+
 		Args:
-			flow_type (str): Flow type - 'LINUX', 'SLICE', 'MESH', or 'CUSTOM'. 
+			flow_type (str): Flow type - 'LINUX', 'SLICE', 'MESH', or 'CUSTOM'.
 							If None, uses current flow type from config
 			include_empty (bool): Whether to include empty values in the result
 			use_cache (bool): Whether to use cached data if available
-							
+
 		Returns:
 			dict: Configuration data with parameter names as keys and values as values
 				  Returns None if error occurs
@@ -1429,11 +1479,11 @@ class FrameworkConfigConverter:
 	def create_flow_csv(self, flow_type, ttl_folder_path):
 		"""
 		Create CSV file for specified flow type using config data as source
-		
+
 		Args:
 			flow_type (str): Flow type - 'LINUX', 'SLICE', 'MESH', or 'CUSTOM'
 			ttl_folder_path (str): Path to folder where CSV will be created
-			
+
 		Returns:
 			str: Path to created CSV file, or None if failed
 		"""

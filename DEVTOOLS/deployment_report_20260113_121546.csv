@@ -1,0 +1,60 @@
+Deployment Report
+Timestamp,20260113_121546
+Product,DMR
+Source Type,PPV
+Deployment Type,PPV
+Target,Q:\Gaespino\scripts\s2t\Deploys\DMR\dev\DebugFramework\PPV
+Total Files Scanned,41
+Product Filtered,38
+Deployed Successfully,3
+Errors,0
+
+DEPLOYED FILES
+Source File,Target File,Renamed,Old Name,New Name,Status,Similarity,Import Replacements,Filename Import Updates,Import Change Lines,Rename Change Lines
+parsers\MCAparser.py,parsers\MCAparser.py,No,MCAparser.py,MCAparser.py,minimal_changes,99.9%,-,-,-,-
+Decoder\decoder.py,Decoder\decoder.py,No,decoder.py,decoder.py,minor_changes,84.4%,-,-,-,-
+parsers\PPVLoopsParser.py,parsers\PPVLoopsParser.py,No,PPVLoopsParser.py,PPVLoopsParser.py,minor_changes,89.0%,-,-,-,-
+
+DETAILED LINE CHANGES
+File,Line,Change Type,Old Content,New Content
+
+SKIPPED FILES
+File,Reason,Status,Renamed,New Name
+parsers\OverviewAnalyzer.py,Not selected,identical,No,-
+Decoder\TransformJson.py,Not selected,identical,No,-
+utils\aqua_report.py,Not selected,identical,No,-
+utils\folder_list.py,Not selected,identical,No,-
+run.py,Not selected,new,No,-
+Decoder\DMR\cache_params.json,Not selected,identical,No,-
+gui\AutomationDesigner.py,Not selected,identical,No,-
+gui\MCADecoder.py,Not selected,identical,No,-
+gui\PPVFileHandler.py,Not selected,identical,No,-
+Decoder\DMR\sca_params.json,Not selected,identical,No,-
+gui\PPVLoopChecks.py,Not selected,identical,No,-
+Decoder\DMR\llc_params.json,Not selected,identical,No,-
+utils\ExcelReportBuilder.py,Not selected,identical,No,-
+Decoder\DMR\mc_subch_params.json,Not selected,identical,No,-
+api\dpmb.py,Not selected,new,No,-
+Decoder\faildetection.py,Not selected,identical,No,-
+Decoder\DMR\ubr_params.json,Not selected,identical,No,-
+Decoder\DMR\log_portid.json,Not selected,identical,No,-
+gui\ExperimentBuilder.py,Not selected,identical,No,-
+utils\PPVReportMerger.py,Not selected,identical,No,-
+Decoder\DMR\ubox_params.json,Not selected,identical,No,-
+gui\PPVTools.py,Not selected,identical,No,-
+MCAparser_bkup.py,Not selected,new,No,-
+Decoder\DMR\core_params.json,Not selected,identical,No,-
+gui\PPVDataChecks.py,Not selected,identical,No,-
+Decoder\DMR\hamvf_params.json,Not selected,identical,No,-
+Decoder\DMR\ula_params.json,Not selected,identical,No,-
+gui\ProductSelector.py,Not selected,identical,No,-
+test_mca_decoder.py,Not selected,new,No,-
+parsers\Frameworkparser.py,Not selected,identical,No,-
+parsers\FrameworkAnalyzer.py,Not selected,identical,No,-
+Decoder\DMR\mse_params.json,Not selected,identical,No,-
+Decoder\dragon_bucketing.py,Not selected,identical,No,-
+Decoder\DMR\cha_params.json,Not selected,identical,No,-
+utils\FrameworkFileFix.py,Not selected,identical,No,-
+install_dependencies.py,Not selected,new,No,-
+gui\PPVFrameworkReport.py,Not selected,identical,No,-
+utils\DeveloperEnvironment.py,Not selected,minor_changes,No,-

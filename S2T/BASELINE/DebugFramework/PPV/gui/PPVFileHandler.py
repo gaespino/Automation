@@ -205,7 +205,7 @@ class FileHandlerGUI:
         print(f' {"#"*120}\n')
         print(f'\t{"-"*10} PPV File Handler {"-"*10}')
         print(f'\tNew file will be saved at: {data["Target"]}\n')
-        print(f'\tUsing Configuration:')
+        print('\tUsing Configuration:')
         #print(f'\tvpos:   \t{vpo}')
         print(f'\tMode:   \t\t{data["Mode"]}')		
         print(f'\tSource:   \t{data["Source"]}')	

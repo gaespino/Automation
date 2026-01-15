@@ -30,7 +30,6 @@ import getpass
 import re
 import csv
 
-from datetime import datetime
 from os.path import exists
 from turtle import end_fill
 import statistics

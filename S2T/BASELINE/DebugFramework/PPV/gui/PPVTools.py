@@ -30,7 +30,7 @@ except ImportError:
 
 def display_banner():
     # Create the banner text
-    banner_text = rf'''
+    banner_text = r'''
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║                                                                            ║
 ║  ████████╗██╗  ██╗██████╗     ██████╗ ███████╗██████╗ ██╗   ██╗ ██████╗    ║
@@ -753,8 +753,8 @@ class Tools(tk.Frame):
 				anchor="w"
 			)
 			action_label.pack(anchor="w", padx=20, pady=2)
-		y = (window.winfo_screenheight() // 2) - (height // 2)
-		window.geometry(f'{width}x{height}+{x}+{y}')
+		#y = (window.winfo_screenheight() // 2) - (height // 2)
+		#window.geometry(f'{width}x{height}+{x}+{y}')
 
 if __name__ == "__main__":
 	from ProductSelector import show_product_selector

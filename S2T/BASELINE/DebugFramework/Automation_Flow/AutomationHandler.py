@@ -1304,7 +1304,7 @@ class FlowProgressInterface:
 		if missing_files:
 			# Show message about missing files
 			missing_list = [self.default_files[ft] for ft in missing_files]
-			message = f"Missing files:\n" + "\n".join(f"• {f}" for f in missing_list)
+			message = "Missing files:\n" + "\n".join(f"• {f}" for f in missing_list)
 			message += "\n\nPlease use the Browse buttons to select these files individually."
 			
 			messagebox.showwarning("Missing Configuration Files", message)

@@ -333,7 +333,7 @@ class loggerGUI:
 		else:
 			framework_data = None
 
-		print(f"Creating System Log with the following configuration")
+		print("Creating System Log with the following configuration")
 		print(f"\tVisual ID: {visual}")
 		print(f"\tQDF: {qdf}")
 		print(f"\tProduct: {product}")

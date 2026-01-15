@@ -30,7 +30,7 @@ BASE_PATH = pe.BASE_PATH
 try:
 	import CoreManipulation as core_manipulation
 except ImportError:
-	print(f"[!] CoreManipulation module not available - some features will be disabled")
+	print("[!] CoreManipulation module not available - some features will be disabled")
 
 try:
 	if dev_mode: 
@@ -38,12 +38,12 @@ try:
 	else:
 		import users.gaespino.DebugFramework.FileHandler as file_handler
 except ImportError:
-	print(f"[!] FileHandler module not available - upload features will be disabled")
+	print("[!] FileHandler module not available - upload features will be disabled")
 
 try:
 	import dpmChecks as dpm_checks
 except ImportError:
-	print(f"[!] dpmChecks module not available - fuse/voltage operations will be disabled")
+	print("[!] dpmChecks module not available - fuse/voltage operations will be disabled")
 
 try:
 	import ipccli
@@ -51,7 +51,7 @@ try:
 	sv = namednodes.sv
 	
 except ImportError:
-	print(f"[!] ipccli/namednodes not available - MCA dump features will be disabled")
+	print("[!] ipccli/namednodes not available - MCA dump features will be disabled")
 
 ErrorReportGenerator = erg.ErrorReportGenerator
 
@@ -200,10 +200,10 @@ def mca_dump_gnr(verbose=True):
 	"""
 	GNR MCA dump wrapper - delegates to product-specific implementation
 	Performs unlock in ErrorReport, then calls product-specific mca_dump
-	
+
 	Args:
 		verbose (bool): If True, prints detailed register information
-		
+
 	Returns:
 		tuple: (mcadata dict, pysvdecode dict) from product-specific mca_dump
 	"""
@@ -228,10 +228,10 @@ def mca_dump_cwf(verbose=True):
 	"""
 	CWF MCA dump wrapper - delegates to product-specific implementation
 	Performs unlock in ErrorReport, then calls product-specific mca_dump
-	
+
 	Args:
 		verbose (bool): If True, prints detailed register information
-		
+
 	Returns:
 		tuple: (mcadata dict, pysvdecode dict) from product-specific mca_dump
 	"""
@@ -257,10 +257,10 @@ def mca_dump_dmr(verbose=True):
 	"""
 	DMR MCA dump wrapper - delegates to product-specific implementation
 	Performs unlock in ErrorReport, then calls product-specific mca_dump
-	
+
 	Args:
 		verbose (bool): If True, prints detailed register information
-		
+
 	Returns:
 		tuple: (mcadata dict, pysvdecode dict) from product-specific mca_dump
 	"""
@@ -282,7 +282,16 @@ def mca_dump_dmr(verbose=True):
 		print(f"[!] MCA dump failed: {e}")
 		return {}, {}
 
-__all__ = ['run', 'quick_run', 'get_decoder', 'list_decoders', 'get_generator', 
+def readscratchpad():
+	"""Read scratchpad value"""
+	dev_base_path = 'users.gaespino.dev'
+	if pe.DEV_MODE:
+		import_path = dev_base_path
+	else:
+		import_path = BASE_PATH
+	return ErrorReportGenerator.readscratchpad(sv = sv, product=SELECTED_PRODUCT, base_path = import_path)
+
+__all__ = ['run', 'quick_run', 'get_decoder', 'list_decoders', 'get_generator',
 		   'mca_dump_gnr', 'mca_dump_cwf', 'mca_dump_dmr', 'mca_init',
 		   'SELECTED_PRODUCT', 'SELECTED_VARIANT', 'FRAMEWORK_VARS']
 

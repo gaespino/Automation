@@ -1374,30 +1374,6 @@ class MainThreadHandler(IStatusReporter):
 		
 		self.state_machine.process_event(event)
 
-	def cleanup(self):
-		"""Proper cleanup method"""
-		self._is_destroyed = True
-		self._callback_enabled = False
-		
-		# Cancel any pending after callbacks
-		if self._after_id and self.root:
-			try:
-				self.root.after_cancel(self._after_id)
-				self._after_id = None
-			except tk.TclError:
-				pass  # Root already destroyed
-		
-		# Clear the queue
-		self.clear_queue()
-
-		# Give time for any pending operations to complete
-		time.sleep(0.1)
-
-	def disable_callbacks(self):
-		"""Disable callback processing and cleanup"""
-		self._callback_enabled = False
-		self.cleanup()	
-
 	def _apply_ui_updates(self, updates: Dict[str, Any]):
 
 
@@ -1642,14 +1618,14 @@ class MainThreadHandler(IStatusReporter):
 	def _handle_progress_update_safe(self):
 		"""Handle progress updates safely"""
 		try:
-			self.show_debug_messages(f"BEFORE Overall Progress Update:")
-			
+			self.show_debug_messages("BEFORE Overall Progress Update:")
+
 			# Only update if no strategy progress is active
 			if not getattr(self.ui, '_strategy_progress_active', False):
 				self.ui._coordinate_progress_updates('overall_calculation', {})
-			
-			self.show_debug_messages(f"AFTER Overall Progress Update:")
-			
+
+			self.show_debug_messages("AFTER Overall Progress Update:")
+
 		except Exception as e:
 			print(f"Progress update error: {e}")
 
@@ -1881,9 +1857,33 @@ class MainThreadHandler(IStatusReporter):
 		"""Enable callback processing"""
 		self._callback_enabled = True
 
-	def disable_callbacks(self):
-		"""Disable callback processing"""
+	#def disable_callbacks(self):
+	#	"""Disable callback processing"""
+	#	self._callback_enabled = False
+
+	def cleanup(self):
+		"""Proper cleanup method"""
+		self._is_destroyed = True
 		self._callback_enabled = False
+
+		# Cancel any pending after callbacks
+		if self._after_id and self.root:
+			try:
+				self.root.after_cancel(self._after_id)
+				self._after_id = None
+			except tk.TclError:
+				pass  # Root already destroyed
+
+		# Clear the queue
+		self.clear_queue()
+
+		# Give time for any pending operations to complete
+		time.sleep(0.1)
+
+	def disable_callbacks(self):
+		"""Disable callback processing and cleanup"""
+		self._callback_enabled = False
+		self.cleanup()
 
 	def clear_queue(self):
 		"""Clear pending updates"""
@@ -1984,30 +1984,6 @@ class SecondThreadHandler(IStatusReporter):
 		)
 		
 		self.state_machine.process_event(event)
-
-	def cleanup(self):
-		"""Proper cleanup method"""
-		self._is_destroyed = True
-		self._callback_enabled = False
-		
-		# Cancel any pending after callbacks
-		if self._after_id and self.root:
-			try:
-				self.root.after_cancel(self._after_id)
-				self._after_id = None
-			except tk.TclError:
-				pass  # Root already destroyed
-		
-		# Clear the queue
-		self.clear_queue()
-
-		# Give time for any pending operations to complete
-		time.sleep(0.1)
-
-	def disable_callbacks(self):
-		"""Disable callback processing and cleanup"""
-		self._callback_enabled = False
-		self.cleanup()	
 
 	def _apply_ui_updates(self, updates: Dict[str, Any]):
 		"""Apply comprehensive UI updates safely in main thread"""
@@ -2204,14 +2180,14 @@ class SecondThreadHandler(IStatusReporter):
 	def _handle_progress_update_safe(self):
 		"""Handle progress updates safely"""
 		try:
-			self.show_debug_messages(f"BEFORE Overall Progress Update:")
-			
+			self.show_debug_messages("BEFORE Overall Progress Update:")
+
 			# Only update if no strategy progress is active
 			if not getattr(self.ui, '_strategy_progress_active', False):
 				self.ui._coordinate_progress_updates('overall_calculation', {})
-			
-			self.show_debug_messages(f"AFTER Overall Progress Update:")
-			
+
+			self.show_debug_messages("AFTER Overall Progress Update:")
+
 		except Exception as e:
 			print(f"Progress update error: {e}")
 
@@ -2335,9 +2311,33 @@ class SecondThreadHandler(IStatusReporter):
 		"""Enable callback processing"""
 		self._callback_enabled = True
 
-	def disable_callbacks(self):
-		"""Disable callback processing"""
+	#def disable_callbacks(self):
+	#	"""Disable callback processing"""
+	#	self._callback_enabled = False
+
+	def cleanup(self):
+		"""Proper cleanup method"""
+		self._is_destroyed = True
 		self._callback_enabled = False
+
+		# Cancel any pending after callbacks
+		if self._after_id and self.root:
+			try:
+				self.root.after_cancel(self._after_id)
+				self._after_id = None
+			except tk.TclError:
+				pass  # Root already destroyed
+
+		# Clear the queue
+		self.clear_queue()
+
+		# Give time for any pending operations to complete
+		time.sleep(0.1)
+
+	def disable_callbacks(self):
+		"""Disable callback processing and cleanup"""
+		self._callback_enabled = False
+		self.cleanup()
 
 	def clear_queue(self):
 		"""Clear pending updates"""

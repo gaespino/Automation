@@ -38,7 +38,7 @@ class ExperimentDebugger:
 		"""Initialize debug session"""
 		session_file = os.path.join(self.debug_folder, f"debug_session_{self.debug_session_id}.log")
 		with open(session_file, 'w') as f:
-			f.write(f"=== EXPERIMENT TRACKER DEBUG SESSION STARTED ===\n")
+			f.write("=== EXPERIMENT TRACKER DEBUG SESSION STARTED ===\n")
 			f.write(f"Session ID: {self.debug_session_id}\n")
 			f.write(f"Start Time: {datetime.now().isoformat()}\n")
 			f.write("=" * 60 + "\n\n")
@@ -554,8 +554,8 @@ class ExperimentTracker:
 			self.debugger.log_tracker_state(self)
 		
 		except Exception as e:
-			self.debugger.log_error(f"Error completing experiment tracking", e)	
-	
+			self.debugger.log_error("Error completing experiment tracking", e)
+
 	def _extract_test_folder_from_framework(self):
 		"""Extract test folder from framework's _generate_summary section"""
 		try:
@@ -1205,7 +1205,7 @@ class ExperimentTracker:
 			return analysis
 			
 		except Exception as e:
-			self.debugger.log_error(f"Error in adaptive analysis", e)
+			self.debugger.log_error("Error in adaptive analysis", e)
 			return {'status': 'error', 'message': str(e)}
 
 	def _select_best_experiment_for_adaptive(self, experiments):
@@ -1444,8 +1444,8 @@ class ExperimentTracker:
 			return comprehensive_data
 			
 		except Exception as e:
-			self.debugger.log_error(f"Error in comprehensive analysis", e)
-			
+			self.debugger.log_error("Error in comprehensive analysis", e)
+
 			# Return safe fallback data
 			return {
 				'flow_summary': self.flow_summary or {},
@@ -1504,15 +1504,15 @@ class ExperimentTracker:
 					
 					if sweep_type == 'voltage':
 						voltage_experiments.append(exp)
-						print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   Added to voltage experiments")
+						print("[DEBUG] DEBUG: AnalysisFlowInstance -   Added to voltage experiments")
 					elif sweep_type == 'frequency':
 						frequency_experiments.append(exp)
-						print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   Added to frequency experiments")
+						print("[DEBUG] DEBUG: AnalysisFlowInstance -   Added to frequency experiments")
 					else:
 						print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   Unknown sweep type: {sweep_type}")
 				else:
-					print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   No sweep data")
-			
+					print("[DEBUG] DEBUG: AnalysisFlowInstance -   No sweep data")
+
 			print(f"[DEBUG] DEBUG: AnalysisFlowInstance - Found {len(voltage_experiments)} voltage experiments")
 			print(f"[DEBUG] DEBUG: AnalysisFlowInstance - Found {len(frequency_experiments)} frequency experiments")
 			
@@ -1535,7 +1535,7 @@ class ExperimentTracker:
 			
 		except Exception as e:
 			print(f"[DEBUG] DEBUG: AnalysisFlowInstance - Error in VF analysis: {e}")
-			self.debugger.log_error(f"Error in VF analysis", e)
+			self.debugger.log_error("Error in VF analysis", e)
 			return {
 				'voltage_sensitivity': {'status': 'error', 'message': str(e)},
 				'frequency_sensitivity': {'status': 'error', 'message': str(e)},
@@ -1567,7 +1567,7 @@ class ExperimentTracker:
 				print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   Sweep analysis: {sweep_analysis is not None}")
 				
 				if sweep_data is None:
-					print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   No sweep data, skipping")
+					print("[DEBUG] DEBUG: AnalysisFlowInstance -   No sweep data, skipping")
 					continue
 					
 				sweep_domain = sweep_data.get('sweep_domain')  # Check sweep_data first
@@ -1579,15 +1579,15 @@ class ExperimentTracker:
 				if sweep_domain == 'ia':
 					if sweep_analysis:
 						ia_sensitivity.append(sweep_analysis)
-						print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   Added to IA voltage sensitivity")
+						print("[DEBUG] DEBUG: AnalysisFlowInstance -   Added to IA voltage sensitivity")
 					else:
-						print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   No sweep analysis for IA experiment")
+						print("[DEBUG] DEBUG: AnalysisFlowInstance -   No sweep analysis for IA experiment")
 				elif sweep_domain == 'cfc':
 					if sweep_analysis:
 						cfc_sensitivity.append(sweep_analysis)
-						print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   Added to CFC voltage sensitivity")
+						print("[DEBUG] DEBUG: AnalysisFlowInstance -   Added to CFC voltage sensitivity")
 					else:
-						print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   No sweep analysis for CFC experiment")
+						print("[DEBUG] DEBUG: AnalysisFlowInstance -   No sweep analysis for CFC experiment")
 				else:
 					print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   Unknown or missing sweep domain: {sweep_domain}")
 			
@@ -1635,7 +1635,7 @@ class ExperimentTracker:
 				print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   Sweep analysis: {sweep_analysis is not None}")
 				
 				if sweep_data is None:
-					print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   No sweep data, skipping")
+					print("[DEBUG] DEBUG: AnalysisFlowInstance -   No sweep data, skipping")
 					continue
 					
 				sweep_domain = sweep_data.get('sweep_domain')  # Check sweep_data first
@@ -1647,15 +1647,15 @@ class ExperimentTracker:
 				if sweep_domain == 'ia':
 					if sweep_analysis:
 						ia_sensitivity.append(sweep_analysis)
-						print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   Added to IA frequency sensitivity")
+						print("[DEBUG] DEBUG: AnalysisFlowInstance -   Added to IA frequency sensitivity")
 					else:
-						print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   No sweep analysis for IA experiment")
+						print("[DEBUG] DEBUG: AnalysisFlowInstance -   No sweep analysis for IA experiment")
 				elif sweep_domain == 'cfc':
 					if sweep_analysis:
 						cfc_sensitivity.append(sweep_analysis)
-						print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   Added to CFC frequency sensitivity")
+						print("[DEBUG] DEBUG: AnalysisFlowInstance -   Added to CFC frequency sensitivity")
 					else:
-						print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   No sweep analysis for CFC experiment")
+						print("[DEBUG] DEBUG: AnalysisFlowInstance -   No sweep analysis for CFC experiment")
 				else:
 					print(f"[DEBUG] DEBUG: AnalysisFlowInstance -   Unknown or missing sweep domain: {sweep_domain}")
 			
@@ -2334,8 +2334,8 @@ class ExperimentTracker:
 			test_type = exp_config.get('Test Type')
 			sweep_type = exp_config.get('Type')
 			domain = exp_config.get('Domain')
-			
-			print(f"  Experiment Config:")
+
+			print("  Experiment Config:")
 			print(f"    Test Type: {test_type}")
 			print(f"    Type: {sweep_type}")
 			print(f"    Domain: {domain}")

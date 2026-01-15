@@ -107,7 +107,7 @@ class teraterm():
 		elif self.content == 'Linux': tstPass = self.linuxcheck(last_line, unchanged_checks, endcount)
 		elif self.content == 'PYSVConsole': tstPass = self.pysvcheck()
 		elif self.content == 'BootBreaks': tstPass = self.pysvcheck()
-		else: self.DebugLog(f"No valid content option selected... ")
+		else: self.DebugLog("No valid content option selected... ")
 
 		return tstPass
 
@@ -122,23 +122,23 @@ class teraterm():
 		## Check Loop increase ttime based on your current content time
 		while True:
 			self.check_user_cancel()
-			try: 
+			try:
 				current_last_line, total_lines = self.get_last_line()
-			except: 
-				self.DebugLog(f"Failed reading Teraterm data log")
+			except:
+				self.DebugLog("Failed reading Teraterm data log")
 				return False
 			if total_lines == None:
-				self.DebugLog(f"Failed reading Teraterm data log")
-				return False           
-		   
+				self.DebugLog("Failed reading Teraterm data log")
+				return False
+
 			numlines = len(total_lines)# if total_lines != None else 0
-			
+
 			# Function to collect Core Data if configured
 			self.get_core_data()
 
 			if current_last_line == last_line and prevlines == numlines:
 				unchanged_checks += 1
-				
+
 			else:
 				unchanged_checks = 0
 				last_line = current_last_line
@@ -154,8 +154,8 @@ class teraterm():
 					return False
 				if self.search_in_file(lines=total_lines, string=[self.ttendfail], casesens=False, search_up_to_line=10, reverse=True):
 					return False
-			
-			if 'FS1:\EFI\>' in current_last_line and numlines >= 2:
+
+			if r'fs1:\efi\>' in current_last_line.lower() and numlines >= 2:
 				previousline = total_lines[numlines-2]
 				self.DebugLog(f'Last line {-1} --times:{endcount} --> {previousline}', 1)
 				endcount += 1
@@ -218,13 +218,13 @@ class teraterm():
 			self.check_user_cancel()
 			try: 
 				current_last_line, total_lines = self.get_last_line()
-			except: 
-				self.DebugLog(f"Failed reading Teraterm data log")
+			except:
+				self.DebugLog("Failed reading Teraterm data log")
 				return False
 			if total_lines == None:
-				self.DebugLog(f"Failed reading Teraterm data log")
-				return False           
-		   
+				self.DebugLog("Failed reading Teraterm data log")
+				return False
+
 			numlines = len(total_lines)# if total_lines != None else 0
 			
 			# Function to collect Core Data if configured
@@ -335,8 +335,9 @@ class teraterm():
 			socket = 0
 				
 			try:
-				compute=gcd.get_compute(core)
+
 				if self.product == 'GNR':
+					compute=gcd.get_compute(core)
 					iaR = gcd.read_current_core_ratio(core, compute, socket)
 					iaV = gcd.read_current_core_voltage(core, compute, socket)
 					iaL = gcd.read_current_license(core, compute, socket)
@@ -344,16 +345,25 @@ class teraterm():
 					#print( "core = %s, IA Ratio = %s, IA Volt = %f,  IALicense= %s" % (core, iaR, iaV, iaL))
 
 					self.DebugLog("phys_core = %s, IA Ratio = %s, IA Volt = %f, IALicense= %s, current_dcf_ratio = %d" % (core, iaR, iaV, iaL, dcf_ratio))
-				else:
+				elif self.product == 'CWF':
 					phys_mod = core
+					compute=gcd.get_compute(core)
 					moduleLog = gcd.get_moduleLog(core, compute, socket)
 					iaR = gcd.read_current_core_ratio(moduleLog, compute, socket)
 					iaV = gcd.read_current_core_voltage(moduleLog, compute, socket)
 					self.DebugLog( "PHYmodule = %s, LLmodule = %s, IA Ratio = %d, IA Volt = %f" % (phys_mod, moduleLog, iaR, iaV))
+				elif self.product == 'DMR':
+					phys_core = core
+					iaR = gcd.read_current_core_ratio(phys_core, socket)
+					iaV = gcd.read_current_core_voltage(phys_core, socket)
+					iaL = gcd.read_current_license(phys_core, socket)
+
+					self.DebugLog("phys_core = %s, IA Ratio = %s, IA Volt = %f, IALicense= %s" % (phys_core, iaR, iaV, iaL))
+
 			except Exception as e:
 				self.DebugLog( f" Failed collecting data for --> Core / Module:{core} -- {e}")
-				self.DebugLog(F" Disablomg Check Core/Module routine for CORE/MOD: {core}")
-				self.DebugLog(F" Check if your Module/Core is disabled or PythonSV is having issues")
+				self.DebugLog(f" Disabling Check Core/Module routine for CORE/MOD: {core}")
+				self.DebugLog(" Check if your Module/Core is disabled or PythonSV is having issues")
 				self.chkcore = None
 
 	def run_tera_term_macro(self):
@@ -453,6 +463,7 @@ class teraterm():
 	def mca_checker(self):
 		if self.product == 'GNR': mcadata, pysvdecode = ereport.mca_dump_gnr(verbose=False)
 		elif self.product == 'CWF': mcadata, pysvdecode = ereport.mca_dump_cwf(verbose=False)
+		elif self.product == 'DMR': mcadata, pysvdecode = ereport.mca_dump_dmr(verbose=False)
 		else: self.DebugLog(f"Check Configuration product is no available for MCE Capture. Product:{self.product}")
 		
 		for k,v in pysvdecode.items():
@@ -471,8 +482,8 @@ class teraterm():
 			if self.execution_state.is_cancelled():
 				self.DebugLog("Execution stopped by command", 2)
 				raise InterruptedError("SERIAL: Execution stopped")
-			
-		# Fallabck Method -- Used by TTL Test	
+
+		# Fallback Method -- Used by TTL Test
 		elif cancel_check:
 			#print('Checking Cancel Status', cancel_check, self.cancel_flag.is_set())	
 			if self.cancel_flag.is_set():

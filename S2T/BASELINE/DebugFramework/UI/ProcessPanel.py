@@ -2374,7 +2374,7 @@ class DebugFrameworkControlPanel:
 			return
 		
 		try:
-			print(f"=== PROGRESS DEBUG ===")
+			print("=== PROGRESS DEBUG ===")
 			print(f"Progress Bar Value: {self.progress_var.get()}")
 			print(f"Current Experiment Index: {self.current_experiment_index}")
 			print(f"Total Experiments: {self.total_experiments}")
@@ -2394,8 +2394,8 @@ class DebugFrameworkControlPanel:
 				print(f"CALCULATED Progress: {overall_progress:.1f}%")
 				print(f"  Exp Progress: {exp_progress:.3f}")
 				print(f"  Iter Progress: {iter_progress:.3f}")
-			
-			print(f"======================")
+
+			print("======================")
 		except Exception as e:
 			print(f"Debug error: {e}")
 
@@ -2578,7 +2578,8 @@ class DebugFrameworkControlPanel:
 			
 		except Exception as e:
 			# Update UI from main thread
-			self.root.after(0, lambda: self.log_status(f"Framework cancellation error: {e}"))
+			emessage = f"Framework cancellation error: {e}"
+			self.root.after(0, lambda: self.log_status(emessage))
 
 	# Not used -- check and remove
 	def _reset_ui_after_cancel(self):

@@ -752,7 +752,7 @@ def u600w(check=True):
 
 def reset_600w():
 	u600f = u600w(check = False)
-	print(f'>>> Using Bootscript to start the unit <<< ')
+	print('>>> Using Bootscript to start the unit <<< ')
 	print(f'>>> Compute fuses: {u600f["computes"]}')
 	print(f'>>> IO fuses: {u600f["ios"]}')
 	b.go(pwrgoodmethod='usb', pwrgoodport=1, pwrgooddelay=30, fused_unit=True, enable_strap_checks=False,compute_config=COMPUTE_CONFIG,enable_pm=True,segment=SEGMENT, fuse_str_compute = u600f['computes'], fuse_str_io = u600f['ios'])
@@ -768,7 +768,7 @@ def hwls_miscompare(logger=None):
 		gcm.svStatus()
 		modules = sv.sockets.computes.cpu.modules
 		try:
-			logger(f'Collecting HWLS Data')
+			logger('Collecting HWLS Data')
 			for module in modules:
 				pair_0 = module.bus_cr_lockstep_miscompare_status_core_pair_0
 				pair_1 = module.bus_cr_lockstep_miscompare_status_core_pair_1
@@ -786,7 +786,7 @@ def bsknobs(readonly = False, skipinit = False):
 	ram = nvram.getNVRAM()
 	if not skipinit: gcm.svStatus()
 	#knobs = {'DfxS3mSoftStrap':0, 'DfxSkipWarmResetPromotion':1}
-	print(f'>>> Checking BIOS configuration knobs: DfxS3mSoftStrap, DfxSkipWarmResetPromotion, DwrEnable and IerrResetEnabled <<< ')
+	print('>>> Checking BIOS configuration knobs: DfxS3mSoftStrap, DfxSkipWarmResetPromotion, DwrEnable and IerrResetEnabled <<< ')
 	#biosknobs(knobs=knobs, readonly=False)
 
 	try:
@@ -1342,6 +1342,11 @@ def qdf_str():
 def product_str(): # DMR will use device_name
 	#product = sv.socket0.target_info["device_name"].upper()
 	product = config.PRODUCT_CONFIG.upper()
+	return product
+
+def get_selected_product(): # DMR will use device_name
+	#product = sv.socket0.target_info["device_name"].upper()
+	product = config.SELECTED_PRODUCT.upper()
 	return product
 
 def variant_str():

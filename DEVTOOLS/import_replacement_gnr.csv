@@ -1,10 +1,3 @@
 old_import,new_import,description,enabled
-from DebugFramework.SystemDebug import,from DebugFramework.GNRSystemDebug import,GNR variant: SystemDebug,yes
-import DebugFramework.SystemDebug,import DebugFramework.GNRSystemDebug as SystemDebug,GNR variant import: SystemDebug,yes
-users.gaespino.dev.DebugFramework.SystemDebug,users.gaespino.DebugFramework.GNRSystemDebug,GNR config path: SystemDebug,yes
-from S2T.dpmChecks import,from S2T.GNRdpmChecks import,GNR variant: dpmChecks,yes
-import S2T.dpmChecks,import S2T.GNRdpmChecks as dpmChecks,GNR variant import: dpmChecks,yes
-users.gaespino.dev.S2T.dpmChecks,users.gaespino.S2T.GNRdpmChecks,GNR config path: dpmChecks,yes
-from S2T.CoreManipulation import,from S2T.GNRCoreManipulation import,GNR variant: CoreManipulation,yes
-import S2T.CoreManipulation,import S2T.GNRCoreManipulation as CoreManipulation,GNR variant import: CoreManipulation,yes
-users.gaespino.dev.S2T.CoreManipulation,users.gaespino.S2T.GNRCoreManipulation,GNR config path: CoreManipulation,yes
+users.gaespino.dev.DebugFramework.,users.gaespino.DebugFramework.,Path replacement for product variant,yes
+users.gaespino.dev.S2T.,users.THR.PythonScripts.thr.S2T.,Path replacement for product variant,yes

@@ -363,7 +363,7 @@ class teraterm():
 
 			except Exception as e:
 				self.DebugLog( f" Failed collecting data for --> Core / Module:{core} -- {e}")
-				self.DebugLog(f" Disablomg Check Core/Module routine for CORE/MOD: {core}")
+				self.DebugLog(f" Disabling Check Core/Module routine for CORE/MOD: {core}")
 				self.DebugLog(" Check if your Module/Core is disabled or PythonSV is having issues")
 				self.chkcore = None
 
@@ -484,7 +484,7 @@ class teraterm():
 				self.DebugLog("Execution stopped by command", 2)
 				raise InterruptedError("SERIAL: Execution stopped")
 
-		# Fallabck Method -- Used by TTL Test
+		# Fallback Method -- Used by TTL Test
 		elif cancel_check:
 			#print('Checking Cancel Status', cancel_check, self.cancel_flag.is_set())
 			if self.cancel_flag.is_set():

@@ -11,7 +11,7 @@ CONFIG_PRODUCT = ['GNR', 'GNR_CLTAP']
 print (f"Loading Configurations for {CONFIG_PRODUCT} || REV 0.1")
 
 class configurations:
-    
+
 	def __init__(self, product):
 		self.product: str = product
 		self.config_product: list[str] = CONFIG_PRODUCT
@@ -21,12 +21,12 @@ class configurations:
 		domains_size = len(sv.socket0.computes)
 		chop = None
 
-		if domains_size == 3:		
+		if domains_size == 3:
 			chop = 'UCC'
 		elif domains_size == 2:
 			chop = 'XCC'
 		elif domains_size == 1:
-			chop = 'HCC' # holder we don't really support GNR HCC 
+			chop = 'HCC' # holder we don't really support GNR HCC
 		else:
 			raise ValueError (f" Invalid Domains size: {domains_size}")
 		print(f' GNR Product configuration: {chop}')
@@ -36,12 +36,12 @@ class configurations:
 		domains_size = len(sv.socket0.computes)
 		variant = None
 
-		if domains_size == 3:		
+		if domains_size == 3:
 			variant = 'AP'
 		elif domains_size == 2:
 			variant = 'SP'
 		elif domains_size == 1:
-			variant = 'LP' # holder we don't really support GNR HCC 
+			variant = 'LP' # holder we don't really support GNR HCC
 		else:
 			raise ValueError (f" Invalid Domains size: {domains_size}")
 		print(f' GNR Product configuration: {variant}')
@@ -51,11 +51,11 @@ class configurations:
 		if product not in CONFIG_PRODUCT:
 			raise ValueError (f" Invalid Product, this function is only available for {CONFIG_PRODUCT}")
 
-	def init_product_specific(self):
-	
+	def init_product_specific(self, sv=None):
+
 		# Product config
 		product = self.product
-		
+
 		# System Specific Configurations based on product
 		ConfigFile = f'{product}FuseFileConfigs.json'
 		CORESTRING = 'CORE'
@@ -71,7 +71,7 @@ class configurations:
 		PHY2APICID = [0,2,9,16, 23,1,3,10,17,24,4,11,19,25,5,12,19,26,6,13,20,27,7,14,21,28,8,15,22,29,30,37,44,51,58,31,38,45,52,59,32,39,46,53,33,40,47,54,34, 41,48,55,35,42,49,56,36,43,50,57]
 
 		## Not Used for bigcore
-		ClassLog2AtomID = None 
+		ClassLog2AtomID = None
 		AtomID2ClassLog = None
 
 		CONFIG = { 'PRODUCT':product,
@@ -89,15 +89,15 @@ class configurations:
 				'LOG2ATOMID': ClassLog2AtomID,
 				'ATOMID2LOG': AtomID2ClassLog,
 				}
-		
+
 		return CONFIG
 
-	def init_product_fuses(self):
-		
+	def init_product_fuses(self, sv=None):
+
 		# Product config
 		product = self.product
-		
-		# Fuses Configurations below required in some parts of the logic to be moved to a product specific 
+
+		# Fuses Configurations below required in some parts of the logic to be moved to a product specific
 		pseudoConfigs =f'{product}MasksConfig.json'
 		DebugMasks = f'{product}MasksDebug.json'
 		ConfigFile = f'{product}FuseFileConfigs.json'
@@ -109,42 +109,42 @@ class configurations:
 						'hdc_curve': ['pcode_hdc_vf_voltage_point0','pcode_hdc_vf_voltage_point1','pcode_hdc_vf_voltage_point2','pcode_hdc_vf_voltage_point3','pcode_hdc_vf_voltage_point4','pcode_hdc_vf_voltage_point5'],
 
 					}
-			
+
 		cfc_ratio_curves = {	'cfc_curve': ['pcode_cfc_vf_ratio_point0','pcode_cfc_vf_ratio_point1','pcode_cfc_vf_ratio_point2','pcode_cfc_vf_ratio_point3','pcode_cfc_vf_ratio_point4','pcode_cfc_vf_ratio_point5'],
 						'hdc_curve': ['pcode_hdc_vf_ratio_point0','pcode_hdc_vf_ratio_point1','pcode_hdc_vf_ratio_point2','pcode_hdc_vf_ratio_point3','pcode_hdc_vf_ratio_point4','pcode_hdc_vf_ratio_point5'],
-						'pstates' : {	'p0':'pcode_sst_pp_0_cfc_p0_ratio', 
-										'p1':'pcode_sst_pp_0_cfc_p1_ratio', 
-										'pn':'pcode_cfc_pn_ratio', 
+						'pstates' : {	'p0':'pcode_sst_pp_0_cfc_p0_ratio',
+										'p1':'pcode_sst_pp_0_cfc_p1_ratio',
+										'pn':'pcode_cfc_pn_ratio',
 										'min':'pcode_cfc_min_ratio'}
 					}
-		ia_ratio_curves = {	'limits': [f'pcode_sst_pp_##profile##_turbo_ratio_limit_ratios_cdyn_index##idx##_ratio##ratio##'],
-						'p1': [f'pcode_sst_pp_##profile##_sse_p1_ratio',f'pcode_sst_pp_##profile##_avx2_p1_ratio',f'pcode_sst_pp_##profile##_avx512_p1_ratio',f'pcode_sst_pp_##profile##_amx_p1_ratio'],
+		ia_ratio_curves = {	'limits': ['pcode_sst_pp_##profile##_turbo_ratio_limit_ratios_cdyn_index##idx##_ratio##ratio##'],
+						'p1': ['pcode_sst_pp_##profile##_sse_p1_ratio','pcode_sst_pp_##profile##_avx2_p1_ratio','pcode_sst_pp_##profile##_avx512_p1_ratio','pcode_sst_pp_##profile##_amx_p1_ratio'],
 						'vf_curve': ['pcode_ia_vf_ratio_voltage_index##idx##_ratio_point0','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point1','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point2','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point3','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point4','pcode_ia_vf_ratio_voltage_index##idx##_ratio_point5'],
-						'pstates' : {	'p0':'pcode_ia_p0_ratio', 
-										'pn':'pcode_ia_pn_ratio', 
+						'pstates' : {	'p0':'pcode_ia_p0_ratio',
+										'pn':'pcode_ia_pn_ratio',
 										'min':'pcode_ia_min_ratio',
 									}
-					}	
+					}
 
-		ia_ratios_config = {		
+		ia_ratios_config = {
 									'ppfs' : [0,1,2,3,4],
 									'idxs' : [0,1,2,3,4,5],
 									'ratios': [0,1,2,3,4,5,6,7],
 									'vfidx' :  [0,1,2,3],
 									'vfpnt' :  [0,1,2,3,4,5]
 									}
-			
+
 		ia_voltage_curves = {	'vf_curve': ['pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point0','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point1','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point2','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point3','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point4','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point5'],
-					}		
-			
-		fuses_600w_comp = ['pcu.pcode_sst_pp_0_power=0x226','pcu.punit_ptpcioregs_package_power_sku_pkg_min_pwr_fuse=0xa50','pcu.pcode_non_vccin_power=0x300','pcu.pcode_pkg_icc_max_app=0x23f','pcu.pcode_loadline_res=0x4','pcu.pcode_loadline_res_rev2=0x190','pcu.pcode_pkg_icc_max=0x2ee','pcu.pcode_pkg_icc_p1_max=0x2ee']
-		fuses_600w_io = ['punit_iosf_sb.pcode_sst_pp_0_power=0x266','punit_iosf_sb.pmsrvr_ptpcioregs_package_power_sku_pkg_min_pwr_fuse=0xa50','punit_iosf_sb.pcode_non_vccin_power=0x300','punit_iosf_sb.pcode_pkg_icc_max_app=0x23f','punit_iosf_sb.pcode_loadline_res=0x4','punit_iosf_sb.pcode_loadline_res_rev2=0x190','punit_iosf_sb.pcode_pkg_icc_max=0x2ee','punit_iosf_sb.pcode_pkg_icc_p1_max=0x2ee']
+					}
+
+		fuses_600w_comp = ['pcu.pcode_sst_pp_0_power=0x226','pcu.punit_ptpcioregs_package_power_sku_pkg_min_pwr_fuse=0xa50','pcu.pcode_non_vccin_power=0x300','pcu.pcode_pkg_icc_max_app=0x23','pcu.pcode_loadline_res=0x4','pcu.pcode_loadline_res_rev2=0x190','pcu.pcode_pkg_icc_max=0x2ee','pcu.pcode_pkg_icc_p1_max=0x2ee']
+		fuses_600w_io = ['punit_iosf_sb.pcode_sst_pp_0_power=0x266','punit_iosf_sb.pmsrvr_ptpcioregs_package_power_sku_pkg_min_pwr_fuse=0xa50','punit_iosf_sb.pcode_non_vccin_power=0x300','punit_iosf_sb.pcode_pkg_icc_max_app=0x23','punit_iosf_sb.pcode_loadline_res=0x4','punit_iosf_sb.pcode_loadline_res_rev2=0x190','punit_iosf_sb.pcode_pkg_icc_max=0x2ee','punit_iosf_sb.pcode_pkg_icc_p1_max=0x2ee']
 
 		htdis_comp = ['scf_gnr_maxi_coretile_c0_r1.core_core_fuse_misc_fused_ht_dis=0x1', 'pcu.capid_capid0_ht_dis_fuse=0x1','pcu.pcode_lp_disable=0x2','pcu.capid_capid0_max_lp_en=0x1']
 		htdis_io = ['punit_iosf_sb.soc_capid_capid0_max_lp_en=0x1','punit_iosf_sb.soc_capid_capid0_ht_dis_fuse=0x1']
 		vp2intersect = {	'fast':['sv.socket0.computes.fuses.scf_gnr_maxi_coretile_c0_r1.core_core_fuse_misc_vp2intersect_dis=0x0'],
 							'bs':['scf_gnr_maxi_coretile_c0_r1.core_core_fuse_misc_vp2intersect_dis=0x0'],}
-			
+
 		FrameworkFuses = {
 							'ConfigFile':				ConfigFile,
 							'DebugMasks':				DebugMasks,
@@ -162,20 +162,20 @@ class configurations:
 							'htdis_io':					htdis_io,
 							'vp2intersect':				vp2intersect,
 
-							} 		
+							}
 
-		
+
 		return FrameworkFuses
 
-	def init_framework_vars(self):
-		
+	def init_framework_vars(self, sv=None):
+
 		# Product config
 		product = self.product
 
 		# Path of All S2T scripts
 		BASE_PATH = 'users.THR.PythonScripts.thr'
 
-		## System 2 Tester and bootscript Initialization data 
+		## System 2 Tester and bootscript Initialization data
 
 		bootscript_data = {	'GNRAP':{'segment':'GNRUCC', 'config':['compute0', 'compute1', 'compute2'], 'compute_config':'x3',},
 								'GNRSP':{'segment':'GNRXCC', 'config':['compute0', 'compute1'], 'compute_config':'x2',}}
@@ -204,7 +204,7 @@ class configurations:
 		RigthSide_mask = ['COL5','COL6','COL7','COL8','COL9']
 		LeftSide_mask = ['COL0','COL1','COL2','COL3','COL4']
 
-		ate_config = 	{	
+		ate_config = 	{
 							'main':{
 									'l1':('\t> 1. ATE pseudo Configuration: '),
 									'l1-1':(f'\t\t> GNR UCC: {masks_AP}'),
@@ -222,30 +222,30 @@ class configurations:
 									'maxrng' : 7},
 							'GNRSP':{
 									'l1': ('\t> 1. FirstPass: Columns 0, 1, 3, 5, 7 and 9'),
-									'l2': ('\t> 2. SecondPass: Columns 0, 2, 4, 6, 8 and 9:'),	
-									'l3': ('\t> 3. RowPass1: CDIE0 - Rows [1,2], CDIE1 - Rows [5,6,7]:'),	
-									'l4': ('\t> 4. RowPass2: CDIE0 - Rows [5,6,7], CDIE1 - Rows [1,2]:'),		
+									'l2': ('\t> 2. SecondPass: Columns 0, 2, 4, 6, 8 and 9:'),
+									'l3': ('\t> 3. RowPass1: CDIE0 - Rows [1,2], CDIE1 - Rows [5,6,7]:'),
+									'l4': ('\t> 4. RowPass2: CDIE0 - Rows [5,6,7], CDIE1 - Rows [1,2]:'),
 									'maxrng' : 5
-									}		
+									}
 							}
 
 
-		dis2cpm_menu = 	{	
+		dis2cpm_menu = 	{
 							'main':{
 									'l1':('\t> 1. Not available for this product'),
 									'maxrng': 2},
 							}
 		dis2cpm_dict = {1:None}
 
-		dis1cpm_menu = 	{	
+		dis1cpm_menu = 	{
 							'main':{
 									'l1':('\t> 1. Not available for this product'),
 									'maxrng': 2},
 							}
-		
+
 		dis1cpm_dict = {1:None}
 
-		FrameworkVars = { 
+		FrameworkVars = {
 							'core_license_dict' : 	core_license_dict,
 							'license_dict' : license_dict,
 							'core_license_levels' : core_license_levels,
@@ -265,14 +265,14 @@ class configurations:
 							'bootscript_data' : bootscript_data,
 							'base_path': BASE_PATH,
 			}
-		
+
 		return FrameworkVars
 
-	def init_framework_features(self):
+	def init_framework_features(self, sv=None):
 
 		# Product config
 		product = self.product
-		
+
 		FrameworkFeatures = {
 							'	debug':					{'default':False,'enabled':True,'disabled_value':False,},
 								'targetLogicalCore':	{'default':None,'enabled':True,'disabled_value':None,},
@@ -318,12 +318,12 @@ class configurations:
 
 		return FrameworkFeatures
 
-	def init_dff_data(self):
-		
+	def init_dff_data(self, sv=None):
+
 		# Product config
 		product = self.product
-		
-		CORE_FREQ = {# 
+
+		CORE_FREQ = {#
 				1:[8],
 				2:[18], # previuosly 17
 				3:[24],
@@ -332,7 +332,7 @@ class configurations:
 				6:[40,38,32,30], ## Changed as of TPS507 previously 40,38,36,34
 				7:[44,42,40,38]
 			}
-		CORE_CFC_FREQ = {# 
+		CORE_CFC_FREQ = {#
 				1:8,
 				2:18, ## Changed as of TPS507 previously 18
 				3:18,
@@ -341,7 +341,7 @@ class configurations:
 				6:22,
 				7:22
 			}
-		CORE_CFCIO_FREQ = {# 
+		CORE_CFCIO_FREQ = {#
 				1:8,
 				2:14,
 				3:20,
@@ -350,7 +350,7 @@ class configurations:
 				6:25,
 				7:25
 			}
-		CFC_FREQ = {# 
+		CFC_FREQ = {#
 				1:[8],
 				2:[14],
 				3:[18], # Updated for newest F3 values of 18 (Hex 0x12)
@@ -360,29 +360,29 @@ class configurations:
 		HDC_FREQ = {# done - UNCORE_CFCxCOMP_RATIO_4
 				1:[8],
 				2:[14],
-				3:[18], 
-				4:[22]  
+				3:[18],
+				4:[22]
 			}
-			
-		IO_FREQ = {# 
+
+		IO_FREQ = {#
 				1:[8],
 				2:[14],
 				3:[20],
 				4:[24,23,22,21] ## This should be 25?
 			}
-		CFC_CORE_FREQ = {# 
+		CFC_CORE_FREQ = {#
 				1:14,
 				2:14,
 				3:14,
 				4:16,
 			}
-		HDC_CORE_FREQ = {# 
+		HDC_CORE_FREQ = {#
 				1:14,
 				2:14,
 				3:14,
 				4:16,
 			}
-		CFCIO_CORE_FREQ = {# 
+		CFCIO_CORE_FREQ = {#
 				1:8,
 				2:8,
 				3:8,
@@ -394,7 +394,7 @@ class configurations:
 				3:20,
 				4:24,
 			}
-		CFC_IO_FREQ = {# 
+		CFC_IO_FREQ = {#
 				1:16,
 				2:16,
 				3:16,
@@ -429,16 +429,16 @@ class configurations:
 				'VDDRA_RST':0.90,
 				'VDDRD_RST':0.85,
 			}
-			
+
 		cfc_max = 4
 		hdc_max = 4
 		core_max = 7
 		io_max = 4
-			
+
 		#log2Phys10x5 = {0:0, 1:1, 2:2, 3:3, 4:6, 5:7, 6:8, 7:9, 8:10, 9:13, 10:14, 11:15, 12:16, 13:17, 14:20, 15:21, 16:22, 17:23, 18:24, 19:27, 20:28, 21:29, 22:30, 23:31, 24:34, 25:35, 26:36, 27:37, 28:38, 29:41, 30:42, 31:43, 32:44, 33:45, 34:48, 35:49, 36:50, 37:51, 38:52, 39:55, 40:56, 41:57, 42:58, 43:59}
 		#Phys2log10x5 = {v:k for k, v in log2Phys10x5.items()}
 		wsdl_url = "http://mfglabdffsvc.intel.com/MDODFFWcf/DFFSVC.svc?wsdl"
-			
+
 		DFF_DATA_INIT = {
 								'CORE_FREQ':CORE_FREQ,
 								'CORE_CFC_FREQ': CORE_CFC_FREQ,
@@ -458,8 +458,8 @@ class configurations:
 								'hdc_max': hdc_max,
 								'core_max': core_max,
 								'io_max': io_max,
-								'wsdl_url': wsdl_url,                            
+								'wsdl_url': wsdl_url,
 								}
 
 		return DFF_DATA_INIT
-		
+

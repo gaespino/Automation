@@ -15,7 +15,7 @@ from tabulate import tabulate
 class VoltageManager:
 	"""
 	Manages voltage configurations for S2T framework.
-	
+
 	Responsibilities:
 	- Voltage initialization and validation
 	- Fixed voltage configuration
@@ -24,11 +24,11 @@ class VoltageManager:
 	- Uncore voltage management
 	- ATE voltage configuration
 	"""
-	
+
 	def __init__(self, product_strategy, dpm_module, menus: Dict, features: Dict):
 		"""
 		Initialize VoltageManager.
-		
+
 		Args:
 			product_strategy: Product-specific strategy implementation
 			dpm_module: DPM module for voltage operations
@@ -65,14 +65,14 @@ class VoltageManager:
 		self.safevolts_PKG: List = []
 		self.safevolts_CDIE: List = []
 		self.voltstable: str = ""
-		
-		print(f">>> VoltageManager initialized for {self.strategy.get_product_name()}")
+
+		print(f">>> Voltage Manager initialized for {self.strategy.get_product_name()}")
 		print(f">>> Supported voltage IPs: {[k for k, v in self.voltage_ips.items() if v]}")
 		
 	def init_voltage_tables(self, mode: str = 'mesh', safe_volts_pkg: Dict = None, safe_volts_cdie: Dict = None):
 		"""
 		Initialize voltage reference tables.
-		
+
 		Args:
 			mode: Operating mode ('mesh' or 'slice')
 			safe_volts_pkg: Package-level safe voltages
@@ -105,11 +105,11 @@ class VoltageManager:
 	def check_vbumps(self, value: Optional[float], prompt_func: Callable = None) -> Optional[float]:
 		"""
 		Validate voltage bump values are within acceptable range.
-		
+
 		Args:
 			value: Voltage bump value to validate
 			prompt_func: Function to prompt for new value if invalid
-			
+
 		Returns:
 			Validated voltage bump value or None
 		"""
@@ -139,7 +139,7 @@ class VoltageManager:
 						  input_func: Callable = None) -> bool:
 		"""
 		Main voltage configuration workflow.
-		
+
 		Args:
 			use_ate_volt: Whether to use ATE voltage configuration
 			external: Whether this is called from external tool
@@ -149,7 +149,7 @@ class VoltageManager:
 			qvbumps_mesh: Quick vbumps for mesh (external mode)
 			core_string: Display string for core type
 			input_func: Function to get user input
-			
+
 		Returns:
 			True if voltage was configured, False otherwise
 		"""
@@ -171,8 +171,8 @@ class VoltageManager:
 		
 		# Option 2: Fixed Voltage
 		elif volt_select == 2:
-			return self._configure_fixed_voltage(external, qvbumps_core, core_string, fastboot, input_func)
-		
+			return self._configure_fixed_voltage(external, qvbumps_core, qvbumps_mesh, core_string, fastboot, input_func)
+
 		# Option 3: Voltage Bumps
 		elif volt_select == 3:
 			return self._configure_vbumps(external, qvbumps_core, qvbumps_mesh, core_string, fastboot, input_func)
@@ -186,7 +186,7 @@ class VoltageManager:
 	def _prompt_voltage_option(self, input_func: Callable) -> int:
 		"""Prompt user to select voltage configuration option."""
 		print(f"\n{'*' * 80}")
-		print(f"> Set System Voltage?")
+		print("> Set System Voltage?")
 		print("\t> 1. No")
 		print("\t> 2. Fixed Voltage")
 		print("\t> 3. Voltage Bumps")
@@ -211,6 +211,7 @@ class VoltageManager:
 			'core': self.core_volt,
 			'cfc_die': self.mesh_cfc_volt,
 			'hdc_die': self.mesh_hdc_volt,
+			'core_mlc': self.core_mlc_volt,
 			'cfc_io': self.io_cfc_volt,
 			'ddrd': self.ddrd_volt,
 			'ddra': self.ddra_volt
@@ -227,13 +228,14 @@ class VoltageManager:
 	def _configure_fixed_voltage(self, 
 								 external: bool,
 								 qvbumps_core: Optional[float],
+								 qvbumps_mesh: Optional[float],
 								 core_string: str,
 								 fastboot: bool,
 								 input_func: Callable) -> bool:
 		"""Configure fixed voltage values."""
 		if not external:
-			print(f"\n> Fixed Voltage Configuration Selected\n")
-			print(f"\n> Tester Safe values for reference:\n")
+			print("\n> Fixed Voltage Configuration Selected\n")
+			print("\n> Tester Safe values for reference:\n")
 			print(self.voltstable)
 			
 			# Prompt for core voltage
@@ -259,9 +261,9 @@ class VoltageManager:
 				print(f'--> Setting MLC Voltage to match Core: {self.core_mlc_volt}')
 			
 		# Configure uncore voltages (CFC/HDC)
-		self.configure_uncore_voltages(fixed=True, external=external, 
-									   qvbumps_mesh=None, input_func=input_func)
-		
+		self.configure_uncore_voltages(fixed=True, external=external,
+									   qvbumps_mesh=qvbumps_mesh, input_func=input_func)
+
 		if not external:
 			# IO and DDR voltages
 			self.io_cfc_volt = self._prompt_float_voltage(
@@ -280,6 +282,7 @@ class VoltageManager:
 			'core': self.core_volt,
 			'cfc_die': self.mesh_cfc_volt,
 			'hdc_die': self.mesh_hdc_volt,
+			'core_mlc': self.core_mlc_volt,
 			'cfc_io': self.io_cfc_volt,
 			'ddrd': self.ddrd_volt,
 			'ddra': self.ddra_volt
@@ -304,8 +307,8 @@ class VoltageManager:
 						  input_func: Callable) -> bool:
 		"""Configure voltage bumps."""
 		if not external:
-			print(f"\n> Vbumps Configuration selected, use values in volts range of -0.2V to 0.2V:")
-			
+			print("\n> Vbumps Configuration selected, use values in volts range of -0.2V to 0.2V:")
+
 			# Prompt for core vbump
 			core_vbump = self._prompt_float_voltage(
 				self.menus.get('CoreBump', 'Set Core vBump?'),
@@ -356,7 +359,7 @@ class VoltageManager:
 			'core': self.core_volt,
 			'cfc_die': self.mesh_cfc_volt,
 			'hdc_die': self.mesh_hdc_volt,
-			'mlc_die': self.core_mlc_volt,
+			'core_mlc': self.core_mlc_volt,
 			'cfc_io': self.io_cfc_volt,
 			'ddrd': self.ddrd_volt,
 			'ddra': self.ddra_volt
@@ -386,7 +389,7 @@ class VoltageManager:
 								   input_func: Callable = None):
 		"""
 		Configure uncore (CFC/HDC) voltages.
-		
+
 		Args:
 			vbumps: Configure as voltage bumps
 			fixed: Configure as fixed voltages
@@ -411,11 +414,15 @@ class VoltageManager:
 					"--> Enter CFC Voltage: ",
 					input_func
 				)
-				hdc_value = self._prompt_float_voltage(
-					self.menus.get('HDCVolt', 'Set HDC Voltage?'),
-					"--> Enter HDC Voltage: ",
-					input_func
-				)
+				if self.voltage_ips.get('mesh_hdc_volt', False):
+					hdc_value = self._prompt_float_voltage(
+						self.menus.get('HDCVolt', 'Set HDC Voltage?'),
+						"--> Enter HDC Voltage: ",
+						input_func
+					)
+				else:
+					hdc_value = None
+
 				for domain in domains:
 					self.mesh_cfc_volt[domain] = cfc_value
 					self.mesh_hdc_volt[domain] = hdc_value
@@ -426,11 +433,15 @@ class VoltageManager:
 					"--> Enter CFC vBump: ",
 					input_func
 				)
-				hdc_vbump = self._prompt_float_voltage(
-					self.menus.get('HDCBump', 'Set HDC vBump?'),
-					"--> Enter HDC vBump: ",
-					input_func
-				)
+				if self.voltage_ips.get('mesh_hdc_volt', False):
+					hdc_vbump = self._prompt_float_voltage(
+						self.menus.get('HDCBump', 'Set HDC vBump?'),
+						"--> Enter HDC vBump: ",
+						input_func
+					)
+				else:
+					hdc_vbump = None
+
 				cfc_value = self.check_vbumps(cfc_vbump, input_func)
 				hdc_value = self.check_vbumps(hdc_vbump, input_func)
 				
@@ -456,12 +467,15 @@ class VoltageManager:
 						f"--> Enter CFC {domain_display} Voltage: ",
 						input_func
 					)
-					self.mesh_hdc_volt[domain] = self._prompt_float_voltage(
-						hdc_prompt,
-						f"--> Enter HDC {domain_display} Voltage: ",
-						input_func
-					)
-				
+					if self.voltage_ips.get('mesh_hdc_volt', False):
+						self.mesh_hdc_volt[domain] = self._prompt_float_voltage(
+							hdc_prompt,
+							f"--> Enter HDC {domain_display} Voltage: ",
+							input_func
+						)
+					else:
+						self.mesh_hdc_volt[domain] = None
+
 				if vbumps:
 					cfc_prompt = self.menus.get('CFCBump', 'Set CFC vBump?').replace(
 						'Uncore CFC vBump', f'{domain_display} Uncore CFC vBump'
@@ -475,29 +489,37 @@ class VoltageManager:
 						f"--> Enter CFC {domain_display} vBump: ",
 						input_func
 					)
-					hdc_vbump = self._prompt_float_voltage(
-						hdc_prompt,
-						f"--> Enter HDC {domain_display} vBump: ",
-						input_func
-					)
-					
+					if self.voltage_ips.get('mesh_hdc_volt', False):
+						hdc_vbump = self._prompt_float_voltage(
+							hdc_prompt,
+							f"--> Enter HDC {domain_display} vBump: ",
+							input_func
+						)
+					else:
+						hdc_vbump = None
+
 					self.mesh_cfc_volt[domain] = self.check_vbumps(cfc_vbump, input_func)
 					self.mesh_hdc_volt[domain] = self.check_vbumps(hdc_vbump, input_func)
 		
 		# Mode 3: External mode
 		elif uncore_mode == 3:
+			print('\n> External Uncore Voltage Configuration Selected\n')
+			selection = f'{"Fixed" if fixed else ""}{"vBumps" if vbumps else ""}'
 			for domain in domains:
+				print(f'--> Setting {domain} Uncore Mesh {selection} Voltage to: {qvbumps_mesh}')
 				self.mesh_cfc_volt[domain] = qvbumps_mesh
 				# HDC voltage depends on core type
-				if core_type == 'bigcore':
+				if core_type == 'bigcore' and self.voltage_ips.get('mesh_hdc_volt', False):
 					self.mesh_hdc_volt[domain] = qvbumps_mesh
-				else:
+				elif core_type == 'atomcore' and self.voltage_ips.get('mesh_hdc_volt', False):
 					# For atomcore, HDC is at core level
 					self.mesh_hdc_volt[domain] = self.core_volt if hasattr(self, 'core_volt') else qvbumps_mesh
-	
+				else:
+					self.mesh_hdc_volt[domain] = None
+
 	def _prompt_uncore_option(self, input_func: Callable) -> int:
 		"""Prompt user for uncore voltage configuration option."""
-		print(f"\n> Uncore Voltage Options?")
+		print("\n> Uncore Voltage Options?")
 		print("\t> 1. Same for all " + self.strategy.get_domain_display_name() + "s")
 		print("\t> 2. Set per " + self.strategy.get_domain_display_name())
 		
@@ -554,7 +576,7 @@ class VoltageManager:
 									 core_string: str = "CORE") -> bool:
 		"""
 		Configure voltage for slice mode using ATE/DFF data.
-		
+
 		Args:
 			VID: Visual ID for DFF database lookup
 			ate_freq: Selected ATE frequency (1-7)
@@ -564,7 +586,7 @@ class VoltageManager:
 			stc_module: GetTesterCurves module for DFF access
 			input_func: Function for user input
 			core_string: Display string for core ('CORE' or 'MODULE')
-			
+
 		Returns:
 			True if configuration successful, False otherwise
 		"""
@@ -714,14 +736,14 @@ class VoltageManager:
 								   core_string: str = "CORE") -> bool:
 		"""
 		Configure voltage for mesh mode using ATE/DFF data.
-		
+
 		Args:
 			VID: Visual ID for DFF database lookup
 			ate_freq: Selected ATE frequency (1-4 for mesh)
 			stc_module: GetTesterCurves module for DFF access
 			input_func: Function for user input
 			core_string: Display string for core ('CORE' or 'MODULE')
-			
+
 		Returns:
 			True if configuration successful, False otherwise
 		"""
@@ -849,7 +871,7 @@ class VoltageManager:
 	def get_voltage_dict(self) -> Dict[str, Any]:
 		"""
 		Get current voltage configuration as dictionary.
-		
+
 		Returns:
 			Dictionary with all voltage settings
 		"""
@@ -873,7 +895,7 @@ class VoltageManager:
 	def set_from_dict(self, volt_dict: Dict[str, Any]):
 		"""
 		Set voltage configuration from dictionary.
-		
+
 		Args:
 			volt_dict: Dictionary with voltage settings
 		"""

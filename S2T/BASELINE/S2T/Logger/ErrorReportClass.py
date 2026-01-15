@@ -71,7 +71,7 @@ class ErrorReportGenerator:
 				core_manipulation=None, file_handler=None, dpm_checks=None):
 		"""
 		Initialize ErrorReportGenerator with product-specific configurations.
-		
+
 		Args:
 			product (str): Product name ('GNR', 'CWF', 'DMR')
 			variant (str): Product variant ('AP', 'SP', etc.)
@@ -338,7 +338,7 @@ class ErrorReportGenerator:
 	def _get_product_ip_string(self):
 		"""
 		Get product-specific IP string for core naming.
-		
+
 		Returns 'MOD' for products using module-based naming (DMR, CWF),
 		'CORE' for products using core-based naming (GNR).
 		Extensible for future products.
@@ -426,7 +426,7 @@ class ErrorReportGenerator:
 		Read and save MCA registers, mark them in workbook.
 		"""
 		mcadata = {'TestName': [], 'TestValue': []}
-		pysvdecode = {'cha': False, 'ubox': False, 'punit': False, 
+		pysvdecode = {'ccf': False,'cha': False, 'ubox': False, 'punit': False,
 					  'pm': False, 'llc': False, 'core': False}
 			
 		log(mca_path)
@@ -446,6 +446,9 @@ class ErrorReportGenerator:
 				if pysvdecode['cha'] and hasattr(self.mca_decoders, 'cha'):
 					print(f"{Colors.info('[*]')} Decoding CHA MCA...")
 					self.mca_decoders.cha.Cha().show_mca_status()
+				if pysvdecode['ccf'] and hasattr(self.mca_decoders, 'ccf'):
+					print(f"{Colors.info('[*]')} Decoding CCF MCA...")
+					self.mca_decoders.ccf.Ccf().show_mca_status()
 				if pysvdecode['ubox'] and hasattr(self.mca_decoders, 'ubox'):
 					print(f"{Colors.info('[*]')} Decoding Ubox MCA...")
 					self.mca_decoders.ubox.Ubox().show_mca_status()
@@ -795,12 +798,12 @@ class ErrorReportGenerator:
 	def _extract_masks_from_dict(self, masks_dict, prefix, max_indices=4):
 		"""
 		Extract mask values from dictionary using prefix pattern.
-		
+
 		Args:
 			masks_dict: Dictionary containing mask values
 			prefix: Prefix string for mask keys (e.g., 'ia_cbb', 'llc_compute_')
 			max_indices: Maximum number of mask indices to extract (default 4)
-		
+
 		Returns:
 			Dictionary with mask values keyed by index (0-3)
 		"""
@@ -851,8 +854,12 @@ class ErrorReportGenerator:
 		
 		try:
 			print("\nTile View\n")
-			if self.mca_decoders and self.mca_decoders.tileview:
+			if self.mca_decoders and self.mca_decoders.tileview and self.product == 'GNR':
 				self.mca_decoders.tileview.tileview(sv.socket0).show_soc()
+			if self.mca_decoders and self.mca_decoders.tileview and self.product == 'CWF':
+				self.mca_decoders.tileview.tileview(sv.socket0).show_soc()
+			if self.mca_decoders and self.mca_decoders.tileview and self.product == 'DMR':
+				self.mca_decoders.tileview.DmrTileview().show_table()
 			print("[+] TILEVIEW SAVED SUCCESSFULLY")
 		except Exception as e:
 			print(f"[X] TILEVIEW COULD NOT BE SAVED: {e}")
@@ -906,21 +913,21 @@ class ErrorReportGenerator:
 	def _combine_mask_dict(self, mask_dict):
 		"""
 		Combine mask dictionary values into a single binary and hex mask.
-		
+
 		Args:
 			mask_dict: Dictionary of mask values keyed by index (e.g., {0: 0xFF, 1: 0xFF, ...})
-		
+
 		Returns:
 			Tuple of (binary_mask_string, hex_mask_string)
 		"""
 		# Get masks in order, defaulting to None for missing indices
 		mask_values = [mask_dict.get(i) for i in range(4)]
 		return self.get_mask(*mask_values)
-	
+
 	def _process_masks(self, sheet, core_masks, cha_masks):
 		"""
 		Process and review masks, marking them in the sheet.
-		
+
 		Args:
 			sheet: Excel sheet to mark
 			core_masks: Dictionary of core mask values
@@ -1037,7 +1044,7 @@ class ErrorReportGenerator:
 			upload_to_danta=False, framework_data=None):
 		"""
 		Main function to generate error report.
-		
+
 		Args:
 			visual: Visual ID
 			Testnumber: Test number
@@ -1147,7 +1154,7 @@ class ErrorReportGenerator:
   ____                      _
  |  _ \  ___  _ __   ___   | |
  | | | |/ _ \| '_ \ / _ \  |_|
- | |_| | (_) | | | |  __/   _ 
+ | |_| | (_) | | | |  __/   _
  |____/ \___/|_| |_|\___|  |_|
 
 			""")
@@ -1188,6 +1195,17 @@ class ErrorReportGenerator:
 		
 		baseaccess.getglobalbase(refresh=True)
 
+	# Legacy static method for reading scratchpad
+	@staticmethod
+	def readscratchpad(sv, product=None, base_path=None):
+		"""Read scratchpad register value."""
+		try:
+			mca_banks = import_module(f'{base_path}.S2T.product_specific.{product.lower()}.mca_banks')
+			return mca_banks.read_scratchpad(sv)
+		except Exception as e:
+			print(f"[X] Error reading scratchpad: {e}")
+			return 'READERROR'
+
 # =================================================================
 # BACKWARD COMPATIBILITY WRAPPER
 # =================================================================
@@ -1199,7 +1217,7 @@ def run(visual='', Testnumber='', TestName='', chkmem=0, debug_mca=0,
 	"""
 	Backward compatibility wrapper for the run() function.
 	Creates an ErrorReportGenerator instance and calls its run method.
-	
+
 	Note: This wrapper imports required modules and passes them to the class.
 	For better performance, consider importing modules once and passing them directly.
 	"""

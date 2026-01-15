@@ -655,25 +655,25 @@ Files will be automatically renamed during deployment, and imports will be updat
             },
             {
                 'old_import': 'from DebugFramework import SystemDebug',
-                'new_import': f'from DebugFramework import {prefix}SystemDebug as SystemDebug',
+                'new_import': f'from DebugFramework import {prefix}SystemDebug',
                 'description': f'Product-specific SystemDebug alias',
                 'enabled': 'yes'
             },
             {
                 'old_import': 'import DebugFramework.SystemDebug',
-                'new_import': f'import DebugFramework.{prefix}SystemDebug as SystemDebug',
+                'new_import': f'import DebugFramework.{prefix}SystemDebug',
                 'description': f'Product-specific SystemDebug module',
                 'enabled': 'yes'
             },
             {
                 'old_import': 'from S2T.dpmChecks import',
-                'new_import': f'from S2T.{prefix}dpmChecks import',
+                'new_import': f'from S2T.dpmChecks{prefix} import',
                 'description': f'Product-specific dpmChecks',
                 'enabled': 'yes'
             },
             {
                 'old_import': 'from S2T import CoreManipulation',
-                'new_import': f'from S2T import {prefix}CoreManipulation as CoreManipulation',
+                'new_import': f'from S2T import {prefix}CoreManipulation',
                 'description': f'Product-specific CoreManipulation',
                 'enabled': 'yes'
             },
@@ -684,8 +684,8 @@ Files will be automatically renamed during deployment, and imports will be updat
                 'enabled': 'yes'
             },
             {
-                'old_import': 'users.gaespino.dev.DebugFramework.SystemDebug',
-                'new_import': f'users.gaespino.DebugFramework.{prefix}SystemDebug',
+                'old_import': 'users.gaespino.dev.DebugFramework.',
+                'new_import': f'users.gaespino.DebugFramework.',
                 'description': f'Path replacement for product variant',
                 'enabled': 'yes'
             },
@@ -721,20 +721,20 @@ Files will be automatically renamed during deployment, and imports will be updat
                 'enabled': 'yes'
             },
             {
-                'old_file': 'DebugFramework/TestFramework.py',
-                'new_file': f'DebugFramework/{prefix}TestFramework.py',
-                'old_name': 'TestFramework.py',
-                'new_name': f'{prefix}TestFramework.py',
-                'description': f'Rename TestFramework to {prefix}TestFramework',
+                'old_file': 'DebugFramework/MaskEditor.py',
+                'new_file': f'DebugFramework/{prefix}MaskEditor.py',
+                'old_name': 'MaskEditor.py',
+                'new_name': f'{prefix}MaskEditor.py',
+                'description': f'Rename MaskEditor to {prefix}MaskEditor',
                 'update_imports': 'yes',
                 'enabled': 'yes'
             },
             {
                 'old_file': 'S2T/dpmChecks.py',
-                'new_file': f'S2T/{prefix}dpmChecks.py',
+                'new_file': f'S2T/dpmChecks{prefix}.py',
                 'old_name': 'dpmChecks.py',
-                'new_name': f'{prefix}dpmChecks.py',
-                'description': f'Rename dpmChecks to {prefix}dpmChecks',
+                'new_name': f'dpmChecks{prefix}.py',
+                'description': f'Rename dpmChecks to dpmChecks{prefix}',
                 'update_imports': 'yes',
                 'enabled': 'yes'
             },
@@ -747,6 +747,34 @@ Files will be automatically renamed during deployment, and imports will be updat
                 'update_imports': 'yes',
                 'enabled': 'yes'
             },
+            {
+                'old_file': 'S2T/DffDataCollector.py',
+                'new_file': f'S2T/{prefix}DffDataCollector.py',
+                'old_name': 'DffDataCollector.py',
+                'new_name': f'{prefix}DffDataCollector.py',
+                'description': f'Rename DffDataCollector to {prefix}DffDataCollector',
+                'update_imports': 'yes',
+                'enabled': 'yes'
+            },
+            {
+                'old_file': 'S2T/GetTesterCurves.py',
+                'new_file': f'S2T/{prefix}GetTesterCurves.py',
+                'old_name': 'GetTesterCurves.py',
+                'new_name': f'{prefix}GetTesterCurves.py',
+                'description': f'Rename GetTesterCurves to {prefix}GetTesterCurves',
+                'update_imports': 'yes',
+                'enabled': 'yes'
+            },
+            {
+                'old_file': 'S2T/SetTesterRegs.py',
+                'new_file': f'S2T/{prefix}SetTesterRegs.py',
+                'old_name': 'SetTesterRegs.py',
+                'new_name': f'{prefix}SetTesterRegs.py',
+                'description': f'Rename SetTesterRegs to {prefix}SetTesterRegs',
+                'update_imports': 'yes',
+                'enabled': 'yes'
+            },
+
         ]
 
         with open(output_file, 'w', newline='', encoding='utf-8') as f:

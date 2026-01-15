@@ -788,13 +788,13 @@ class MCADecoderGUI:
             try:
                 portids_values = dec.portids_decoder(value=mcerr_reg, portid_data=portid_data, event='mcerr')
 
-                self.update_results(f"  First Error:\n")
+                self.update_results("  First Error:\n")
                 self.update_results(f"    DIE ID:     {portids_values.get('FirstError - DIEID', 'N/A')}\n")
                 self.update_results(f"    Port ID:    {portids_values.get('FirstError - PortID', 'N/A')}\n")
                 self.update_results(f"    Location:   {portids_values.get('FirstError - Location', 'N/A')}\n")
                 self.update_results(f"    From Core:  {portids_values.get('FirstError - FromCore', 'N/A')}\n")
 
-                self.update_results(f"\n  Second Error:\n")
+                self.update_results("\n  Second Error:\n")
                 self.update_results(f"    DIE ID:     {portids_values.get('SecondError - DIEID', 'N/A')}\n")
                 self.update_results(f"    Port ID:    {portids_values.get('SecondError - PortID', 'N/A')}\n")
                 self.update_results(f"    Location:   {portids_values.get('SecondError - Location', 'N/A')}\n")
@@ -812,13 +812,13 @@ class MCADecoderGUI:
             try:
                 portids_values = dec.portids_decoder(value=ierr_reg, portid_data=portid_data, event='ierr')
 
-                self.update_results(f"  First Error:\n")
+                self.update_results("  First Error:\n")
                 self.update_results(f"    DIE ID:     {portids_values.get('FirstError - DIEID', 'N/A')}\n")
                 self.update_results(f"    Port ID:    {portids_values.get('FirstError - PortID', 'N/A')}\n")
                 self.update_results(f"    Location:   {portids_values.get('FirstError - Location', 'N/A')}\n")
                 self.update_results(f"    From Core:  {portids_values.get('FirstError - FromCore', 'N/A')}\n")
 
-                self.update_results(f"\n  Second Error:\n")
+                self.update_results("\n  Second Error:\n")
                 self.update_results(f"    DIE ID:     {portids_values.get('SecondError - DIEID', 'N/A')}\n")
                 self.update_results(f"    Port ID:    {portids_values.get('SecondError - PortID', 'N/A')}\n")
                 self.update_results(f"    Location:   {portids_values.get('SecondError - Location', 'N/A')}\n")
@@ -876,7 +876,7 @@ class MCADecoderGUI:
 
             if file_path:
                 with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(f"MCA Single Decoder Results\n")
+                    f.write("MCA Single Decoder Results\n")
                     f.write(f"Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
                     f.write(f"Product: {product}\n")
                     f.write(f"Decoder: {decoder_type}\n")

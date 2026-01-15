@@ -115,7 +115,7 @@ class LogsPTC():
             logs.to_excel(writer, sheet_name=self.data, index=False)
             binlog.to_excel(writer, sheet_name=self.finalSheet, index=False)
             #mc_df.to_excel(writer, sheet_name='mc_data', index=False)
-        print(f'MSG-- Parse complete.')
+        print('MSG-- Parse complete.')
 
     def parse_line(self, line):
         match = re.search(r'\[(.*?)\]', line)

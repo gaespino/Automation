@@ -1,6 +1,6 @@
 
 # Code Snippet taken from /pythonsv/graniterapids/ras/ras_master/portid2ip
-''' 
+'''
 Code used to translate PortID Data into Current System IP Information
 
 The main call for this script will be made by dpm script
@@ -274,8 +274,8 @@ def database_generator(filename = 'C:/pythonsv/graniterapids/ras/ras_master/10nm
 				#for ip in attributes:
 				#	try:ret = db_gen(die.uncore.getbypath(ip))
 				#	except:pass
-	
-	f = open("C:\Temp\portid_to_path.csv", 'w', newline='')
+
+	f = open(r"C:\Temp\portid_to_path.csv", 'w', newline='')
 	writer = csv.writer(f)
 	for item in sorted(ret_csv, key=lambda x: x[1:]): writer.writerows([item])
 	print(r"portid_to_path.csv is saved at C:\Temp\portid_to_path.csv")

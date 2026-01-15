@@ -203,7 +203,7 @@ class FileHandlerGUI:
         #root.quit()
     def header(self, data):
         print(f' {"#"*120}\n')
-        print('\t{"-"*10} PPV File Handler {"-"*10}')
+        print(f'\t{"-"*10} PPV File Handler {"-"*10}')
         print(f'\tNew file will be saved at: {data["Target"]}\n')
         print('\tUsing Configuration:')
         #print(f'\tvpos:   \t{vpo}')
@@ -213,7 +213,7 @@ class FileHandlerGUI:
         print(f'\tKeyword:   \t{data["Prefix"]}')	
         print(f'\n{"#"*120}')
         print(f'{"#"*120}\n')
-        print('\t{"-"*10} Processing data... Please wait.. {"-"*10} \n')
+        print(f'\t{"-"*10} Processing data... Please wait.. {"-"*10} \n')
  
 if __name__ == "__main__":
     root = tk.Tk()
