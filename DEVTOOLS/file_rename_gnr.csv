@@ -1,8 +1,8 @@
 old_file,new_file,old_name,new_name,description,update_imports,enabled
-DebugFramework/SystemDebug.py,DebugFramework/GNRSystemDebug.py,SystemDebug.py,GNRSystemDebug.py,Rename SystemDebug to GNRSystemDebug,yes,yes
-DebugFramework/MaskEditor.py,DebugFramework/GNRMaskEditor.py,MaskEditor.py,GNRMaskEditor.py,Rename MaskEditor to GNRMaskEditor,yes,yes
-S2T/dpmChecks.py,S2T/dpmChecksGNR.py,dpmChecks.py,dpmChecksGNR.py,Rename dpmChecks to dpmChecksGNR,yes,yes
-S2T/CoreManipulation.py,S2T/GNRCoreManipulation.py,CoreManipulation.py,GNRCoreManipulation.py,Rename CoreManipulation to GNRCoreManipulation,yes,yes
-S2T/DffDataCollector.py,S2T/GNRDffDataCollector.py,DffDataCollector.py,GNRDffDataCollector.py,Rename DffDataCollector to GNRDffDataCollector,yes,yes
-S2T/GetTesterCurves.py,S2T/GNRGetTesterCurves.py,GetTesterCurves.py,GNRGetTesterCurves.py,Rename GetTesterCurves to GNRGetTesterCurves,yes,yes
-S2T/SetTesterRegs.py,S2T/GNRSetTesterRegs.py,SetTesterRegs.py,GNRSetTesterRegs.py,Rename SetTesterRegs to GNRSetTesterRegs,yes,yes
+SystemDebug.py,GNRSystemDebug.py,SystemDebug.py,GNRSystemDebug.py,Rename SystemDebug to GNRSystemDebug,yes,yes
+MaskEditor.py,GNRMaskEditor.py,MaskEditor.py,GNRMaskEditor.py,Rename MaskEditor to GNRMaskEditor,yes,yes
+dpmChecks.py,dpmChecksGNR.py,dpmChecks.py,dpmChecksGNR.py,Rename dpmChecks to dpmChecksGNR,yes,yes
+CoreManipulation.py,GNRCoreManipulation.py,CoreManipulation.py,GNRCoreManipulation.py,Rename CoreManipulation to GNRCoreManipulation,yes,yes
+DffDataCollector.py,GNRDffDataCollector.py,DffDataCollector.py,GNRDffDataCollector.py,Rename DffDataCollector to GNRDffDataCollector,yes,yes
+GetTesterCurves.py,GNRGetTesterCurves.py,GetTesterCurves.py,GNRGetTesterCurves.py,Rename GetTesterCurves to GNRGetTesterCurves,yes,yes
+SetTesterRegs.py,GNRSetTesterRegs.py,SetTesterRegs.py,GNRSetTesterRegs.py,Rename SetTesterRegs to GNRSetTesterRegs,yes,yes

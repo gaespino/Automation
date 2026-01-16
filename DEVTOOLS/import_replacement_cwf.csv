@@ -1,10 +1,13 @@
 old_import,new_import,description,enabled
-from DebugFramework.SystemDebug import,from DebugFramework.CWFSystemDebug import,CWF variant: SystemDebug,yes
-import DebugFramework.SystemDebug,import DebugFramework.CWFSystemDebug as SystemDebug,CWF variant import: SystemDebug,yes
-users.gaespino.dev.DebugFramework.SystemDebug,users.gaespino.DebugFramework.CWFSystemDebug,CWF config path: SystemDebug,yes
-from S2T.dpmChecks import,from S2T.CWFdpmChecks import,CWF variant: dpmChecks,yes
-import S2T.dpmChecks,import S2T.CWFdpmChecks as dpmChecks,CWF variant import: dpmChecks,yes
-users.gaespino.dev.S2T.dpmChecks,users.gaespino.S2T.CWFdpmChecks,CWF config path: dpmChecks,yes
-from S2T.CoreManipulation import,from S2T.CWFCoreManipulation import,CWF variant: CoreManipulation,yes
-import S2T.CoreManipulation,import S2T.CWFCoreManipulation as CoreManipulation,CWF variant import: CoreManipulation,yes
-users.gaespino.dev.S2T.CoreManipulation,users.gaespino.S2T.CWFCoreManipulation,CWF config path: CoreManipulation,yes
+users.gaespino.dev.DebugFramework.SystemDebug,users.gaespino.DebugFramework.CWFSystemDebug,Path replacement for product variant,yes
+users.gaespino.dev.DebugFramework.MaskEditor,users.gaespino.DebugFramework.CWFMaskEditor,Path replacement for product variant,yes
+users.gaespino.dev.DebugFramework.,users.gaespino.DebugFramework.,Path replacement for product variant,yes
+users.gaespino.dev.S2T.CoreManipulation,users.THR.PythonScripts.thr.S2T.CWFCoreManipulation,Path replacement for product variant,yes
+users.gaespino.dev.S2T.dpmChecks,users.THR.PythonScripts.thr.S2T.dpmChecksCWF,Path replacement for product variant,yes
+users.gaespino.dev.S2T.DffDataCollector,users.THR.PythonScripts.thr.S2T.CWFDffDataCollector,Path replacement for product variant,yes
+users.gaespino.dev.S2T.GetTesterCurves,users.THR.PythonScripts.thr.S2T.CWFGetTesterCurves,Path replacement for product variant,yes
+users.gaespino.dev.S2T.SetTesterRegs,users.THR.PythonScripts.thr.S2T.CWFSetTesterRegs,Path replacement for product variant,yes
+users.gaespino.dev.S2T.,users.THR.PythonScripts.thr.S2T.,Path replacement for product variant,yes
+import CoreManipulation,import CWFCoreManipulation,Import Replacement ,yes
+import dpmChecks,import dpmChecksCWF,Import Replacement ,yes
+import DebugFramework.MaskEditor,import DebugFramework.CWFMaskEditor,Import Replacement ,yes

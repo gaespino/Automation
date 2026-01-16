@@ -133,8 +133,8 @@ class FrameworkLogger:
 		file_handler.setLevel(logging.DEBUG)
 		file_handler.setFormatter(self.formatter)
 		self.logger.addHandler(file_handler)
-	
-		# Create console handler
+
+		# Create console handler using safe handler
 		if self.console_output:
 			console_handler = SafeStreamHandler()
 			console_handler.setLevel(logging.DEBUG)
@@ -169,7 +169,7 @@ class FrameworkLogger:
 
 	def start_capture(self, file_mode='w'):
 		if self.pythonconsole and not self.capture_active:
-			# Create file handler with specified mode
+			# Create file handler with specified mode and UTF-8 encoding
 			self.reset_all_handlers()
 			file_handler = logging.FileHandler(self.log_file, mode=file_mode, encoding='utf-8')
 			file_handler.setLevel(logging.DEBUG)

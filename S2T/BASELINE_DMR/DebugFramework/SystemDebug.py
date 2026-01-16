@@ -35,7 +35,6 @@ DEV_MODE = 'users.gaespino.dev' in MAIN_PATH.replace('\\', '.')
 
 import DebugFramework.SerialConnection as ser
 import DebugFramework.FileHandler as fh
-import DebugFramework.MaskEditor as gme
 import DebugFramework.UI.ControlPanel as fcp
 import DebugFramework.Automation_Flow.AutomationHandler as acp
 import DebugFramework.ExecutionHandler.utils.ThreadsHandler as th
@@ -43,12 +42,6 @@ import DebugFramework.ExecutionHandler.utils.ThreadsHandler as th
 
 #from ExecutionHandler.utils.ThreadsHandler import execution_state, ExecutionCommand
 
-#importlib.reload(ser)
-#importlib.reload(gme)
-#importlib.reload(fh)
-#importlib.reload(fcp)
-#importlib.reload(s2tutils)
-#importlib.reload(th)
 
 ExecutionCommand = th.ExecutionCommand
 execution_state = th.execution_state
@@ -119,19 +112,24 @@ if DEV_MODE:
 
 	# Utils
 	import S2T.Tools.utils as s2tutils
+
+	importlib.reload(ser)
+	importlib.reload(fh)
+	importlib.reload(fcp)
+	importlib.reload(s2tutils)
+	importlib.reload(th)
+
 else:
 	# Paths -- Hardcoded for now
 	# GNR/CWF = users.THR.PythonScripts.thr
 	# DMR = users.THR.dmr_debug_utilities
 
-	import users.THR.PythonScripts.thr.S2T.CoreManipulation as gcm
-	import users.THR.PythonScripts.thr.S2T.dpmChecks as dpm
-	import users.THR.PythonScripts.thr.S2T.SetTesterRegs as s2t
+	import users.gaespino.dev.S2T.CoreManipulation as gcm
+	import users.gaespino.dev.S2T.dpmChecks as dpm
+	import users.gaespino.dev.S2T.SetTesterRegs as s2t
 
 	# Utils
-	import users.THR.PythonScripts.thr.S2T.Tools.utils as s2tutils
-
-
+	import users.gaespino.dev.S2T.Tools.utils as s2tutils
 
 #########################################################
 ######		Interfaces

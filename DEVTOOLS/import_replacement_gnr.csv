@@ -1,3 +1,13 @@
 old_import,new_import,description,enabled
+users.gaespino.dev.DebugFramework.SystemDebug,users.gaespino.DebugFramework.GNRSystemDebug,Path replacement for product variant,yes
+users.gaespino.dev.DebugFramework.MaskEditor,users.gaespino.DebugFramework.GNRMaskEditor,Path replacement for product variant,yes
 users.gaespino.dev.DebugFramework.,users.gaespino.DebugFramework.,Path replacement for product variant,yes
+users.gaespino.dev.S2T.CoreManipulation,users.THR.PythonScripts.thr.S2T.GNRCoreManipulation,Path replacement for product variant,yes
+users.gaespino.dev.S2T.dpmChecks,users.THR.PythonScripts.thr.S2T.dpmChecksGNR,Path replacement for product variant,yes
+users.gaespino.dev.S2T.DffDataCollector,users.THR.PythonScripts.thr.S2T.GNRDffDataCollector,Path replacement for product variant,yes
+users.gaespino.dev.S2T.GetTesterCurves,users.THR.PythonScripts.thr.S2T.GNRGetTesterCurves,Path replacement for product variant,yes
+users.gaespino.dev.S2T.SetTesterRegs,users.THR.PythonScripts.thr.S2T.GNRSetTesterRegs,Path replacement for product variant,yes
 users.gaespino.dev.S2T.,users.THR.PythonScripts.thr.S2T.,Path replacement for product variant,yes
+import CoreManipulation,import GNRCoreManipulation,Import Replacement ,yes
+import dpmChecks,import dpmChecksGNR,Import Replacement ,yes
+import DebugFramework.MaskEditor,import DebugFramework.GNRMaskEditor,Import Replacement ,yes
