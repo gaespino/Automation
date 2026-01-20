@@ -49,6 +49,9 @@ class FrameworkReportBuilder:
 		self.content_types = ["DBM", "Pseudo Slice", "Pseudo Mesh", "TSL", "Sandstone", "Imunch", "EFI", "Python", "Linux", "Other"]
 		self.DATA_SERVER = r'\\crcv03a-cifs.cr.intel.com\mfg_tlo_001\DebugFramework'
 
+		# Download tracking
+		self.download_thread = None
+
 		## Content division for Failing Checks
 		self.efi_content = ["DBM", "Pseudo Slice", "Pseudo Mesh", "EFI" ]
 		self.linux_content = [ "TSL","Sandstone", "Linux"]
@@ -306,6 +309,11 @@ class FrameworkReportBuilder:
 
 	def download_ppv_folder(self):
 		"""Download PPV folder from network to local storage"""
+		# Check if a download is already in progress
+		if self.download_thread and self.download_thread.is_alive():
+			messagebox.showwarning("Download in Progress", "A download is already in progress. Please wait for it to complete.")
+			return
+		
 		# Validate inputs
 		product = self.product_var.get()
 		visual_id = self.visuals_var.get()
@@ -352,7 +360,7 @@ class FrameworkReportBuilder:
 		self.root.update()
 
 		# Perform download in a separate thread to keep UI responsive
-		def download_thread():
+		def download_thread_func():
 			try:
 				# Create parent directories if needed
 				os.makedirs(os.path.dirname(dest_path), exist_ok=True)
@@ -360,30 +368,30 @@ class FrameworkReportBuilder:
 				# Copy folder
 				shutil.copytree(source_path, dest_path)
 				
-				# Show success message
-				self.root.after(0, lambda: messagebox.showinfo(
-					"Success", 
-					f"PPV folder downloaded successfully!\n\nFrom: {source_path}\nTo: {dest_path}"
-				))
+				# Consolidate all GUI updates into one callback
+				def update_gui_success():
+					messagebox.showinfo(
+						"Success", 
+						f"PPV folder downloaded successfully!\n\nFrom: {source_path}\nTo: {dest_path}"
+					)
+					self.download_button.config(state="normal", text="📥 Download PPV Folder")
 				
-				# Update local folder entry to use the downloaded folder
-				def update_entry():
-					self.local_folder_entry.delete(0, tk.END)
-					self.local_folder_entry.insert(0, local_base)
-				self.root.after(0, update_entry)
+				self.root.after(0, update_gui_success)
 				
 			except Exception as e:
-				self.root.after(0, lambda: messagebox.showerror(
-					"Download Error", 
-					f"Failed to download PPV folder:\n{str(e)}"
-				))
-			finally:
-				# Re-enable button
-				self.root.after(0, lambda: self.download_button.config(state="normal", text="📥 Download PPV Folder"))
+				# Include paths in error message for better troubleshooting
+				def update_gui_error():
+					messagebox.showerror(
+						"Download Error", 
+						f"Failed to download PPV folder:\n\nFrom: {source_path}\nTo: {dest_path}\n\nError: {str(e)}"
+					)
+					self.download_button.config(state="normal", text="📥 Download PPV Folder")
+				
+				self.root.after(0, update_gui_error)
 
-		# Start download thread (non-daemon to allow completion)
-		thread = Thread(target=download_thread)
-		thread.start()
+		# Start download thread and store reference
+		self.download_thread = Thread(target=download_thread_func)
+		self.download_thread.start()
 
 	def get_working_folder_path(self):
 		"""Get the folder path to use for parsing - local if available, otherwise network"""
