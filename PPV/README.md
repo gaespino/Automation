@@ -217,6 +217,39 @@ Complete GUI tool for creating Control Panel configurations:
 - Standalone operation supported
 - 100% Control Panel compatibility
 
+## New Features (January 2026)
+
+### 📥 PPV Folder Download
+
+Added download functionality to Framework Report Builder for copying PPV folders from network to local storage.
+
+**Features:**
+- Download PPV folders from network server to local disk
+- Progress indication during download
+- Automatic fallback to network path if local not available
+- Overwrite protection with user confirmation
+- Asynchronous download to keep UI responsive
+- Improved performance for large datasets
+
+**Benefits:**
+- Faster access to frequently used PPV data
+- Reduced network dependency during analysis
+- Better performance with large experiment datasets
+- Seamless integration with existing workflow
+
+**Usage:**
+1. Launch Framework Report Builder from PPV Tools Hub
+2. Select Product and Visual ID
+3. Click "Browse" next to "Local PPV Folder" to select local storage location
+4. Click "📥 Download PPV Folder" button
+5. Wait for download to complete
+6. Use "Parse Data" as normal - tool will automatically use local copy
+
+**Technical Details:**
+- Network source: `\\crcv03a-cifs.cr.intel.com\mfg_tlo_001\DebugFramework`
+- Local path structure: `<local_base>/<product>/<visual_id>`
+- Automatic path resolution in `parse_experiments()` and `create_report()`
+
 ## Documentation
 
 ### General

@@ -8,6 +8,8 @@ from tabulate import tabulate
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter import ttk
+import shutil
+from threading import Thread
 
 try:
     from ..parsers import Frameworkparser as fpa
@@ -47,6 +49,9 @@ class FrameworkReportBuilder:
 		self.content_types = ["DBM", "Pseudo Slice", "Pseudo Mesh", "TSL", "Sandstone", "Imunch", "EFI", "Python", "Linux", "Other"]
 		self.DATA_SERVER = r'\\crcv03a-cifs.cr.intel.com\mfg_tlo_001\DebugFramework'
 
+		# Download tracking
+		self.download_thread = None
+
 		## Content division for Failing Checks
 		self.efi_content = ["DBM", "Pseudo Slice", "Pseudo Mesh", "EFI" ]
 		self.linux_content = [ "TSL","Sandstone", "Linux"]
@@ -85,10 +90,22 @@ class FrameworkReportBuilder:
 		self.visuals_combobox = ttk.Combobox(top_frame, textvariable=self.visuals_var, values=self.folders, width=20)
 		self.visuals_combobox.grid(row=1, column=1, padx=5, pady=5, sticky='w')
 
-		tk.Label(top_frame, text="Save Folder:").grid(row=2, column=0, padx=5, pady=5, sticky='w')
+		# Download PPV folder section
+		tk.Label(top_frame, text="Local PPV Folder:").grid(row=2, column=0, padx=5, pady=5, sticky='w')
+		self.local_folder_entry = tk.Entry(top_frame, width=80)
+		self.local_folder_entry.grid(row=2, column=1, padx=5, pady=5, sticky='ew')
+		tk.Button(top_frame, text="Browse", command=self.browse_local_folder).grid(row=2, column=2, padx=5, pady=5)
+		
+		# Download button
+		self.download_button = tk.Button(top_frame, text="📥 Download PPV Folder", command=self.download_ppv_folder,
+		                                 bg="#FF9800", fg="white", font=("Arial", 9, "bold"), pady=5, state="normal")
+		self.download_button.grid(row=2, column=3, padx=5, pady=5)
+		self.add_tooltip(self.download_button, "Download PPV folder from network to local storage")
+
+		tk.Label(top_frame, text="Save Folder:").grid(row=3, column=0, padx=5, pady=5, sticky='w')
 		self.save_entry = tk.Entry(top_frame, width=80)
-		self.save_entry.grid(row=2, column=1, padx=5, pady=5, sticky='ew')
-		tk.Button(top_frame, text="Browse", command=self.browse_save_location).grid(row=2, column=2, padx=5, pady=5)
+		self.save_entry.grid(row=3, column=1, padx=5, pady=5, sticky='ew')
+		tk.Button(top_frame, text="Browse", command=self.browse_save_location).grid(row=3, column=2, padx=5, pady=5)
 
 		top_frame.columnconfigure(1, weight=1)
 
@@ -283,9 +300,117 @@ class FrameworkReportBuilder:
 		self.save_entry.delete(0, tk.END)
 		self.save_entry.insert(0, file_path)
 
+	def browse_local_folder(self):
+		"""Browse for local folder to store downloaded PPV data"""
+		folder_path = filedialog.askdirectory(title="Select Local Folder for PPV Data")
+		if folder_path:
+			self.local_folder_entry.delete(0, tk.END)
+			self.local_folder_entry.insert(0, folder_path)
+
+	def download_ppv_folder(self):
+		"""Download PPV folder from network to local storage"""
+		# Check if a download is already in progress
+		if self.download_thread and self.download_thread.is_alive():
+			messagebox.showwarning("Download in Progress", "A download is already in progress. Please wait for it to complete.")
+			return
+		
+		# Validate inputs
+		product = self.product_var.get()
+		visual_id = self.visuals_var.get()
+		local_base = self.local_folder_entry.get()
+
+		if not product:
+			messagebox.showerror("Error", "Please select a Product.")
+			return
+		
+		if not visual_id:
+			messagebox.showerror("Error", "Please select a Visual ID.")
+			return
+			
+		if not local_base:
+			messagebox.showerror("Error", "Please select a Local PPV Folder location.")
+			return
+
+		# Construct source and destination paths
+		source_path = os.path.join(self.DATA_SERVER, product, visual_id)
+		dest_path = os.path.join(local_base, product, visual_id)
+
+		# Check if source exists
+		if not os.path.exists(source_path):
+			messagebox.showerror("Error", f"Source folder not found:\n{source_path}")
+			return
+
+		# Check if destination already exists
+		if os.path.exists(dest_path):
+			response = messagebox.askyesno(
+				"Folder Exists", 
+				f"Destination folder already exists:\n{dest_path}\n\nDo you want to overwrite it?"
+			)
+			if not response:
+				return
+			# Remove existing destination
+			try:
+				shutil.rmtree(dest_path)
+			except Exception as e:
+				messagebox.showerror("Error", f"Failed to remove existing folder:\n{str(e)}")
+				return
+
+		# Disable button during download
+		self.download_button.config(state="disabled", text="⏳ Downloading...")
+		self.root.update()
+
+		# Perform download in a separate thread to keep UI responsive
+		def download_thread_func():
+			try:
+				# Create parent directories if needed
+				os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+				
+				# Copy folder
+				shutil.copytree(source_path, dest_path)
+				
+				# Consolidate all GUI updates into one callback
+				def update_gui_success():
+					messagebox.showinfo(
+						"Success", 
+						f"PPV folder downloaded successfully!\n\nFrom: {source_path}\nTo: {dest_path}"
+					)
+					self.download_button.config(state="normal", text="📥 Download PPV Folder")
+				
+				self.root.after(0, update_gui_success)
+				
+			except Exception as e:
+				# Include paths in error message for better troubleshooting
+				def update_gui_error():
+					messagebox.showerror(
+						"Download Error", 
+						f"Failed to download PPV folder:\n\nFrom: {source_path}\nTo: {dest_path}\n\nError: {str(e)}"
+					)
+					self.download_button.config(state="normal", text="📥 Download PPV Folder")
+				
+				self.root.after(0, update_gui_error)
+
+		# Start download thread and store reference
+		self.download_thread = Thread(target=download_thread_func)
+		self.download_thread.start()
+
+	def get_working_folder_path(self):
+		"""Get the folder path to use for parsing - local if available, otherwise network"""
+		product = self.product_var.get()
+		visual_id = self.visuals_var.get()
+		local_base = self.local_folder_entry.get()
+		
+		# Check if local folder exists
+		if local_base:
+			local_path = os.path.join(local_base, product, visual_id)
+			if os.path.exists(local_path):
+				return local_path
+		
+		# Fall back to network path
+		return os.path.join(self.DATA_SERVER, product, visual_id)
+
 	def parse_experiments(self):
 		#folder_path = self.folder_entry.get()
-		folder_path = os.path.join(self.DATA_SERVER, self.product_var.get(), self.visuals_var.get())
+		folder_path = self.get_working_folder_path()
 
 		if not folder_path:
 			messagebox.showerror("Error", "Please select a folder.")
@@ -423,7 +548,7 @@ class FrameworkReportBuilder:
 
 		# Save the config data to Config.json
 		#folder_path = self.folder_entry.get()
-		folder_path = os.path.join(self.DATA_SERVER, self.product_var.get(), self.visuals_var.get())
+		folder_path = self.get_working_folder_path()
 		config_path = os.path.join(folder_path, 'Config.json')
 		with open(config_path, 'w') as config_file:
 			json.dump(config_data, config_file, indent=4)
