@@ -1,0 +1,53 @@
+Deployment Report
+Timestamp,20260116_162527
+Product,CWF
+Source Type,BASELINE
+Deployment Type,S2T
+Target,Q:\Gaespino\scripts\s2t\Deploys\CWF\prod\S2T
+Total Files Scanned,34
+Product Filtered,33
+Deployed Successfully,1
+Errors,0
+
+DEPLOYED FILES
+Source File,Target File,Renamed,Old Name,New Name,Status,Similarity,Import Replacements,Filename Import Updates,Import Change Lines,Rename Change Lines
+SetTesterRegs.py,CWFSetTesterRegs.py,Yes,SetTesterRegs.py,CWFSetTesterRegs.py,minimal_changes,99.9%,-,-,-,-
+
+DETAILED LINE CHANGES
+File,Line,Change Type,Old Content,New Content
+
+SKIPPED FILES
+File,Reason,Status,Renamed,New Name
+product_specific\cwf\ConfigFiles\CWFMasksDebug.json,Not selected,identical,No,-
+Tools\utils.py,Not selected,identical,No,-
+dpmChecks.py,Not selected,identical,Yes,dpmChecksCWF.py
+Logger\ErrorReport_legacy.py,Not selected,new,No,-
+product_specific\cwf\strategy.py,Not selected,identical,No,-
+UI\System2TesterUI_Modern.py,Not selected,new,No,-
+product_specific\cwf\functions.py,Not selected,identical,No,-
+Logger\ErrorReportClass.py,Not selected,identical,No,-
+product_specific\cwf\RegFiles\crdict_raw.json,Not selected,identical,No,-
+ConfigsLoader.py,Not selected,identical,No,-
+UI\DffDataUI.py,Not selected,identical,No,-
+product_specific\cwf\ConfigFiles\CWFMasksConfig.json,Not selected,identical,No,-
+DffDataCollector.py,Not selected,minimal_changes,Yes,CWFDffDataCollector.py
+product_specific\cwf\RegFiles\s2tmeshdata.json,Not selected,identical,No,-
+Logger\ErrorReport_original_backup.py,Not selected,new,No,-
+product_specific\cwf\ConfigFiles\CWFBurnInFuses.json,Not selected,identical,No,-
+product_specific\cwf\ConfigFiles\CWFFuseFileConfigs.json,Not selected,identical,No,-
+product_specific\cwf\RegFiles\s2tregdata.json,Not selected,identical,No,-
+Tools\requests_unit_info.py,Not selected,identical,No,-
+product_specific\cwf\mca_banks.py,Not selected,identical,No,-
+product_specific\cwf\configs.py,Not selected,identical,No,-
+GetTesterCurves.py,Not selected,identical,Yes,CWFGetTesterCurves.py
+UI\ExperimentsForm.py,Not selected,new,No,-
+UI\System2TesterUI.py,Not selected,identical,No,-
+product_specific\cwf\RegFiles\crdict.json,Not selected,identical,No,-
+Logger\ErrorReport.py,Not selected,identical,No,-
+Tools\portid2ip.py,Not selected,identical,No,-
+product_specific\cwf\registers.py,Not selected,identical,No,-
+CoreManipulation.py,Not selected,identical,Yes,CWFCoreManipulation.py
+managers\product_strategy.py,Not selected,identical,No,-
+managers\frequency_manager.py,Not selected,identical,No,-
+managers\voltage_manager.py,Not selected,identical,No,-
+Logger\logger.py,Not selected,identical,No,-

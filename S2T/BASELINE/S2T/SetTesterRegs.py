@@ -1,6 +1,6 @@
 ## GNR Set Tester Registers
 revision = 2.0
-date = '28/10/2025'
+date = '15/01/2026'
 engineer ='gaespino'
 ##
 ## Version: 2.0
@@ -280,7 +280,12 @@ def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_m
 	qdf = dpm.qdf_str()
 
 	voltage_recipes = ['ppvc']
-	special_qdf = ['RVF5']
+	special_qdf = config.SPECIAL_QDF
+
+	apply_600w = u600w if qdf in special_qdf else False
+
+	print( ' --- System 2 Tester Mesh Mode --- ')
+	print( f' >>>  QDF: {qdf}{"" if not apply_600w else " (600W fuses applied)"}')
 
 	vtype = 3 if volttype == 'vbump' else 2 if volttype == 'fixed' else 4 if volttype == 'ppvc' else 1
 
@@ -306,7 +311,7 @@ def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_m
 	s2tTest.boot_postcode = boot_postcode
 	s2tTest.license_level = corelic
 	s2tTest.extMasks = extMask
-	s2tTest.u600w = u600w if qdf in special_qdf else False
+	s2tTest.u600w = apply_600w
 	s2tTest.fastboot = False if s2tTest.u600w == True else fastboot
 
 	# Set quickconfig variables
@@ -395,7 +400,12 @@ def SliceQuickTest(Target_core = None, core_freq = None, mesh_freq = None, vbump
 	qdf = dpm.qdf_str()
 
 	voltage_recipes = ['ppvc']
-	special_qdf = ['RVF5']
+	special_qdf = config.SPECIAL_QDF
+
+	apply_600w = u600w if qdf in special_qdf else False
+
+	print( ' --- System 2 Tester Mesh Mode --- ')
+	print( f' >>>  QDF: {qdf}{"" if not apply_600w else " (600W fuses applied)"}')
 
 	vtype = 3 if volttype == 'vbump' else 2 if volttype == 'fixed' else 4 if volttype == 'ppvc' else 1
 
@@ -421,7 +431,7 @@ def SliceQuickTest(Target_core = None, core_freq = None, mesh_freq = None, vbump
 	s2tTest.boot_postcode = boot_postcode
 	s2tTest.targetLogicalCore = Target_core
 	s2tTest.license_level = corelic
-	s2tTest.u600w = u600w if qdf in special_qdf else False
+	s2tTest.u600w = apply_600w
 	s2tTest.fastboot =  False if s2tTest.u600w == True else fastboot
 
 	# Set quickconfig variables

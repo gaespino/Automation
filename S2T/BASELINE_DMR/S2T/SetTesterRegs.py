@@ -1,6 +1,6 @@
 ## GNR Set Tester Registers
 revision = 2.0
-date = '28/10/2025'
+date = '15/01/2026'
 engineer ='gaespino'
 ##
 ## Version: 2.0
@@ -280,7 +280,7 @@ def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_m
 	qdf = dpm.qdf_str()
 
 	voltage_recipes = ['ppvc']
-	special_qdf = ['RVF5']
+	special_qdf = config.SPECIAL_QDF
 
 	vtype = 3 if volttype == 'vbump' else 2 if volttype == 'fixed' else 4 if volttype == 'ppvc' else 1
 
@@ -395,7 +395,7 @@ def SliceQuickTest(Target_core = None, core_freq = None, mesh_freq = None, vbump
 	qdf = dpm.qdf_str()
 
 	voltage_recipes = ['ppvc']
-	special_qdf = ['RVF5']
+	special_qdf = config.SPECIAL_QDF
 
 	vtype = 3 if volttype == 'vbump' else 2 if volttype == 'fixed' else 4 if volttype == 'ppvc' else 1
 

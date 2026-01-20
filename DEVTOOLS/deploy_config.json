@@ -15,31 +15,31 @@
   },
   "product_configs": {
     "GNR": {
-      "source_type": "BASELINE",
-      "deployment_type": "DebugFramework",
-      "target_base": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\GNR\\prod\\DebugFramework",
-      "replacement_csv": "C:\\Git\\Automation\\DEVTOOLS\\import_replacement_gnr.csv",
-      "rename_csv": "C:\\Git\\Automation\\DEVTOOLS\\file_rename_gnr.csv",
+      "source_type": "BASELINE_DMR",
+      "deployment_type": "S2T",
+      "target_base": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\GNR\\dev\\S2T",
+      "replacement_csv": "",
+      "rename_csv": "",
       "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_s2t.json",
       "selected_files": []
     },
     "CWF": {
       "source_type": "BASELINE",
-      "deployment_type": "DebugFramework",
-      "target_base": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\GNR\\prod\\DebugFramework",
-      "replacement_csv": "",
+      "deployment_type": "S2T",
+      "target_base": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\CWF\\prod\\S2T",
+      "replacement_csv": "C:\\Git\\Automation\\DEVTOOLS\\import_replacement_cwf.csv",
       "selected_files": [],
-      "rename_csv": "",
-      "manifest_file": ""
+      "rename_csv": "C:\\Git\\Automation\\DEVTOOLS\\file_rename_cwf.csv",
+      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_s2t.json"
     },
     "DMR": {
-      "source_type": "BASELINE",
-      "deployment_type": "DebugFramework",
-      "target_base": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\GNR\\dev\\DebugFramework",
-      "replacement_csv": "C:\\Git\\Automation\\DEVTOOLS\\import_replacement_gnr.csv",
-      "selected_files": [],
-      "rename_csv": "C:\\Git\\Automation\\DEVTOOLS\\file_rename_gnr.csv",
-      "manifest_file": ""
+      "source_type": "BASELINE_DMR",
+      "deployment_type": "S2T",
+      "target_base": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\DMR\\prod\\S2T",
+      "replacement_csv": "C:\\Git\\Automation\\DEVTOOLS\\import_replacement_dmr.csv",
+      "rename_csv": "C:\\Git\\Automation\\DEVTOOLS\\file_rename_dmr.csv",
+      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_s2t.json",
+      "selected_files": []
     }
   }
 }

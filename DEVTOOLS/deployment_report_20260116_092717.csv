@@ -1,0 +1,62 @@
+Deployment Report
+Timestamp,20260116_092717
+Product,CWF
+Source Type,BASELINE
+Deployment Type,S2T
+Target,Q:\Gaespino\scripts\s2t\Deploys\CWF\prod\S2T
+Total Files Scanned,34
+Product Filtered,26
+Deployed Successfully,8
+Errors,0
+
+DEPLOYED FILES
+Source File,Target File,Renamed,Old Name,New Name,Status,Similarity,Import Replacements,Filename Import Updates,Import Change Lines,Rename Change Lines
+GetTesterCurves.py,CWFGetTesterCurves.py,Yes,GetTesterCurves.py,CWFGetTesterCurves.py,new,0.0%,-,-,-,-
+Logger\ErrorReportClass.py,Logger\ErrorReportClass.py,No,ErrorReportClass.py,ErrorReportClass.py,minimal_changes,99.9%,users.gaespino.dev.S2T. → users.THR.PythonScripts.thr.S2T.,-,1230,-
+Logger\ErrorReport.py,Logger\ErrorReport.py,No,ErrorReport.py,ErrorReport.py,minimal_changes,99.0%,users.gaespino.dev.DebugFramework. → users.gaespino.DebugFramework.; import CoreManipulation → import CWFCoreManipulation; import dpmChecks → import dpmChecksCWF,-,"31, 37, 44",-
+dpmChecks.py,dpmChecksCWF.py,Yes,dpmChecks.py,dpmChecksCWF.py,new,0.0%,import CoreManipulation → import CWFCoreManipulation,-,95,-
+CoreManipulation.py,CWFCoreManipulation.py,Yes,CoreManipulation.py,CWFCoreManipulation.py,new,0.0%,import dpmChecks → import dpmChecksCWF,import dpmChecks → import dpmChecksCWF,59,59
+DffDataCollector.py,CWFDffDataCollector.py,Yes,DffDataCollector.py,CWFDffDataCollector.py,new,0.0%,-,import GetTesterCurves → import CWFGetTesterCurves,-,36
+SetTesterRegs.py,CWFSetTesterRegs.py,Yes,SetTesterRegs.py,CWFSetTesterRegs.py,new,0.0%,-,-,-,-
+Logger\logger.py,Logger\logger.py,No,logger.py,logger.py,minimal_changes,99.7%,users.gaespino.dev.S2T. → users.THR.PythonScripts.thr.S2T.,-,9,-
+
+DETAILED LINE CHANGES
+File,Line,Change Type,Old Content,New Content
+Logger\ErrorReportClass.py,1230,Import Replacement,import users.gaespino.dev.S2T.ConfigsLoader as pe,import users.THR.PythonScripts.thr.S2T.ConfigsLoader as pe
+Logger\ErrorReport.py,31,Import Replacement,import CoreManipulation as core_manipulation,import CWFCoreManipulation as core_manipulation
+Logger\ErrorReport.py,37,Import Replacement,import users.gaespino.dev.DebugFramework.FileHandler as file_handler,import users.gaespino.DebugFramework.FileHandler as file_handler
+Logger\ErrorReport.py,44,Import Replacement,import dpmChecks as dpm_checks,import dpmChecksCWF as dpm_checks
+dpmChecks.py,95,Import Replacement,import CoreManipulation as gcm,import CWFCoreManipulation as gcm
+CoreManipulation.py,59,Import Replacement,import dpmChecks as dpm,import dpmChecksCWF as dpm
+CoreManipulation.py,59,Filename Import Update,import dpmChecksCWF as dpm,import dpmChecksCWFCWF as dpm
+DffDataCollector.py,36,Filename Import Update,import GetTesterCurves as gtc,import CWFGetTesterCurves as gtc
+Logger\logger.py,9,Import Replacement,import  users.gaespino.dev.S2T.Logger.ErrorReport as dpmlog,import  users.THR.PythonScripts.thr.S2T.Logger.ErrorReport as dpmlog
+
+SKIPPED FILES
+File,Reason,Status,Renamed,New Name
+product_specific\cwf\ConfigFiles\CWFMasksDebug.json,Not selected,identical,No,-
+Tools\utils.py,Not selected,identical,No,-
+Logger\ErrorReport_legacy.py,Not selected,new,No,-
+product_specific\cwf\strategy.py,Not selected,identical,No,-
+UI\System2TesterUI_Modern.py,Not selected,new,No,-
+product_specific\cwf\functions.py,Not selected,identical,No,-
+product_specific\cwf\RegFiles\crdict_raw.json,Not selected,identical,No,-
+ConfigsLoader.py,Not selected,identical,No,-
+UI\DffDataUI.py,Not selected,identical,No,-
+product_specific\cwf\ConfigFiles\CWFMasksConfig.json,Not selected,identical,No,-
+product_specific\cwf\RegFiles\s2tmeshdata.json,Not selected,identical,No,-
+Logger\ErrorReport_original_backup.py,Not selected,new,No,-
+product_specific\cwf\ConfigFiles\CWFBurnInFuses.json,Not selected,identical,No,-
+product_specific\cwf\ConfigFiles\CWFFuseFileConfigs.json,Not selected,identical,No,-
+product_specific\cwf\RegFiles\s2tregdata.json,Not selected,identical,No,-
+Tools\requests_unit_info.py,Not selected,identical,No,-
+product_specific\cwf\mca_banks.py,Not selected,identical,No,-
+product_specific\cwf\configs.py,Not selected,identical,No,-
+UI\ExperimentsForm.py,Not selected,new,No,-
+UI\System2TesterUI.py,Not selected,identical,No,-
+product_specific\cwf\RegFiles\crdict.json,Not selected,identical,No,-
+Tools\portid2ip.py,Not selected,identical,No,-
+product_specific\cwf\registers.py,Not selected,identical,No,-
+managers\product_strategy.py,Not selected,identical,No,-
+managers\frequency_manager.py,Not selected,identical,No,-
+managers\voltage_manager.py,Not selected,identical,No,-

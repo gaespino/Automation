@@ -1786,7 +1786,7 @@ def ppvc(bsformat = False, ppvc_fuses = [], updateram=False):
 	return ppvc_confg
 
 ## Voltage read for S2T
-def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = True, vbump=False, updateram=False):
+def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = True, vbump=False, updateram=False, fixmlc=True):
 	print("\n***********************************v********************************************")
 	print(f'Changing Voltage fuses based on System 2 Tester Configuration: Type {"Fixed" if fixed else ""}{"vBump" if vbump else ""}')
 	for k,v in volt_dict.items():
@@ -1822,10 +1822,11 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 		if isinstance(volt_dict['core_mlc'], dict):
 			for k,v in volt_dict['core_mlc'].items():
 				if volt_dict['core_mlc'][k] != None:
-					volt_fuses+=f.mlc_vbump_array(fixed_voltage = v, target_cbb=int(k[-1]))
+					volt_fuses+=fuses_mlc_vbumps(fixed_voltage = v, target_cbb=int(k[-1]), fix=fixmlc)
+
 		else:
 			if volt_dict['core_mlc'] != None:
-				volt_fuses+=f.hdc_vbump_array(fixed_voltage = volt_dict['core_mlc']) # Adding HDC fuses
+				volt_fuses+=fuses_mlc_vbumps(fixed_voltage = volt_dict['core_mlc'], fix=fixmlc)
 
 		# No HDC in DMR -- Left for reference
 		if isinstance(volt_dict['hdc_die'], dict):
@@ -1857,11 +1858,11 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 		if isinstance(volt_dict['core_mlc'], dict):
 			for k,v in volt_dict['core_mlc'].items():
 				if volt_dict['core_mlc'][k] != None:
-					volt_fuses+=f.mlc_vbump_array(offset = v, target_cbb=int(k[-1]))
+					volt_fuses+=fuses_mlc_vbumps(offset = v, target_cbb=int(k[-1]), fix=fixmlc)
+
 		else:
 			if volt_dict['core_mlc'] != None:
-				volt_fuses+=f.mlc_vbump_array(offset = volt_dict['core_mlc']) # Adding HDC fuses
-
+				volt_fuses+=fuses_mlc_vbumps(offset = volt_dict['core_mlc'], fix=fixmlc)
 
 		# No HDC in DMR -- Left for reference
 		if isinstance(volt_dict['hdc_die'], dict):
@@ -2322,7 +2323,8 @@ def fuses_mlc_vbumps(offset: float = 0,
                     target_socket: int | None = None,
                     target_cbb: int | None = None,
                     target_compute: int | None = None,
-                    target_core: int | None = None ) -> list:
+                    target_core: int | None = None,
+                    fix=True) -> list:
 
 	if not skip_init: fuseRAM(refresh = True)
 	dpmarray = []
@@ -2333,7 +2335,7 @@ def fuses_mlc_vbumps(offset: float = 0,
                              target_compute=target_compute,
                              target_core=target_core,
                              fixed_voltage=fixed_voltage)
-	return dpmarray
+	return dpmarray if not fix else mlc_fuse_fix(dpmarray)
 
 
 def read_fuse_array(fuse_array: list, skip_init: bool = False):
@@ -3175,6 +3177,97 @@ def dev_dict(filename, useroot = True, selected_product = 'CWF'):
 		devices = configdata
 
 	return devices
+
+# Temporal fix for MLC Fuses bit assignments
+def mlc_fuse_fix(fuse_str = []):
+	new_fuse_str = merge_register_bit_assignments(fuse_str, reg_width=24)
+	return new_fuse_str
+
+def merge_register_bit_assignments(register_assignments, reg_width=32):
+	"""
+	Merge multiple bit-range assignments for the same base register into complete register values.
+
+	This function takes register assignments with bit ranges and combines them into single
+	full-register assignments, filling unspecified bits with 0.
+
+	Parameters
+	----------
+	register_assignments : list of str
+		List of register assignment strings with bit ranges.
+		Format: "base.register.path[high:low] = value" or "base.register.path[bit] = value"
+		Example: "sv.socket0.cbb0.compute0.fuses.core0_fuse.core_fuse_core_fuse_acode_acode_spare_word_0[8:0] = 0xb7"
+	reg_width : int, optional
+		Register width in bits (default: 32)
+
+	Returns
+	-------
+	list of str
+		List of complete register assignments in format "base.register.path = 0xvalue"
+
+	Examples
+	--------
+	>>> assignments = [
+	...     "sv.socket0.cbb0.compute0.fuses.core0_fuse.core_fuse_core_fuse_acode_acode_spare_word_0[8:0] = 0xb7",
+	...     "sv.socket0.cbb0.compute0.fuses.core0_fuse.core_fuse_core_fuse_acode_acode_spare_word_0[24:16] = 0xbc"
+	... ]
+	>>> result = merge_register_bit_assignments(assignments)
+	>>> print(result[0])
+	'sv.socket0.cbb0.compute0.fuses.core0_fuse.core_fuse_core_fuse_acode_acode_spare_word_0 = 0xbc00b7'
+	"""
+	import re
+
+	# Dictionary to store register base paths and their bit assignments
+	register_map = {}
+
+	# Regular expression to parse register assignments
+	# Matches: base_path[high:low] = value or base_path[bit] = value
+	pattern = r'^(.+?)\[(\d+)(?::(\d+))?\]\s*=\s*(.+)$'
+
+	for assignment in register_assignments:
+		assignment = assignment.strip()
+		match = re.match(pattern, assignment)
+
+		if not match:
+			continue
+
+		base_register = match.group(1).strip()
+
+		# Handle both [high:low] and [bit] formats
+		if match.group(3):  # Range format [high:low]
+			high_bit = int(match.group(2))
+			low_bit = int(match.group(3))
+		else:  # Single bit format [bit]
+			high_bit = low_bit = int(match.group(2))
+
+		# Ensure high_bit >= low_bit
+		if high_bit < low_bit:
+			high_bit, low_bit = low_bit, high_bit
+
+		value_str = match.group(4).strip()
+		# Convert value to integer (handles 0x prefix automatically)
+		value = int(value_str, 0)
+
+		# Initialize register entry if not exists
+		if base_register not in register_map:
+			register_map[base_register] = 0  # Start with all bits at 0
+
+		# Create a mask for the bit range and shift the value
+		bit_count = high_bit - low_bit + 1
+		mask = (1 << bit_count) - 1  # Create mask of appropriate width
+		masked_value = value & mask  # Ensure value fits in the bit range
+
+		# Clear the bits in the register and set the new value
+		clear_mask = ~(mask << low_bit) & ((1 << reg_width) - 1)
+		register_map[base_register] = (register_map[base_register] & clear_mask) | (masked_value << low_bit)
+
+	# Build the result list of complete register assignments
+	result = []
+	for base_register, final_value in register_map.items():
+		# Format the value with appropriate hex width
+		hex_width = (reg_width + 3) // 4  # Number of hex digits needed
+		result.append(f"{base_register} = 0x{final_value:0{hex_width}x}")
+
+	return result
 
 # Gets current World Week for reports
 def getWW():

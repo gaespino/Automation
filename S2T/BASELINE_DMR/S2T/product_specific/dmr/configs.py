@@ -31,7 +31,7 @@ class configurations:
 			chop = 'X1' # holder we don't really support GNR HCC
 		else:
 			raise ValueError (f" Invalid Domains size: {domains_size}")
-		print(f' GNR Product configuration: {chop}')
+		print(f' DMR Product configuration: {chop}')
 		return chop
 
 	def _get_variant(self, sv):
@@ -47,7 +47,7 @@ class configurations:
 			variant = 'SP' # holder we don't really support GNR HCC
 		else:
 			raise ValueError (f" Invalid Domains size: {domains_size}")
-		print(f' GNR Product configuration: {variant}')
+		print(f' DMR Product configuration: {variant}')
 		return variant
 
 	def product_check(self, product):
