@@ -367,8 +367,10 @@ class FrameworkReportBuilder:
 				))
 				
 				# Update local folder entry to use the downloaded folder
-				self.root.after(0, lambda: self.local_folder_entry.delete(0, tk.END))
-				self.root.after(0, lambda: self.local_folder_entry.insert(0, local_base))
+				def update_entry():
+					self.local_folder_entry.delete(0, tk.END)
+					self.local_folder_entry.insert(0, local_base)
+				self.root.after(0, update_entry)
 				
 			except Exception as e:
 				self.root.after(0, lambda: messagebox.showerror(
@@ -379,8 +381,8 @@ class FrameworkReportBuilder:
 				# Re-enable button
 				self.root.after(0, lambda: self.download_button.config(state="normal", text="📥 Download PPV Folder"))
 
-		# Start download thread
-		thread = Thread(target=download_thread, daemon=True)
+		# Start download thread (non-daemon to allow completion)
+		thread = Thread(target=download_thread)
 		thread.start()
 
 	def get_working_folder_path(self):
