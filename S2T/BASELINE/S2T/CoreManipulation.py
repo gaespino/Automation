@@ -304,7 +304,7 @@ def reset_globals():
 ## S2T main Class, includes the different masking mode and boot options
 class System2Tester():
 
-	def __init__(self, target, masks = None, coremask=None, slicemask=None, boot = True, ht_dis = False, dis_2CPM = None, dis_1CPM = None, fresh_state = True, readFuse = False, clusterCheck = True , fastboot = True, ppvc_fuses = None, execution_state = None):
+	def __init__(self, target, masks = None, coremask=None, slicemask=None, boot = True, ht_dis = False, dis_2CPM = None, dis_1CPM = None, fresh_state = True, readFuse = False, clusterCheck = True , fastboot = True, ppvc_fuses = None, external_fuses = None, execution_state = None):
 
 		# Python SV Variables
 		from namednodes import sv
@@ -352,6 +352,8 @@ class System2Tester():
 
 		#self.fuse_str_compute_0 = []
 		self.ppvc_fuses = ppvc_fuses
+		self.external_fuses = external_fuses
+
 		## Option to bring preconfigured Mask
 		if masks == None: self.masks = dpm.fuses(rdFuses = self.readFuse, sktnum =self.sktnum, printFuse=False)
 		else: self.masks = masks
@@ -966,14 +968,32 @@ class System2Tester():
 
 		## Add PPVC Data if configured
 		if self.ppvc_fuses:
-			ppvc_fuses = self.ppvc_fuses
-			for comp in self.computes:
-				if 'compute0' in comp.lower(): _fuse_str_compute_0 += ppvc_fuses['compute0']
-				if 'compute1' in comp.lower(): _fuse_str_compute_1 += ppvc_fuses['compute1']
-				if 'compute2' in comp.lower(): _fuse_str_compute_2 += ppvc_fuses['compute2']
-			for iodie in self.ios:
-				if 'io0' in iodie.lower(): _fuse_str += ppvc_fuses['io0']
-				if 'io1' in iodie.lower(): _fuse_str += ppvc_fuses['io1']
+			_fuse_dict = self._external_fuses(self.ppvc_fuses, False)
+			# Collect data into the different fuse strings if PPVC fuses are defined and configured
+			_fuse_str_compute_0 += _fuse_dict.get('compute0', [])
+			_fuse_str_compute_1 += _fuse_dict.get('compute1', [])
+			_fuse_str_compute_2 += _fuse_dict.get('compute2', [])
+			#_fuse_str_compute_3 += _fuse_dict.get('compute3', [])
+			_fuse_str_io_0 += _fuse_dict.get('io0', [])
+			_fuse_str_io_1 += _fuse_dict.get('io1', [])
+
+		if self.external_fuses:
+			_fuse_dict = self._external_fuses(self.external_fuses, False)
+			# Collect data into the different fuse strings if external fuses are defined and configured
+			_fuse_str_compute_0 += _fuse_dict.get('compute0', [])
+			_fuse_str_compute_1 += _fuse_dict.get('compute1', [])
+			_fuse_str_compute_2 += _fuse_dict.get('compute2', [])
+			#_fuse_str_compute_3 += _fuse_dict.get('compute3', [])
+			_fuse_str_io_0 += _fuse_dict.get('io0', [])
+			_fuse_str_io_1 += _fuse_dict.get('io1', [])
+		#	ppvc_fuses = self.ppvc_fuses
+		#	for comp in self.computes:
+		#		if 'compute0' in comp.lower(): _fuse_str_compute_0 += ppvc_fuses['compute0']
+		#		if 'compute1' in comp.lower(): _fuse_str_compute_1 += ppvc_fuses['compute1']
+		#		if 'compute2' in comp.lower(): _fuse_str_compute_2 += ppvc_fuses['compute2']
+		#	for iodie in self.ios:
+		#		if 'io0' in iodie.lower(): _fuse_str_io_0 += ppvc_fuses['io0']
+		#		if 'io1' in iodie.lower(): _fuse_str_io_1 += ppvc_fuses['io1']
 
 
 		_fuse_str_compute_0 += _fuse_str_compute
@@ -1349,15 +1369,18 @@ class System2Tester():
 
 		## Add PPVC Data if configured
 		if self.ppvc_fuses:
-			ppvc_fuses = self.ppvc_fuses
-			for comp in self.computes:
-				if 'compute0' in comp.lower(): _fuse_str += ppvc_fuses['compute0']
-				if 'compute1' in comp.lower(): _fuse_str += ppvc_fuses['compute1']
-				if 'compute2' in comp.lower(): _fuse_str += ppvc_fuses['compute2']
-			for iodie in self.ios:
-				if 'io0' in iodie.lower(): _fuse_str += ppvc_fuses['io0']
-				if 'io1' in iodie.lower(): _fuse_str += ppvc_fuses['io1']
+			_fuse_str += self._external_fuses(self.ppvc_fuses, fast=True)
+  		#	ppvc_fuses = self.ppvc_fuses
+		#	for comp in self.computes:
+		#		if 'compute0' in comp.lower(): _fuse_str += ppvc_fuses['compute0']
+		#		if 'compute1' in comp.lower(): _fuse_str += ppvc_fuses['compute1']
+		#		if 'compute2' in comp.lower(): _fuse_str += ppvc_fuses['compute2']
+		#	for iodie in self.ios:
+		#		if 'io0' in iodie.lower(): _fuse_str += ppvc_fuses['io0']
+		#		if 'io1' in iodie.lower(): _fuse_str += ppvc_fuses['io1']
 
+		if self.external_fuses:
+			_fuse_str += self._external_fuses(self.external_fuses, fast=True)
 		## Adding the fuse_str to the Class variable here before the Masks addition this variable is for checking purposes only
 		self.fuse_str = _fuse_str
 
@@ -1402,6 +1425,38 @@ class System2Tester():
 				_wait_for_post(EFI_POST, sleeptime=EFI_POSTCODE_WT, timeout = EFI_POSTCODE_CHECK_COUNT, additional_postcode=LINUX_POST, execution_state=self.execution_state)
 			sv_refreshed = False
 
+	def _external_fuses(self, external_fuses, fast=True):
+		_fuse_str = []
+		_fuse_array = []
+
+		_fuse_array.extend({c:[] for c in self.computes})
+		_fuse_array.extend({i:[] for i in self.ios})
+
+		_fuse_dict = {f: [] for f in _fuse_array}
+
+		for comp in self.computes:
+			if 'compute0' in comp.lower():
+				_fuse_str += external_fuses['compute0']
+				_fuse_dict['compute0'] += external_fuses['compute0']
+			if 'compute1' in comp.lower():
+				_fuse_str += external_fuses['compute1']
+				_fuse_dict['compute1'] += external_fuses['compute1']
+			if 'compute2' in comp.lower():
+				_fuse_str += external_fuses['compute2']
+				_fuse_dict['compute2'] += external_fuses['compute2']
+		for iodie in self.ios:
+			if 'io0' in iodie.lower():
+				_fuse_str += external_fuses['io0']
+				_fuse_dict['io0'] += external_fuses['io0']
+			if 'io1' in iodie.lower():
+				_fuse_str += external_fuses['io1']
+				_fuse_dict['io1'] += external_fuses['io1']
+
+		if fast:
+			return _fuse_str
+		else:
+			return _fuse_dict
+
 	## Boot checking for s2t
 	def fuse_checks(self):
 		product_variant = PRODUCT_VARIANT
@@ -1435,6 +1490,7 @@ class System2Tester():
 			if self.fuse_str_io_1:
 				print(Fore.LIGHTCYAN_EX + f"{'>'*3} Checking fuses for io1 ---")
 				fuse_cmd_override_check(self.fuse_str_io_1, showresults = False, skip_init= skipinit, bsFuses = 'io1')
+
 
 	## Logic for bootscript retry
 	def bsRetry(self,boot_postcode, stop_after_mrc, bootcont, sv, ipc, boot_string, n, delay = 60):

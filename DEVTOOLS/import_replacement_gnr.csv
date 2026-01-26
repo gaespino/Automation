@@ -9,5 +9,7 @@ users.gaespino.dev.S2T.GetTesterCurves,users.THR.PythonScripts.thr.S2T.GNRGetTes
 users.gaespino.dev.S2T.SetTesterRegs,users.THR.PythonScripts.thr.S2T.GNRSetTesterRegs,Path replacement for product variant,yes
 users.gaespino.dev.S2T.,users.THR.PythonScripts.thr.S2T.,Path replacement for product variant,yes
 import CoreManipulation,import GNRCoreManipulation,Import Replacement ,yes
-import dpmChecks,import dpmChecksGNR,Import Replacement ,yes
+import dpmChecks as dpm,import dpmChecksGNR as dpm,Import Replacement ,yes
 import DebugFramework.MaskEditor,import DebugFramework.GNRMaskEditor,Import Replacement ,yes
+import GetTesterCurves,import GNRGetTesterCurves,Import Replacement ,yes
+import MaskEditor,import GNRMaskEditor,Import Replacement ,yes

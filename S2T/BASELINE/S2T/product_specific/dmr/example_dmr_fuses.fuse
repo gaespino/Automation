@@ -1,0 +1,48 @@
+# Example DMR Fuse Configuration File
+# This file demonstrates the DMR hierarchy for fuse configurations
+# Hex values can be written directly without quotes: 0xFF, 0xDEAD, etc.
+
+# CBB Base Fuses - Specific Socket and CBB
+[sv.socket0.cbb0.base.fuses]
+register1 = 0x1
+register2 = 0x2
+# You can also specify the full path in the register name (will not duplicate)
+sv.socket0.cbb0.base.fuses.register3 = 0x3
+
+# CBB Base Fuses - All Sockets, All CBBs
+[sv.sockets.cbbs.base.fuses]
+common_base_reg1 = 0xFF
+common_base_reg2 = 0xAA
+
+# CBB Compute (Top) Fuses - Specific Socket, CBB, and Compute
+[sv.socket0.cbb0.compute0.fuses]
+compute_reg1 = 0x10
+compute_reg2 = 0x20
+sv.socket0.cbb0.compute0.fuses.compute_reg3 = 0x30
+
+[sv.socket0.cbb1.compute2.fuses]
+compute_reg1 = 0x15
+compute_reg2 = 0x25
+
+# CBB Compute Fuses - All Sockets, All CBBs, All Computes
+[sv.sockets.cbbs.computes.fuses]
+common_compute_reg1 = 0x99
+common_compute_reg2 = 0x88
+
+# IMH Fuses - Specific Socket and IMH
+[sv.socket0.imh0.fuses]
+imh_reg1 = 0x100
+imh_reg2 = 0x200
+sv.socket0.imh0.fuses.imh_reg3 = 0x300
+
+# IMH Fuses - All Sockets, All IMHs
+[sv.sockets.imhs.fuses]
+common_imh_reg1 = 0xDEAD
+common_imh_reg2 = 0xBEEF
+
+# Multiple CBB and Compute configurations
+[sv.socket0.cbb2.base.fuses]
+base_reg = 0xABC
+
+[sv.socket1.cbb0.compute1.fuses]
+cross_socket_reg = 0xDEF

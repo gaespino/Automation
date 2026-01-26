@@ -433,13 +433,16 @@ class ErrorReportGenerator:
 
 		try:
 			print(f"{Colors.info('[*]')} Reading MCA...")
-			mcadata, pysvdecode = self.mca_dump()
+			mcadata, pysvdecoded = self.mca_dump()
 			print(f"  {Colors.success('[+]')} {Colors.BOLD}MCA READ SUCCESSFULLY{Colors.RESET}")
 		except Exception as e:
 			print(f"  {Colors.error('[X]')} {Colors.BOLD}MCA COULD NOT BE READ:{Colors.RESET} {e}")
 			nolog()
 			return
 
+		# Update pysvdecode with actual results -- Not all keys in pysvdecode may be present
+		for k in pysvdecode.keys():
+			pysvdecode[k] = pysvdecoded.get(k, False)
 		# Decode MCAs using pysvtools
 		try:
 			if self.mca_decoders:

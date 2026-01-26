@@ -666,6 +666,203 @@ dpm.hwls_miscompare()       # Check HWLS miscompare
 
 ---
 
+### External Fuse Files (.fuse)
+
+**Purpose:** User-created fuse configuration files for bootscript customization
+
+**Overview:**
+The framework supports external `.fuse` files that allow users to define custom register configurations in a simple, readable format. These files are parsed by product-specific generators and integrated into bootscripts automatically.
+
+**Supported Products:** DMR, GNR, CWF
+
+**File Format:**
+
+`.fuse` files use an INI-like syntax with section headers and key-value pairs:
+
+```ini
+# DMR Example
+[sv.socket0.cbb0.base.fuses]
+register1 = 0x1
+register2 = 0xFF
+sv.socket0.cbb0.base.fuses.register3 = 0xDEADBEEF
+
+# Common fuses applied to all CBBs
+[sv.socket0.cbbs.base.fuses]
+common_register = 0x1234
+```
+
+**Key Features:**
+
+1. **Native Hex Support:** Write hex values directly without quotes (`0xFF` not `"0xFF"`)
+2. **Flexible Naming:** Use specific units (`cbb0`, `compute0`) or plural forms (`cbbs`, `computes`) for all units
+3. **Automatic Expansion:** Common fuses (`.cbbs.`, `.imhs.`) automatically expand to all available units
+4. **Validation:** Product-specific parsers validate section hierarchies and report errors
+
+**Hierarchy Support:**
+
+| Product | Section Format | Example |
+|---------|---------------|---------|
+| **DMR** | `socket(s\|#).cbb(s\|#).base.fuses` | `socket0.cbb0.base.fuses` |
+| **DMR** | `socket(s\|#).cbb(s\|#).compute(s\|#).fuses` | `socket0.cbbs.computes.fuses` |
+| **DMR** | `socket(s\|#).imh(s\|#).fuses` | `sockets.imhs.fuses` |
+| **GNR** | `socket(s\|#).compute(s\|#).fuses` | `socket0.compute0.fuses` |
+| **GNR** | `socket(s\|#).io(s\|#).fuses` | `sockets.ios.fuses` |
+| **CWF** | `socket(s\|#).compute(s\|#).fuses` | `socket0.computes.fuses` |
+| **CWF** | `socket(s\|#).io(s\|#).fuses` | `socket0.io1.fuses` |
+
+**Section Naming Examples:**
+
+All combinations are valid:
+- `sv.socket0.cbb0.base.fuses` - Specific socket, specific cbb
+- `sv.sockets.cbbs.base.fuses` - All sockets, all cbbs
+- `sv.socket0.cbbs.base.fuses` - Socket 0, all cbbs
+- `sv.sockets.cbb0.base.fuses` - All sockets, cbb 0
+
+**Using Fuse Files:**
+
+**Method 1: Programmatic (dpmChecks)**
+
+```python
+import S2T.dpmChecks as dpm
+
+# Process fuse file
+fuse_list = dpm.process_fuse_file('C:\\Temp\\my_fuses.fuse')
+# Returns: ['sv.socket0.cbb0.base.fuses.register1=0x1', ...]
+
+# Use with external_fuses function
+external_config = dpm.external_fuses(external_fuses=fuse_list, bsformat=True)
+# Returns organized dict: {'cbb0': [...], 'cbb1': [...], 'imh0': [...], ...}
+
+# Use in pseudo_bs
+dpm.pseudo_bs(
+    ClassMask='RowEvenPass',
+    fuse_cbb=external_config,  # Apply fuses during boot
+    boot=True
+)
+```
+
+**Method 2: UI Integration**
+
+The Quick Defeature Tool UI includes fuse file support:
+
+```python
+import S2T.UI.System2TesterUI as ui
+import S2T.SetTesterRegs as s2t
+
+# Launch mesh UI with fuse file browser
+ui.mesh_ui(s2t, 'DMR')
+# Click "Browse" next to "External Fuse File (.fuse):"
+# Select your .fuse file
+# Run configuration
+```
+
+**Example Files:**
+
+Example `.fuse` files are provided for each product:
+- `S2T/product_specific/dmr/example_dmr_fuses.fuse`
+- `S2T/product_specific/gnr/example_gnr_fuses.fuse`
+- `S2T/product_specific/cwf/example_cwf_fuses.fuse`
+
+**DMR Example:**
+```ini
+[sv.socket0.cbb0.base.fuses]
+register1 = 0x1
+register2 = 0x2
+
+[sv.socket0.cbb0.compute0.fuses]
+registerx1 = 0x1
+registerx2 = 0xFF
+
+[sv.socket0.imh0.fuses]
+registerz1 = 0xDEAD
+registerz2 = 0xBEEF
+
+# Applied to all CBBs
+[sv.socket0.cbbs.base.fuses]
+common_register = 0x1234
+```
+
+**GNR/CWF Example:**
+```ini
+[sv.socket0.compute0.fuses]
+register1 = 0x1
+register2 = 0xFF
+
+[sv.socket0.io0.fuses]
+registerz1 = 0xDEAD
+
+# Applied to all computes
+[sv.socket0.computes.fuses]
+common_register = 0x1234
+```
+
+**Validation and Error Handling:**
+
+The parser validates:
+- Section hierarchy matches product architecture
+- Hex values are properly formatted
+- File syntax is correct
+- Warns if fuses target units not present on the system
+
+```python
+# Process with error handling
+try:
+    fuse_list = dpm.process_fuse_file('my_fuses.fuse')
+    print(f"Loaded {len(fuse_list)} fuses")
+except FileNotFoundError:
+    print("Fuse file not found")
+except ValueError as e:
+    print(f"Parse error: {e}")
+```
+
+**Common Fuse Expansion:**
+
+Fuses using plural forms automatically expand:
+
+Input:
+```ini
+[sv.socket0.cbbs.base.fuses]
+common_register = 0xFF
+```
+
+Output (for system with cbb0, cbb1, cbb2, cbb3):
+```python
+[
+    'sv.socket0.cbb0.base.fuses.common_register=0xFF',
+    'sv.socket0.cbb1.base.fuses.common_register=0xFF',
+    'sv.socket0.cbb2.base.fuses.common_register=0xFF',
+    'sv.socket0.cbb3.base.fuses.common_register=0xFF'
+]
+```
+
+**System Validation:**
+
+The `external_fuses()` function validates fuses against available hardware:
+
+```python
+# If system has only cbb0, cbb1 but fuse file includes cbb2:
+# WARNING: Fuses for cbb2 are included but system does not have cbb2.
+# Fuses will NOT be applied.
+```
+
+**File Location:**
+
+Save fuse files anywhere accessible:
+- Recommended: `C:\Temp\*.fuse`
+- Project folder: `<workspace>\configs\*.fuse`
+- Network share: `\\share\configs\*.fuse`
+
+**Documentation:**
+
+Detailed documentation: `S2T/product_specific/FUSEFILEGEN_README.md`
+
+**See Also:**
+- `dpm.external_fuses()` - Process and organize fuse lists
+- `dpm.process_fuse_file()` - Parse .fuse files
+- `dpm.pseudo_bs()` - Use fuses in bootscript
+
+---
+
 ### GetTesterCurves Module
 
 **File:** `S2T/GetTesterCurves.py`
@@ -963,6 +1160,8 @@ import S2T.DffDataCollector as dfc
 | dpmChecks | `logger()` | MCA logging |
 | dpmChecks | `pseudo_bs()` | Pseudo bootscript |
 | dpmChecks | `bsknobs()` | BIOS knobs check |
+| dpmChecks | `process_fuse_file()` | Parse .fuse configuration files |
+| dpmChecks | `external_fuses()` | Process and organize external fuses |
 | CoreManipulation | `mask_fuse_core_array()` | Core masking |
 | CoreManipulation | `mask_fuse_llc_array()` | Slice masking |
 | CoreManipulation | `go_to_efi()` | Boot to EFI |
@@ -977,6 +1176,9 @@ import S2T.DffDataCollector as dfc
 | `*Config.json` | DebugFramework/UI/ | UI configurations |
 | `Flows.json` | DebugFramework/Automation_Flow/ | Automation flows |
 | `s2t_config_*.json` | C:\Temp\ | S2T configurations |
+| `*.fuse` | User-defined | External fuse configurations |
+| `example_*_fuses.fuse` | S2T/product_specific/<product>/ | Example fuse files |
+| `FUSEFILEGEN_README.md` | S2T/product_specific/ | Fuse file documentation |
 
 ### Product Configuration
 

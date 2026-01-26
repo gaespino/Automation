@@ -51,8 +51,8 @@ class configurations:
 		if product not in CONFIG_PRODUCT:
 			raise ValueError (f" Invalid Product, this function is only available for {CONFIG_PRODUCT}")
 
-	def init_product_specific(self):
-	
+	def init_product_specific(self, sv=None):
+
 		# Product config
 		product = self.product
 		
@@ -92,8 +92,8 @@ class configurations:
 		
 		return CONFIG
 
-	def init_product_fuses(self):
-		
+	def init_product_fuses(self, sv=None):
+
 		# Product config
 		product = self.product
 		
@@ -167,8 +167,8 @@ class configurations:
 		
 		return FrameworkFuses
 
-	def init_framework_vars(self):
-		
+	def init_framework_vars(self, sv=None):
+
 		# Product config
 		product = self.product
 
@@ -268,7 +268,7 @@ class configurations:
 		
 		return FrameworkVars
 
-	def init_framework_features(self):
+	def init_framework_features(self, sv=None):
 
 		# Product config
 		product = self.product
@@ -318,8 +318,8 @@ class configurations:
 
 		return FrameworkFeatures
 
-	def init_dff_data(self):
-		
+	def init_dff_data(self, sv=None):
+
 		# Product config
 		product = self.product
 		

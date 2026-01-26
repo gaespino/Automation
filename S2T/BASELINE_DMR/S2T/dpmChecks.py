@@ -79,11 +79,16 @@ MAIN_PATH = os.path.abspath(os.path.dirname(__file__))
 ## Imports from S2T Folder  -- ADD Product on Module Name for Production
 sys.path.append(MAIN_PATH)
 import ConfigsLoader as cfl
+
+if cfl.DEV_MODE:
+	importlib.reload(cfl)
+
 config = cfl.config
 config.reload()
 
 # Product Functions
 pf = config.get_functions()
+ffg = config.get_fusefilegen()
 
 # Set Used product Variable -- Called by Framework
 SELECTED_PRODUCT = config.SELECTED_PRODUCT
@@ -97,14 +102,14 @@ if cfl.DEV_MODE:
 	import Logger.logger as dpmlog
 	import Tools.portid2ip as p2ip
 	import Tools.requests_unit_info as reqinfo
-	import ConfigsLoader as LoadConfig
+
 else:
 	gcm = import_module(f'{BASE_PATH}.S2T.{LEGACY_NAMING}CoreManipulation')
 	dpmtileview = import_module(f'{BASE_PATH}.S2T.Logger.ErrorReport')
 	dpmlog = import_module(f'{BASE_PATH}.S2T.Logger.logger')
 	p2ip = import_module(f'{BASE_PATH}.S2T.Tools.portid2ip')
 	reqinfo = import_module(f'{BASE_PATH}.S2T.Tools.requests_unit_info')
-	LoadConfig = import_module(f'{BASE_PATH}.S2T.ConfigsLoader')
+
 
 ## Imports from THR folder - These are external scripts, always use same path
 f = None
@@ -122,10 +127,8 @@ if cfl.DEV_MODE:
 	importlib.reload(gcm)
 	importlib.reload(dpmlog)
 	importlib.reload(dpmtileview)
-	importlib.reload(LoadConfig)
 	if fo is not None:
 		importlib.reload(fo)
-	config.reload()
 
 verbose = False
 
@@ -1723,7 +1726,6 @@ def dmr_fuse_fix(fuse_str = {}, cbb_name = 'cbb0', sockets = ['0','s']):
 
 	return fuses
 
-
 ## PPVC Fuses configuration,
 def ppvc(bsformat = False, ppvc_fuses = [], updateram=False):
 	print("\n***********************************v********************************************")
@@ -1895,8 +1897,8 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 		if fuses_cbb1: fuses_cbb1 = dmr_fuse_fix(fuse_str = fuses_cbb1, cbb_name = 'cbb1')
 		if fuses_cbb2: fuses_cbb2 = dmr_fuse_fix(fuse_str = fuses_cbb2, cbb_name = 'cbb2')
 		if fuses_cbb3: fuses_cbb3 = dmr_fuse_fix(fuse_str = fuses_cbb3, cbb_name = 'cbb3')
-		if fuses_imh0: fuses_imh0 = bs_fuse_fix(fuse_str = fuses_imh0, bases = ['sv.socket0.imh0.fuses'])
-		if fuses_imh1: fuses_imh1 = bs_fuse_fix(fuse_str = fuses_imh1, bases = ['sv.socket0.imh0.fuses'])
+		if fuses_imh0: fuses_imh0 = bs_fuse_fix(fuse_str = fuses_imh0, bases = ['sv.socket0.imh0.fuses.'])
+		if fuses_imh1: fuses_imh1 = bs_fuse_fix(fuse_str = fuses_imh1, bases = ['sv.socket0.imh0.fuses.'])
 
 	volt_config = {	'cbb0':fuses_cbb0,
 					'cbb1':fuses_cbb1,
@@ -1908,6 +1910,127 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 	print('Voltage configuration fuses collected, adding them to boot configuration')
 	print("***********************************v********************************************\n")
 	return volt_config
+
+def process_fuse_file(fuse_file_path):
+	"""
+	Process a .fuse file and return the list of register assignments.
+
+	Args:
+		fuse_file_path: Path to the .fuse configuration file
+
+	Returns:
+		List of register assignments in format: ['sv.socket0.cbb0.base.fuses.register=0x1', ...]
+	"""
+	if not fuse_file_path:
+		return []
+
+	try:
+		print(f"\n>>> Processing fuse file: {fuse_file_path}")
+		fuse_list = ffg.process_fuse_file(fuse_file_path)
+		print(f">>> Successfully loaded {len(fuse_list)} fuses from file")
+		return fuse_list
+	except FileNotFoundError:
+		print(f"ERROR: Fuse file not found: {fuse_file_path}")
+		return []
+	except ValueError as e:
+		print(f"ERROR: Failed to parse fuse file: {e}")
+		return []
+	except Exception as e:
+		print(f"ERROR: Unexpected error processing fuse file: {e}")
+		return []
+
+def external_fuses(external_fuses = None, bsformat = False, ):
+	if external_fuses is None:
+		external_fuses = []
+
+	print("\n***********************************v********************************************")
+	print('Adding External fuses to the boot configuration')
+	#ppvc_fuses = f.ppvc_rgb_reduction(boot=False)
+	## I have rebuilt the ppvc script here instead of using what is in GFO in case additional customization is needed
+
+	cbb_range = sv.socket0.cbbs.name
+	imh_range = sv.socket0.imhs.name
+
+	# Initialize fuse dictionaries dynamically based on available units
+	cbb_fuses = {cbb: [] for cbb in cbb_range}
+	imh_fuses = {imh: [] for imh in imh_range}
+
+	# Separate specific and common fuses
+	fuses_cbbs_common = [f for f in external_fuses if '.cbbs.' in f]
+	fuses_imhs_common = [f for f in external_fuses if '.imhs.' in f]
+
+	# Process specific CBB fuses dynamically
+	all_possible_cbbs = ['cbb0', 'cbb1', 'cbb2', 'cbb3', 'cbb4', 'cbb5', 'cbb6', 'cbb7']  # Extend as needed
+	for cbb in all_possible_cbbs:
+		temp_fuses = [f for f in external_fuses if f'.{cbb}.' in f]
+		if temp_fuses:
+			if cbb in cbb_range:
+				cbb_fuses[cbb] = temp_fuses
+			else:
+				print(f'WARNING: Fuses for {cbb} are included but system does not have {cbb}. Fuses will NOT be applied.')
+
+	# Process specific IMH fuses dynamically
+	all_possible_imhs = ['imh0', 'imh1', 'imh2', 'imh3']  # Extend as needed
+	for imh in all_possible_imhs:
+		temp_fuses = [f for f in external_fuses if f'.{imh}.' in f]
+		if temp_fuses:
+			if imh in imh_range:
+				imh_fuses[imh] = temp_fuses
+			else:
+				print(f'WARNING: Fuses for {imh} are included but system does not have {imh}. Fuses will NOT be applied.')
+
+	# Expand common CBB fuses to all available CBBs
+	for fuse in fuses_cbbs_common:
+		print(f'>>>  Expanding common CBB fuse to all CBBs: {fuse}')
+		for cbb in cbb_range:
+			expanded_fuse = fuse.replace('.cbbs.', f'.{cbb}.')
+			cbb_fuses[cbb].append(expanded_fuse)
+
+	# Expand common IMH fuses to all available IMHs
+	for fuse in fuses_imhs_common:
+		print(f'>>>  Expanding common IMH fuse to all IMHs: {fuse}')
+		for imh in imh_range:
+			expanded_fuse = fuse.replace('.imhs.', f'.{imh}.')
+			imh_fuses[imh].append(expanded_fuse)
+
+	# Print specific fuses being added (only non-expanded ones)
+	all_specific_fuses = []
+	for fuse_list in list(cbb_fuses.values()) + list(imh_fuses.values()):
+		all_specific_fuses.extend(fuse_list)
+
+	for f in all_specific_fuses:
+		is_expanded = False
+		for common_fuse in fuses_cbbs_common + fuses_imhs_common:
+			if common_fuse.replace('.cbbs.', '.').replace('.imhs.', '.') in f:
+				is_expanded = True
+				break
+		if not is_expanded:
+			print(f'>>>  External fuse to be added: {f}')
+
+	# Apply bsformat transformation if requested
+	if bsformat:
+		print(f'\n {"*"*5} Modifying fuses to be usable in a bootscript array for each die {"*"*5}\n')
+		for cbb in cbb_range:
+			if cbb_fuses[cbb]:
+				cbb_fuses[cbb] = dmr_fuse_fix(fuse_str=cbb_fuses[cbb], cbb_name=cbb)
+		for imh in imh_range:
+			if imh_fuses[imh]:
+				imh_fuses[imh] = bs_fuse_fix(fuse_str=imh_fuses[imh], bases=[f'sv.socket0.{imh}.fuses.'])
+
+	# Build external_config dictionary with all units
+	external_config = {}
+	for cbb in cbb_range:
+		external_config[cbb] = cbb_fuses[cbb]
+	for imh in imh_range:
+		external_config[imh] = imh_fuses[imh]
+
+	# Keep common lists for reference  -- Not using this currently
+	#external_config['cbbs'] = fuses_cbbs_common
+	#external_config['imhs'] = fuses_imhs_common
+
+	print('External configuration fuses collected, adding them to boot configuration')
+	print("***********************************v********************************************\n")
+	return external_config
 
 ## Type of avaiable masks for the pseudo Mask and pseudo bs
 ## Class uses the Column configuration that replicates Class scenario
@@ -2168,10 +2291,10 @@ def fuses_dis_1CPM(dis_cores, bsformat = True):
 		return None
 	fuse=[]
 	if bsformat:
-		for core_n in range (0,7):
+		for core_n in range (0,8):
 			fuse += [f"fuses.core{core_n}_fuse.core_fuse_core_fuse_pma_lp_enable={dis:#x}"]
 	else:
-		for core_n in range (0,7):
+		for core_n in range (0,8):
 			fuse += [f"sv.socket0.cbbs.computes.fuses.core{core_n}_fuse.core_fuse_core_fuse_pma_lp_enable={dis}"]
 		# fuse = [f"sv.socket0.computes.fuses.pcu.pcode_lp_disable={dis}"]
 	return fuse

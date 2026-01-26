@@ -527,6 +527,7 @@ class TestExecutor:
 		self.gdflog.log(f'\t > Voltage set to: {self.config.volt_type.value} ')
 		self.gdflog.log(f'\t > HT Disabled (BigCore): {self.config.pseudo} ')
 		self.gdflog.log(f'\t > Dis 2 Cores (Atomcore): {self.config.dis2CPM} ')
+		self.gdflog.log(f'\t > Dis 1 Core (Atomcore): {self.config.dis1CPM} ')
 		self.gdflog.log(f'\t > Core Freq: {self.config.freq_ia} ')
 		self.gdflog.log(f'\t > Core Voltage: {self.config.volt_IA} ')
 		self.gdflog.log(f'\t > Mesh Freq: {self.config.freq_cfc} ')
@@ -693,6 +694,7 @@ class TestExecutor:
 					Reset=self.config.reset,
 					Mask=self.config.mask,
 					pseudo=self.config.pseudo,
+					dis_1CPM=self.config.dis1CPM,
 					dis_2CPM=self.config.dis2CPM,
 					GUI=False,
 					fastboot=self.config.fastboot,
@@ -701,6 +703,7 @@ class TestExecutor:
 					debug=False,
 					boot_postcode=(self.config.content == ContentType.BOOTBREAKS),
 					extMask=self.config.extMask,
+					external_fusefile=self.config.fusefile,
 					u600w=self.config.u600w,
 					execution_state=self.execution_state
 				)
@@ -716,6 +719,7 @@ class TestExecutor:
 					vbump_mesh=self.config.volt_CFC,
 					Reset=self.config.reset,
 					pseudo=False,
+					dis_1CPM=self.config.dis1CPM,
 					dis_2CPM=self.config.dis2CPM,
 					GUI=False,
 					fastboot=self.config.fastboot,
@@ -723,6 +727,7 @@ class TestExecutor:
 					volttype=self.config.volt_type.value,
 					debug=False,
 					boot_postcode=(self.config.content == ContentType.BOOTBREAKS),
+					external_fusefile=self.config.fusefile,
 					u600w=self.config.u600w,
 					execution_state=self.execution_state
 				)
@@ -2684,6 +2689,8 @@ class Framework:
 				# Handle special conversions
 				if recipe_key == 'Disable 2 Cores' and value:
 					config_updates['dis2CPM'] = int(value, 16)
+				elif recipe_key == 'Disable 1 Core' and value:
+					config_updates['dis1CPM'] = int(value, 16)
 				elif recipe_key == 'Core License' and value:
 					config_updates['corelic'] = int(value.split(":")[0])
 				elif recipe_key == 'Test Mode' and value:

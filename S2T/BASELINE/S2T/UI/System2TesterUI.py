@@ -122,8 +122,9 @@ class QuickDefeatureTool:
 		self.s2t = s2t
 		self.features = s2t.features() if s2t != None else None
 		self.variables = s2t.variables() if s2t != None else None
-		self.core_type = s2t.core_type if s2t != None else None
-		
+		self.core_type = s2t.core_type if s2t != None else 'bigcore'
+		self.core_string = s2t.core_string if s2t != None else 'CORE'
+
 		# Use domains instead of computes (works for computes, cbbs, etc.)
 		self.domains = [d.capitalize() for d in s2t.domains] if s2t != None else ['Compute0', 'Compute1', 'Compute2']
 		self.domain_type = s2t.domain_type if s2t != None else 'Compute'  # 'Compute' or 'CBB'
@@ -160,11 +161,11 @@ class QuickDefeatureTool:
 		row += 1
 		
 		# Domain/Mask Configuration
-		config_label_text = f"{self.domain_type} Configuration:" if self.mode == 'mesh' else "Target Physical Core:"
+		config_label_text = f"{self.domain_type} Configuration:" if self.mode == 'mesh' else f"Target Physical {self.core_string.capitalize()}:"
 		ttk.Label(main_frame, text=config_label_text).grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.mesh_config_var = tk.StringVar(value="None")
 		self.mesh_config_dropdown = ttk.Combobox(main_frame, textvariable=self.mesh_config_var, values=self.mesh_config_options)
-		self.mesh_config_dropdown.grid(row=row, column=1, padx=10, pady=5, sticky="w")
+		self.mesh_config_dropdown.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
 		row += 1
 		
 		# License Level
@@ -172,7 +173,7 @@ class QuickDefeatureTool:
 		self.license_level_var = tk.StringVar(value="Don't set license")
 		self.license_level_options = [k for k,v in self.license_data.items()]
 		self.license_level_dropdown = ttk.Combobox(main_frame, textvariable=self.license_level_var, values=self.license_level_options)
-		self.license_level_dropdown.grid(row=row, column=1, padx=10, pady=5, sticky="w")
+		self.license_level_dropdown.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
 		row += 1
 		
 		# Separator
@@ -183,20 +184,20 @@ class QuickDefeatureTool:
 		ttk.Label(main_frame, text="Frequency Defeature:").grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.freq_defeature_var = tk.BooleanVar()
 		self.freq_defeature_checkbox = ttk.Checkbutton(main_frame, variable=self.freq_defeature_var, command=self.toggle_frequency_fields)
-		self.freq_defeature_checkbox.grid(row=row, column=1, padx=10, pady=5, sticky="w")
+		self.freq_defeature_checkbox.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
 		row += 1
 		
 		# Flat Core Frequency
-		ttk.Label(main_frame, text="Flat Core Frequency (MHz):").grid(row=row, column=0, padx=10, pady=5, sticky="w")
+		ttk.Label(main_frame, text="Flat Core Frequency (100MHz):").grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.flat_core_freq_entry = ttk.Entry(main_frame)
-		self.flat_core_freq_entry.grid(row=row, column=1, padx=10, pady=5, sticky="w")
+		self.flat_core_freq_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
 		self.flat_core_freq_entry.config(state='disabled')
 		row += 1
 		
 		# Flat Mesh Frequency
-		ttk.Label(main_frame, text="Flat Mesh Frequency (MHz):").grid(row=row, column=0, padx=10, pady=5, sticky="w")
+		ttk.Label(main_frame, text="Flat Mesh Frequency (100MHz):").grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.flat_mesh_freq_entry = ttk.Entry(main_frame)
-		self.flat_mesh_freq_entry.grid(row=row, column=1, padx=10, pady=5, sticky="w")
+		self.flat_mesh_freq_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
 		self.flat_mesh_freq_entry.config(state='disabled')
 		row += 1
 		
@@ -217,7 +218,7 @@ class QuickDefeatureTool:
 		self.core_vbumps_label = ttk.Label(main_frame, text="Core Voltage:")
 		self.core_vbumps_label.grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.core_vbumps_entry = ttk.Entry(main_frame)
-		self.core_vbumps_entry.grid(row=row, column=1, padx=10, pady=5, sticky="w")
+		self.core_vbumps_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
 		self.core_vbumps_entry.config(state='disabled')
 		row += 1
 		
@@ -225,7 +226,7 @@ class QuickDefeatureTool:
 		self.mesh_vbumps_label = ttk.Label(main_frame, text="Mesh Voltage:")
 		self.mesh_vbumps_label.grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.mesh_vbumps_entry = ttk.Entry(main_frame)
-		self.mesh_vbumps_entry.grid(row=row, column=1, padx=10, pady=5, sticky="w")
+		self.mesh_vbumps_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
 		self.mesh_vbumps_entry.config(state='disabled')
 		row += 1
 		
@@ -246,14 +247,14 @@ class QuickDefeatureTool:
 		# Registers Min
 		ttk.Label(main_frame, text="ATE Regs Min (0x0):").grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.registers_min_entry = ttk.Entry(main_frame)
-		self.registers_min_entry.grid(row=row, column=1, padx=10, pady=5, sticky="w")
+		self.registers_min_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
 		self.registers_min_entry.config(state='disabled')
 		row += 1
 		
 		# Registers Max
 		ttk.Label(main_frame, text="ATE Regs Max (0xFFFF):").grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		self.registers_max_entry = ttk.Entry(main_frame)
-		self.registers_max_entry.grid(row=row, column=1, padx=10, pady=5, sticky="w")
+		self.registers_max_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
 		self.registers_max_entry.config(state='disabled')
 		row += 1
 		
@@ -297,7 +298,22 @@ class QuickDefeatureTool:
 		# Separator
 		ttk.Separator(main_frame, orient='horizontal').grid(row=row, column=0, columnspan=2, sticky="ew", pady=5)
 		row += 1
-		
+
+		# External Fuse File
+		ttk.Label(main_frame, text="External Fuse File (.fuse):").grid(row=row, column=0, padx=10, pady=5, sticky="w")
+		fuse_file_frame = ttk.Frame(main_frame)
+		fuse_file_frame.grid(row=row, column=1, padx=10, pady=5, sticky="w")
+		self.fuse_file_var = tk.StringVar()
+		self.fuse_file_entry = ttk.Entry(fuse_file_frame, textvariable=self.fuse_file_var, width=30, state='readonly')
+		self.fuse_file_entry.pack(side=tk.LEFT, padx=(0, 5))
+		self.fuse_file_browse_button = ttk.Button(fuse_file_frame, text="Browse", command=self.browse_fuse_file)
+		self.fuse_file_browse_button.pack(side=tk.LEFT)
+		row += 1
+
+		# Separator
+		ttk.Separator(main_frame, orient='horizontal').grid(row=row, column=0, columnspan=2, sticky="ew", pady=5)
+		row += 1
+
 		# Action Buttons
 		button_frame = ttk.Frame(main_frame)
 		button_frame.grid(row=row, column=0, columnspan=2, pady=10)
@@ -328,11 +344,12 @@ class QuickDefeatureTool:
 		if self.s2t != None:
 			self.show_ate()
 		self.modeselect()
-		if self.s2t != None:
-			self.features_check()
-		
+
 		# Bind fastboot check
 		self.mesh_config_var.trace_add("write", self.check_fastboot)
+
+		if self.s2t != None:
+			self.features_check()
 
 	def corelist(self):
 		cores = []
@@ -367,10 +384,11 @@ class QuickDefeatureTool:
 		if self.s2t != None: 
 			if not self.s2t.qdf600w:
 				self.w600_checkbox.config(state=tk.DISABLED)
-		
-		if self.mesh_config_var.get() == 'None' or self.mode == 'slice': 
-			self.fastboot_checkbox.config(state='normal')
-			
+
+		self.check_fastboot()
+		#if self.mesh_config_var.get() == 'None' or self.mode == 'slice':
+		#	self.fastboot_checkbox.config(state='normal')
+
 	def show_ate(self):
 		print('--- ATE Frequency Configurations Available --- ')
 		self.s2t.ate_data(mode=self.mode)
@@ -381,6 +399,17 @@ class QuickDefeatureTool:
 		state = 'normal' if self.freq_defeature_var.get() else 'disabled'
 		self.flat_core_freq_entry.config(state=state)
 		self.flat_mesh_freq_entry.config(state=state)
+
+	def browse_fuse_file(self):
+		"""Open file dialog to select a .fuse file"""
+		file_path = filedialog.askopenfilename(
+			title="Select Fuse File",
+			filetypes=[("Fuse Files", "*.fuse"), ("All Files", "*.*")],
+			initialdir="C:/Temp"
+		)
+		if file_path:
+			self.fuse_file_var.set(file_path)
+			print(f"Selected fuse file: {file_path}")
 
 	def toggle_600w_fields(self):
 		if self.w600_var.get():
@@ -396,24 +425,44 @@ class QuickDefeatureTool:
 
 	def update_voltage_fields(self, event=None):
 		selection = self.volt_defeature_var.get()
-		if selection == "None":
+		self.voltage_text(selection=selection)
+
+	def voltage_text(self, selection = 'vbump'):
+
+		configs_core = {
+					'GNR': {'vbump': "Core vBumps (-0.2V to 0.2V)",
+             				'fixed': "Core Fixed Voltage",
+                 			'ppvc': "Core PPVC Conditions"},
+					'CWF': {'vbump': "Module vBumps (-0.2V to 0.2V)(+HDC)",
+             				'fixed': "Module Fixed Voltage (+HDC)",
+                 			'ppvc': "Module PPVC Conditions"},
+					'DMR': {'vbump': "Module vBumps (-0.2V to 0.2V)(+MLC)",
+             				'fixed': "Module Fixed Voltage (+MLC)",
+				 			'ppvc': "Module PPVC Conditions"}
+					}
+
+		configs_mesh = {
+					'GNR': {'vbump': "Mesh vBumps (-0.2V to 0.2V)(+HDC)",
+             				'fixed': "Mesh Fixed Voltage (CFC/HDC)",
+                 			'ppvc': "Mesh PPVC Conditions"},
+					'CWF': {'vbump': "Mesh vBumps (-0.2V to 0.2V)",
+             				'fixed': "Mesh Fixed Voltage",
+                 			'ppvc': "Mesh PPVC Conditions"},
+					'DMR': {'vbump': "Mesh vBumps (-0.2V to 0.2V)",
+             				'fixed': "Mesh Fixed Voltage",
+                 			'ppvc': "Mesh PPVC Conditions"}
+					}
+		selection_states = {'vbump': 'normal', 'fixed': 'normal', 'ppvc': 'disabled'}
+
+		if self.product in configs_core and selection != 'None':
+
+			self.core_vbumps_label.config(text=configs_core[self.product][selection])
+			self.mesh_vbumps_label.config(text=configs_mesh[self.product][selection])
+			self.core_vbumps_entry.config(state=selection_states[selection])
+			self.mesh_vbumps_entry.config(state=selection_states[selection])
+		else:
 			self.core_vbumps_label.config(text="Core Voltage")
 			self.mesh_vbumps_label.config(text="Mesh Voltage")
-			self.core_vbumps_entry.config(state='disabled')
-			self.mesh_vbumps_entry.config(state='disabled')
-		elif selection == "vbump":
-			self.core_vbumps_label.config(text= "Core vBumps (-0.2V to 0.2V)" if 'GNR' in self.product else "Core Fixed Voltage (+HDC)")
-			self.mesh_vbumps_label.config(text= "Mesh vBumps (-0.2V to 0.2V)(+HDC)" if 'GNR' in self.product else "Mesh Fixed Voltage (CFC)")
-			self.core_vbumps_entry.config(state='normal')
-			self.mesh_vbumps_entry.config(state='normal')
-		elif selection == "fixed":
-			self.core_vbumps_label.config(text="Core Fixed Voltage" if 'GNR' in self.product else "Core vBumps (-0.2V to 0.2V)(+HDC)")
-			self.mesh_vbumps_label.config(text="Mesh Fixed Voltage (CFC/HDC)" if 'GNR' in self.product else "Mesh vBumps (-0.2V to 0.2V)")
-			self.core_vbumps_entry.config(state='normal')
-			self.mesh_vbumps_entry.config(state='normal')
-		elif selection == "ppvc":
-			self.core_vbumps_label.config(text="Core PPVC Conditions")
-			self.mesh_vbumps_label.config(text="Mesh PPVC Conditions")
 			self.core_vbumps_entry.config(state='disabled')
 			self.mesh_vbumps_entry.config(state='disabled')
 
@@ -437,7 +486,8 @@ class QuickDefeatureTool:
 		self.registers_max_entry.insert(0, max_val)
 
 	def check_fastboot(self, *args):
-		if (self.mesh_config_var.get() == "None") or self.mode == 'slice':
+		fastboot_enabled = self.features['fastboot']['enabled'] if self.s2t != None else False
+		if ((self.mesh_config_var.get() == "None") or (self.mode == 'slice')) and fastboot_enabled:
 			self.fastboot_var.set(True)
 			self.fastboot_checkbox.config(state='normal')
 		else:
@@ -465,7 +515,8 @@ class QuickDefeatureTool:
 		self.dis_2CPM_dropdown.config(state=tk.DISABLED)
 		self.dis_1CPM_dropdown.config(state=tk.DISABLED)
 		self.volt_defeature_dropdown.config(state=tk.DISABLED)
-		
+		self.fuse_file_browse_button.config(state=tk.DISABLED)
+
 		self.w600_checkbox.config(state=tk.DISABLED)
 	
 	def features_check(self):
@@ -492,7 +543,9 @@ class QuickDefeatureTool:
 		if core_volt and mesh_cfc_volt: self.volt_defeature_dropdown.config(state=tk.DISABLED)
 		if core_volt: self.core_vbumps_entry.config(state=tk.DISABLED)
 		if mesh_cfc_volt: self.mesh_vbumps_entry.config(state=tk.DISABLED)
-		if fastboot: self.fastboot_checkbox.config(state=tk.DISABLED)
+		if fastboot:
+			self.fastboot_checkbox.config(state=tk.DISABLED)
+			self.fastboot_var.set(False)
 		if dis_2CPM: self.dis_2CPM_dropdown.config(state=tk.DISABLED)
 		if dis_1CPM: self.dis_1CPM_dropdown.config(state=tk.DISABLED)
 		if dis_ht: self.ht_disable_checkbox.config(state=tk.DISABLED)
@@ -670,6 +723,7 @@ class QuickDefeatureTool:
 			"Mesh vBumps": None if self.mesh_vbumps_entry.get() == '' else float(self.mesh_vbumps_entry.get()),
 			"FastBoot": self.fastboot_var.get(),
 			"Reset Unit": self.reset_unit_var.get(),
+			"Fuse File": self.fuse_file_var.get() if self.fuse_file_var.get() else None,
 			"HT Disable": self.ht_disable_var.get(),
 			"600W Unit": self.w600_var.get(),
 			"Disable 2C Module": self.dis_2CPM_var.get(),
@@ -715,7 +769,8 @@ class QuickDefeatureTool:
 		self.s2t.cr_array_start = options["Registers Min"]
 		self.s2t.reg_select = options["Registers Select"]
 		self.s2t.u600w = options['600W Unit']
-		
+		self.s2t.external_fusefile = options['Fuse File']
+
 		if dis_2CPM in self.dis2cpm_valid:
 			self.s2t.dis_2CPM = dis_2CPM
 		if dis_1CPM in self.dis1cpm_valid:
@@ -734,11 +789,11 @@ class QuickDefeatureTool:
 			customs = {'LeftSide':self.s2t.left_hemispthere,'RightSide':self.s2t.right_hemispthere}
 			domain_names = list(self.s2t.domains)  # Use domains instead of computes
 			if vbump_core != None:
-				#self.s2t.voltselect = 3
+				print(f"Setting Core {vtype} to:", vbump_core)
 				self.s2t.qvbumps_core = vbump_core
 			if vbump_mesh != None:
-				#self.s2t.voltselect = 3
-				self.s2t.qvbumps_mesh = vbump_mesh			
+				print(f"Setting Mesh {vtype} to:", vbump_mesh)
+				self.s2t.qvbumps_mesh = vbump_mesh
 			if Mask in valid_configs.keys():
 				self.s2t.targetTile = 1
 				self.s2t.target = Mask

@@ -1,0 +1,44 @@
+# Example GNR Fuse Configuration File
+# This file demonstrates the GNR hierarchy for fuse configurations
+# Hex values can be written directly without quotes: 0xFF, 0xDEAD, etc.
+
+# Compute Fuses - Specific Socket and Compute
+[sv.socket0.compute0.fuses]
+registerx1 = 0x1
+registerx2 = 0x2
+# You can also specify the full path in the register name (will not duplicate)
+sv.socket0.compute0.registerx3 = 0x0
+
+[sv.socket0.compute1.fuses]
+registerx1 = 0x5
+registerx2 = 0x6
+
+[sv.socket0.compute2.fuses]
+registerx1 = 0xABC
+registerx2 = 0xDEF
+
+# Compute Fuses - All Sockets, All Computes
+[sv.sockets.computes.fuses]
+common_compute_reg1 = 0xFF
+common_compute_reg2 = 0xAA
+sv.sockets.computes.fuses.registerx3 = 0x0
+
+# IO Fuses - Specific Socket and IO
+[sv.socket0.io0.fuses]
+io_reg1 = 0x10
+io_reg2 = 0x20
+sv.socket0.io0.fuses.registerx3 = 0x0
+
+[sv.socket0.io1.fuses]
+io_reg1 = 0x15
+io_reg2 = 0x25
+
+# IO Fuses - All Sockets, All IOs
+[sv.sockets.ios.fuses]
+common_io_reg1 = 0xDEAD
+common_io_reg2 = 0xBEEF
+sv.sockets.ios.fuses.registerx3 = 0x0
+
+# Multiple socket configurations
+[sv.socket1.compute0.fuses]
+cross_socket_reg = 0x999

@@ -11,3 +11,5 @@ users.gaespino.dev.S2T.,users.THR.PythonScripts.thr.S2T.,Path replacement for pr
 import CoreManipulation,import CWFCoreManipulation,Import Replacement ,yes
 import dpmChecks,import dpmChecksCWF,Import Replacement ,yes
 import DebugFramework.MaskEditor,import DebugFramework.CWFMaskEditor,Import Replacement ,yes
+import GetTesterCurves,import CWFGetTesterCurves,Import Replacement ,yes
+import MaskEditor,import CWFMaskEditor,Import Replacement ,yes

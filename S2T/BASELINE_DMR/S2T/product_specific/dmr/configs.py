@@ -320,7 +320,7 @@ class configurations:
 							'core_freq':			{'default':None,'enabled':True,'disabled_value':None,},
 							'mesh_freq':			{'default':None,'enabled':True,'disabled_value':None,},
 							'io_freq':				{'default':None,'enabled':True,'disabled_value':None,},
-							'license_level':		{'default':None,'enabled':False,'disabled_value':None,},
+							'license_level':		{'default':None,'enabled':True,'disabled_value':None,},
 							'dcf_ratio':			{'default':None,'enabled':False,'disabled_value':None,},
 							'stop_after_mrc':		{'default':False,'enabled':True,'disabled_value':False,},
 							'boot_postcode':		{'default':False,'enabled':True,'disabled_value':False,},

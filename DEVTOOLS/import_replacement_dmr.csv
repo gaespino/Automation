@@ -11,3 +11,4 @@ users.gaespino.dev.S2T.,users.THR.dmr_debug_utilities.S2T.,Path replacement for 
 import CoreManipulation,import CoreManipulation,Import Replacement ,yes
 import dpmChecks,import dpmChecks,Import Replacement ,yes
 import DebugFramework.MaskEditor,import DebugFramework.MaskEditor,Import Replacement ,yes
+users.gaespino.DebugFramework.,users.THR.dmr_debug_utilities.DebugFramework.,Path replacement for product variant,yes

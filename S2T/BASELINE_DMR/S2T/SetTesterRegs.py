@@ -271,7 +271,7 @@ def setupSystemAsTester(debug = False):
 def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_mesh = None,
 				  Reset = False, Mask = None, pseudo = False, dis_2CPM = None, dis_1CPM = None, GUI = True,
 				  fastboot = True, corelic = None, volttype='vbump', debug= False,
-				  boot_postcode = False, extMask = None, u600w=None, execution_state=None):
+				  boot_postcode = False, extMask = None, external_fusefile = None, u600w=None, execution_state=None):
 	"""
 	Quick mesh test using new manager architecture.
 	"""
@@ -281,6 +281,11 @@ def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_m
 
 	voltage_recipes = ['ppvc']
 	special_qdf = config.SPECIAL_QDF
+
+	apply_600w = u600w if qdf in special_qdf else False
+
+	print( ' --- System 2 Tester Mesh Mode --- ')
+	print( f' >>>  QDF: {qdf}{"" if not apply_600w else " (600W fuses applied)"}')
 
 	vtype = 3 if volttype == 'vbump' else 2 if volttype == 'fixed' else 4 if volttype == 'ppvc' else 1
 
@@ -306,7 +311,8 @@ def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_m
 	s2tTest.boot_postcode = boot_postcode
 	s2tTest.license_level = corelic
 	s2tTest.extMasks = extMask
-	s2tTest.u600w = u600w if qdf in special_qdf else False
+	s2tTest.external_fusefile = external_fusefile # List of fuses to be included
+	s2tTest.u600w = apply_600w
 	s2tTest.fastboot = False if s2tTest.u600w == True else fastboot
 
 	# Set quickconfig variables
@@ -386,7 +392,7 @@ def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_m
 		# Save Configuration
 		s2tTest.save_config(file_path=s2tTest.defaultSave)
 
-def SliceQuickTest(Target_core = None, core_freq = None, mesh_freq = None, vbump_core = None, vbump_mesh = None, Reset = False, pseudo = False, dis_1CPM = None, dis_2CPM = None, GUI = True, fastboot = True, corelic = None,  volttype = 'fixed', debug= False, boot_postcode = False, u600w=None, execution_state=None):
+def SliceQuickTest(Target_core = None, core_freq = None, mesh_freq = None, vbump_core = None, vbump_mesh = None, Reset = False, pseudo = False, dis_1CPM = None, dis_2CPM = None, GUI = True, fastboot = True, corelic = None,  volttype = 'fixed', debug= False, boot_postcode = False, u600w=None, external_fusefile = None, execution_state=None):
 	"""
 	Quick slice test using new manager architecture.
 	"""
@@ -396,6 +402,11 @@ def SliceQuickTest(Target_core = None, core_freq = None, mesh_freq = None, vbump
 
 	voltage_recipes = ['ppvc']
 	special_qdf = config.SPECIAL_QDF
+
+	apply_600w = u600w if qdf in special_qdf else False
+
+	print( ' --- System 2 Tester Mesh Mode --- ')
+	print( f' >>>  QDF: {qdf}{"" if not apply_600w else " (600W fuses applied)"}')
 
 	vtype = 3 if volttype == 'vbump' else 2 if volttype == 'fixed' else 4 if volttype == 'ppvc' else 1
 
@@ -421,8 +432,9 @@ def SliceQuickTest(Target_core = None, core_freq = None, mesh_freq = None, vbump
 	s2tTest.boot_postcode = boot_postcode
 	s2tTest.targetLogicalCore = Target_core
 	s2tTest.license_level = corelic
-	s2tTest.u600w = u600w if qdf in special_qdf else False
+	s2tTest.u600w = apply_600w
 	s2tTest.fastboot =  False if s2tTest.u600w == True else fastboot
+	s2tTest.external_fusefile = external_fusefile # List of fuses to be included
 
 	# Set quickconfig variables
 	s2tTest.quick()
@@ -540,7 +552,8 @@ class S2TFlow():
 						core_mlc_volt=None,
 						u600w=None,
 						extMasks=None,
-						execution_state = None):
+						execution_state = None,
+						external_fusefile = None):
 
 		# Framework Execution Status
 		self.execution_state = execution_state
@@ -627,7 +640,8 @@ class S2TFlow():
 
 		## External Base Masks
 		self.extMasks = extMasks
-
+		self.external_fuses = None
+		self.external_fusefile = external_fusefile
 		## Voltage Settings (maintained for compatibility, but delegated to manager)
 		self.ppvc_fuses = ppvc_fuses
 		self.custom_volt = custom_volt
@@ -764,6 +778,7 @@ class S2TFlow():
 
 		# Set external voltage variables
 		self.quick()
+
 	#========================================================================================================#
 	#=============== INITIALIZATION AND FLOW CONTROL =======================================================#
 	#========================================================================================================#
@@ -951,7 +966,8 @@ class S2TFlow():
 			'mlcways': self.mlcways,
 			'u600w': self.u600w,
 			'masks': {k:str(v) for k,v in self.masks.items()} if hasattr(self, 'masks') and self.masks != None else None,
-			'extMasks': self.extMasks
+			'extMasks': self.extMasks,
+			'external_fusefile': self.external_fusefile
 		}
 
 		print(f'\n{bullets} Saving Configuration file to: {file_path}')
@@ -1024,6 +1040,7 @@ class S2TFlow():
 		self.mlcways = config_data.get('mlcways')
 		self.u600w = config_data.get('u600w')
 		self.extMasks = config_data.get('extMasks')
+		self.external_fusefile = config_data.get('external_fusefile')
 
 		masks = config_data.get('masks')
 		if masks == None:
@@ -1094,15 +1111,13 @@ class S2TFlow():
 			print(f"\n{bullets} Select Core License Level:")
 			print("\t> 0. Don't set license")
 			print("\t> 1. SSE/128")
-			print("\t> 2. AVX2/256 Light")
-			print("\t> 3. AVX2/256 Heavy")
-			print("\t> 4. AVX3/512 Light")
-			print("\t> 5. AVX3/512 Heavy")
-			print("\t> 6. TMUL Light")
-			print("\t> 7. TMUL Heavy")
+			print("\t> 2. AVX2/256 Heavy")
+			print("\t> 3. AVX3/512 Heavy")
+			print("\t> 4. TMUL Heavy")
 
-			while self.license_level not in range (0,8):
-				self.license_level = int(input("--> Enter 0-7 : "))
+
+			while self.license_level not in range (0,5):
+				self.license_level = int(input("--> Enter 0-4 : "))
 			if self.license_level == 0: self.license_level = None
 
 	def set_misc(self):
@@ -1189,6 +1204,14 @@ class S2TFlow():
 			scm.modulesEnabled(rdfuses=rdfuses)
 		else:
 			print(f"{bullets} Tile view not supported for this product.")
+
+	def check_external_fuses(self):
+		"""Check external fuses if provided."""
+		if self.external_fusefile is not None:
+			print(f"\n{bullets} Checking external fuses provided...")
+			fuse_list = dpm.process_fuse_file(self.external_fusefile)
+			self.external_fuses = dpm.external_fuses(external_fuses = fuse_list, bsformat = (not self.fastboot), )
+
 
 	#========================================================================================================#
 	#=============== SLICE MODE IMPLEMENTATION ==============================================================#
@@ -1434,10 +1457,14 @@ class S2TFlow():
 		# Global Variables configuration
 		self.set_globals(flow='core')
 
+		# Collect External Fuses if provided
+		self.check_external_fuses()
+
 		slice_mode = scm.System2Tester(target = self.targetLogicalCore, masks = self.masks,
 									   boot=True, ht_dis=False, dis_2CPM = self.dis_2CPM,
 									   dis_1CPM = self.dis_1CPM,fresh_state= False,
 									   fastboot = self.fastboot, ppvc_fuses=self.volt_config,
+									   external_fuses = self.external_fuses,
 									   execution_state = self.execution_state)
 
 		slice_mode.setCore()
@@ -1886,11 +1913,15 @@ class S2TFlow():
 		#Set Globals before calling the S2T Script flow
 		self.set_globals(flow='mesh')
 
+		# Collect External Fuses if provided
+		self.check_external_fuses()
+
 		# Call the appropriate script based on the selected mode
 		mesh = scm.System2Tester(target=self.target, masks=self.masks, boot=True,
 						   				ht_dis=self.dis_ht, dis_2CPM=self.dis_2CPM,
 										dis_1CPM=self.dis_1CPM, fresh_state=False, readFuse=True,
 										fastboot=self.fastboot, ppvc_fuses=self.volt_config,
+										external_fuses = self.external_fuses,
 										execution_state=self.execution_state)
 
 		# Call different methods based on targetTile

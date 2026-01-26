@@ -5,48 +5,57 @@ from tkinter import ttk
 from tkinter import filedialog, messagebox
 import getpass
 from datetime import datetime
-try: 
-	import  users.gaespino.dev.S2T.Logger.ErrorReport as dpmlog
-	FRAMEWORK_VARS = dpmlog.FRAMEWORK_VARS
-	LICENSE_DICT = dpmlog.LICENSE_DICT
-	FRAMEWORK_CORELIC = dpmlog.FRAMEWORK_CORELIC
-	FRAMEWORK_VTYPES = dpmlog.FRAMEWORK_VTYPES
-	FRAMEWORK_RUNSTATUS = dpmlog.FRAMEWORK_RUNSTATUS
-	FRAMEWORK_CONTENT = dpmlog.FRAMEWORK_CONTENT
-except: 
-	dpmlog = None
-	FRAMEWORK_VARS = {	'qdf':'', 
-			   		'tnum':'', 
-					'mask':'', 
-					'corelic':'', 
-					'bumps':'', 
-					'htdis':'', 
-					'dis2CPM':'', 
-					'freqIA':'', 
-					'voltIA':'', 
-					'freqCFC':'', 
-					'voltCFC':'', 
-					'content':'', 
-					'passstring':'', 
-					'failstring':'', 
-					'runName':'', 
-					'runStatus':'', 
-					'scratchpad':'', 
-					'seed':'',
-					'ttlog':  None
-					}
-	LICENSE_DICT = { 0:"Don't set license",1:"SSE/128",2:"AVX2/256 Light", 3:"AVX2/256 Heavy", 4:"AVX3/512 Light", 5:"AVX3/512 Heavy", 6:"TMUL Light", 7:"TMUL Heavy"}
-	FRAMEWORK_CORELIC = [f"{k}:{v}" for k,v in LICENSE_DICT.items()]
-	FRAMEWORK_VTYPES = ["VBUMP", "FIXED", "PPVC"]
-	FRAMEWORK_RUNSTATUS = ["PASS", "FAIL"]
-	FRAMEWORK_CONTENT = ["Dragon", "Linux", "PYSVConsole"]
 
+# Lazy import to avoid circular dependency - import ErrorReport only when needed
+dpmlog = None
 
-#if __name__ == "__main__":
-#    dpmb(vidlist)
+# Define default values (will be overridden if ErrorReport imports successfully)
+FRAMEWORK_VARS = {	'qdf':'',
+		   		'tnum':'',
+				'mask':'',
+				'corelic':'',
+				'bumps':'',
+				'htdis':'',
+				'dis2CPM':'',
+				'freqIA':'',
+				'voltIA':'',
+				'freqCFC':'',
+				'voltCFC':'',
+				'content':'',
+				'passstring':'',
+				'failstring':'',
+				'runName':'',
+				'runStatus':'',
+				'scratchpad':'',
+				'seed':'',
+				'ttlog':  None
+				}
+LICENSE_DICT = { 0:"Don't set license",1:"SSE/128",2:"AVX2/256 Light", 3:"AVX2/256 Heavy", 4:"AVX3/512 Light", 5:"AVX3/512 Heavy", 6:"TMUL Light", 7:"TMUL Heavy"}
+FRAMEWORK_CORELIC = [f"{k}:{v}" for k,v in LICENSE_DICT.items()]
+FRAMEWORK_VTYPES = ["VBUMP", "FIXED", "PPVC"]
+FRAMEWORK_RUNSTATUS = ["PASS", "FAIL"]
+FRAMEWORK_CONTENT = ["Dragon", "Linux", "PYSVConsole"]
 
-
-
+def _lazy_import_dpmlog():
+	"""Lazy import of ErrorReport module to avoid circular dependency"""
+	global dpmlog, FRAMEWORK_VARS, LICENSE_DICT, FRAMEWORK_CORELIC, FRAMEWORK_VTYPES, FRAMEWORK_RUNSTATUS, FRAMEWORK_CONTENT
+	
+	if dpmlog is not None:
+		return dpmlog
+	
+	try:
+		import users.gaespino.dev.S2T.Logger.ErrorReport as dpmlog_module
+		dpmlog = dpmlog_module
+		FRAMEWORK_VARS = dpmlog.FRAMEWORK_VARS
+		LICENSE_DICT = dpmlog.LICENSE_DICT
+		FRAMEWORK_CORELIC = dpmlog.FRAMEWORK_CORELIC
+		FRAMEWORK_VTYPES = dpmlog.FRAMEWORK_VTYPES
+		FRAMEWORK_RUNSTATUS = dpmlog.FRAMEWORK_RUNSTATUS
+		FRAMEWORK_CONTENT = dpmlog.FRAMEWORK_CONTENT
+		return dpmlog
+	except Exception as e:
+		print(f'[-] -- Could not import Logger.ErrorReport -- {e}')
+		return None
 
 class loggerGUI:
 	def __init__(self, root, qdf = '', ww='', product = 'GNRAP'):
@@ -296,7 +305,7 @@ class loggerGUI:
 		if (self.up_to_disk_var.get() or self.up_to_danta_var.get()) and not self.validate_fields():
 			messagebox.showerror("Error", "All fields must be filled when upload is selected.")
 			return
-		
+
 		visual = self.visual_entry.get()
 		Testnumber = self.testnumber_entry.get()
 		TestName = self.testname_entry.get()
@@ -348,8 +357,11 @@ class loggerGUI:
 		print(f"\tUpload to Danta: {upload_to_danta}")
 		print(f"\tUpload to Disk: {upload_to_disk}")
 		print(f"\tFramework Data: {framework_data}")
-		if dpmlog != None:
-			dpmlog.run(visual = visual, Testnumber=Testnumber, TestName=TestName, chkmem = checkmem, debug_mca = debugmca, dr_dump= drdump, folder=reportfolder,  WW = ww, Bucket = bucket, product = product, QDF = qdf, upload_to_disk = upload_to_disk, upload_to_danta = upload_to_danta, framework_data = framework_data)
+		
+		# Lazy load dpmlog to avoid circular import
+		dpmlog_module = _lazy_import_dpmlog()
+		if dpmlog_module is not None:
+			dpmlog_module.run(visual = visual, Testnumber=Testnumber, TestName=TestName, chkmem = checkmem, debug_mca = debugmca, dr_dump= drdump, folder=reportfolder,  WW = ww, Bucket = bucket, product = product, QDF = qdf, upload_to_disk = upload_to_disk, upload_to_danta = upload_to_danta, framework_data = framework_data)
 		else:
 			print('Interface Test Complete')
 		#self.root.destroy()

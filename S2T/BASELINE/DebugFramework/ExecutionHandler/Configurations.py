@@ -93,6 +93,7 @@ class ConfigurationMapping:
 			'Configuration (Mask)': 'mask',
 			'Boot Breakpoint': 'postcode_break',
 			'Disable 2 Cores': 'dis2CPM',
+			'Disable 1 Core': 'dis1CPM',
 			'Check Core': 'coreslice',
 			'Voltage Type': 'volt_type',
 			'Voltage IA': 'volt_IA',
@@ -100,7 +101,10 @@ class ConfigurationMapping:
 			'Frequency IA': 'freq_ia',
 			'Frequency CFC': 'freq_cfc',
 			'External Mask': 'extMask',
-
+			'Fuse File': 'fusefile',
+			'Bios File': 'biosfile',
+			'Slice Disable List': 'slicedislist',
+			'Core Disable List': 'coredislist',
 		}
 	
 	DRAGON_MAPPING = {
@@ -164,6 +168,7 @@ class TestConfiguration:
 	coreslice: Optional[int] = None
 	pseudo: bool = False
 	dis2CPM: Optional[int] = None
+	dis1CPM: Optional[int] = None # Added for DMR
 	corelic: Optional[int] = None
 	
 	# Voltage/Frequency settings
@@ -215,6 +220,12 @@ class TestConfiguration:
 	cancel_flag: bool= False # Cancellation Flag for external scripts
 	execution_cancelled: bool = False
 	execution_ended: bool = False
+
+	# New Features
+	biosfile: Optional[str] = None
+	fusefile: Optional[str] = None
+	coredislist: Optional[Dict] = None
+	slicedislist: Optional[Dict] = None
 
 @dataclass
 class SystemToTesterConfig:

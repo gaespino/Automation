@@ -51,8 +51,8 @@ class configurations:
 		if product not in CONFIG_PRODUCT:
 			raise ValueError (f" Invalid Product, this function is only available for {CONFIG_PRODUCT}")
 
-	def init_product_specific(self):
-		
+	def init_product_specific(self, sv=None):
+
 		# Product config
 		product = self.product
 		
@@ -93,7 +93,7 @@ class configurations:
 		
 		return CONFIG
 
-	def init_product_fuses(self):
+	def init_product_fuses(self, sv=None):
 
 		# Product config
 		product = self.product
@@ -135,8 +135,8 @@ class configurations:
 			
 		ia_voltage_curves = {	'vf_curve': ['pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point0','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point1','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point2','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point3','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point4','pcode_ia_vf_voltage_curve##curve##_voltage_index##idx##_voltage_point5'],
 					}
-		fuses_600w_comp = []
-		fuses_600w_io = []
+		fuses_600w_comp = ['pcu.pcode_sst_pp_0_power=0x226','pcu.punit_ptpcioregs_package_power_sku_pkg_min_pwr_fuse=0xa50','pcu.pcode_non_vccin_power=0x300','pcu.pcode_pkg_icc_max_app=0x23','pcu.pcode_loadline_res=0x4','pcu.pcode_loadline_res_rev2=0x190','pcu.pcode_pkg_icc_max=0x2ee','pcu.pcode_pkg_icc_p1_max=0x2ee']
+		fuses_600w_io = ['punit_iosf_sb.pcode_sst_pp_0_power=0x266','punit_iosf_sb.pmsrvr_ptpcioregs_package_power_sku_pkg_min_pwr_fuse=0xa50','punit_iosf_sb.pcode_non_vccin_power=0x300','punit_iosf_sb.pcode_pkg_icc_max_app=0x23','punit_iosf_sb.pcode_loadline_res=0x4','punit_iosf_sb.pcode_loadline_res_rev2=0x190','punit_iosf_sb.pcode_pkg_icc_max=0x2ee','punit_iosf_sb.pcode_pkg_icc_p1_max=0x2ee']
 
 		htdis_comp = []
 		htdis_io = []
@@ -165,7 +165,7 @@ class configurations:
 		
 		return FrameworkFuses
 
-	def init_framework_vars(self):
+	def init_framework_vars(self, sv=None):
 
 		# Product config
 		product = self.product
@@ -183,7 +183,7 @@ class configurations:
 		core_license_levels = [k for k in core_license_dict.keys()]
 				
 		# Special QDF configuration CWF
-		qdf600 = ['']
+		qdf600 = ['Q9FF', 'Q9FJ', 'Q9FK', 'Q9VW', 'Q9VX', 'Q9VY', 'Q9VZ']
 
 		# Mesh Configurations CWF
 		ate_masks = 	{
@@ -266,7 +266,7 @@ class configurations:
 		
 		return FrameworkVars
 
-	def init_framework_features(self):
+	def init_framework_features(self, sv=None):
 
 		# Product config
 		product = self.product
@@ -317,7 +317,7 @@ class configurations:
 		
 		return FrameworkFeatures
 
-	def init_dff_data(self):
+	def init_dff_data(self, sv=None):
 
 		# Product config
 		product = self.product

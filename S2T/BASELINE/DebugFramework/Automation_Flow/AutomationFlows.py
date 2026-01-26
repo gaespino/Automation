@@ -1305,6 +1305,8 @@ class AdaptiveFlowInstance(FlowInstance):
 			# File paths and strings
 			'TTL Folder',
 			'Scripts File',
+			'Bios File',
+			'Fuse File',
 			'Post Process',
 			'Pass String',
 			'Fail String',
@@ -1698,6 +1700,8 @@ class CharacterizationFlowInstance(FlowInstance):
 			# File paths and strings
 			'TTL Folder',
 			'Scripts File',
+			'Bios File',
+			'Fuse File',
 			'Post Process',
 			'Pass String',
 			'Fail String',
@@ -2739,6 +2743,8 @@ class AnalysisFlowInstance(FlowInstance):
 			'IP Address': self.Experiment.get('IP Address', '192.168.0.2'),
 			'TTL Folder': self.Experiment.get('TTL Folder', 'R:\\Templates\\GNR\\version_2_0\\TTL_DragonMesh'),
 			'Scripts File': self.Experiment.get('Scripts File'),
+			'Bios File': self.Experiment.get('Bios File', None),
+			'Fuse File': self.Experiment.get('Fuse File', None),
 			'Pass String': self.Experiment.get('Pass String', 'Test Complete'),
 			'Fail String': self.Experiment.get('Fail String', 'Test Failed'),
 			'Content': self.Experiment.get('Content', 'Dragon'),

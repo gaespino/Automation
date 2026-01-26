@@ -32,6 +32,7 @@ import time
 import ipccli
 import itpii
 import sys
+import re
 from colorama import Fore, Style, Back
 import importlib
 import os
@@ -517,6 +518,7 @@ class SystemBooter:
 		self.slicemask = system_config.get('slicemask', None)
 		self.boot_fuses = system_config.get('boot_fuses', {})
 		self.ppvc_fuses = system_config.get('ppvc_fuses', None)
+		self.external_fuses = system_config.get('external_fuses', None)
 		self.execution_state = system_config.get('execution_state', None)
 		self.fuse_2CPM = system_config.get('fuse_2CPM', [])
 		self.fuse_1CPM = system_config.get('fuse_1CPM', [])
@@ -729,7 +731,10 @@ class SystemBooter:
 			self._extend_common_fuses(_fuse_str_cbb, _fuse_str_imh)
 
 		# Apply PPVC fuses if configured - This comes in format from S2T
-		self._apply_ppvc_fuses()
+		self._apply_external_fuses(self.ppvc_fuses)
+
+		# Apply External fuses if configured - This comes in format from S2T
+		self._apply_external_fuses(self.external_fuses)
 
 		# Store fuse strings
 		#print('Fuse Strings CBB:', _fuse_str_cbb)
@@ -852,9 +857,9 @@ class SystemBooter:
 
 		return fuse_str_cbb
 
-	def _apply_ppvc_fuses(self):
+	def _apply_external_fuses(self, external_fuses: Optional[Dict[str, List[str]]]):
 		"""Apply PPVC fuse configurations"""
-		if not self.ppvc_fuses:
+		if not external_fuses:
 			return
 
 		# Updates Main Fuses with all PPVC fuses data
@@ -862,36 +867,36 @@ class SystemBooter:
 		if self.fastboot:
 			# Fastboot use complete register name
 
-			self.fuse_str_cbb.extend(self.ppvc_fuses.get('cbb0',[]))
-			self.fuse_str_cbb.extend(self.ppvc_fuses.get('cbb1',[]))
-			self.fuse_str_cbb.extend(self.ppvc_fuses.get('cbb2',[]))
-			self.fuse_str_cbb.extend(self.ppvc_fuses.get('cbb3',[]))
-			self.fuse_str_imh.extend(self.ppvc_fuses.get('imh0',[]))
-			self.fuse_str_imh.extend(self.ppvc_fuses.get('imh1',[]))
+			self.fuse_str_cbb.extend(external_fuses.get('cbb0',[]))
+			self.fuse_str_cbb.extend(external_fuses.get('cbb1',[]))
+			self.fuse_str_cbb.extend(external_fuses.get('cbb2',[]))
+			self.fuse_str_cbb.extend(external_fuses.get('cbb3',[]))
+			self.fuse_str_imh.extend(external_fuses.get('imh0',[]))
+			self.fuse_str_imh.extend(external_fuses.get('imh1',[]))
 			return
 
 		# Split fuse strings by CBB/IMH
 		for cbb in self.cbbs:
 			cbb_name = cbb.name.lower() if hasattr(cbb, 'name') else str(cbb).lower()
 			if 'cbb0' in cbb_name:
-				self._extend_cbb_fuses('fuse_str_cbb_0', self.ppvc_fuses.get('cbb0', {}))
+				self._extend_cbb_fuses('fuse_str_cbb_0', external_fuses.get('cbb0', {}))
 
 			if 'cbb1' in cbb_name:
-				self._extend_cbb_fuses('fuse_str_cbb_1', self.ppvc_fuses.get('cbb1', {}))
+				self._extend_cbb_fuses('fuse_str_cbb_1', external_fuses.get('cbb1', {}))
 
 			if 'cbb2' in cbb_name:
-				self._extend_cbb_fuses('fuse_str_cbb_2', self.ppvc_fuses.get('cbb2', {}))
+				self._extend_cbb_fuses('fuse_str_cbb_2', external_fuses.get('cbb2', {}))
 
 			if 'cbb3' in cbb_name:
-				self._extend_cbb_fuses('fuse_str_cbb_3', self.ppvc_fuses.get('cbb3', {}))
+				self._extend_cbb_fuses('fuse_str_cbb_3', external_fuses.get('cbb3', {}))
 
 		for imh in self.imhs:
 			imh_name = imh.name.lower() if hasattr(imh, 'name') else str(imh).lower()
 			if 'imh0' in imh_name or 'io0' in imh_name:
-				self._extend_imh_fuses('fuse_str_imh_0', self.ppvc_fuses.get('imh0', []))
+				self._extend_imh_fuses('fuse_str_imh_0', external_fuses.get('imh0', []))
 
 			if 'imh1' in imh_name or 'io1' in imh_name:
-				self._extend_imh_fuses('fuse_str_imh_1', self.ppvc_fuses.get('imh1', []))
+				self._extend_imh_fuses('fuse_str_imh_1', external_fuses.get('imh1', []))
 
 	def _build_mask_strings(self) -> tuple:
 		"""Build core and LLC mask disable strings for bootscript"""
@@ -1021,10 +1026,10 @@ class SystemBooter:
 			for fuse in fuse_str_cbb:
 				if cbbs_common_string in fuse and 'computes' in fuse:
 					#print('Top Fuse Found: ', fuse)
-					_top_cbb_fuses.append(fuse.replace('sv.sockets.cbbs.computes.fuses.', ''))
+					_top_cbb_fuses.append(re.sub(r'sv\.socket(s|\d+)\.cbbs\.computes\.fuses\.', '', fuse))
 				elif cbbs_common_string in fuse and 'base' in fuse:
 					#print('Bae Fuse Found: ', fuse)
-					_base_cbb_fuses.append(fuse.replace('sv.sockets.cbbs.base.fuses.', ''))
+					_base_cbb_fuses.append(re.sub(r'sv\.socket(s|\d+)\.cbbs\.base\.fuses\.', '', fuse))
 				else:
 					continue
 
@@ -1032,7 +1037,7 @@ class SystemBooter:
 		if fuse_str_imh:
 			for fuse in fuse_str_imh:
 				if imhs_common_string in fuse:
-					_base_imh_fuses.append(fuse.replace('sv.sockets.imhs.fuses.', ''))
+					_base_imh_fuses.append(re.sub(r'sv\.socket(s|\d+)\.imhs\.fuses\.', '', fuse))
 
 
 		for cbb in self.cbbs:
@@ -1269,7 +1274,7 @@ class SystemBooter:
 
 class System2Tester():
 
-	def __init__(self, target, masks = None, coremask=None, slicemask=None, boot = True, ht_dis = False, dis_1CPM = None, dis_2CPM = None, fresh_state = True, readFuse = False, clusterCheck = True , fastboot = True, ppvc_fuses = None, execution_state = None):
+	def __init__(self, target, masks = None, coremask=None, slicemask=None, boot = True, ht_dis = False, dis_1CPM = None, dis_2CPM = None, fresh_state = True, readFuse = False, clusterCheck = True , fastboot = True, ppvc_fuses = None, external_fuses = None, execution_state = None):
 
 		# Python SV Variables
 		from namednodes import sv
@@ -1318,10 +1323,14 @@ class System2Tester():
 		self.fuse_str_cbb_3 = {'base': [], 'top0': [], 'top1': [], 'top2': [], 'top3': []}
 		self.fuse_str_imh_0 = []
 		self.fuse_str_imh_1 = []
-		self.fuse_2CPM = dpm.fuses_dis_2CPM(dis_2CPM, bsformat = (not fastboot)) if dis_2CPM != None else []
-		self.fuse_1CPM = dpm.fuses_dis_1CPM(dis_1CPM, bsformat = (not fastboot)) if dis_1CPM != None else []
+
+		# We will convert the fuse on code as there is a top / base differentiation already in place
+		self.fuse_2CPM = dpm.fuses_dis_2CPM(dis_2CPM, bsformat = False) if dis_2CPM != None else []
+		self.fuse_1CPM = dpm.fuses_dis_1CPM(dis_1CPM, bsformat = False) if dis_1CPM != None else []
 
 		self.ppvc_fuses = ppvc_fuses
+		self.external_fuses = external_fuses
+
 		## Option to bring preconfigured Mask
 		if masks == None: self.masks = dpm.fuses(rdFuses = self.readFuse, sktnum =self.sktnum, printFuse=False)
 		else: self.masks = masks
@@ -1352,6 +1361,7 @@ class System2Tester():
 			'slicemask': self.slicemask,
 			'boot_fuses': self.BootFuses,
 			'ppvc_fuses': self.ppvc_fuses,
+			'external_fuses': self.external_fuses,
 			'execution_state': self.execution_state,
 			'fuse_2CPM': self.fuse_2CPM,
 			'fuse_1CPM': self.fuse_1CPM,

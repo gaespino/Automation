@@ -13,7 +13,7 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 print(' -- Debug Framework Configurations -- rev 1.7')
 
-sys.path.append(parent_dir) 
+sys.path.append(parent_dir)
 
 from ExecutionHandler.Enums import ContentType, TestTarget, VoltageType, TestType, TestStatus
 
@@ -67,7 +67,7 @@ class LinuxConfiguration:
 # Configuration Classes
 @dataclass
 class ConfigurationMapping:
-	
+
 	CONFIG_MAPPING = {
 			'Test Name': 'name',
 			'Test Mode': 'target',
@@ -93,6 +93,7 @@ class ConfigurationMapping:
 			'Configuration (Mask)': 'mask',
 			'Boot Breakpoint': 'postcode_break',
 			'Disable 2 Cores': 'dis2CPM',
+			'Disable 1 Core': 'dis1CPM',
 			'Check Core': 'coreslice',
 			'Voltage Type': 'volt_type',
 			'Voltage IA': 'volt_IA',
@@ -100,9 +101,12 @@ class ConfigurationMapping:
 			'Frequency IA': 'freq_ia',
 			'Frequency CFC': 'freq_cfc',
 			'External Mask': 'extMask',
-
+			'Fuse File': 'fusefile',
+			'Bios File': 'biosfile',
+			'Slice Disable List': 'slicedislist',
+			'Core Disable List': 'coredislist',
 		}
-	
+
 	DRAGON_MAPPING = {
 	"Dragon Pre Command": "dragon_pre_cmd",
 	"Dragon Post Command": "dragon_post_cmd",
@@ -158,33 +162,34 @@ class TestConfiguration:
 	bucket: str = 'FRAMEWORK'
 	target: TestTarget = TestTarget.MESH
 	ttime: int = 30
-	
+
 	# Hardware settings
 	mask: Optional[str] = None
 	coreslice: Optional[int] = None
 	pseudo: bool = False
 	dis2CPM: Optional[int] = None
+	dis1CPM: Optional[int] = None # Added for DMR
 	corelic: Optional[int] = None
-	
+
 	# Voltage/Frequency settings
 	volt_type: VoltageType = VoltageType.VBUMP
 	volt_IA: Optional[float] = None
 	volt_CFC: Optional[float] = None
 	freq_ia: Optional[int] = None
 	freq_cfc: Optional[int] = None
-	
+
 	# Platform settings
 	host: str = "10.250.0.2"
 	com_port: str = '8'
 	u600w: bool = False
-	
+
 	# Test behavior
 	reset: bool = True
 	resetonpass: bool = False
 	fastboot: bool = True
-	
+
 	# Files and paths
-	#macro_files: Optional[str] = None 
+	#macro_files: Optional[str] = None
 	macro_folder: Optional[str] = r'C:\SystemDebug\TTL'
 	script_file: Optional[str] = None
 	post_process: Optional[str] = None
@@ -193,10 +198,10 @@ class TestConfiguration:
 	passstring: str = 'Test Complete'
 	failstring: str = 'Test Failed'
 	postcode_break: Optional[int] = None
-	
+
 	# Advanced settings
 	extMask: Optional[Dict] = None
-	
+
 	# Runtime data (populated during execution)
 	tfolder: Optional[str] = None
 	log_file: Optional[str] = None
@@ -210,11 +215,17 @@ class TestConfiguration:
 	ttl_path: Optional[str] = None         # Path to copied TTL files
 
 	# Strategy and Test Info
-	strategy_type: Optional[str] = None 
-	experiment_name: Optional[str] = None 
+	strategy_type: Optional[str] = None
+	experiment_name: Optional[str] = None
 	cancel_flag: bool= False # Cancellation Flag for external scripts
 	execution_cancelled: bool = False
 	execution_ended: bool = False
+
+	# New Features
+	biosfile: Optional[str] = None
+	fusefile: Optional[str] = None
+	coredislist: Optional[Dict] = None
+	slicedislist: Optional[Dict] = None
 
 @dataclass
 class SystemToTesterConfig:

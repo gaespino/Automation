@@ -44,11 +44,13 @@ import configs as pe
 import registers as regs
 import functions as pf
 import strategy as strat
+import fusefilegen as ffg
 
 importlib.reload(pe)
 importlib.reload(regs)
 importlib.reload(pf)
 importlib.reload(module=strat)
+importlib.reload(module=ffg)
 
 _configs = pe.configurations(SELECTED_PRODUCT)
 
@@ -66,22 +68,24 @@ class ProductConfiguration:
 	"""
 	Centralized product configuration manager.
 	Provides clean access to all product-specific settings through a single object.
-	
+
 	Usage:
 		from ConfigsLoader import config
-		
+
 		# Access product info
 		product_name = config.PRODUCT_CONFIG
-		
+
 		# Access configuration
 		max_cores = config.MAXCORESCHIP
-		
+
 		# Access fuses
 		fuses = config.FUSES
-		
+
 		# Access functions and registers
 		functions = config.get_functions()
 		registers = config.get_registers()
+		fusefilegen = config.get_fusefilegen()
+		strategy = config.get_strategy()
 	"""
 	
 	def __init__(self, config_dict, fuses_dict, framework_dict, features_dict):
@@ -170,6 +174,7 @@ class ProductConfiguration:
 		# Cache for functions and registers
 		self._functions = None
 		self._registers = None
+		self._fusefilegen = None
 		self._strategy = None
 	
 	def get_functions(self):
@@ -183,11 +188,17 @@ class ProductConfiguration:
 		if self._registers is None:
 			self._registers = regs.registers()
 		return self._registers
-	
+
+	def get_fusefilegen(self):
+		"""Get product-specific fusefilegen (lazy loaded)"""
+		if self._fusefilegen is None:
+			self._fusefilegen = ffg
+		return self._fusefilegen
+
 	def get_strategy(self):
 		"""
 		Get product-specific strategy (lazy loaded).
-		
+
 		Returns:
 			ProductStrategy implementation for the current product
 		"""
@@ -218,9 +229,11 @@ class ProductConfiguration:
 		importlib.reload(pe)
 		importlib.reload(regs)
 		importlib.reload(pf)
+		importlib.reload(ffg)
 		self._functions = None
 		self._registers = None
 		self._strategy = None
+		self._fusefilegen = None
 
 
 # Initialize the global configuration object
@@ -309,3 +322,8 @@ def LoadFunctions():
 def LoadRegisters():
 	"""Legacy function - use config.get_registers() instead"""
 	return config.get_registers()
+
+
+def LoadFuseGen():
+	"""Legacy function - use config.get_fusefilegen() instead"""
+	return config.get_fusefilegen()
