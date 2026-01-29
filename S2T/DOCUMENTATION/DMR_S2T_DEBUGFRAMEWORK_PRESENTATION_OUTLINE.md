@@ -39,19 +39,23 @@
 
 ## Slide 3: Framework Entry Point
 
-**Getting Started with SystemDebug**
+**Getting Started**
 
 ```python
+# DebugFramework - Test execution interfaces
 import users.THR.dmr_debug_utilities.DebugFramework.SystemDebug as sd
 
-# System-to-Tester configuration
-sd.setupSystemAsTester()
+# System-to-Tester - S2T configuration
+import users.THR.dmr_debug_utilities.S2T.SetTesterRegs as s2t
 
-# Core GUI tools (today's focus)
+# Launch interfaces:
 sd.ControlPanel()         # Manual test execution
 sd.AutomationPanel()      # Automated test execution
-sd.MeshQuickTest()        # Core masking tool
-sd.SliceQuickTest()       # Slice enable/disable tool
+
+# S2T Tools:
+s2t.setupSystemAsTester() # S2T configuration
+s2t.MeshQuickTest()       # Full chip testing
+s2t.SliceQuickTest()      # Targeted core testing
 ```
 
 **Repository:** `c:\Git\Automation\S2T\BASELINE_DMR\`
@@ -81,8 +85,8 @@ S2T brings ATE-style testing to system environment:
 **Launch S2T Setup GUI:**
 
 ```python
-import users.THR.dmr_debug_utilities.DebugFramework.SystemDebug as sd
-sd.setupSystemAsTester()
+import users.THR.dmr_debug_utilities.S2T.SetTesterRegs as s2t
+s2t.setupSystemAsTester()
 ```
 
 **Configuration Steps:**
@@ -102,6 +106,7 @@ sd.setupSystemAsTester()
 
 **Launch:**
 ```python
+import users.THR.dmr_debug_utilities.DebugFramework.SystemDebug as sd
 sd.ControlPanel()
 ```
 
@@ -129,6 +134,7 @@ sd.ControlPanel()
 
 **Launch:**
 ```python
+import users.THR.dmr_debug_utilities.DebugFramework.SystemDebug as sd
 sd.AutomationPanel()
 ```
 
@@ -158,7 +164,8 @@ sd.AutomationPanel()
 
 **Launch:**
 ```python
-sd.MeshQuickTest()
+import users.THR.dmr_debug_utilities.S2T.SetTesterRegs as s2t
+s2t.MeshQuickTest()
 ```
 
 **Key Features:**
@@ -184,7 +191,8 @@ sd.MeshQuickTest()
 
 **Launch:**
 ```python
-sd.SliceQuickTest()
+import users.THR.dmr_debug_utilities.S2T.SetTesterRegs as s2t
+s2t.SliceQuickTest()
 ```
 
 **Key Features:**
@@ -416,17 +424,20 @@ launch_framework_report()
 **Essential Commands:**
 
 ```python
-# Import framework
+# DebugFramework - Test execution
 import users.THR.dmr_debug_utilities.DebugFramework.SystemDebug as sd
 
-# S2T Setup
-sd.setupSystemAsTester()
+# System-to-Tester - S2T configuration
+import users.THR.dmr_debug_utilities.S2T.SetTesterRegs as s2t
+
+# S2T Tools
+s2t.setupSystemAsTester()
+s2t.MeshQuickTest()
+s2t.SliceQuickTest()
 
 # DebugFramework Tools
 sd.ControlPanel()
 sd.AutomationPanel()
-sd.MeshQuickTest()
-sd.SliceQuickTest()
 
 # THR Debug Tools
 python c:\Git\Automation\PPV\run.py

@@ -40,7 +40,7 @@ class mcadata():
 			self.hamvf_data = self.hamvf()
 			self.mc_subch_data = self.mc_subch()
 			self.sca_data = self.sca_dmr()
-
+			self.ccf_data = self.ccf()
 
 	def llc(self):
 		# Load product-specific LLC data from JSON if available (DMR, future products)
@@ -82,6 +82,10 @@ class mcadata():
 	def cha(self):
 		cha_json = dev_dict('cha_params.json', filedir = self.jsfile_dir)
 		return cha_json
+
+	def ccf(self):
+		ccf_json = dev_dict('ccf_params.json', filedir = self.jsfile_dir)
+		return ccf_json
 
 	def core(self):
 		core_json = dev_dict('core_params.json', filedir = self.jsfile_dir)

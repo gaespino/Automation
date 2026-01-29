@@ -4413,8 +4413,9 @@ def TTLMacroTest():
 ########## 		Masking Script
 #######################################################
 
+# Legacy Method -- Call using Framework Utils
 def DebugMask(basemask=None, root=None, callback = None):
-	fut.DebugMask(basemask, root, callback)
+	return fut.DebugMask(basemask, root, callback)
 
 def currentTime():
 	# Define the GMT-6 timezone

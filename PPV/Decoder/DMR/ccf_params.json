@@ -1,0 +1,20 @@
+{
+    "MSCOD": {
+        "0": "AD Egress Overflow",
+        "1": "AD TA Overflow",
+        "2": "BL Egress Overflow",
+        "3": "BL TA Overflow",
+        "4": "AK Egress Overflow",
+        "5": "AK TA Overflow",
+        "6": "IV-GO Egress Overflow",
+        "7": "IV-GO TA Overflow",
+        "8": "AKC Egress Overflow",
+        "9": "AKC TA Overflow",
+        "10": "AD TGR Overflow",
+        "11": "BL TGR Overflow",
+        "12": "AK TGR Overflow",
+        "13": "IV-GO TGR Overflow",
+        "14": "AKC TGR Overflow",
+        "15": "SASF Overflow"
+    }
+}
