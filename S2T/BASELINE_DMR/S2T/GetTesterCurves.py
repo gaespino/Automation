@@ -6,29 +6,29 @@
 # Last Update notes: Added the following features:
 # - Code Modularity to include BASELINE of multiproducts
 #
-## Version: 1.40 
+## Version: 1.40
 ## Last Update notes: Added the following features:
 ## - Updated CORE values based on TP S507
-## 
-## Version: 1.30 
+##
+## Version: 1.30
 ## Last Update notes: Added the following features:
 ## - Changed endpoint url as the previous one stopped working
 ## - Added additional scripts to allow the usage of DFF voltages into S2T flow.
-## 
-## Version: 1.30 
+##
+## Version: 1.30
 ## Last Update notes: Added the following features:
 ## - Changed Value of CORE Frequency for MESH F4 to 16 to be more in line with CLASS testing
 ## - Changed Value of CFC IO Frequency for MESH F4 to 22 to be more in line with CLASS testing
-## 
+##
 ## Revision: 1.2
 ## Date: 20/06/2024
 ## Edit: gabriel.espinoza.ballestero@intel.com
-## update Notes: updated ATE frequency values to match latest TP configuration. 
+## update Notes: updated ATE frequency values to match latest TP configuration.
 ##
 ## Revision: 1.1
 ## Date: 16/04/2024
 ## Edit: gabriel.espinoza.ballestero@intel.com
-## 
+##
 ## Scripts with units default tester data, DFF data can be imported using zeep library
 ## To print / save your DFF use the GNR DFF Data Collector script.
 
@@ -60,7 +60,7 @@ try:
 	SELECTED_PRODUCT = LoadConfig.SELECTED_PRODUCT
 	PRODUCT_CONFIG = LoadConfig.PRODUCT_CONFIG
 except:
-	SELECTED_PRODUCT = None 
+	SELECTED_PRODUCT = None
 	PRODUCT_CONFIG = None
 	print('Error while getting Product, if using UI discard this message.')
 
@@ -76,9 +76,11 @@ CORE_CFCIO_FREQ = None
 CFC_FREQ = None
 HDC_FREQ = None
 IO_FREQ = None
+MEM_FREQ = None
 HDC_CORE_FREQ = None
 CFC_CORE_FREQ = None
 CFCIO_CORE_FREQ = None
+MEM_CORE_FREQ = None
 IO_HDC_FREQ = None
 CFC_IO_FREQ = None
 CORE_HDC_CFC_FREQ = None
@@ -87,9 +89,12 @@ CFC_MAX = None
 HDC_MAX = None
 CORE_MAX = None
 IO_MAX = None
+MEM_MAX = None
+max_mlc_volt_per_cbb = None
 
 All_Safe_RST_PKG = None
 All_Safe_RST_CDIE = None
+All_Safe_CBB = None
 
 CORESTRING = None
 CORETYPES = None
@@ -121,6 +126,8 @@ def set_variables(product, config):
 	global CFC_FREQ
 	global HDC_FREQ
 	global IO_FREQ
+	global MEM_FREQ
+	global MEM_CORE_FREQ
 	global HDC_CORE_FREQ
 	global CFC_CORE_FREQ
 	global CFCIO_CORE_FREQ
@@ -131,6 +138,8 @@ def set_variables(product, config):
 	global HDC_MAX
 	global CORE_MAX
 	global IO_MAX
+	global MEM_MAX
+	global max_mlc_volt_per_cbb
 	global All_Safe_RST_PKG
 	global All_Safe_RST_CDIE
 	global CORESTRING
@@ -160,11 +169,15 @@ def set_variables(product, config):
 	IO_HDC_FREQ = DFF_VARS['IO_HDC_FREQ']
 	CFC_IO_FREQ = DFF_VARS['CFC_IO_FREQ']
 	CORE_HDC_CFC_FREQ = DFF_VARS['CORE_HDC_CFC_FREQ']
+	MEM_FREQ = DFF_VARS['MEM_FREQ']
+	MEM_CORE_FREQ = DFF_VARS['MEM_CORE_FREQ']
+	max_mlc_volt_per_cbb = DFF_VARS['max_mlc_volt_per_cbb']
 
 	CFC_MAX = DFF_VARS['cfc_max']
 	HDC_MAX = DFF_VARS['hdc_max']
 	CORE_MAX = DFF_VARS['core_max']
 	IO_MAX = DFF_VARS['io_max']
+	MEM_MAX = DFF_VARS['mem_max']
 
 	#FivrCondition	All_Safe_RST_PKG
 	All_Safe_RST_PKG = DFF_VARS['All_Safe_RST_PKG']
@@ -182,7 +195,7 @@ def set_variables(product, config):
 	}
 	'''
 	#FivrCondition	All_Safe_RST_CDie
-	All_Safe_RST_CDIE = DFF_VARS['All_Safe_RST_CDIE']
+	All_Safe_RST_CDIE = DFF_VARS['All_Safe_CBB']
 
 	'''{# Safe Voltages
 		'VCORE_RST':0.85,
@@ -219,47 +232,110 @@ if SELECTED_PRODUCT != None:
 #=============== MAIN CODE STARTS HERE  =================================================================#
 #========================================================================================================#
 
+# Cache directory for XML files
+CACHE_DIR = r'C:\Temp\DFF_Cache'
+
+def ensure_cache_dir():
+	"""Ensure the cache directory exists"""
+	if not os.path.exists(CACHE_DIR):
+		os.makedirs(CACHE_DIR)
+		print(f"Created cache directory: {CACHE_DIR}")
+
+def get_xml_data(visual, force=False):
+	"""
+	Get XML data for a visual ID, using cache if available.
+
+	Args:
+		visual: Visual ID string
+		force: If True, force refresh from DFF service even if cached
+
+	Returns:
+		XML result string or None if error
+	"""
+	ensure_cache_dir()
+	cache_file = os.path.join(CACHE_DIR, f"{visual}.xml")
+
+	# Check if cached file exists and force is False
+	if not force and os.path.exists(cache_file):
+		#print(f"Using cached data for VID: {visual}")
+		try:
+			with open(cache_file, 'r', encoding='utf-8') as f:
+				return f.read()
+		except Exception as e:
+			print(f"Error reading cache file: {e}. Fetching from service...")
+
+	# Fetch from DFF service
+	print(f"Fetching DFF data for VID: {visual}")
+	try:
+		client = call_client()
+		xml = client.service.GetDataByVisualIdAsXml('visualIDs', visual)
+		xml_result = xml.GetDataByVisualIdAsXmlResult
+
+		# Save to cache
+		try:
+			with open(cache_file, 'w', encoding='utf-8') as f:
+				f.write(xml_result)
+			print(f"Cached data saved to: {cache_file}")
+		except Exception as e:
+			print(f"Warning: Could not save cache file: {e}")
+
+		return xml_result
+	except Exception as e:
+		print(f"Error fetching data from DFF service: {e}")
+		return None
+
 def call_client():
 	#wsdl_url = 'http://jfgwww1235.amr.corp.intel.com/MDODFFWcf/DFFSVC.svc?wsdl'
 	client = Client(wsdl_url)
 	return client
 	# pip install zeep
 
-def get_voltages_core(visual, core = 0, ate_freq='F1',  hot=True):
+def get_voltages_core(visual, core = 0, ate_freq='F1',  hot=True, force=False):
 	phy2log = physical2ClassLogical
 	compute = int(core/MAXPHYSICAL)
 	coreLOG = phy2log[core%MAXPHYSICAL] + MAXLOGICAL*compute
 	print(f' -- DFF data for physical {CORESTRING}{core} -- ATE {CORESTRING} {coreLOG} (This one is the number shown in below table)')
-	data, printdata = dump_core_curves(visual=visual, core = coreLOG, hot=hot, s2tcollect = True)
-	filtered_data = [row for row in printdata if row[1] == ate_freq or row[1] == "CRVE"]
+	data, printdata = dump_core_curves(visual=visual, core = coreLOG, hot=hot, s2tcollect = True, force=force)
+	filtered_data = [row for row in printdata if (row[1] == ate_freq or row[1] == "CRVE") and row[2] != "MLC"]
 	print(tabulate(filtered_data, headers="firstrow", tablefmt="grid"))
 	return data
 
-def get_voltages_uncore(visual, ate_freq='F1',  hot=True):
+def get_voltages_uncore(visual, ate_freq='F1',  hot=True, force=False):
 		#compute = int(core/60)
 		#coreLOG = Phys2log10x5[core%60] + 44*compute
 
 
 		print(' -- DFF data for UNCORE -- ATE DFF Data')
-		data, printdata = dump_uncore_curves(visual=visual, hot=hot, s2tcollect = True)
+		data, printdata = dump_uncore_curves(visual=visual, hot=hot, s2tcollect = True, force=force)
 		filtered_data = [row for row in printdata if row[2] == ate_freq or row[2] == "CRVE"]
 		print(tabulate(filtered_data, headers="firstrow", tablefmt="grid"))
 		return data
 
-def get_voltages_l2(visual, ate_freq='F1',  hot=True):
+def get_voltages_l2(visual, ate_freq='F1',  hot=True, force=False):
     		#compute = int(core/60)
 		#coreLOG = Phys2log10x5[core%60] + 44*compute
 
 
 		print(' -- DFF data for L2 -- ATE DFF Data')
-		data, printdata = dump_uncore_curves(visual=visual, hot=hot, s2tcollect = True)
+		data, printdata = dump_uncore_curves(visual=visual, hot=hot, s2tcollect = True, force=force)
 		filtered_data = [row for row in printdata if row[2] == ate_freq or row[2] == "CRVE"]
 		print(tabulate(filtered_data, headers="firstrow", tablefmt="grid"))
 		return data
 
 
+def get_voltages_mlc(visual, core = 0, ate_freq='F1',  hot=True, force=False):
+	phy2log = physical2ClassLogical
+	compute = int(core/MAXPHYSICAL)
+	coreLOG = phy2log[core%MAXPHYSICAL] + MAXLOGICAL*compute
+	print(f' -- DFF data for physical {CORESTRING}{core} -- ATE {CORESTRING} {coreLOG} (This one is the number shown in below table)')
+	data, printdata = dump_core_curves(visual=visual, core = coreLOG, hot=hot, s2tcollect = True, force=force)
+	filtered_data = [row for row in printdata if (row[1] == ate_freq or row[1] == "CRVE") and row[2] == "MLC"]
+	print(tabulate(filtered_data, headers="firstrow", tablefmt="grid"))
+	return data
+
+
 def filter_core_voltage(data, lic, core, ate_freq):
-		
+
 	for key, value in data.items():
 		V_string = key.split('-')
 		freq = V_string[2]
@@ -273,7 +349,7 @@ def filter_core_voltage(data, lic, core, ate_freq):
 			continue
 
 def filter_uncore_voltage(data, ip, die, ate_freq):
-		
+
 	for key, value in data.items():
 		key_string = key.split('-')
 		freq = key_string[2]
@@ -313,30 +389,34 @@ def get_ratios_uncore(ate_freq, flowid=1):
 	mesh_freq =  CFC_FREQ[ate_freq][index]
 	io_freq =  CFC_IO_FREQ[ate_freq]
 	return core_freq, mesh_freq, io_freq
-	
-def dump_core_curves(visual, core = [0,132], product = None, hot=True, usedata = False, custom=False, temp = "FAST_STC_V", s2tcollect = False):
+
+def dump_core_curves(visual, core = [0,128], product = None, hot=True, usedata = False, custom=False, temp = "FAST_STC_V", s2tcollect = False, force=False):
 	'''
-	Dumps core voltage and frequency VMIN 
+	Dumps core voltage and frequency VMIN
 	visual: visual ID
 	core: Physical Core/Module to dump
 	Hot: True == Hot,  False == Cold
+	force: If True, force refresh from DFF service (ignore cache)
 	'''
 	if product == None: product = PRODUCT_CONFIG
 
 	data_header = [f"{CORESTRING}","CRVE", "LIC", "COREF", "COREV", "CFCF", "CFCV"]
-	CFC_VOLTAGE = All_Safe_RST_PKG['VCFC_CDIE_RST']
-	core_license_levels = ['IA','SSE','AVX2','AVX3', 'AMX']
-	CORE_FREQ_LIC = get_lic_freq_array(visual)
+	CFC_VOLTAGE = All_Safe_RST_PKG['VCCRING_RST']
+	core_license_levels = ['MLC','SSE','AVX2','AVX3', 'AMX']
+
+	pattern = r'(MLC|SSE|AVX2|AVX3|AMX):((?:\d+(?:\.\d+)?\^.*?)+)(?=_|$)'
+	CORE_FREQ_LIC = get_freq_array(visual, pattern=pattern, force=force)
 	#print(CORE_FREQ_LIC)
 	Available_license = [k for k in CORE_FREQ_LIC.keys()]
 	corner="SSE@F1"
 	data = {}
-	instance = f'{CORESTRING}'
+
 	printdata = []
 	core_max = CORE_MAX
+	MLC_per_CBB = max_mlc_volt_per_cbb # goes for CBB
 	variant = CORETYPES[product]['config']
 	maxlogcore =  CORETYPES[product]['maxlogcores']
-	
+
 	if type(core) == int:
 		if core > maxlogcore:
 			core = maxlogcore
@@ -344,37 +424,51 @@ def dump_core_curves(visual, core = [0,132], product = None, hot=True, usedata =
 	else:
 		for i, v in enumerate(core):
 			if v > maxlogcore:
-				core[i] = maxlogcore    		
+				core[i] = maxlogcore
 		cores = core
+
 	print(f"Collecting data for VID:{visual} - {CORESTRING}s: {cores[1]-cores[0]}")
 	#print(format_row.format("", *dota_teams))
 	printdata = [data_header]
 		#print ("{:<6} {:<4} {:<3} {:<5} {:<6} {:<6} {:<5} ".format(*data_header))
-	cores_up = 0
+
 	for lic in Available_license:
-		
+
 		## Array is sorted this will fill any gaps in the sorted license dictionary array
 		freq_index = 0
 		for freq in range(1,core_max+1):
-			
+
 			corner = lic + "@F%d" % freq
-			(flowid,v_array) = get_gv_array(visual, corner, hot, custom, temp)
+			(flowid,v_array) = get_gv_array(visual, corner, hot, custom, temp, force=force)
 			#if (freq > 4):
 			#	freq_index = int(flowid)-1
-			
-			if v_array != None:		
-				
-				cores_up = 0
-				for c in range(cores[0],cores[1]):
-					if float(v_array[c]) < 0:
+
+			if v_array != None:
+				if 'MLC'in lic:
+					data_range = range(0,MLC_per_CBB)
+					instance = 'CBB'
+				else:
+					data_range = range(cores[0],cores[1])
+					cores_up = 0
+					instance = f'{CORESTRING}'
+
+				for c in data_range:
+					try:
+						if float(v_array[c]) < 0:
+							continue
+					except:
+						print(f'Warning: No data for core {c} at corner {corner}')
 						continue
-					cores_up += 1
+					cores_up += 1 if not 'MLC'in lic else 0
+
 					data[f'{instance}{c}-{lic}-F{freq}-Voltage'] = v_array[c]
-					#print(lic, freq_index, maxlen)
+					#print(lic,"-" , freq_index,"-" , corner)
 					#print(CORE_FREQ_LIC[lic][freq_index])
 					printdata.append([c, f'F{freq}', lic, CORE_FREQ_LIC[lic][freq_index], v_array[c], CORE_CFC_FREQ[freq], CFC_VOLTAGE])
 					#print ("CORE{:<3} F{:<3} {:<4} {:<5} {:<6} {:<6} {:<5} ".format(c, freq, lic, CORE_FREQ[freq][freq_index], v_array[c], CORE_CFC_FREQ[freq], CFC_VOLTAGE))
+
 				freq_index += 1
+
 	if usedata:
 		return data
 	elif s2tcollect:
@@ -382,25 +476,27 @@ def dump_core_curves(visual, core = [0,132], product = None, hot=True, usedata =
 	else:
 		print(tabulate(printdata, headers="firstrow", tablefmt="grid"))
 		print(f'Total number of available cores = {cores_up}')
-   	
-def dump_uncore_curves(visual, check = 'all', hot = True, custom=False, temp = "FAST_STC_V", usedata = False, s2tcollect = False):
+
+def dump_uncore_curves(visual, check = 'all', hot = True, custom=False, temp = "FAST_STC_V", usedata = False, s2tcollect = False, force=False):
 
 	CORE_VOLTAGE = All_Safe_RST_PKG['VCORE_RST']
-	CFC_VOLTAGE = All_Safe_RST_PKG['VCFC_CDIE_RST']
+	CFC_VOLTAGE = All_Safe_RST_PKG['VCCRING_RST']
 	data = {}
 	printdata = []
 
-	domains = {	'CFC':	{'freq':CFC_FREQ , 'string': "CFCCOMP@F", 'corecfc':CFC_CORE_FREQ, 'inst':[0,1,2], 'max':CFC_MAX},
+	domains = {	'CFC':	{'freq':CFC_FREQ , 'string': "RING@F", 'corecfc':CFC_CORE_FREQ, 'inst':range(0,128), 'max':CFC_MAX},
 				'IO':	{'freq':IO_FREQ , 'string': "CFCIO@F", 'corecfc':CFCIO_CORE_FREQ, 'inst':[0,1], 'max':IO_MAX},
-				'HDC':	{'freq':HDC_FREQ , 'string': "HDC@F", 'corecfc':HDC_CORE_FREQ, 'inst':[0,1,2], 'max':HDC_MAX}}
-	
+				'MEM':	{'freq':MEM_FREQ , 'string': "CFCMEM@F", 'corecfc':MEM_CORE_FREQ, 'inst':[0,1], 'max':MEM_MAX},
+
+    			}
+
 	data_header = ["IP","INSTANCE","CRVE", "FREQ", "VOLT", "COREF", "COREV"]
 	if check not in domains.keys() and check != 'all':
 		print ('Not a valid key use: CFC, IO, HDC or all')
 		sys.exit()
 
 	IP = [check]
-	
+
 	if 'all' in IP:
 		IP = domains.keys()
 
@@ -416,25 +512,33 @@ def dump_uncore_curves(visual, check = 'all', hot = True, custom=False, temp = "
 		domain_inst = domains[_IP]['inst']
 		domain_max = domains[_IP]['max']
 		if _IP == 'IO':
-			instance = 'IO'
+			instance = 'IMH'
+		elif _IP == 'MEM':
+			instance = 'MEM'
+		elif _IP == 'MLC':
+			instance = 'CBB'
 		else:
-			instance = "COMPUTE"
+			instance = "CBO"
 		for _inst in domain_inst:
 			for freq in range(1,domain_max+1):
-				corner = f"{domain_string}{freq}" 
+				corner = f"{domain_string}{freq}"
 				#for domain in domains:
-				(flowid,v_array) = get_gv_array(visual, corner, hot, custom, temp)
+				(flowid,v_array) = get_gv_array(visual, corner, hot, custom, temp, force=force)
 				freq_index = 0
 				if (freq == 4):
 					freq_index = int(flowid)-1
+
+
 				if v_array != None:
+					if float(v_array[_inst]) < 0:
+						continue
 					#print(domain_array[freq][freq_index])
 					#print(domain_corecfc[freq])
-					
+
 					data[f'{instance}{_inst}-{_IP}-F{freq}-Voltage'] = v_array[_inst]
 					printdata.append([_IP,f'{instance}{_inst}', f'F{freq}', domain_array[freq][freq_index], v_array[_inst], domain_corecfc[freq], CORE_VOLTAGE])
 					#print ("{:<4} {:<8} F{:<4} {:<5} {:<6} {:<6} {:<5} ".format(_IP,f'{instance}{_inst}', freq, domain_array[freq][freq_index], v_array[_inst], domain_corecfc[freq], CORE_VOLTAGE))
-					
+
 
 	if usedata:
 		return data
@@ -442,57 +546,64 @@ def dump_uncore_curves(visual, check = 'all', hot = True, custom=False, temp = "
 		return data, printdata
 	else:
 		print(tabulate(printdata, headers="firstrow", tablefmt="grid"))
-   	
-def get_gv_array(visual, corner, hot=True, custom=False, temp = "FAST_STC_V"):
+
+def get_gv_array(visual, corner, hot=True, custom=False, temp = "FAST_STC_V", force=False):
 	flowid = None
-	client = call_client()
 	if not custom:
-		
+
 		if hot:
 			temp = "HSTC_V"
 		else:
 			temp = "CSTC_V"
-	
-	xml = client.service.GetDataByVisualIdAsXml('visualIDs',visual)
+
+	# Get XML data from cache or service
+	xml_result = get_xml_data(visual, force=force)
+	if xml_result is None:
+		return None, None
+
 	regex = r'FLOWID=(\d)'
-	m = re.search(r"FLOWID=(\d)", xml.GetDataByVisualIdAsXmlResult)
+	m = re.search(r"FLOWID=(\d)", xml_result)
 	if m != None:
 		flowid = m.group(1)
-	else: 
+	else:
 		flowid = '1'
 	regex = ','+ temp + r'(.*)(,|FFDATA)'
 	regex1 = f',{temp}='+ r'.*,'
 	regex2 = f',{temp}='+ r'.*\<'
 	#print(f'looking for{regex}')
-	text = re.findall(regex1, xml.GetDataByVisualIdAsXmlResult)
-	
+	text = re.findall(regex1, xml_result)
+
 	if not text:
-		text = re.findall(regex2, xml.GetDataByVisualIdAsXmlResult)
-	
+		text = re.findall(regex2, xml_result)
+
 	#print(f'found{text}')
 	#print(f'looking for{regex}')
 	#text = re.findall(regex, xml.GetDataByVisualIdAsXmlResult)
 	#print(f'found{text}')
 	if text:
 		regex = corner + r'\:.*\_'
-		#print(f'looking for{regex}')
-		text = re.findall(regex, text[0])
+		#print(text[0])
+		#print('----')
+		#print(text[1])
+		text = re.findall(regex, text[1])
 		#print(f'found{text}')
 		if text:
-			text = text[0].split('_')[0]  
+			text = text[0].split('_')[0]
 			if text:
 				text = text.lower()
 				values = text.split(":")[-1].split("v")[::-1]
 				return flowid, values
 	return flowid, None
 
-def get_vmins_by_corner_identifier(visual, corner):
-	client = call_client()
-	xml = client.service.GetDataByVisualIdAsXml('visualIDs',visual)
+def get_vmins_by_corner_identifier(visual, corner, force=False):
+	xml_result = get_xml_data(visual, force=force)
+	if xml_result is None:
+		return corner, None
+
 	regex = corner + r'\:.*\_'
-	text = re.findall(regex, xml.GetDataByVisualIdAsXmlResult)
+	text = re.findall(regex, xml_result)
 	if text:
-		text = text[0].split('_')[0]  
+		text = text[0].split('_')[0]
 		if text:
 			text = text.lower()
 			values = text.split(":")[-1].split("v")[::-1]
@@ -505,35 +616,37 @@ def get_vmins_by_corner_identifier_file(file, corner):
 	text = re.findall(regex, f.read())
 	f. close()
 	if text:
-		text = text[0].split('_')[0]  
+		text = text[0].split('_')[0]
 		if text:
 			text = text.lower()
 			values = text.split(":")[-1].split("v")[::-1]
 			return corner, values
 	return corner, None
 
-def get_lic_freq_array(visual):
-	client = call_client()
-	xml = client.service.GetDataByVisualIdAsXml('visualIDs',visual)
-	pattern = r'(IA|AVX2|AVX3|AMX):((?:\d+(?:\.\d+)?\^.*?)+)(?=_|$)'
-	matches = re.findall(pattern, xml.GetDataByVisualIdAsXmlResult,  re.DOTALL)
+def get_freq_array(visual, pattern = None, force=False):
+	xml_result = get_xml_data(visual, force=force)
+	if xml_result is None:
+		return {}
+
+
+	matches = re.findall(pattern, xml_result,  re.DOTALL)
 	frequencies = {}
 	for license_name, license_data in matches:
 		# Extract frequencies from the license data
 		freq_pattern = r'(\d+(?:\.\d+)?)\^'
 		freqs = re.findall(freq_pattern, license_data)
 		frequencies[license_name] = freqs
-	
+
 	for core_license_levels in frequencies:
 		frequencies[core_license_levels] = sorted((int(float(freq) *10) for freq in frequencies[core_license_levels]), key=float)
 
-	return frequencies    
+	return frequencies
 
-def parse_xml(xml, corner):
+def parse_xml(xml_result, corner):
 	regex = corner + r'\:.*\_'
-	text = re.findall(regex, xml.GetDataByVisualIdAsXmlResult)
+	text = re.findall(regex, xml_result)
 	if text:
-		text = text[0].split('_')[0]  
+		text = text[0].split('_')[0]
 		if text:
 			values = text.split(":")[-1].split("v")[::-1]
 			return corner, values
@@ -544,20 +657,15 @@ def print_vmins(corner, values, label):
 	for i, vmin in enumerate(values):
 		print(f"{label}{i}: {vmin}")
 
-def save_gv_array(visual,corner, hot=True):
-	cleanfile = rf'C:\Temp\{visual}.xml'
-	client = call_client()
-	xml = client.service.GetDataByVisualIdAsXml('visualIDs',visual)
-	#xml_data = open(cleanfile, 'w')
-	
-	# Parse the XML data
-	root = etree.fromstring(xml['GetDataByVisualIdAsXmlResult'])
-	# Open the text file in write mode
-	with open(cleanfile, "wb") as f:
-		# Write the XML data to the text file
-		f.write(etree.tostring(root, pretty_print=True, encoding='utf-8'))
-	#xml_data.write(xml)
-	#xml_data.close()
-	
-	print (xml)
-	#return xml
+def save_gv_array(visual, corner, hot=True):
+	"""
+	Deprecated: Use get_xml_data with force=True instead.
+	This function now just calls get_xml_data to maintain compatibility.
+	"""
+	xml_result = get_xml_data(visual, force=True)
+	if xml_result:
+		print(f"XML data saved for VID: {visual}")
+		return xml_result
+	else:
+		print(f"Failed to save XML data for VID: {visual}")
+		return None

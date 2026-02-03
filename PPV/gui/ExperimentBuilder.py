@@ -119,10 +119,11 @@ class ExperimentBuilderGUI:
                        foreground='#888888',
                        background='#e8e8e8')
 
-        # Notebook tab style - hide the actual tabs since we're using custom buttons
-        style.configure('TNotebook.Tab',
+        # Notebook tab style - use a custom style instead of globally hiding tabs
+        # This prevents affecting other notebooks in the application
+        style.configure('CustomHidden.TNotebook.Tab',
                        padding=[0, 0])
-        style.layout('TNotebook.Tab', [])  # Hide default tabs
+        style.layout('CustomHidden.TNotebook.Tab', [])  # Hide only CustomHidden notebook tabs
 
     def load_config_template(self, product="GNR"):
         """Load the configuration template from PPV/configs folder"""
@@ -615,7 +616,9 @@ class ExperimentBuilderGUI:
         self.primary_tabs_frame.bind('<Configure>', lambda e: self.primary_tabs_canvas.configure(scrollregion=self.primary_tabs_canvas.bbox('all')))
 
         # Notebook for experiment tabs (each tab = one experiment)
-        self.experiment_notebook = ttk.Notebook(self.primary_notebook_container)
+        # Use custom style to hide tabs (we use custom buttons instead)
+        self.experiment_notebook = ttk.Notebook(self.primary_notebook_container, 
+                                                style='CustomHidden.TNotebook')
         self.experiment_notebook.pack(fill='both', expand=True)
         self.experiment_notebook.bind('<<NotebookTabChanged>>', self.on_experiment_tab_change)
 

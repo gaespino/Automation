@@ -363,11 +363,12 @@ class configurations:
 
 		CORE_FREQ = {# done - CORE_SSE_HDC_RATIO_6
 				1:[8],
-				2:[16],
-				3:[22],
-				4:[26],
-				5:[28],
-				6:[32, 31, 30, 29]
+				2:[14],
+				3:[19],
+				4:[24],
+				5:[34, 32, 31, 30],
+				6:[38, 36, 34, 32],
+				7:[38, 36, 34, 32],
 			}
 		CORE_CFC_FREQ = {# done - UNCORE_CFCxCOMP_RATIO_SAFE - Jose Zuñiga recommends to use the safe values
 				1:8,
@@ -375,7 +376,8 @@ class configurations:
 				3:8,
 				4:8,
 				5:8,
-				6:8
+				6:8,
+				7:8
 			}
 		CORE_CFCIO_FREQ = {# done - UNCORE_CFCxIO_RATIO_SAFE - Jose Zuñiga recommends to use the safe values
 				1:8,
@@ -383,17 +385,25 @@ class configurations:
 				3:8,
 				4:8,
 				5:8,
-				6:8
+				6:8,
+				7:8
 			}
 
 		CFC_FREQ = {# done - UNCORE_CFCxCOMP_RATIO_4
 				1:[8],
 				2:[14],
-				3:[18],
-				4:[22]
+				3:[17],
+				4:[27]
 			}
 
-		HDC_FREQ = {# done - UNCORE_CFCxCOMP_RATIO_4
+		MEM_FREQ = {# done - UNCORE_CFCxCOMP_RATIO_4
+				1:[8],
+				2:[16],
+				3:[20],
+				4:[21]
+			}
+
+		HDC_FREQ = {# done - UNCORE_CFCxCOMP_RATIO_4  -- NOT USED IN DMR
 				1:[8],
 				2:[16],
 				3:[22],
@@ -401,20 +411,31 @@ class configurations:
 				5:[28],
 				6:[32, 31, 30, 29]
 			}
-		IO_FREQ = {# done - UNCORE_CFCxIO_RATIO
+
+		MLC_FREQ = {# done - UNCORE_CFCxCOMP_RATIO_4  --
 				1:[8],
 				2:[14],
-				3:[20],
-				4:[24]
+				3:[19],
+				4:[24],
+				5:[34, 32, 31, 30],
+				6:[38, 36, 34, 32],
+				7:[38, 36, 34, 32],
 			}
 
-		CFC_CORE_FREQ = {# done - CORE_SSE_HDC_RATIO_SAFE - Jose Zuñiga recommends to use the safe values
+		IO_FREQ = {# done - UNCORE_CFCxIO_RATIO
+				1:[8],
+				2:[16],
+				3:[20],
+				4:[21]
+			}
+
+		CFC_CORE_FREQ = {# done - CORE_SSE_HDC_RATIO_SAFE -
 				1:8,
 				2:8,
 				3:8,
 				4:8,
 			}
-		HDC_CORE_FREQ = {# done - CORE_SSE_HDC_RATIO_SAFE - Jose Zuñiga recommends to use the safe values
+		HDC_CORE_FREQ = {# done - CORE_SSE_HDC_RATIO_SAFE -
 				1:8,
 				2:8,
 				3:8,
@@ -423,7 +444,14 @@ class configurations:
 				6:8,
 			}
 
-		CFCIO_CORE_FREQ = {# done - CORE_SSE_HDC_RATIO_SAFE - - Jose Zuñiga recommends to use the safe values
+		CFCIO_CORE_FREQ = {# done - CORE_SSE_HDC_RATIO_SAFE - -
+				1:8,
+				2:8,
+				3:8,
+				4:8,
+			}
+
+		MEM_CORE_FREQ = {# done - CORE_SSE_HDC_RATIO_SAFE - -
 				1:8,
 				2:8,
 				3:8,
@@ -439,9 +467,9 @@ class configurations:
 
 		CFC_IO_FREQ = {# Done - UNCORE_CFCxIO_RATIO
 				1:8,
-				2:14,
+				2:16,
 				3:20,
-				4:24,
+				4:21,
 			}
 
 		CORE_HDC_CFC_FREQ = {# Not used
@@ -453,31 +481,39 @@ class configurations:
 
 		#FivrCondition	All_Safe_RST_PKG
 		All_Safe_RST_PKG = {# Safe Voltages
-				'VCORE_RST':0.85,
-				'VHDC_RST':0.90,
-				'VCFC_CDIE_RST':0.85,
-				'VDDRA_RST':0.90,
-				'VDDRD_RST':0.85,
-				'VCFN_PCIE_RST':0.90,
-				'VCFN_FLEX_RST':0.90,
-				'VCFN_HCA_RST':0.90,
-				'VIO_RST':1,
-				'VCFC_IO_RST':0.85,
+				'VCORE_RST':0.9,
+				'VCCRING_RST':0.90,
+				'VCCC2IA_RST':0.90,
+				'VCCMLC_RST':0.90,
+				'VCCCFCMEM_RST':0.85,
+				'VCCCFCIO_RST':0.83,
+				'VCCFIXDIG_E_RST':0.85,
+				'VCCFIXDIG_W_RST':0.85,
+				'VCCFIXDIG_MIO_1_RST':0.85,
+				'VCCFIXDIG_MIO_2_RST':0.85,
+				'VCCFIXDIG_MIO_3_RST':0.85,
+				'VCCFIXDIG_MIO_4_RST':0.85,
+				'VCCUCIE_NE_RST':0.90,
+				'VCCUCIE_NW_RST':0.90,
+				'VCCUCIE_SE_RST':0.90,
+				'VCCUCIE_SW_RST':0.90,
 			}
 
 		#FivrCondition	All_Safe_RST_CDie
-		All_Safe_RST_CDIE = {# Safe Voltages
-				'VCORE_RST':0.85,
-				'VHDC_RST':0.90,
-				'VCFC_CDIE_RST':0.85,
-				'VDDRA_RST':0.90,
-				'VDDRD_RST':0.85,
+		All_Safe_CBB = {# Safe Voltages
+				'VCORE_RST':0.90,
+				'VCCRING_RST':0.90,
+				'VCCC2IA_RST':0.90,
+				'VCCMLC_RST':0.90,
 			}
 
 		cfc_max = 4
-		hdc_max = 6
-		core_max = 6
+		hdc_max = 7
+		core_max = 7
 		io_max = 4
+		mem_max = 4
+		mlc_max = 7
+		max_mlc_volt_per_cbb = 4
 
 		wsdl_url = "http://mfglabdffsvc.intel.com/MDODFFWcf/DFFSVC.svc?wsdl"
 
@@ -487,19 +523,25 @@ class configurations:
 								'CORE_CFCIO_FREQ': CORE_CFCIO_FREQ,
 								'CFC_FREQ': CFC_FREQ,
 								'HDC_FREQ': HDC_FREQ,
+								'MLC_FREQ': MLC_FREQ,
 								'IO_FREQ': IO_FREQ,
+								'MEM_FREQ': MEM_FREQ,
 								'CFC_CORE_FREQ': CFC_CORE_FREQ,
 								'HDC_CORE_FREQ': HDC_CORE_FREQ,
 								'CFCIO_CORE_FREQ': CFCIO_CORE_FREQ,
+								'MEM_CORE_FREQ': MEM_CORE_FREQ,
 								'IO_HDC_FREQ': IO_HDC_FREQ,
 								'CFC_IO_FREQ': CFC_IO_FREQ,
 								'CORE_HDC_CFC_FREQ': CORE_HDC_CFC_FREQ,
 								'All_Safe_RST_PKG': All_Safe_RST_PKG,
-								'All_Safe_RST_CDIE': All_Safe_RST_CDIE,
+								'All_Safe_CBB': All_Safe_CBB,
 								'cfc_max': cfc_max,
 								'hdc_max': hdc_max,
 								'core_max': core_max,
 								'io_max': io_max,
+								'mem_max': mem_max,
+								'mlc_max': mlc_max,
+								'max_mlc_volt_per_cbb': max_mlc_volt_per_cbb,
 								'wsdl_url': wsdl_url,
 								}
 

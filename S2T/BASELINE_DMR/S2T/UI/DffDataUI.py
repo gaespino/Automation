@@ -12,12 +12,12 @@ class DFFUI:
         self.collector = collector
         self.root.title("DFF Data Collector -- Unit VMIN")
 
-        self.products_list = ['GNR', 'CWF']
-        
-        # Updates product variables 
+        self.products_list = ['DMR']
+        self.product_configs = {'DMR': 'DMR_CLTAP'}
+        # Updates product variables
         tk.Label(root, text="Product:").grid(row=0, column=0, padx=10, pady=5, sticky="e")
-        self.product_var = tk.StringVar(value="GNRAP")
-        tk.OptionMenu(root, self.product_var, "GNRAP", "GNRSP", "CWFAP", "CWFSP").grid(row=0, column=1, padx=10, pady=5, sticky="w")
+        self.product_var = tk.StringVar(value="DMR")
+        tk.OptionMenu(root, self.product_var, "DMR").grid(row=0, column=1, padx=10, pady=5, sticky="w")
 
         # Create and place the widgets
         tk.Label(root, text="VID:").grid(row=1, column=0, padx=10, pady=5, sticky="e")
@@ -39,30 +39,30 @@ class DFFUI:
         tk.OptionMenu(root, self.flow_var, "hot", "cold", "all").grid(row=4, column=1, padx=10, pady=5, sticky="w")
 
         tk.Button(root, text="Start Data Collection", command=self.start_data_collection).grid(row=4, column=0, columnspan=3, pady=20)
-        
+
     def start_data_collection(self):
         vid = self.vid_entry.get()
         option = self.option_var.get()
         output = self.output_entry.get()
         flow = self.flow_var.get()
-        config = self.product_var.get()
-        product = None
-        for p in self.products_list:
-            if p in config:
-                product = p
-                print(f' Using Product Configuration for {p}')
-                break
+        config = None
+        product =self.product_var.get()
+        product_configs =  self.product_configs.keys()
+
+        if product in product_configs:
+            config = self.product_configs[product]
+            print(f' Using Product Configuration for {product}')
 
 
         if flow == 'all':
             flows = 'all'
         else:
             flows = flow.lower()
-        
+
         self.collector.update_product(product, config)
         self.collector.run(flows, option, vid, output, skipfused = True)
         self.root.destroy()
-    
+
     def browse_file(self):
         filename = filedialog.askopenfilename()
         self.vid_entry.delete(0, tk.END)

@@ -1,0 +1,51 @@
+Deployment Report
+Timestamp,20260203_165557
+Product,DMR
+Source Type,BASELINE_DMR
+Deployment Type,S2T
+Target,Q:\Gaespino\scripts\s2t\Deploys\DMR\prod\S2T
+Total Files Scanned,32
+Product Filtered,30
+Deployed Successfully,2
+Errors,0
+
+DEPLOYED FILES
+Source File,Target File,Renamed,Old Name,New Name,Status,Similarity,Import Replacements,Filename Import Updates,Import Change Lines,Rename Change Lines
+managers\voltage_manager.py,managers\voltage_manager.py,No,voltage_manager.py,voltage_manager.py,minimal_changes,99.7%,-,-,-,-
+dpmChecks.py,dpmChecks.py,No,dpmChecks.py,dpmChecks.py,minimal_changes,99.9%,-,-,-,-
+
+DETAILED LINE CHANGES
+File,Line,Change Type,Old Content,New Content
+
+SKIPPED FILES
+File,Reason,Status,Renamed,New Name
+product_specific\dmr\registers.py,Not selected,identical,No,-
+product_specific\dmr\ConfigFiles\DMRFuseFileConfigs.json,Not selected,identical,No,-
+Logger\logger.py,Not selected,identical,No,-
+product_specific\dmr\configs.py,Not selected,identical,No,-
+Tools\requests_unit_info.py,Not selected,identical,No,-
+Logger\ErrorReport.py,Not selected,identical,No,-
+product_specific\dmr\fusefilegen.py,Not selected,identical,No,-
+product_specific\dmr\RegFiles\s2tmeshdata.json,Not selected,identical,No,-
+test_curves.py,Not selected,new,No,-
+SetTesterRegs.py,Not selected,identical,No,-
+Tools\utils.py,Not selected,identical,No,-
+Tools\portid2ip.py,Not selected,identical,No,-
+UI\System2TesterUI.py,Not selected,identical,No,-
+Logger\ErrorReportClass.py,Not selected,identical,No,-
+UI\DffDataUI.py,Not selected,identical,No,-
+ConfigsLoader.py,Not selected,identical,No,-
+UI\ExperimentsForm.py,Not selected,identical,No,-
+product_specific\dmr\ConfigFiles\DMRMasksConfig.json,Not selected,identical,No,-
+product_specific\dmr\ConfigFiles\DMRMasksDebug.json,Not selected,identical,No,-
+GetTesterCurves.py,Not selected,identical,No,-
+product_specific\dmr\ConfigFiles\DMRBurnInFuses.json,Not selected,identical,No,-
+managers\product_strategy.py,Not selected,identical,No,-
+product_specific\dmr\functions.py,Not selected,identical,No,-
+DffDataCollector.py,Not selected,identical,No,-
+product_specific\dmr\strategy.py,Not selected,identical,No,-
+product_specific\dmr\RegFiles\s2tregdata.json,Not selected,identical,No,-
+managers\frequency_manager.py,Not selected,identical,No,-
+UI\System2TesterUI_Modern.py,Not selected,identical,No,-
+product_specific\dmr\mca_banks.py,Not selected,identical,No,-
+CoreManipulation.py,Not selected,identical,No,-

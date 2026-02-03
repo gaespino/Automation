@@ -2287,9 +2287,13 @@ class ExperimentEditor:
         self.dialog = tk.Toplevel(parent)
         self.dialog.title(f"Edit Experiment: {exp_name}")
         self.dialog.geometry("600x700")
+        
+        # Ensure proper window management
         self.dialog.transient(parent)
-        self.dialog.grab_set()
-
+        
+        # Protocol handler for window close
+        self.dialog.protocol("WM_DELETE_WINDOW", self.on_closing)
+        
         # Center dialog
         self.center_dialog()
 
@@ -2298,6 +2302,15 @@ class ExperimentEditor:
 
         # Load data
         self.load_experiment_data()
+        
+        # Set grab after all widgets are created to prevent issues
+        self.dialog.grab_set()
+
+    def on_closing(self):
+        """Handle window closing event."""
+        # Release grab and destroy
+        self.dialog.grab_release()
+        self.dialog.destroy()
 
     def center_dialog(self):
         """Center the dialog on parent window."""
@@ -2321,21 +2334,34 @@ class ExperimentEditor:
         self.exp_name_entry = ttk.Entry(name_frame, textvariable=self.exp_name_var, width=30)
         self.exp_name_entry.pack(side=tk.LEFT, padx=(10, 0), fill=tk.X, expand=True)
 
-        # Notebook for tabs
-        self.notebook = ttk.Notebook(main_frame)
+        # Notebook for tabs - explicitly use default style to avoid issues
+        # from other components that might have modified global styles
+        style = ttk.Style()
+        style.configure('Default.TNotebook.Tab')  # Ensure default tab style exists
+        self.notebook = ttk.Notebook(main_frame, style='Default.TNotebook')
         self.notebook.pack(fill=tk.BOTH, expand=True)
 
-        # Create tabs
+        # Create tabs in correct display order (left to right)
+        # Experiment Configuration -> Defeature -> Content
         self.create_experiment_config_tab()
+        self.notebook.update_idletasks()  # Update after first tab
+        
         self.create_defeature_tab()
+        self.notebook.update_idletasks()  # Update after second tab
+        
         self.create_content_tab()
+        self.notebook.update_idletasks()  # Update after third tab
+        
+        # Final update to ensure all tabs are visible
+        self.notebook.update()
+        main_frame.update_idletasks()
 
         # Button frame
         button_frame = ttk.Frame(main_frame)
         button_frame.pack(fill=tk.X, pady=(10, 0))
 
         ttk.Button(button_frame, text="Save", command=self.save_changes).pack(side=tk.RIGHT, padx=(5, 0))
-        ttk.Button(button_frame, text="Cancel", command=self.dialog.destroy).pack(side=tk.RIGHT)
+        ttk.Button(button_frame, text="Cancel", command=self.on_closing).pack(side=tk.RIGHT)
 
     def create_defeature_tab(self):
         """Create the defeature tab."""
@@ -2673,7 +2699,7 @@ class ExperimentEditor:
             value = self.exp_data.get(field_name, "")
             var.set(str(value) if value is not None else "")
 
-        # Load experiment config data
+        # Load content data
         for field_name, var in self.content_vars.items():
             value = self.exp_data.get(field_name, "")
             if isinstance(var, tk.BooleanVar):
@@ -2683,6 +2709,9 @@ class ExperimentEditor:
 
         # Update Configuration (Mask) options after loading data
         self.update_configuration_mask_options()
+        
+        # Update conditional fields display based on loaded data
+        self.update_conditional_fields()
 
     def save_changes(self):
         """Save changes and close dialog."""
@@ -2783,11 +2812,28 @@ class ExperimentEditor:
         # Call save callback with the new experiment name and data
         self.save_callback(new_exp_name, self.exp_data)
 
-        # Close dialog
-        self.dialog.destroy()
+        # Close dialog properly
+        self.on_closing()
 
     def show(self):
-        """Show the dialog."""
+        """Show the dialog and ensure all tabs are visible."""
+        # Ensure dialog is fully rendered
+        self.dialog.update()
+        
+        # Verify tabs exist and are visible
+        tab_count = len(self.notebook.tabs())
+        if tab_count > 0:
+            # Select first tab to ensure it's active
+            self.notebook.select(0)
+            # Force notebook to show all tabs
+            for i in range(tab_count):
+                self.notebook.tab(i, state='normal')
+        
+        # Final update to ensure everything is rendered
+        self.notebook.update()
+        self.dialog.update_idletasks()
+        
+        # Set focus
         self.dialog.focus_set()
 
 # Standalone function to start the designer

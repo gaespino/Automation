@@ -1788,7 +1788,7 @@ def ppvc(bsformat = False, ppvc_fuses = [], updateram=False):
 	return ppvc_confg
 
 ## Voltage read for S2T
-def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = True, vbump=False, updateram=False, fixmlc=True):
+def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = None, fixed = True, vbump=False, updateram=False, fixmlc=True):
 	print("\n***********************************v********************************************")
 	print(f'Changing Voltage fuses based on System 2 Tester Configuration: Type {"Fixed" if fixed else ""}{"vBump" if vbump else ""}')
 	for k,v in volt_dict.items():
@@ -1799,6 +1799,8 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 
 	# This is changing for DMR -- not compatible with previous products (GNR/CWF)
 	# Be careful when updating this section in older products
+	if volt_fuses == None:
+		volt_fuses = []
 
 	cbbs = config.MAX_CBBS
 	base_top_config = {'base':[], 'top0':[], 'top1':[], 'top2':[], 'top3':[]}
@@ -1887,7 +1889,7 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = [], fixed = Tr
 	fuses_cbb0 = [f for f in volt_fuses if '.cbb0' in f]
 	fuses_cbb1 = [f for f in volt_fuses if '.cbb1' in f]
 	fuses_cbb2 = [f for f in volt_fuses if '.cbb2' in f]
-	fuses_cbb3 = [f for f in volt_fuses if '.cbb2' in f]
+	fuses_cbb3 = [f for f in volt_fuses if '.cbb3' in f]
 	fuses_imh0 = [f for f in volt_fuses if '.imh0' in f]
 	fuses_imh1 = [f for f in volt_fuses if '.imh1' in f]
 
@@ -2441,7 +2443,7 @@ def fuses_ia_vbumps(offset: float = 0,
 # Reference Call to FuseOverride Class for MLC VBump arrays
 def fuses_mlc_vbumps(offset: float = 0,
                     rgb_array: dict = {},
-                    skip_init: bool = False,
+                    skip_init: bool = True,
                     fixed_voltage: float | None = None,
                     target_socket: int | None = None,
                     target_cbb: int | None = None,

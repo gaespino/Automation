@@ -9,8 +9,8 @@
 ## Date: 20/01/2025
 ## Edit: gabriel.espinoza.ballestero@intel.com
 ## update: Added a new interface located in the UI folder, this will replace the previous args option.
-## 
-## 
+##
+##
 ## Revision: 1.2
 ## Date: 20/06/2024
 ## Edit: gabriel.espinoza.ballestero@intel.com
@@ -67,20 +67,20 @@ class datacollector:
 			c = float(c)
 
 		values = [a, b, c]
-		
+
 		if a==b==c:
 			max_diff = 0
 		else:
 			# Calculate the maximum difference
 			max_diff = max([abs(i - j) for i in values for j in values if i != j])
-		
+
 		return max_diff
 
 	def uncore_collect(self, vidfile, outputfile ='C:\\Temp\\uncore_vmin_dump.xlsx' , flow = ['hot', 'cold']):
 		print(f'Starting data collection for {self.SELECTED_PRODUCT}')
 		_isfile = self.checkfile(vidfile)
 
-		if _isfile: 
+		if _isfile:
 			with open(vidfile , 'r') as file:
 				vids = [line.strip() for line in file]
 				file.close()
@@ -90,20 +90,26 @@ class datacollector:
 		data = {}
 
 		visualIDs = vids
-		
-		Savedata = {'VisualID': [], 
-					'COMPUTE':[],
+
+		Savedata = {'VisualID': [],
+					'DIE': [],
 					'IP':[],
 					'Freq':[],
 					'Flow':[],
 					'Voltage':[],
-					'Compare':[],
-					'IPCompare':[]
+					#'Compare':[],
+					#'IPCompare':[]
 					}
+
+		IPCONFIGS = {	'IO': {'name':'IMH','diename':'IMH', 'calc_value':1},
+               			'MEM': {'name':'MEM','diename':'IMH', 'calc_value':1},
+                  		'CFC': {'name':'CBO','diename':'CBB', 'calc_value':self.MAXLOGICAL},
+                    	'HDC': {'name':'HDC','diename':'IMH', 'calc_value':1}}
+
 		for flw in flow:
 			for vid in visualIDs:
 				print(f'Collecting data for {vid} - {flw.upper()}')
-				if flw == 'hot': 
+				if flw == 'hot':
 					hotf = True
 					temp = "HSTC_V"
 					custom = False
@@ -111,24 +117,27 @@ class datacollector:
 					hotf = True
 					custom = True
 					temp = temp = "FAST_STC_V"
-				else: 
+				else:
 					hotf = False
 					temp = "CSTC_V"
 					custom = False
 				data = gtc.dump_uncore_curves(visual= vid, hot = hotf, usedata = True, custom=custom, temp=temp)
-				Frequencies = {'HDC':[], 'CFC':[],'IO':[]}
 
 				for key, value in data.items():
 					key_string = key.split('-')
 					freq = key_string[2]
-					compute = key_string[0]
 					ip = key_string[1]
+					cbo = int(key_string[0].replace(IPCONFIGS[ip]['name'],""))
 					fvalue = float(value)
-
+					if 'CFC' in ip:
+						diename = 'CBB'
+					else:
+						diename = 'IMH'
+					die = f'{diename}{int(cbo/IPCONFIGS[ip]["calc_value"])}'
 					Savedata['VisualID'].append(vid)
-					Savedata['COMPUTE'].append(compute)
-					Savedata['IP'].append(ip)
-					if 'hot' == flw.lower(): 
+					Savedata['DIE'].append(die)
+					Savedata['IP'].append(f'{IPCONFIGS[ip]["name"]}{cbo}')
+					if 'hot' == flw.lower():
 						Savedata['Flow'].append('HOT')
 					elif 'cold' == flw.lower():
 						Savedata['Flow'].append('COLD')
@@ -136,14 +145,14 @@ class datacollector:
 						Savedata['Flow'].append(temp)
 					Savedata['Freq'].append(freq)
 					Savedata['Voltage'].append(fvalue)
-					if 'COMPUTE' in compute:
-						Savedata['Compare'].append(self.max_difference(data[f'COMPUTE0-{ip}-{freq}-Voltage'],data[f'COMPUTE1-{ip}-{freq}-Voltage'],data[f'COMPUTE2-{ip}-{freq}-Voltage']))
-					else:
-						Savedata['Compare'].append(abs(float(data[f'IO0-{ip}-{freq}-Voltage'])-float(data[f'IO1-{ip}-{freq}-Voltage'])))
-					if (ip == 'CFC' or ip == 'HDC') and 'COMPUTE' in compute and self.SELECTED_PRODUCT != 'CWF':
-						Savedata['IPCompare'].append(abs(float(data[f'{compute}-CFC-{freq}-Voltage'])-float(data[f'{compute}-HDC-{freq}-Voltage'])))
-					else:
-						Savedata['IPCompare'].append(0)
+					#if 'COMPUTE' in compute:
+					#	Savedata['Compare'].append(self.max_difference(data[f'COMPUTE0-{ip}-{freq}-Voltage'],data[f'COMPUTE1-{ip}-{freq}-Voltage'],data[f'COMPUTE2-{ip}-{freq}-Voltage']))
+					#else:
+					#	Savedata['Compare'].append(abs(float(data[f'IO0-{ip}-{freq}-Voltage'])-float(data[f'IO1-{ip}-{freq}-Voltage'])))
+					#if (ip == 'CFC' or ip == 'HDC') and 'COMPUTE' in compute and self.SELECTED_PRODUCT != 'CWF':
+					#	Savedata['IPCompare'].append(abs(float(data[f'{compute}-CFC-{freq}-Voltage'])-float(data[f'{compute}-HDC-{freq}-Voltage'])))
+					#else:
+					#	Savedata['IPCompare'].append(0)
 
 
 		# Create a DataFrame from the dictionary
@@ -152,26 +161,27 @@ class datacollector:
 		# Write the DataFrame to Excel
 		df.to_excel(outputfile, index=False)
 
-	def core_collect(self, vidfile, outputfile ='C:\\Temp\\core_vmin_dump.xlsx',coremin=0, coremax=132,  flow = ['hot', 'cold'], skipfused = True):
+	def core_collect(self, vidfile, outputfile ='C:\\Temp\\core_vmin_dump.xlsx',coremin=0, coremax=128,  flow = ['hot', 'cold'], skipfused = True):
 		print(f'Starting data collection for {self.SELECTED_PRODUCT}')
 		_isfile = self.checkfile(vidfile)
 
-		if _isfile: 
+		if _isfile:
 			with open(vidfile , 'r') as file:
 				vids = [line.strip() for line in file]
 				file.close()
 		else:
 			vids = [vidfile]
-			
+
 
 		data = {}
 		cores = [coremin,coremax]
 		visualIDs = vids
-		
-		Savedata = {'VisualID': [], 
-					'COMPUTE':[],
+
+		Savedata = {'VisualID': [],
+					'DIE':[],
 					f'{self.CORESTRING}LOG':[],
 					f'{self.CORESTRING}PHY':[],
+					'IP':[],
 					'LIC':[],
 					'Freq':[],
 					'Flow':[],
@@ -182,7 +192,7 @@ class datacollector:
 		for flw in flow:
 			for vid in visualIDs:
 				print(f'Collecting data for {vid} - {flw.upper()}')
-				if flw == 'hot': 
+				if flw == 'hot':
 					hotf = True
 					temp = "HSTC_V"
 					custom = False
@@ -190,7 +200,7 @@ class datacollector:
 					hotf = True
 					custom = True
 					temp = temp = "FAST_STC_V"
-				else: 
+				else:
 					hotf = False
 					temp = "CSTC_V"
 					custom = False
@@ -202,19 +212,33 @@ class datacollector:
 					key_string = key.split('-')
 					freq = key_string[2]
 					core = key_string[0]
-					ip = key_string[1]
+					lic = key_string[1]
 					fvalue = float(value)
 					if fvalue < 0 and skipfused:
-						continue				
+						continue
+
+					if 'CBB' in core:
+						corelognum = '-'
+						die = core
+						ip = lic
+						lic = '-'
+
+					else:
+						corelognum = int(core.replace(f'{self.CORESTRING}',""))
+						ip = f'{self.CORESTRING}'
+						die = (int(corelognum/self.MAXLOGICAL))
+						corephy = self.classLogical2Physical[(corelognum%self.MAXLOGICAL)]+(die*self.MAXPHYSICAL)
+
+
 					Savedata['VisualID'].append(vid)
-					corelognum = int(core.replace(f'{self.CORESTRING}',""))
+					Savedata['DIE'].append(F'CBB{die}')
+
 					Savedata[f'{self.CORESTRING}LOG'].append(corelognum)
-					compute = (int(corelognum/self.MAXLOGICAL))
-					corephy = self.classLogical2Physical[(corelognum%self.MAXLOGICAL)]+(compute*self.MAXPHYSICAL)
 					Savedata[f'{self.CORESTRING}PHY'].append(corephy)
-					Savedata['COMPUTE'].append(compute)
-					Savedata['LIC'].append(ip)
-					if 'hot' == flw.lower(): 
+					Savedata['LIC'].append(lic)
+					Savedata['IP'].append(ip)
+
+					if 'hot' == flw.lower():
 						Savedata['Flow'].append('HOT')
 					elif 'cold' == flw.lower():
 						Savedata['Flow'].append('COLD')
@@ -237,22 +261,22 @@ class datacollector:
 			return False
 
 	def run(self, flow, option, vid, output, skipfused = True):
-		
+
 		if flow == 'all':
-			flows = ['hot','cold']	
+			flows = ['hot','cold']
 		else:
 			flows = [flow.lower()]
 		print(f'Starting data collection for {option}, please wait until operation is complete')
 		if option.lower() == 'uncore':
-			
+
 			self.uncore_collect(vidfile=vid, outputfile = output , flow = flows)
 		elif option.lower() == 'core':
-			self.core_collect(vidfile = vid, outputfile = output, coremin=0, coremax=132,  flow = flows, skipfused = skipfused)
+			self.core_collect(vidfile = vid, outputfile = output, coremin=0, coremax=128,  flow = flows, skipfused = skipfused)
 		else:
 			print('Option not availabled use core or uncore for file dump')
 
-		print(f'Data collection file saved at: {output}')    	
-	
+		print(f'Data collection file saved at: {output}')
+
 	def update_product(self, product, config):
 
 		gtc.set_variables(product, config)
@@ -263,7 +287,7 @@ class datacollector:
 		self.MAXPHYSICAL = gtc.MAXPHYSICAL
 		self.SELECTED_PRODUCT = gtc.SELECTED_PRODUCT
 		self.PRODUCT_CONFIG = gtc.PRODUCT_CONFIG
-		print(self.SELECTED_PRODUCT , self.MAXLOGICAL,self.MAXPHYSICAL)
+		print(self.SELECTED_PRODUCT , self.PRODUCT_CONFIG, self.MAXLOGICAL,self.MAXPHYSICAL)
 
 ## Interface
 def UI():
@@ -273,4 +297,3 @@ def UI():
 
 if __name__ == "__main__":
 	UI()
-	

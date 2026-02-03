@@ -219,7 +219,7 @@ class VoltageManager:
 		self.volt_config = self.dpm.tester_voltage(
 			bsformat=(not fastboot),
 			volt_dict=voltdict,
-			volt_fuses=[],
+			volt_fuses=None,
 			fixed=True,
 			vbump=False
 		)
@@ -291,7 +291,7 @@ class VoltageManager:
 		self.volt_config = self.dpm.tester_voltage(
 			bsformat=(not fastboot),
 			volt_dict=voltdict,
-			volt_fuses=[],
+			volt_fuses=None,
 			fixed=True,
 			vbump=False
 		)
@@ -368,7 +368,7 @@ class VoltageManager:
 		self.volt_config = self.dpm.tester_voltage(
 			bsformat=(not fastboot),
 			volt_dict=voltdict,
-			volt_fuses=[],
+			volt_fuses=None,
 			fixed=False,
 			vbump=True
 		)
