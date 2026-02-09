@@ -191,9 +191,17 @@ class EditExperimentWindow(tk.Toplevel):
 			key: tk.StringVar(value=str(value) if value is not None else '')
 			for key, value in self.data.items()
 		}
+		
+		# Now that input_vars exist, populate MASK_OPTIONS based on current Test Mode
+		self.MASK_OPTIONS = self._get_field_options('Configuration (Mask)')
+		print(f"[EDIT WINDOW INIT] Initial MASK_OPTIONS based on Test Mode '{self.data.get('Test Mode', '')}': {self.MASK_OPTIONS}")
 
 		if 'Type' in self.input_vars:
 			self.input_vars['Type'].trace('w', self.on_type_change)
+		
+		# Bind Test Mode changes to update Configuration (Mask) field
+		if 'Test Mode' in self.input_vars:
+			self.input_vars['Test Mode'].trace('w', self.on_test_mode_change)
 
 		# Initialize widgets and frames
 		self.widgets = {}
@@ -507,8 +515,9 @@ class EditExperimentWindow(tk.Toplevel):
 		self.DOMAINS = config_data.get('DOMAINS', [])
 		self.CONTENT_OPTIONS = config_data.get('CONTENT_OPTIONS', [])
 
-		# Build options from field_configs
-		self.MASK_OPTIONS = self._get_field_options('Configuration (Mask)')
+		# Note: MASK_OPTIONS will be populated after input_vars are initialized
+		# because it depends on the current Test Mode value
+		self.MASK_OPTIONS = []
 		self.CORE_LICENSE_OPTIONS = self._get_field_options('Core License')
 		self.DISABLE_2_CORES_OPTIONS = self._get_field_options('Disable 2 Cores')
 		self.DISABLE_1_CORE_OPTIONS = self._get_field_options('Disable 1 Core')
@@ -597,9 +606,31 @@ class EditExperimentWindow(tk.Toplevel):
 
 	def _get_field_options(self, field_name):
 		"""Get options for a field from field_configs"""
-		if field_name in self.field_configs:
-			return self.field_configs[field_name].get('options', [])
-		return []
+		if field_name not in self.field_configs:
+			return []
+		
+		field_config = self.field_configs[field_name]
+		
+		# Check for conditional_options (e.g., Configuration (Mask) depends on Test Mode)
+		if 'conditional_options' in field_config:
+			conditional = field_config['conditional_options']
+			dependent_field = conditional.get('field')
+			
+			if dependent_field:
+				# Get current value of the dependent field
+				current_value = self.data.get(dependent_field, '')
+				
+				# If dependent field is in input_vars, get the current UI value
+				if hasattr(self, 'input_vars') and dependent_field in self.input_vars:
+					current_value = self.input_vars[dependent_field].get()
+				
+				# Get options for the current value
+				if current_value in conditional:
+					option_config = conditional[current_value]
+					return option_config.get('options', [])
+		
+		# Fall back to regular options
+		return field_config.get('options', [])
 
 	def _build_field_groups_from_sections(self):
 		"""Build FIELD_GROUPS structure from field_configs sections"""
@@ -869,6 +900,32 @@ class EditExperimentWindow(tk.Toplevel):
 			if file_path:
 				self.input_vars[field].set(file_path)
 
+	def on_test_mode_change(self, *args):
+		"""Handle Test Mode change to update Configuration (Mask) options"""
+		if 'Configuration (Mask)' in self.widgets:
+			# Update MASK_OPTIONS based on current Test Mode
+			self.MASK_OPTIONS = self._get_field_options('Configuration (Mask)')
+			
+			# Update the combobox widget with new options
+			for label, widget, indicator in self.widgets['Configuration (Mask)']:
+				if isinstance(widget, ttk.Combobox):
+					current_value = self.input_vars['Configuration (Mask)'].get()
+					widget['values'] = self.MASK_OPTIONS
+					
+					# Clear the field if the current value is not in the new options
+					if current_value and current_value not in self.MASK_OPTIONS and self.MASK_OPTIONS:
+						self.input_vars['Configuration (Mask)'].set('')
+						
+					# Set to first option if empty and options are available
+					if not current_value and self.MASK_OPTIONS:
+						self.input_vars['Configuration (Mask)'].set(self.MASK_OPTIONS[0] if self.MASK_OPTIONS[0] != '' else '')
+						
+					print(f"[TEST MODE CHANGE] Updated Configuration (Mask) options: {self.MASK_OPTIONS}")
+					break
+		
+		# Validate the field with new options
+		self.validate_field('Configuration (Mask)')
+	
 	def on_test_type_change(self, *args):
 		"""Handle test type change to show/hide relevant fields"""
 		self.refresh_all_tabs()
@@ -5965,7 +6022,7 @@ class MaskManagementWindow:
 			self.mask_name_entry.delete(0, tk.END)
 
 	def open_mask_editor(self):
-		# Example hex values for Compute0, Compute1, and Compute2
+		# DMR CBB-based mask editor
 		idx = self.mask_listbox.curselection()
 		mask_selected = self.mask_listbox.get(idx) if idx else None
 
@@ -5976,28 +6033,43 @@ class MaskManagementWindow:
 			self.mask_dict['Default'] = clean_mask
 			test_mask = clean_mask if mask_selected == None else self.mask_dict[mask_selected]
 
-			compute0_core_hex = test_mask['ia_compute_0']
-			compute0_cha_hex = test_mask['llc_compute_0']
-			compute1_core_hex = test_mask['ia_compute_1']
-			compute1_cha_hex = test_mask['llc_compute_1']
-			compute2_core_hex = test_mask['ia_compute_2']
-			compute2_cha_hex = test_mask['llc_compute_2']
-			gme.Masking(root_mask, compute0_core_hex, compute0_cha_hex, compute1_core_hex, compute1_cha_hex, compute2_core_hex, compute2_cha_hex, product='GNR', callback = self.receive_masks)
-			#masks = editor.start()
-		else:
-			sysmask = self.Framework_utils.read_current_mask() #if not self.masks_var.get() else clean_mask
+			# DMR uses CBB-based configuration (cbb0-3 instead of compute0-2)
+			cbb0_core_hex = test_mask.get('ia_cbb0', None)
+			cbb0_llc_hex = test_mask.get('llc_cbb0', None)
+			cbb1_core_hex = test_mask.get('ia_cbb1', None)
+			cbb1_llc_hex = test_mask.get('llc_cbb1', None)
+			cbb2_core_hex = test_mask.get('ia_cbb2', None)
+			cbb2_llc_hex = test_mask.get('llc_cbb2', None)
+			cbb3_core_hex = test_mask.get('ia_cbb3', None)
+			cbb3_llc_hex = test_mask.get('llc_cbb3', None)
 
-			self.Framework_utils.Masks(basemask=sysmask, root=root_mask, callback = self.receive_masks)
+			gme.Masking(
+				root_mask,
+				cbb0_core_hex, cbb0_llc_hex,
+				cbb1_core_hex, cbb1_llc_hex,
+				cbb2_core_hex, cbb2_llc_hex,
+				cbb3_core_hex, cbb3_llc_hex,
+				product='DMR',
+				callback=self.receive_masks
+			)
+		else:
+			sysmask = self.Framework_utils.read_current_mask()
+			self.Framework_utils.Masks(basemask=sysmask, root=root_mask, callback=self.receive_masks)
 		# Start the UI and get the updated masks
 
 	def clean_mask(self):
-		Full_String = "0x0000000000000000000000000000000000000000000000000000000000000000"
-		masks = {	'ia_compute_0':Full_String,
-		  			'ia_compute_1':Full_String,
-					'ia_compute_2':Full_String,
-					'llc_compute_0': Full_String,
-					'llc_compute_1': Full_String,
-					'llc_compute_2': Full_String,}
+		"""Generate clean DMR CBB-based mask (32-bit masks per CBB)"""
+		CBB_String = "0x00000000"  # 32-bit mask (8 hex chars)
+		masks = {
+			'ia_cbb0': CBB_String,
+			'ia_cbb1': CBB_String,
+			'ia_cbb2': CBB_String,
+			'ia_cbb3': CBB_String,
+			'llc_cbb0': CBB_String,
+			'llc_cbb1': CBB_String,
+			'llc_cbb2': CBB_String,
+			'llc_cbb3': CBB_String,
+		}
 
 		return masks
 

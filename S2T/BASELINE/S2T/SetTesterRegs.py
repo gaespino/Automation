@@ -337,7 +337,7 @@ def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_m
 		s2tTest.target = Mask
 		s2tTest.fastboot = False
 
-	elif Mask.lower() in domain_names.keys():
+	elif Mask.lower() in domain_names:
 		s2tTest.targetTile = 2
 		s2tTest.target = Mask.lower()
 		s2tTest.fastboot = False
@@ -1455,6 +1455,7 @@ class S2TFlow():
 									   boot=True, ht_dis=False, dis_2CPM = self.dis_2CPM,
 									   dis_1CPM = self.dis_1CPM,fresh_state= False,
 									   fastboot = self.fastboot, ppvc_fuses=self.volt_config,
+									   clusterCheck=self.clusterCheck,
 									   external_fuses = self.external_fuses,
 									   execution_state = self.execution_state)
 
@@ -1912,6 +1913,7 @@ class S2TFlow():
 						   				ht_dis=self.dis_ht, dis_2CPM=self.dis_2CPM,
 										dis_1CPM=self.dis_1CPM, fresh_state=False, readFuse=True,
 										fastboot=self.fastboot, ppvc_fuses=self.volt_config,
+										clusterCheck=self.clusterCheck,
 										external_fuses = self.external_fuses,
 										execution_state=self.execution_state)
 

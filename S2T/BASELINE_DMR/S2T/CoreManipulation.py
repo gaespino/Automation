@@ -92,26 +92,26 @@ sv = namednodes.sv #shortcut
 sv.initialize()
 
 def _get_global_sv():
-  # Lazy initialize for the global SV instance
-  global sv
-  if sv is None:
-    from namednodes import sv
-    sv.initialize()
-    #import components.socket as skt
-    #skts = skt.getAll()
-  if not sv.sockets:
-    print("No socketlist detected. Restarting baseaccess and sv.refresh")
-    sv.initialize()
-    sv.refresh()
-  return sv
+	# Lazy initialize for the global SV instance
+	global sv
+	if sv is None:
+		from namednodes import sv
+		sv.initialize()
+	#import components.socket as skt
+	#skts = skt.getAll()
+	if not sv.sockets:
+		print("No socketlist detected. Restarting baseaccess and sv.refresh")
+		sv.initialize()
+		sv.refresh()
+	return sv
 
 def _get_global_ipc():
-  # Lazy initialize for the global IPC instance
-  global ipc
-  if ipc is None:
-    import ipccli
-    ipc = ipccli.baseaccess()
-  return ipc
+	# Lazy initialize for the global IPC instance
+	global ipc
+	if ipc is None:
+		import ipccli
+		ipc = ipccli.baseaccess()
+	return ipc
 
 ipc = _get_global_ipc()
 sv = _get_global_sv()
@@ -1459,8 +1459,8 @@ class System2Tester():
 		modules = {}
 		llcs = {}
 
-		_moduleMasks= {cbb.name: masks[f'core_cbb_{cbb.instance}'] for cbb in self.cbbs}
-		_llcMasks= {cbb.name: masks[f'llc_cbb_{cbb.instance}'] for cbb in self.cbbs}
+		_moduleMasks= {cbb.name: masks[f'ia_cbb{cbb.instance}'] for cbb in self.cbbs}
+		_llcMasks= {cbb.name: masks[f'llc_cbb{cbb.instance}'] for cbb in self.cbbs}
 
 		for __cbb in self.cbbs:
 			cbb_name = __cbb.name
@@ -1474,8 +1474,8 @@ class System2Tester():
 			modules[cbb_name] =  _moduleMasks[cbb_name]
 			llcs[cbb_name] =  _llcMasks[cbb_name]
 
-			print  (f"\n{cbb_name.upper()}: module disabled mask: {hex(modules[cbb_name])}")
-			print  (f"{cbb_name.upper()}: llc disabled mask:  {hex(llcs[cbb_name])}")
+			print  (f"\n{cbb_name.upper()}: Module disabled mask: {hex(modules[cbb_name])}")
+			print  (f"{cbb_name.upper()}: CBO disabled mask:  {hex(llcs[cbb_name])}")
 
 		return modules, llcs
 
@@ -1501,6 +1501,30 @@ class System2Tester():
 		print(f"{cbb.name.upper()}: Generated new compute mask:  {hex(new_compute_mask)}")
 
 		return new_compute_mask
+
+	def _get_alternative_compute_if_target_disabled(self, cbb_name, cbb_computes, target_compute, masks_per_compute):
+		'''
+		Helper method: checks if target compute is disabled and finds first available alternative.
+		Returns: (is_disabled: bool, alternative_compute: str or None)
+		'''
+		if target_compute not in cbb_computes:
+			return False, None
+
+		target_mask = masks_per_compute[cbb_name][f'ia_{target_compute}']
+		if target_mask != 0xFF:
+			return False, None
+
+		# Target is disabled, find first available compute
+		print(f"[{cbb_name.upper()}] Target {target_compute.upper()} is already disabled (mask=0xFF)")
+		print(f"[{cbb_name.upper()}] Applying special handling: keeping target disabled, using first available compute")
+
+		for comp_name in cbb_computes:
+			if masks_per_compute[cbb_name][f'ia_{comp_name}'] != 0xFF:
+				print(f"[{cbb_name.upper()}] First available compute: {comp_name.upper()}")
+				return True, comp_name
+
+		print(f"[{cbb_name.upper()}] WARNING: No available compute found with enabled cores")
+		return True, None
 
 	def convert_cbb_mask_to_compute_mask(self, cbb_masks: dict) -> dict:
 		cbbs = self.cbbs
@@ -1600,8 +1624,8 @@ class System2Tester():
 
 		for cbb_name in cbbs.name:
 			# Print masks
-			print  (f"\n{cbb_name.upper()}: module disabled mask: {hex(_moduleMasks[cbb_name])}")
-			print  (f"{cbb_name.upper()}: llc disabled mask:  {hex(_llcMasks[cbb_name])}")
+			print  (f"\n{cbb_name.upper()}: MODULE disabled mask: {hex(_moduleMasks[cbb_name])}")
+			print  (f"{cbb_name.upper()}: CBO disabled mask:  {hex(_llcMasks[cbb_name])}")
 
 		# Setting the Class masks
 		self.coremask = _moduleMasks
@@ -1613,7 +1637,7 @@ class System2Tester():
 			print("Debug Mode - No Boot Performed")
 
 	## Enables/Disables each compute based on selected target
-	def setCompute(self) -> None:
+	def setCompute(self, boot_postcode=False,stop_after_mrc=False, pm_enable_no_vf=False, extMasks = None) -> None:
 		'''
 		Selects which computes to enable/disable. Based on Selected Target
 		'''
@@ -1621,7 +1645,11 @@ class System2Tester():
 
 		targetComputes = self.target
 		cbbs = self.cbbs
-		masks = self.masks
+
+		if extMasks != None:
+			masks = {k:int(v,16) for k, v in extMasks.items()}
+		else:
+			masks = self.masks
 
 		# Check Product Validity
 		if not self.check_product_validity(): return
@@ -1639,44 +1667,71 @@ class System2Tester():
 		masks_per_compute =  self.convert_cbb_mask_to_compute_mask(masks)
 		new_masks_per_compute = {}
 
-		print("\n"+"-"*62)
-		print("| Compute(s) selection requested for each available cbb |")
-		print("-"*62+"\n")
+		# CBBs requiring at least one compute with 1 core alive
+		cbbs_requiring_one_compute = ['cbb0','cbb1','cbb2','cbb3']  # Extend this list as needed
 
+		print("\n"+"-"*62)
+		print(f"| Computes: {targetComputes} ==> selection requested for each available cbb |")
+		print("-"*62+"\n")
 
 		for cbb in cbbs: # For each cbb
 			cbb_name = cbb.name
 			cbb_computes = cbb.computes.name
 			new_masks_per_compute[cbb_name] = {}
 
+			# Check if this CBB requires special handling
+			use_special_handling = cbb_name.lower() in cbbs_requiring_one_compute
+			target_disabled = False
+			alternative_compute = None
+
+			if use_special_handling and len(targetComputeList) > 0:
+				target_disabled, alternative_compute = self._get_alternative_compute_if_target_disabled(
+					cbb_name, cbb_computes, targetComputeList[0], masks_per_compute)
+
 			for compute_name in cbb_computes:
-				if compute_name in targetComputeList: # Compute remains enabled
-					print(f"\n{compute_name.upper()} enabled for {cbb_name}, mantaining original Masks")
+				if use_special_handling and target_disabled:
+					# Special handling: target is already disabled
+					if compute_name in targetComputeList:
+						print(f"{compute_name.upper()} (target) keeping disabled for {cbb_name}")
+						new_masks_per_compute[cbb_name][f'ia_{compute_name}'] = 0xFF
+						new_masks_per_compute[cbb_name][f'llc_{compute_name}'] = masks_per_compute[cbb_name][f'llc_{compute_name}']
+					elif compute_name == alternative_compute:
+						print(f"{compute_name.upper()} enabled for {cbb_name} (alternative), maintaining original Masks")
+						new_masks_per_compute[cbb_name][f'ia_{compute_name}'] = masks_per_compute[cbb_name][f'ia_{compute_name}']
+						new_masks_per_compute[cbb_name][f'llc_{compute_name}'] = masks_per_compute[cbb_name][f'llc_{compute_name}']
+					else:
+						print(f"{compute_name.upper()} disabled for {cbb_name} (removing other computes)")
+						new_masks_per_compute[cbb_name][f'ia_{compute_name}'] = 0xFF
+						new_masks_per_compute[cbb_name][f'llc_{compute_name}'] = 0xFF #masks_per_compute[cbb_name][f'llc_{compute_name}']
+				elif compute_name in targetComputeList:
+					# Normal handling: Compute remains enabled
+					print(f"{compute_name.upper()} enabled for {cbb_name}, mantaining original Masks")
 					new_masks_per_compute[cbb_name][f'ia_{compute_name}'] = masks_per_compute[cbb_name][f'ia_{compute_name}']
 					new_masks_per_compute[cbb_name][f'llc_{compute_name}'] = masks_per_compute[cbb_name][f'llc_{compute_name}']
 				else:
-					print(f"\n{compute_name.upper()} disabled for {cbb_name}, updating Masks")
+					# Normal handling: Compute disabled
+					print(f"{compute_name.upper()} disabled for {cbb_name}, updating Masks")
 					new_masks_per_compute[cbb_name][f'ia_{compute_name}'] = 0xFF
-					new_masks_per_compute[cbb_name][f'llc_{compute_name}'] = masks_per_compute[cbb_name][f'llc_{compute_name}']
+					new_masks_per_compute[cbb_name][f'llc_{compute_name}'] = 0xFF #masks_per_compute[cbb_name][f'llc_{compute_name}']
 
 		_moduleMasks, _llcMasks = self.convert_compute_mask_to_cbb_mask(new_masks_per_compute)
 
-		for cbb_name in cbbs:
+		for cbb_name in cbbs.name:
 			# Print masks
-			print  (f"\n{cbb_name.upper()}: module disables mask: {hex(_moduleMasks[f'{cbb_name}'])}")
-			print  (f"{cbb_name.upper()}: llc disables mask:  {hex(_llcMasks[f'{cbb_name}'])}")
+			print  (f"\n{cbb_name.upper()}: MODULE disabled mask: {hex(_moduleMasks[f'{cbb_name}'])}")
+			print  (f"{cbb_name.upper()}: CBO disabled mask:  {hex(_llcMasks[f'{cbb_name}'])}")
 
 		# Setting the Class masks
 		self.coremask = _moduleMasks
 		self.slicemask = _llcMasks
 
 		if self.boot and not debug:
-			self._call_boot(boot_postcode=False,stop_after_mrc=False, pm_enable_no_vf=False)
+			self._call_boot(boot_postcode=boot_postcode,stop_after_mrc=stop_after_mrc, pm_enable_no_vf=pm_enable_no_vf)
 		else:
 			print("Debug Mode - No Boot Performed")
 
 	## Needs at least one core enabled per COMPUTE, we are limited here, as WA we are leaving the selected compute alive plus the first full slice on the other COMPUTES.
-	def setTile(self, boot_postcode=False,stop_after_mrc=False, pm_enable_no_vf=False):
+	def setTile(self, boot_postcode=False,stop_after_mrc=False, pm_enable_no_vf=False, extMasks = None) -> None:
 		'''
 		Will disable all cores but targetTile / Target CBB
 		targetTiles: disables all tiles but targetTiles.  Can be single tile or list of tiles
@@ -1687,7 +1742,11 @@ class System2Tester():
 		## Variables Init
 		targetTiles = self.target
 		cbbs = self.cbbs
-		masks = self.masks
+
+		if extMasks != None:
+			masks = {k:int(v,16) for k, v in extMasks.items()}
+		else:
+			masks = self.masks
 
 		# Check Product Validity
 		if not self.check_product_validity(): return
@@ -1713,7 +1772,7 @@ class System2Tester():
 			targetTileList = targetTiles
 
 		print("\n"+"-"*62)
-		print("| CBB(s) selection requested for availables cbb |")
+		print(f"| CBB: {self.target} ==> selection requested for availables cbb |")
 		print("-"*62+"\n")
 
 		target_cbb = targetTileList
@@ -1724,25 +1783,25 @@ class System2Tester():
 			cbb_name = cbb.name
 			cbbN = cbb.target_info.instance
 
-			if cbb not in target_cbb:
+			if cbb_name not in target_cbb:
 				disMask, first_zero = self.generate_first_enabled_mask(masks=masks, cbb_name=cbb_name)
 				new_llc_mask = self.generate_compute_first_slice_mask(cbb, first_zero)
 
 				print(f"\n\t{cbb_name.upper()} not selected, enabling only the first available slice")
-				_moduleMasks[cbb_name] = disMask |  masks[f'llc_{cbb_name}']
+				_moduleMasks[cbb_name] = disMask |  masks[f'ia_{cbb_name}']
 				_llcMasks[cbb_name] = new_llc_mask |  masks[f'llc_{cbb_name}']
 
 			## If compute is not being disabled keep original Mask
 			else:
 				print(f"\n\t{cbb_name.upper()} selected, mantaining original Masks")
-				_moduleMasks[cbb_name] = masks[f'llc_{cbb_name}']
+				_moduleMasks[cbb_name] = masks[f'ia_{cbb_name}']
 				_llcMasks[cbb_name] = masks[f'llc_{cbb_name}']
 
 
 		for cbb_name in cbbs.name:
 			# Print masks
 			print  (f"\n{cbb_name.upper()}: module disabled mask: {hex(_moduleMasks[cbb_name])}")
-			print  (f"{cbb_name.upper()}: llc disabled mask:  {hex(_llcMasks[cbb_name])}")
+			print  (f"{cbb_name.upper()}: CBO disabled mask:  {hex(_llcMasks[cbb_name])}")
 
 		# Setting the Class masks
 		self.coremask = _moduleMasks
@@ -2173,7 +2232,6 @@ def fuse_cmd_override_check(fuse_cmd_array, showresults = False, skip_init= Fals
 	if (not All_true or showresults) and not bserror:
 		print(tabulate(fuse_table, headers=["Fuse", "Requested", "System Value", "Changed"], tablefmt="grid"))
 
-
 def check_compute_fuses(compute):
 	'''
 	Checks if the fuses in the compute match the requested values.
@@ -2425,6 +2483,97 @@ def modulesEnabled(moduleslicemask=None, logical=False, skip = False, print_modu
 		print_modules: (Boolean, Default=True) display modules in tileview
 		print_llcs: (Boolean, Default=True) display LLCs in tileview
 	'''
+
+	def _build_table_cbb(cbb, module_name, c0, c1, r0,r1, cols, mask):
+
+		cbbN = int(cbb.target_info.instance)
+		cbb_name = cbb.name
+		return_array = []
+
+		for row in range(r0,r1):
+			row_string = []
+
+			for col in range(c0,c1):
+				data = cols[f'C{col}'][row]
+				if type(data) == str:
+					if 'MDF' in data: color = Fore.YELLOW
+					elif 'XB' in data: color = Fore.YELLOW
+					else: color = Fore.LIGHTWHITE_EX
+					row_string.append(color + data + Fore.WHITE)
+				else:
+
+					module_data = _module_string(data, mask[cbb_name], cbbN)
+					tabledata = f'{module_name}\n{module_data}'
+
+					row_string.append(tabledata)
+
+			return_array.append(row_string)
+
+		return return_array
+
+	def _build_table_imh(imh: str, rows_data: dict ):
+		tile_io = []
+		headers_io = []
+		headers_io.append("R/C")
+		for c in range (0,9): headers_io.append(f'COL{c}')
+
+		if imh not in rows_data.keys():
+			return
+
+		print(F'\nDIE: {imh.upper()}\n')
+
+		# Get Data for current imh
+		rows_imh = rows_data[imh]
+
+		for key in rows_imh.keys():
+			row_string = []
+			for row in rows_imh[key]:
+				if 'MDF' in row:
+					color = Fore.YELLOW
+					width = cellwith
+				else:
+					color = Fore.LIGHTWHITE_EX
+					width = 4
+				row_string.append(color + f"{row.center(width)}"+ Fore.WHITE)
+			tile_io.append(row_string)
+		table = tabulate(tile_io, headers=headers_io, tablefmt="grid")
+		print(table)
+
+	def _gen_cbb_tiledata(tile_cbss, cbb_name, row_string):
+		"""
+		Merges row_string data from modules, xbar/shaft, and llcs into complete rows in tile_cbss.
+		Each complete row will have 13 columns: [ROW label, 4 module cols, 4 shaft cols, 4 llc cols]
+
+		Args:
+			tile_cbss: Dictionary where merged rows will be appended
+			cbb_name: CBB identifier key for tile_cbss
+			row_string: Dictionary with keys 'modules', 'xbar', 'llcs', each containing row arrays
+		"""
+		# Get the number of rows (should be same across all sections)
+		num_rows = len(row_string['modules']) if row_string['modules'] else 0
+
+		# Merge each row horizontally across the three sections
+		for row_idx in range(num_rows):
+			merged_row = []
+
+			# Add the ROW# index as the first column
+			merged_row.append(f'ROW{row_idx}')
+
+			# Add module columns (all columns from modules section)
+			if row_string['modules'] and len(row_string['modules'][row_idx]) > 0:
+				merged_row.extend(row_string['modules'][row_idx])
+
+			# Add xbar/shaft columns (all columns from xbar section)
+			if row_string['xbar'] and len(row_string['xbar'][row_idx]) > 0:
+				merged_row.extend(row_string['xbar'][row_idx])
+
+			# Add LLC columns (all columns from llcs section)
+			if row_string['llcs'] and len(row_string['llcs'][row_idx]) > 0:
+				merged_row.extend(row_string['llcs'][row_idx])
+
+			# Append the complete merged row to tile_cbss
+			tile_cbss[cbb_name].append(merged_row)
+
 	sv = _get_global_sv() # init sv
 	die = sv.socket0.target_info["device_name"] # Get die name
 
@@ -2433,7 +2582,6 @@ def modulesEnabled(moduleslicemask=None, logical=False, skip = False, print_modu
 	masks = dpm.fuses(rdFuses = rdfuses, sktnum =[0]) # Get Module and LLC masks
 
 	for socket in sv.sockets: # For each socket
-
 
 		# Get all available Modules and LLCs
 		if moduleslicemask==None: # If no given masks from user
@@ -2453,177 +2601,154 @@ def modulesEnabled(moduleslicemask=None, logical=False, skip = False, print_modu
 					print  ("\tslice disables mask: 0x%x" % (_slices))
 					print  ("%d slices enabled" % ( _bitsoffcount(_slices, max_modules_cbb)))
 
-	log_module_dis_mask = {} # Logical module Mask
-	phy_module_dis_mask = {} # Physical module Mask
-	log_llc_dis_mask = {} # Logical LLC Mask
-	phy_llc_dis_mask = {} # Physical LLC Mask
-	ios_tile = sv.socket0.imhs.name # IO Name
-	cbbs_tile = sv.socket0.cbbs # Compute names
+		log_module_dis_mask = {} # Logical module Mask
+		phy_module_dis_mask = {} # Physical module Mask
+		log_llc_dis_mask = {} # Logical LLC Mask
+		phy_llc_dis_mask = {} # Physical LLC Mask
+		ios_tile = socket.imhs.name # IO Name
+		cbbs_tile = socket.cbbs # Compute names
+		logicalStringCore = 0x0 # Logical core string
+		logicalStringLLC = 0x0 # Logical LLC string
 
-	if skip: # Skip tileview
-		print('Tileview option skipped .... ')
-	else:   #Build Tileview
-		print  ("Building Tileview for : %s" % (socket.name))
-		for cbb in cbbs_tile: # For each compute name
-			cbb_name = cbb.name
-			# cbb_name = cbb.name
-			# cbbN = int(cbb.target_info.instance) # Compute id
-			if logical == False: # Get Module and LLC info through physical into logical conversions
-				log_module_dis_mask[cbb_name] = _module_mask_phy_to_log(moduleslicemask[f'ia_{cbb_name}'])
-				phy_module_dis_mask[cbb_name] = moduleslicemask[f'ia_{cbb_name}']
-				log_llc_dis_mask[cbb_name] = _module_mask_phy_to_log(moduleslicemask[f'llc_{cbb_name}'])
-				phy_llc_dis_mask[cbb_name] = moduleslicemask[f'llc_{cbb_name}']
-			else: # Get Module and LLC info through logical into physical conversions
-				phy_module_dis_mask[cbb_name] = _module_mask_log_to_phy(moduleslicemask[f'ia_{cbb_name}'])
-				log_module_dis_mask[cbb_name] = moduleslicemask[f'ia_{cbb_name}']
-				phy_llc_dis_mask[cbb_name] = _module_mask_log_to_phy(moduleslicemask[f'llc_{cbb_name}'])
-				log_llc_dis_mask[cbb_name] = moduleslicemask[f'llc_{cbb_name}']
-
-		headers = [] # Table headers
-		headers.append("R/C") # Row Column header
-		for c in range (0,10): headers.append(f'COL{c}') # Column headers
-
-		MDFlabel = '---- MDF ----' # MDF
-		cellwith = len(MDFlabel) # size of MDF string to keep everything in line
-		tile_io0 =[] # io0 tile
-		tile_io1 =[] # io1 tile
-		MDF_string  = [] # MDF string
-
-		tile_cbss = {} # compute names
-		for cbb_name in sv.socket0.cbbs.name: # For each compute name
-			tile_cbss[cbb_name] = [] # Assign empty array to each compute name
-
-		# Leaving this one here for now, not used for the moment
-
-		cols = {'C0':[0,4,8,12,16,20,24,28],
-				'C1':[1,5,9,13,17,21,25,29],
-				'C2':[2,6,10,14,18,22,26,30],
-				'C3':[3,7,11,15,19,23,27,31]
-				# 'C7':[MDFlabel,44,45,46,47,48,49,50,MDFlabel],
-				# 'C8':[MDFlabel,51,52,53,54,55,56,57,MDFlabel],
-				# 'C9':[MDFlabel,58,59,'','','MC6','MC7','SPK1',MDFlabel],
-				} # CBB columns
-
-		cols_num = len(cols.keys()) # Number of columns
-
-		# for col in range(0,cols_num): # For each column
-		# 	MDF_string.append(MDFlabel) # Add MDF label
-
-		rows = {'R0':['ROW0','0:','1:','2:','3:'],
-				'R1':['ROW1','4:','5:','6:','7:'],
-				'R2':['ROW2','8:','9:','10:','11:'],
-				'R3':['ROW3','12:','13','14','15:'],
-				'R4':['ROW4','16','17','18','19'],
-				'R5':['ROW5','20','21','22','23'],
-				'R6':['ROW6','24','25','26','27'],
-				'R7':['ROW8','28','29','30','31']
-				}	# Compute rows
-
-		rows_num = len(rows.keys()) # number of rows
-
-
-		# Corregir todo esto hacia abajo, es muy estático, si cambia la cantidad de computes, hay que cambiar todo
-
-
-
-		# if (die =="DMR_CLTAP"):
-		for cbb in cbbs_tile:
-			cbb_name = cbb.name
-			modulesmask = moduleslicemask[f'ia_{cbb_name}']# & 0x7fff
-			# t1 = moduleslicemask[f'ia_{cbb_name}']# & 0x7fff
-			# if (die =="gnrap"): t2 = moduleslicemask[f'ia_compute_{2}']# & 0x7fff
-			#t1 = (moduleslicemask >> 15) & 0x7fff
-			#t2 = (moduleslicemask >> 30) & 0x7fff
-			#t3 = (moduleslicemask >> 45) & 0x7fff
-			modules_per_cbb = config.MODS_PER_CBB - _bitsoncount(modulesmask)
-			# modules_en_c1 = DMR_TOTAL_MODULES_PER_CBB - _bitsoncount(t1)
-			# if (die =="gnrap"): modules_en_c2 = DMR_TOTAL_MODULES_PER_CBB - _bitsoncount(t2)
-
-			print  (f"{cbb_name}: %d modules enabled: 0x%x" % (modules_per_cbb, modulesmask))
-			# print  ("COMPUTE1: %d modules enabled: 0x%x" % (modules_en_c1, t1))
-			# if (die =="gnrap"): print  ("COMPUTE2: %d modules enabled: 0x%x" % (modules_en_c2, t2))#print  ("t2: %d modules enabled: 0x%x" % ( 15 - _bitsoncount(t2), t2))
-			#print  ("t3: %d modules enabled: 0x%x" % ( 15 - _bitsoncount(t3), t3))
-
-			# print  ("%d modules enabled" % (modules_en_c0 + modules_en_c1+ modules_en_c2))
-			# if (die =="gnrap"):
-			print  (f"Input module disables mask ->    {cbb_name}: 0x%x" % moduleslicemask[f'ia_{cbb_name}'])
-			print  (f"Logical module disables mask ->    {cbb_name}: 0x%x" % log_module_dis_mask[f'{cbb_name}'])
-			print  (f"Physical module disables mask ->    {cbb_name}: 0x%x" % phy_module_dis_mask[f'{cbb_name}'])
-				# print  (f"Logical module disables mask:  {cbb_name}: 0x%x - Compute1: 0x%x - Compute2: 0x%x" % (log_module_dis_mask['compute0'], log_module_dis_mask['compute1'], log_module_dis_mask['compute2']))
-				# print  (f"Physical module disables mask: {cbb_name}: 0x%x - Compute1: 0x%x - Compute2: 0x%x" % (phy_module_dis_mask['compute0'], phy_module_dis_mask['compute1'], phy_module_dis_mask['compute2']))
-			# else:
-				# print  ("Input module disables mask:    Compute0: 0x%x - Compute1: 0x%x" % (moduleslicemask[f'ia_compute_{0}'],moduleslicemask[f'ia_compute_{1}']))
-				# print  ("Logical module disables mask:  Compute0: 0x%x - Compute1: 0x%x" % (log_module_dis_mask['compute0'], log_module_dis_mask['compute1']))
-				# print  ("Physical module disables mask: Compute0: 0x%x - Compute1: 0x%x" % (phy_module_dis_mask['compute0'], phy_module_dis_mask['compute1']))
-			print("\n\nCore Tileview Map ---> physical:logical")
-
-
-			# if 'io0' in ios_tile:
-			# 	rows_io0 = {'R0':['ROW0','UPI0','','','PE2','','PE1','','UBOX','','UPI1'],
-			# 			'R1':['ROW1','','HC0','','','PE0','','PE3','','HC1',''],
-			# 			'R2':['ROW2'] + MDF_string}
-
-			# 	print('\nDIE: IO0\n')
-			# 	for key in rows_io0.keys():
-			# 		row_string = []
-			# 		for row in rows_io0[key]:
-			# 			if 'MDF' in row:
-			# 				color = Fore.YELLOW
-			# 				width = cellwith
-			# 			else:
-			# 				color = Fore.LIGHTWHITE_EX
-			# 				width = 4
-
-			# 			row_string.append(color + f"{row.center(width)}"+ Fore.WHITE)
-			# 		tile_io0.append(row_string)
-			# 	table = tabulate(tile_io0, headers=headers, tablefmt="grid")
-			# 	print(table)
-
-			# for cbb in sv.socket0.cbbs:
+		if skip: # Skip tileview
+			print('Tileview option skipped .... ')
+		else:   #Build Tileview
+			print  ("Building Tileview for : %s" % (socket.name))
+			for cbb in cbbs_tile: # For each compute name
+				cbb_name = cbb.name
+				cbb_number = cbb.instance
 				# cbb_name = cbb.name
-			print (f'\nDIE: {cbb_name.upper()}\n')
-			cbbN = int(cbb.target_info.instance)
-			for row in range(0,rows_num):
-				row_string = [F'ROW{row}']
+				# cbbN = int(cbb.target_info.instance) # Compute id
+				if logical == False: # Get Module and LLC info through physical into logical conversions
+					log_module_dis_mask[cbb_name] = _module_mask_phy_to_log(moduleslicemask[f'ia_{cbb_name}'])
+					phy_module_dis_mask[cbb_name] = moduleslicemask[f'ia_{cbb_name}']
+					log_llc_dis_mask[cbb_name] = _module_mask_phy_to_log(moduleslicemask[f'llc_{cbb_name}'])
+					phy_llc_dis_mask[cbb_name] = moduleslicemask[f'llc_{cbb_name}']
+					logicalStringCore +=  log_module_dis_mask[cbb_name] << (config.MAXLOGICAL*cbb_number)
+					logicalStringLLC += log_llc_dis_mask[cbb_name] << (config.MAXLOGICAL*cbb_number)
+				else: # Get Module and LLC info through logical into physical conversions
+					phy_module_dis_mask[cbb_name] = _module_mask_log_to_phy(moduleslicemask[f'ia_{cbb_name}'])
+					log_module_dis_mask[cbb_name] = moduleslicemask[f'ia_{cbb_name}']
+					phy_llc_dis_mask[cbb_name] = _module_mask_log_to_phy(moduleslicemask[f'llc_{cbb_name}'])
+					log_llc_dis_mask[cbb_name] = moduleslicemask[f'llc_{cbb_name}']
 
-				for col in range(0,cols_num):
-					data = cols[f'C{col}'][row]
-					if type(data) == str:
-						if 'MDF' in data: color = Fore.YELLOW
-						else: color = Fore.LIGHTWHITE_EX
-						row_string.append(color + data + Fore.WHITE)
-					else:
-						if print_modules:
-							module_data = _module_string(data, phy_module_dis_mask[cbb_name], cbbN)
-							tabledata = f'MOD{module_data}'
-						if print_llcs:
-							llc_data = _module_string(data, phy_llc_dis_mask[cbb_name], cbbN)
-							tabledata = f'LLC{llc_data}'
-						if print_modules and print_llcs:
-							tabledata = f'MOD {module_data}\nLLC {llc_data}'
-						row_string.append(tabledata)
-				tile_cbss[cbb_name].append(row_string)
-			table = tabulate(tile_cbss[cbb_name], headers=headers, tablefmt="grid")
-			print(table)
+			headers = [] # Table headers
+			headers.append("R/C") # Row Column header
+			# 4 module columns + 4 xbar/shaft columns + 4 LLC columns = 12 total (with R/C = 13)
 
-			# if 'io1' in ios_tile:
-			# 	rows_io1 = {'R0':['ROW0']+ MDF_string,
-			# 			'R1':['ROW1','','HC2','','','PE5','UPI4','','','HC3',''],
-			# 			'R2':['ROW2','UPI3','','','','UPI5','PE4','','','','UPI2']}
+			if print_modules:
+				for c in range(0, 4): headers.append(f'DCM{c}')  # Module columns
 
-			# 	print('\nDIE: IO1\n')
-			# 	#print(header)
-			# 	for key in rows_io1.keys():
-			# 		row_string = []
-			# 		for row in rows_io1[key]:
-			# 			if 'MDF' in row:
-			# 				color = Fore.YELLOW
-			# 			else: color = Fore.LIGHTWHITE_EX
+			headers.append(f'TOP')  # Shaft/XBar columns
+			#headers.append(f'SHAFT')  # Shaft/XBar columns
+			headers.append(f'BASE')  # Shaft/XBar columns
 
-			# 			row_string.append(color + f"{row}"+ Fore.WHITE)
-			# 		tile_io1.append(row_string)
-			# 	table = tabulate(tile_io1, headers=headers, tablefmt="grid")
-			# 	print(table)
+			if print_llcs:
+				for c in range(0, 4): headers.append(f'CL{c}')  # LLC columns
+
+			MDFlabel = '---- MDF ----' # MDF
+			cellwith = len(MDFlabel) # size of MDF string to keep everything in line
+			tile_io0 =[] # io0 tile
+			tile_io1 =[] # io1 tile
+			MDF_string  = [] # MDF string
+
+			tile_cbss = {} # compute names
+			for cbb_name in sv.socket0.cbbs.name: # For each compute name
+				tile_cbss[cbb_name] = [] # Assign empty array to each compute name
+
+			# Leaving this one here for now, not used for the moment
+
+			cols = {'C0':[0,4,8,12,16,20,24,28], #DCM0 column
+					'C1':[1,5,9,13,17,21,25,29], #DCM1 column
+					'C2':[2,6,10,14,18,22,26,30], #DCM2 column
+					'C3':[3,7,11,15,19,23,27,31], #DCM3 column
+					'C4':['XB','XB','XB','XB','XB','XB','XB','XB'], # TOP column
+					#'C5':[' ','','','','','','',''], # SHAFT column
+					'C5':['XB','XB','XB','XB','XB','XB','XB','XB'], # BASE column
+					'C6':[0,4,8,12,16,20,24,28], #CL0 column
+					'C7':[1,5,9,13,17,21,25,29], #CL1 column
+					'C8':[2,6,10,14,18,22,26,30], #CL2 column
+					'C9':[3,7,11,15,19,23,27,31], #CL3 column
+					# 'C7':[MDFlabel,44,45,46,47,48,49,50,MDFlabel],
+					# 'C8':[MDFlabel,51,52,53,54,55,56,57,MDFlabel],
+					# 'C9':[MDFlabel,58,59,'','','MC6','MC7','SPK1',MDFlabel],
+					} # CBB columns
+
+			cols_num = len(cols.keys()) # Number of columns
+
+			# for col in range(0,cols_num): # For each column
+			# 	MDF_string.append(MDFlabel) # Add MDF label
+
+			rows = {'R0':['ROW0','0:','1:','2:','3:'],
+					'R1':['ROW1','4:','5:','6:','7:'],
+					'R2':['ROW2','8:','9:','10:','11:'],
+					'R3':['ROW3','12:','13','14','15:'],
+					'R4':['ROW4','16','17','18','19'],
+					'R5':['ROW5','20','21','22','23'],
+					'R6':['ROW6','24','25','26','27'],
+					'R7':['ROW8','28','29','30','31']
+					}	# Compute rows
+
+			rows_io = {	'imh0':{'R0':['ROW0','MC0','D2D\nCBB0','','','','','','D2D\nCBB2','MC4'],
+				 				'R1':['ROW1','MC1','','SCA','UBOX\nHIOP','HIOP','HIOP','SCA','','MC5'],
+				 				'R2':['ROW2','MC2','D2D\nD2D0','SCA','UBOX\nHIOP','HIOP','HIOP','SCA','D2D\nD2D1','MC6'],
+								'R3':['ROW2','MC2','D2D\nCBB1','','','','','','D2D\nCBB3','MC7']},
+
+						'imh1' : {	'R0':['ROW0','MC0','D2D\nCBB0','','','','','','D2D\nCBB2','MC4'],
+				 				'R1':['ROW1','MC1','','SCA','UBOX\nHIOP','HIOP','HIOP','SCA','','MC5'],
+				 				'R2':['ROW2','MC2','D2D\nD2D0','SCA','UBOX\nHIOP','HIOP','HIOP','SCA','D2D\nD2D1','MC6'],
+								'R3':['ROW2','MC2','D2D\nCBB1','','','','','','D2D\nCBB3','MC7']}
+					} # IO rows
+
+
+			rows_num = len(rows.keys()) # number of rows
+
+			# Generate IO Table -- Static
+			for imh in ios_tile:
+				_build_table_imh(imh.lower(), rows_io)
+
+			# Generate CBB Table -- Dynamic
+			for cbb in cbbs_tile:
+				cbb_name = cbb.name
+				modulesmask = moduleslicemask[f'ia_{cbb_name}']# & 0x7fff
+
+				modules_per_cbb = config.MODS_PER_CBB - _bitsoncount(modulesmask)
+
+				print  (f"{cbb_name}: %d modules enabled: 0x%x" % (modules_per_cbb, modulesmask))
+				print  (f"Input module disables mask ->    {cbb_name}: 0x%x" % moduleslicemask[f'ia_{cbb_name}'])
+				print  (f"Logical module disables mask ->    {cbb_name}: 0x%x" % log_module_dis_mask[f'{cbb_name}'])
+				print  (f"Physical module disables mask ->    {cbb_name}: 0x%x" % phy_module_dis_mask[f'{cbb_name}'])
+				print("\n\nCore Tileview Map ---> physical:logical")
+
+				# for cbb in sv.socket0.cbbs:
+					# cbb_name = cbb.name
+				print (f'\nDIE: {cbb_name.upper()}\n')
+				row_string = {'modules':[], 'xbar':[], 'llcs':[]}
+
+				if print_modules:
+					print(f'--- MODULES ENABLED VIEW ---')
+					row_string['modules'] = _build_table_cbb(cbb, module_name= 'MOD', c0=0, c1=4, r0=0, r1=rows_num, cols=cols, mask=phy_module_dis_mask)
+
+				# Generate CrossBar and Shaft
+				row_string['xbar'] = _build_table_cbb(cbb, module_name= '', c0=4, c1=6, r0=0, r1=rows_num, cols=cols, mask=None)
+
+				if print_llcs:
+					print(f'--- LLCs ENABLED VIEW ---')
+					row_string['llcs'] = _build_table_cbb(cbb, module_name= 'CBO', c0=6, c1=10, r0=0, r1=rows_num, cols=cols, mask=phy_llc_dis_mask)
+
+				# Merge the modules, xbar, and llcs data into complete rows in tile_cbss
+				_gen_cbb_tiledata(tile_cbss, cbb_name, row_string)
+
+				# Display the complete tileview table
+				table = tabulate(tile_cbss[cbb_name], headers=headers, tablefmt="grid")
+
+				print(table)
+
+			if not logical:
+				bitstringlen = len(tile_cbss)*config.MAXLOGICAL
+				print(f'\n>>> CLASS Masking Bitstrings\n')
+				print(f'>>> CLASS {config.CORESTRING}s Mask Bitstring: 0b{bin(logicalStringCore)[2:].zfill(bitstringlen)}')
+				print(f'>>> CLASS LLCs Mask Bitstring:  0b{bin(logicalStringLLC)[2:].zfill(bitstringlen)}\n')
 
 def read_postcode():
 	'''

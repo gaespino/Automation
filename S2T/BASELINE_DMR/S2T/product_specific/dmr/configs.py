@@ -227,8 +227,8 @@ class configurations:
 
 		# Mesh Configurations CWF
 		ate_masks = 	{
-							'DMR_CLTAP':{1:'Computes0', 2:'Computes1',3:'Computes2', 4:'Computes3', 5:'Computes123', 6:'Computes023', 7:'Computes013', 8:'Computes012'},
-							'DMR_CLTSP':{1:'Computes0', 2:'Computes1',3:'Computes2', 4:'Computes3', 5:'Computes123', 6:'Computes023', 7:'Computes013', 8:'Computes012'}
+							'DMR_CLTAP':{1:'Compute0', 2:'Compute1',3:'Compute2', 4:'Compute3'},#, 5:'Computes123', 6:'Computes023', 7:'Computes013', 8:'Computes012'},
+							'DMR_CLTSP':{1:'Compute0', 2:'Compute1',3:'Compute2', 4:'Compute3'},#, 5:'Computes123', 6:'Computes023', 7:'Computes013', 8:'Computes012'}
 							}
 		masks_AP = [v for k,v in ate_masks['DMR_CLTAP'].items()]
 		masks_SP = [v for k,v in ate_masks['DMR_CLTSP'].items()]
@@ -244,21 +244,22 @@ class configurations:
 		ate_config = 	{
 							'main':{
 									'l1':('\t> 1. ATE pseudo Configuration: '),
-									'l1-1':(f'\t\t> DMR UCC (AP): {masks_AP}'),
-									'l1-2':(f'\t\t> DMR XCC (SP): {masks_SP} -- Not ready for testing'),
+									#'l1':('\t> 1. ATE pseudo Configuration: '),
+									#'l1-1':(f'\t\t> DMR UCC (AP): {masks_AP}'),
+									#'l1-2':(f'\t\t> DMR XCC (SP): {masks_SP} -- Not ready for testing'),
 									'l4':('\t> 2. Tile Isolation: Specify the CBB to be used for testing'),
 									'l5':('\t> 3. Custom: Mix and Match of Rows (Use consecutive rows only)'),
 									'l6':('\t> 4. Full Chip')},
 							'DMR_CLTAP':{
-									'l1':('\t> 1. Compute0: Enables compute0 on al CBBs'),
-									'l2':('\t> 2. Compute1: Enables compute1 on al CBBs'),
-									'l3':('\t> 2. Compute2: Enables compute2 on al CBBs'),
-									'l4':('\t> 3. Compute3: Enables compute3 on al CBBs'),
-									'l5':('\t> 4. Remove Compute0: Disables compute0 on al CBBs'),
-									'l6':('\t> 5. Remove Compute1: Disables compute1 on al CBBs'),
-         							'l7':('\t> 6. Remove Compute2: Disables compute2 on al CBBs'),
-									'l8':('\t> 7. Remove Compute3: Disables compute3 on al CBBs'),
-									'maxrng' : 9},
+									'l1':('\t> 1. Compute0: Enables compute0 on al CBBs (If Disabled on a CBB will enable first available Compute)'),
+									'l2':('\t> 2. Compute1: Enables compute1 on al CBBs (If Disabled on a CBB will enable first available Compute)'),
+									'l3':('\t> 3. Compute2: Enables compute2 on al CBBs (If Disabled on a CBB will enable first available Compute)'),
+									'l4':('\t> 4. Compute3: Enables compute3 on al CBBs (If Disabled on a CBB will enable first available Compute)'),
+									#'l5':('\t> 4. Remove Compute0: Disables compute0 on al CBBs'),
+									#'l6':('\t> 5. Remove Compute1: Disables compute1 on al CBBs'),
+         							#'l7':('\t> 6. Remove Compute2: Disables compute2 on al CBBs'),
+									#'l8':('\t> 7. Remove Compute3: Disables compute3 on al CBBs'),
+									'maxrng' : 5},
 							'DMR_CLTSP':{
 									'l1': ('\t> 1. FirstPass: Full Chip -- No need for masking on SP'),	## Placeholder
 									'maxrng' : 2

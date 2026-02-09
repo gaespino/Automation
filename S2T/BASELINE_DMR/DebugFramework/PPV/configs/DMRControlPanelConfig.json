@@ -200,7 +200,11 @@
                         "Compute0",
                         "Compute1",
                         "Compute2",
-                        "Compute3"
+                        "Compute3",
+						"Cbb0",
+						"Cbb1",
+						"Cbb2",
+						"Cbb3"
                     ]
                 },
                 "Slice": {

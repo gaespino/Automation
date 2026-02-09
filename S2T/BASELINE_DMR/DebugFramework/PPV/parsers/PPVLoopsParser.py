@@ -27,7 +27,7 @@ def argparser(debug):
 							help = "Masking file to change FCTRACKING A, B, C or D")
 
 		args = parser.parse_args()
-
+	
 	# Default arguments for debug mode of the script
 	else:
 		class Args:
@@ -40,7 +40,7 @@ def argparser(debug):
 			zfile = False
 
 		args = Args()
-
+	
 	return args
 
 class LogsPTC():
@@ -60,7 +60,7 @@ class LogsPTC():
         self.files = {}
         self.data = 'raw_data'
         self.search_string = 'Logging test to iTUFF for socket all:'
-
+        
         self.unitstart = 'Unit start requested for handler unit ID'
         self.LatoStartWW = StartWW
         self.LotsSeqKey = LotsSeqKey
@@ -108,9 +108,9 @@ class LogsPTC():
         resultslog = pd.concat(results.values(), ignore_index=True)
 
         logs = datalog[self.dpmb_Cols]
-
+        
         print(f'MSG-- Saving data in excel file at location: {self.output_file}.')
-        with pd.ExcelWriter(self.output_file) as writer:
+        with pd.ExcelWriter(self.output_file) as writer:   
             resultslog.to_excel(writer, sheet_name=self.resultsSheet, index=False)
             logs.to_excel(writer, sheet_name=self.data, index=False)
             binlog.to_excel(writer, sheet_name=self.finalSheet, index=False)
@@ -137,7 +137,7 @@ class LogsPTC():
 
 
 
-        # Variable Declaration
+        # Variable Declaration   
         dpmb_data = []
         dpmb_location = ''
         dpmb_qdf  = ''
@@ -162,7 +162,7 @@ class LogsPTC():
             dpmb_vid = '-99999999999'
             dpmb_step = ''
             dpmb_program = ''
-
+     
         # Data dictionary build
         data =      {
                         'VisualId'                  :[],
@@ -174,11 +174,11 @@ class LogsPTC():
                         'TestValue'                 :[],
                         'Operation'                 :[],
                         'TestNameNumber'            :[],
-                        'TestNameWithoutNumeric'    :[],
+                        'TestNameWithoutNumeric'    :[], 
                         'QDF'                       :[],
                         'ValueType'                 :[]
                     }
-
+     
         results = {
                         'VisualId'                  :[],
                         'Lot'                       :[],
@@ -195,13 +195,13 @@ class LogsPTC():
                         'Program'                   :[],
                         'SSPEC'                     :[],
                         'DevRevStep'                :[],
-                        'TestName'                  :[],
-                        'TestValue'                 :[],
-                        'DB'                        :[],
-                        'BinDesc'                   :[],
+                        'TestName'                  :[],                        
+                        'TestValue'                 :[],                     
+                        'DB'                        :[],   
+                        'BinDesc'                   :[],   
                     }
-
-        final_bin = {
+        
+        final_bin = {   
                         'VisualId'                  :[],
                         'DpmBucket'                 :[self.DpmBucket],
                         'DecimaSite'                :[self.DecimaSite],
@@ -209,7 +209,7 @@ class LogsPTC():
                         'DecimaBucket'              :[self.DecimaBucket],
                         'DpmBucketAccuracy'         :[self.DpmBucketAccuracy],
                         'ProductConfigurationName'  :[self.ProductConfigurationName]}
-
+        
 
         # Open file to start searching for strings
         with open(file_path, 'r') as file:
@@ -217,16 +217,16 @@ class LogsPTC():
 
             for line in lines:
                 #if any(e in line for e in env_data.keys()):
-
+                
                 if 'Location Code:' in line and data['Operation'] != None:
                     dpmb_location = line.split(":")[1].strip() # Looks for this string and returns
-
+               
                 if 'SSPEC:' in line and data['QDF'] != None:
                     dpmb_qdf = line.split(":")[1].strip() # Looks for this string and returns
-
+                
                 if 'Lot Name:' in line and data['Lot'] != None:
                     dpmb_lot = line.split(":")[1].strip() # Looks for this string and returns
-
+                
                 if 'Current Visual VID' in line:
                     dpmb_vid = line.split(" ")[-1].strip() # Looks at the position for the desired Text
 
@@ -235,18 +235,18 @@ class LogsPTC():
                 notlogging = self.dpmbformat
                 if search_string in line and parsed_line is not None and notlogging:
                     #dpmb_data = [zip_path.rstrip('.zip')] + [folder] + parse_line(line) for line in lines if search_string in line and parse_line(line) is not None]
-                    if 'dpmbucketer_socket0' in line or 'dpmb_socket0' in line:
+                    if 'dpmbucketer_socket0' in line or 'dpmb_socket0' in line:                 
                         dpmb_data += [parsed_line]
                         #data['TestName'] += dpmb_data[0].upper()
                         #data['TestValue'] += dpmb_data[1].upper()
                         #data['ValueType'] += dpmb_data[2]
-
+                
                 if ptcstring in line and not notlogging:
                     parsed_log = self.parse_logging(line)
                     if  parsed_log:
                         #  if 'Logging register:' in line:
                         dpmb_data +=[parsed_log]
-
+        
         if self.infolder: # This variable comes from previous directory check
             self.dpmb_location = dpmb_location if dpmb_location != '' else self.dpmb_location #''
             self.dpmb_qdf  = dpmb_qdf if dpmb_qdf != '' else self.dpmb_qdf #''
@@ -257,12 +257,12 @@ class LogsPTC():
 
 
 
-        # Build the Raw Data info for the sequence
+        # Build the Raw Data info for the sequence 
         for d in dpmb_data:
             data['TestName'] += [f'{d[0].upper()}_{self.dpmb_location}']
             data['TestValue'] += [d[1].upper()]
             data['ValueType'] += [d[2]]
-
+        
         data['TestNameWithoutNumeric'] = data['TestName']
 
         # Fill Data in the other raw data dict keys to be the same size as the MCA data collected
@@ -276,7 +276,7 @@ class LogsPTC():
             data['LotsSeqKey'] += [self.LotsSeqKey]
             data['UnitTestingSeqKey'] += [f'{dpmb_sequence}']
             data['TestNameNumber'] += ['0']
-
+        
         # Fill Results Dictionary missing keys
         results['VisualId'] = [self.dpmb_vid]
         results['Lot'] = [self.dpmb_lot]
@@ -286,7 +286,7 @@ class LogsPTC():
         results['DevRevStep'] = [self.dpmb_step]
         results['TestName'] = [data['TestName'][0] if data['TestName'] else " "] # need to update with first FAIL
         results['TestValue'] = [data['TestValue'][0] if data['TestValue'] else " "] # Need to update with first FAIL
-        results['DB'] = [debuglog[dpmb_sequence][0] if len(debuglog) > 0 else  " "]
+        results['DB'] = [debuglog[dpmb_sequence][0] if len(debuglog) > 0 else  " "]  
         results['BinDesc'] = [debuglog[dpmb_sequence][1] if len(debuglog) > 0 else " "]
 
         # Fill Final Bin Dictionary missing keys
@@ -301,11 +301,11 @@ class LogsPTC():
         ## Increase seq key on each folder checked
         self.UnitTestingSeqKey += 1
 
-        return dpmb_data
+        return dpmb_data 
                     #dpmb_data += [zip_path.rstrip('.zip')] + [folder] + parse_line(line)
                     #dpmb_data = [zip_path.rstrip('.zip')] + [folder] + parse_line(line) for line in lines if search_string in line and parse_line(line) is not None]
-
-
+        
+        
         #return [[zip_path.rstrip('.zip')] + [folder] + parse_line(line) for line in lines if search_string in line and parse_line(line) is not None]
 
     def search_in_debug_file(self, file_path, search_string, zip_path):
@@ -313,18 +313,18 @@ class LogsPTC():
         env = ['Location Code:', 'SSPEC:','Lot Name:']
         data = {'VisualId':[],'DpmBucket':[],'DecimaSite':[],'DecimaWW':[],'DecimaBucket':[],'DpmBucketAccuracy':[],'ProductConfigurationName':[],'BinDesc':[]}
         BinDesc = []
-
+        
         with open(file_path, 'r', encoding= 'utf-8') as file:
             content = file.read()
 
             parts = content.split(self.unitstart)
-            #lines = file
+            #lines = file                      
 
             for part in parts:
                 lines = part.split('\n')
-
+                
                 for line in lines:
-
+                
                     if search_string in line:
                         bindesc = line.split(search_string)[-1].split(" ")
                         binnum = bindesc[0].strip()
@@ -335,11 +335,11 @@ class LogsPTC():
         #data['BinDesc'] += [BinDesc]
         #self.ppvfiles[f'{zip_path}'] = data
 
-        return BinDesc
+        return BinDesc 
                     #dpmb_data += [zip_path.rstrip('.zip')] + [folder] + parse_line(line)
                     #dpmb_data = [zip_path.rstrip('.zip')] + [folder] + parse_line(line) for line in lines if search_string in line and parse_line(line) is not None]
-
-
+        
+        
         #return [[zip_path.rstrip('.zip')] + [folder] + parse_line(line) for line in lines if search_string in line and parse_line(line) is not None]
 
     def search_in_directory(self, directory_path, search_string, zip_path=None):
@@ -347,8 +347,8 @@ class LogsPTC():
         ## This is mainly to change how data is used when using zipfile option
         usebasefolder = False
         if zip_path == None:
-            usebasefolder = True
-
+            usebasefolder = True    
+        
         for root, dirs, files in os.walk(directory_path):
 
             for ddfile in files:
@@ -359,9 +359,9 @@ class LogsPTC():
                     pdata = self.search_in_debug_file(file_path=dfile_path, search_string=self.bin_string, zip_path=zip_path)
 
             for dir in dirs:
-
+                
                 # Flag to check if we are inside the same Folder in case of multiple loops
-                self.infolder = False
+                self.infolder = False                   
                 if dir == 'UnitLogs':
                     # Start counting for all the files found
                     seq = 0
@@ -369,7 +369,7 @@ class LogsPTC():
                     for droot, ddirs, dfiles in os.walk(root):
                         for file in dfiles:
                             if file == 'PythonLog.txt':
-
+                                
                                 if usebasefolder: zip_path = root.split("\\")[-1]
                                 file_path = os.path.join(droot, file)
                                 print(f'MSG-- Python Log file found at location: {file_path}. Looking for unit sequence data...')
@@ -378,7 +378,7 @@ class LogsPTC():
                                 # Increment the sequence for each file found
                                 seq += 1
                     # Incresease LotsSeq for each UnitLogs Folder Found
-                    self.LotsSeqKey += 1
+                    self.LotsSeqKey += 1   
 
         return data
 
@@ -390,10 +390,10 @@ class LogsPTC():
 
     def search_in_folder(self, folder_path, search_string):
         data = []
-
+        
         for item in os.listdir(folder_path):
             item_path = os.path.join(folder_path, item)
-
+                     
             if zipfile.is_zipfile(item_path) and '.zip' in item:
                 temp_name = os.path.basename(item).replace('.zip', '')
                 temp_path = os.path.join(folder_path, temp_name)
@@ -402,7 +402,7 @@ class LogsPTC():
                 if not data:
                     print(f'No data found for file {item_path}')
                 print(f'MSG-- Removing temporal folder for file {item_path}, --> {temp_path}')
-                shutil.rmtree(temp_path)
+                shutil.rmtree(temp_path)    
         #return data
 
 

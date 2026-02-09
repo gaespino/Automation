@@ -20,6 +20,10 @@ def merge_excel_files(input_folder, output_file, prefix = ''):
 	# Iterate over all Excel files in the input folder
 	for file in os.listdir(input_folder):
 		
+		# Skip Excel temporary files (start with ~$)
+		if file.startswith('~$'):
+			continue
+		
 		if prefix != None:
 			keyword = prefix
 			excelfile = (file.endswith(f'{keyword}.xlsx') or file.endswith(f'{keyword}.xls')) or (prefix in file and '.xls' in file)
@@ -30,12 +34,31 @@ def merge_excel_files(input_folder, output_file, prefix = ''):
 		print('ExcelFile',excelfile)
 		if excelfile:
 			file_path = os.path.join(input_folder, file)
-			excel_data = pd.read_excel(file_path, sheet_name=None)
 			
-			for sheet_name, df in excel_data.items():
-				if sheet_name not in all_data:
-					all_data[sheet_name] = []
-				all_data[sheet_name].append(df)
+			# Determine engine based on file extension
+			engine = None
+			if file.endswith('.xlsx') or file.endswith('.xlsm'):
+				engine = 'openpyxl'
+			elif file.endswith('.xls'):
+				engine = 'xlrd'
+			elif file.endswith('.xlsb'):
+				engine = 'pyxlsb'
+			
+			try:
+				if engine:
+					excel_data = pd.read_excel(file_path, sheet_name=None, engine=engine)
+				else:
+					excel_data = pd.read_excel(file_path, sheet_name=None)
+				
+				for sheet_name, df in excel_data.items():
+					if sheet_name not in all_data:
+						all_data[sheet_name] = []
+					all_data[sheet_name].append(df)
+					
+			except Exception as e:
+				print(f"Warning: Could not read file {file}: {str(e)}")
+				print(f"Skipping file: {file_path}")
+				continue
 
 	# Create a writer object to write the merged data to a new Excel file
 	with pd.ExcelWriter(output_file) as writer:

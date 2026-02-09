@@ -1,0 +1,60 @@
+Deployment Report
+Timestamp,20260209_111406
+Product,GNR
+Source Type,PPV
+Deployment Type,PPV
+Target,C:\Git\Automation\S2T\BASELINE\DebugFramework\PPV
+Total Files Scanned,41
+Product Filtered,33
+Deployed Successfully,8
+Errors,0
+
+DEPLOYED FILES
+Source File,Target File,Renamed,Old Name,New Name,Status,Similarity,Import Replacements,Filename Import Updates,Import Change Lines,Rename Change Lines
+gui\PPVFrameworkReport.py,gui\PPVFrameworkReport.py,No,PPVFrameworkReport.py,PPVFrameworkReport.py,minimal_changes,99.8%,-,-,-,-
+utils\PPVReportMerger.py,utils\PPVReportMerger.py,No,PPVReportMerger.py,PPVReportMerger.py,minimal_changes,90.0%,-,-,-,-
+gui\AutomationDesigner.py,gui\AutomationDesigner.py,No,AutomationDesigner.py,AutomationDesigner.py,minor_changes,82.8%,-,-,-,-
+utils\aqua_report.py,utils\aqua_report.py,No,aqua_report.py,aqua_report.py,minimal_changes,90.5%,-,-,-,-
+parsers\Frameworkparser.py,parsers\Frameworkparser.py,No,Frameworkparser.py,Frameworkparser.py,minor_changes,81.6%,-,-,-,-
+parsers\MCAparser.py,parsers\MCAparser.py,No,MCAparser.py,MCAparser.py,minor_changes,87.0%,-,-,-,-
+gui\ExperimentBuilder.py,gui\ExperimentBuilder.py,No,ExperimentBuilder.py,ExperimentBuilder.py,minimal_changes,99.9%,-,-,-,-
+api\dpmb.py,api\dpmb.py,No,dpmb.py,dpmb.py,minor_changes,82.5%,-,-,-,-
+
+DETAILED LINE CHANGES
+File,Line,Change Type,Old Content,New Content
+
+SKIPPED FILES
+File,Reason,Status,Renamed,New Name
+Decoder\dragon_bucketing.py,Not selected,identical,No,-
+test_mca_decoder.py,Not selected,new,No,-
+Decoder\GNR\cha_params.json,Not selected,identical,No,-
+gui\ProductSelector.py,Not selected,identical,No,-
+Decoder\GNR\GNRPortIDs.json,Not selected,identical,No,-
+parsers\FrameworkAnalyzer.py,Not selected,identical,No,-
+utils\folder_list.py,Not selected,identical,No,-
+gui\PPVDataChecks.py,Not selected,identical,No,-
+Decoder\faildetection.py,Not selected,identical,No,-
+Decoder\GNR\mcchnl_params.json,Not selected,identical,No,-
+Decoder\GNR\log_portid.json,Not selected,identical,No,-
+gui\PPVTools.py,Not selected,identical,No,-
+Decoder\GNR\upi_params.json,Not selected,identical,No,-
+Decoder\GNR\b2cmi_params.json,Not selected,identical,No,-
+Decoder\GNR\ubox_params.json,Not selected,identical,No,-
+utils\DeveloperEnvironment.py,Not selected,identical,No,-
+Decoder\GNR\b2cxl_params.json,Not selected,identical,No,-
+gui\MCADecoder.py,Not selected,identical,No,-
+Decoder\decoder.py,Not selected,identical,No,-
+Decoder\GNR\ubox_defs.py,Not selected,identical,No,-
+gui\PPVLoopChecks.py,Not selected,identical,No,-
+parsers\PPVLoopsParser.py,Not selected,identical,No,-
+Decoder\GNR\cms_params.json,Not selected,identical,No,-
+gui\PPVFileHandler.py,Not selected,identical,No,-
+utils\ExcelReportBuilder.py,Not selected,identical,No,-
+Decoder\GNR\core_params.json,Not selected,identical,No,-
+Decoder\GNR\core_params_bk.json,Not selected,identical,No,-
+Decoder\TransformJson.py,Not selected,identical,No,-
+Decoder\GNR\mse_params.json,Not selected,identical,No,-
+utils\FrameworkFileFix.py,Not selected,identical,No,-
+parsers\OverviewAnalyzer.py,Not selected,identical,No,-
+run.py,Not selected,identical,No,-
+Decoder\GNR\b2hot_params.json,Not selected,identical,No,-

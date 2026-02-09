@@ -304,7 +304,7 @@ def reset_globals():
 ## S2T main Class, includes the different masking mode and boot options
 class System2Tester():
 
-	def __init__(self, target, masks = None, coremask=None, slicemask=None, boot = True, ht_dis = False, dis_2CPM = None, dis_1CPM = None, fresh_state = True, readFuse = False, clusterCheck = True , fastboot = True, ppvc_fuses = None, external_fuses = None, execution_state = None):
+	def __init__(self, target, masks = None, coremask=None, slicemask=None, boot = True, ht_dis = False, dis_2CPM = None, dis_1CPM = None, fresh_state = True, readFuse = False, clusterCheck = False , fastboot = True, ppvc_fuses = None, external_fuses = None, execution_state = None):
 
 		# Python SV Variables
 		from namednodes import sv

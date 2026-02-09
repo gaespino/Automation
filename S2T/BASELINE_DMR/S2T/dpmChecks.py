@@ -1128,8 +1128,8 @@ def pseudomask(combine = False, boot = False, Type = 'Class', ext_mask = None):
 			ia_core_disable_cbb = hex(iaMask)
 			llc_slice_disable_cbb = hex(llcMask)
 
-			Masks_test[key][f'core_cbb_{cbb_N}'] = ia_core_disable_cbb
-			Masks_test[key][f'llc_cbb_{cbb_N}'] = llc_slice_disable_cbb
+			Masks_test[key][f'ia_cbb{cbb_N}'] = ia_core_disable_cbb
+			Masks_test[key][f'llc_cbb{cbb_N}'] = llc_slice_disable_cbb
 
 
 	if not boot:
@@ -1144,8 +1144,8 @@ def pseudomask(combine = False, boot = False, Type = 'Class', ext_mask = None):
 			print (f'\nMasks for pseudo {key} \n')
 			for cbb in syscbbs:
 				cbb_N = sv.socket0.get_by_path(cbb).target_info.instance
-				llc_mask = Masks_test[key][f'llc_cbb_{cbb_N}']
-				ia_mask = Masks_test[key][f'core_cbb_{cbb_N}']
+				llc_mask = Masks_test[key][f'llc_cbb{cbb_N}']
+				ia_mask = Masks_test[key][f'ia_cbb{cbb_N}']
 
 				_core_string = f"'cbb_base{cbb_N}' : {ia_mask},"
 				_llc_string = f"'cbb_base{cbb_N}' : {llc_mask},"
@@ -1293,8 +1293,8 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 	imh_size = len(sysimhs)
 
 	# Buidlding the compare mask structure
-	core_masks = {f'core_cbb_{num}': Fmask for num in range(cbb_size)}
-	llc_masks = {f'llc_cbb_{num}': Fmask for num in range(cbb_size)}
+	core_masks = {f'ia_cbb{num}': Fmask for num in range(cbb_size)}
+	llc_masks = {f'llc_cbb{num}': Fmask for num in range(cbb_size)}
 	CompareMask = { 'Custom': {**core_masks, **llc_masks} }
 
 	## This code can be merged with the mType at the start of code
@@ -1356,8 +1356,8 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 			CustomVal = _CustomVal.upper()
 			Loop_mask = pseudomask(combine = use_core, boot = True, Type = mType, ext_mask = origMask)
 			for idx in range(cbb_size):
-				CompareMask['Custom'][f'core_cbb_{idx}'] = hex(int(Loop_mask[CustomVal][f'core_cbb_{idx}'],16) & int(CompareMask['Custom'][f'core_cbb_{idx}'],16))
-				CompareMask['Custom'][f'llc_cbb_{idx}'] = hex(int(Loop_mask[CustomVal][f'llc_cbb_{idx}'],16) & int(CompareMask['Custom'][f'llc_cbb_{idx}'],16))
+				CompareMask['Custom'][f'ia_cbb{idx}'] = hex(int(Loop_mask[CustomVal][f'ia_cbb{idx}'],16) & int(CompareMask['Custom'][f'ia_cbb{idx}'],16))
+				CompareMask['Custom'][f'llc_cbb{idx}'] = hex(int(Loop_mask[CustomVal][f'llc_cbb{idx}'],16) & int(CompareMask['Custom'][f'llc_cbb{idx}'],16))
 
 			#CompareMask['Custom']['core_cbb_0'] = hex(int(Loop_mask[CustomVal]['core_cbb_0'],16) & int(CompareMask['Custom']['core_cbb_0'],16))
 			#if chipConfig == 'X4':
@@ -1382,8 +1382,8 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 
 	# Dynamically assign core and llc masks based on number of CBBs in syscbbs
 	# Always assign cbb0 (minimum requirement)
-	core_cbb0 = Masks_test[ClassMask]['core_cbb_0']
-	llc_cbb0 = Masks_test[ClassMask]['llc_cbb_0']
+	core_cbb0 = Masks_test[ClassMask]['ia_cbb0']
+	llc_cbb0 = Masks_test[ClassMask]['llc_cbb0']
 
 	# Initialize optional CBBs to None (will be assigned if they exist)
 	core_cbb1 = llc_cbb1 = '0x0'
@@ -1391,16 +1391,16 @@ def pseudo_bs(ClassMask = 'RowEvenPass',
 	core_cbb3 = llc_cbb3 = '0x0'
 
 	if len(syscbbs) >= 2:
-		core_cbb1 = Masks_test[ClassMask]['core_cbb_1']
-		llc_cbb1 = Masks_test[ClassMask]['llc_cbb_1']
+		core_cbb1 = Masks_test[ClassMask]['ia_cbb1']
+		llc_cbb1 = Masks_test[ClassMask]['llc_cbb1']
 
 	if len(syscbbs) >= 3:
-		core_cbb2 = Masks_test[ClassMask]['core_cbb_2']
-		llc_cbb2 = Masks_test[ClassMask]['llc_cbb_2']
+		core_cbb2 = Masks_test[ClassMask]['ia_cbb2']
+		llc_cbb2 = Masks_test[ClassMask]['llc_cbb2']
 
 	if len(syscbbs) >= 4:
-		core_cbb3 = Masks_test[ClassMask]['core_cbb_3']
-		llc_cbb3 = Masks_test[ClassMask]['llc_cbb_3']
+		core_cbb3 = Masks_test[ClassMask]['ia_cbb3']
+		llc_cbb3 = Masks_test[ClassMask]['llc_cbb3']
 
 	# Voltage bumps only change cbbs
 
@@ -1659,14 +1659,19 @@ def chop_str():
 	return chop
 
 def get_compute_index(core=None):
-	return int((core % config.MODS_PER_CBB) / config.MODS_PER_COMPUTE)
+	comp_idx = int((core % config.MODS_PER_CBB) / config.MODS_PER_COMPUTE)
+	print(f'Core {core} is in Compute Index: {comp_idx}')
+	return comp_idx
 
 def get_cbb_index(core=None):
-	return int(core/config.MODS_PER_CBB)
+	cbbidx = int(core / config.MODS_PER_CBB)
+	print(f'Core {core} is in CBB Index: {cbbidx}')
+	return cbbidx
 
 def get_single_compute_apic_location(core=None):
+	cbb_index = get_cbb_index(core=core)
 	target_compute = get_compute_index(core=core)
-	apic_location = core - target_compute * 8
+	apic_location = core - (target_compute * 8) - (cbb_index*config.MODS_PER_CBB)
 	return apic_location
 
 def ppvc_option():
@@ -1826,11 +1831,11 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = None, fixed = 
 		if isinstance(volt_dict['core_mlc'], dict):
 			for k,v in volt_dict['core_mlc'].items():
 				if volt_dict['core_mlc'][k] != None:
-					volt_fuses+=fuses_mlc_vbumps(fixed_voltage = v, target_cbb=int(k[-1]), fix=fixmlc)
+					volt_fuses+=f.mlc_vbump_array(fixed_voltage = v, target_cbb=int(k[-1]))
 
 		else:
 			if volt_dict['core_mlc'] != None:
-				volt_fuses+=fuses_mlc_vbumps(fixed_voltage = volt_dict['core_mlc'], fix=fixmlc)
+				volt_fuses+=f.mlc_vbump_array(fixed_voltage = volt_dict['core_mlc'])
 
 		# No HDC in DMR -- Left for reference
 		if isinstance(volt_dict['hdc_die'], dict):
@@ -1862,11 +1867,11 @@ def tester_voltage(bsformat = False, volt_dict = {}, volt_fuses = None, fixed = 
 		if isinstance(volt_dict['core_mlc'], dict):
 			for k,v in volt_dict['core_mlc'].items():
 				if volt_dict['core_mlc'][k] != None:
-					volt_fuses+=fuses_mlc_vbumps(offset = v, target_cbb=int(k[-1]), fix=fixmlc)
+					volt_fuses+=f.mlc_vbump_array(offset = v, target_cbb=int(k[-1]))
 
 		else:
 			if volt_dict['core_mlc'] != None:
-				volt_fuses+=fuses_mlc_vbumps(offset = volt_dict['core_mlc'], fix=fixmlc)
+				volt_fuses+=f.mlc_vbump_array(offset = volt_dict['core_mlc'])
 
 		# No HDC in DMR -- Left for reference
 		if isinstance(volt_dict['hdc_die'], dict):
@@ -2450,7 +2455,7 @@ def fuses_mlc_vbumps(offset: float = 0,
                     target_compute: int | None = None,
                     target_core: int | None = None,
                     fix=True) -> list:
-
+	# Note fix is now applied into the DMRFuseOverride class by default
 	if not skip_init: fuseRAM(refresh = True)
 	dpmarray = []
 	dpmarray = f.mlc_vbump_array(offset=offset,
@@ -2460,7 +2465,7 @@ def fuses_mlc_vbumps(offset: float = 0,
                              target_compute=target_compute,
                              target_core=target_core,
                              fixed_voltage=fixed_voltage)
-	return dpmarray if not fix else mlc_fuse_fix(dpmarray)
+	return dpmarray
 
 
 def read_fuse_array(fuse_array: list, skip_init: bool = False):
@@ -2662,8 +2667,8 @@ def masks_validation(masks, ClassMask, dies, product, _clusterCheck, _lsb = Fals
 
 	for compute in dies:
 		dieN = compute[-1]
-		cores[compute] = MAXCORESPERCBB - binary_count(masks[ClassMask][f'core_cbb_{dieN}'])
-		llcs[compute] = MAXCORESPERCBB - binary_count(masks[ClassMask][f'llc_cbb_{dieN}'])
+		cores[compute] = MAXCORESPERCBB - binary_count(masks[ClassMask][f'ia_cbb{dieN}'])
+		llcs[compute] = MAXCORESPERCBB - binary_count(masks[ClassMask][f'llc_cbb{dieN}'])
 
 	#min_llc = llcs['compute0'] ## Defaulting to COMP0 if all are the same we dont change it
 	min_llc = min(llcs['cbb0'],llcs['cbb1'],llcs['cbb2'], llcs['cbb3'])
@@ -3303,96 +3308,7 @@ def dev_dict(filename, useroot = True, selected_product = 'CWF'):
 
 	return devices
 
-# Temporal fix for MLC Fuses bit assignments
-def mlc_fuse_fix(fuse_str = []):
-	new_fuse_str = merge_register_bit_assignments(fuse_str, reg_width=24)
-	return new_fuse_str
 
-def merge_register_bit_assignments(register_assignments, reg_width=32):
-	"""
-	Merge multiple bit-range assignments for the same base register into complete register values.
-
-	This function takes register assignments with bit ranges and combines them into single
-	full-register assignments, filling unspecified bits with 0.
-
-	Parameters
-	----------
-	register_assignments : list of str
-		List of register assignment strings with bit ranges.
-		Format: "base.register.path[high:low] = value" or "base.register.path[bit] = value"
-		Example: "sv.socket0.cbb0.compute0.fuses.core0_fuse.core_fuse_core_fuse_acode_acode_spare_word_0[8:0] = 0xb7"
-	reg_width : int, optional
-		Register width in bits (default: 32)
-
-	Returns
-	-------
-	list of str
-		List of complete register assignments in format "base.register.path = 0xvalue"
-
-	Examples
-	--------
-	>>> assignments = [
-	...     "sv.socket0.cbb0.compute0.fuses.core0_fuse.core_fuse_core_fuse_acode_acode_spare_word_0[8:0] = 0xb7",
-	...     "sv.socket0.cbb0.compute0.fuses.core0_fuse.core_fuse_core_fuse_acode_acode_spare_word_0[24:16] = 0xbc"
-	... ]
-	>>> result = merge_register_bit_assignments(assignments)
-	>>> print(result[0])
-	'sv.socket0.cbb0.compute0.fuses.core0_fuse.core_fuse_core_fuse_acode_acode_spare_word_0 = 0xbc00b7'
-	"""
-	import re
-
-	# Dictionary to store register base paths and their bit assignments
-	register_map = {}
-
-	# Regular expression to parse register assignments
-	# Matches: base_path[high:low] = value or base_path[bit] = value
-	pattern = r'^(.+?)\[(\d+)(?::(\d+))?\]\s*=\s*(.+)$'
-
-	for assignment in register_assignments:
-		assignment = assignment.strip()
-		match = re.match(pattern, assignment)
-
-		if not match:
-			continue
-
-		base_register = match.group(1).strip()
-
-		# Handle both [high:low] and [bit] formats
-		if match.group(3):  # Range format [high:low]
-			high_bit = int(match.group(2))
-			low_bit = int(match.group(3))
-		else:  # Single bit format [bit]
-			high_bit = low_bit = int(match.group(2))
-
-		# Ensure high_bit >= low_bit
-		if high_bit < low_bit:
-			high_bit, low_bit = low_bit, high_bit
-
-		value_str = match.group(4).strip()
-		# Convert value to integer (handles 0x prefix automatically)
-		value = int(value_str, 0)
-
-		# Initialize register entry if not exists
-		if base_register not in register_map:
-			register_map[base_register] = 0  # Start with all bits at 0
-
-		# Create a mask for the bit range and shift the value
-		bit_count = high_bit - low_bit + 1
-		mask = (1 << bit_count) - 1  # Create mask of appropriate width
-		masked_value = value & mask  # Ensure value fits in the bit range
-
-		# Clear the bits in the register and set the new value
-		clear_mask = ~(mask << low_bit) & ((1 << reg_width) - 1)
-		register_map[base_register] = (register_map[base_register] & clear_mask) | (masked_value << low_bit)
-
-	# Build the result list of complete register assignments
-	result = []
-	for base_register, final_value in register_map.items():
-		# Format the value with appropriate hex width
-		hex_width = (reg_width + 3) // 4  # Number of hex digits needed
-		result.append(f"{base_register} = 0x{final_value:0{hex_width}x}")
-
-	return result
 
 # Gets current World Week for reports
 def getWW():

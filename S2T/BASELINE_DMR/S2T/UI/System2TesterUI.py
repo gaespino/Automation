@@ -798,7 +798,7 @@ class QuickDefeatureTool:
 				self.s2t.qvbumps_mesh = vbump_mesh
 			if Mask in valid_configs.keys():
 				self.s2t.targetTile = 1
-				self.s2t.target = Mask
+				self.s2t.target = Mask.lower()
 				#self.s2t.fastboot = False
 			elif any(dom == Mask.lower() for dom in domain_names): # Check against domain names
 				self.s2t.targetTile = 2

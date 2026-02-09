@@ -38,44 +38,44 @@
     },
     "Masks_test": {
       "RowEvenPass": {
-        "core_cbb_0": 0,
-        "core_cbb_1": 0,
-        "core_cbb_2": 0,
-        "core_cbb_3": 0,
-        "llc_cbb_0": 0,
-        "llc_cbb_1": 0,
-        "llc_cbb_2": 0,
-        "llc_cbb_3": 0
+        "ia_cbb0": 0,
+        "ia_cbb1": 0,
+        "ia_cbb2": 0,
+        "ia_cbb3": 0,
+        "llc_cbb0": 0,
+        "llc_cbb1": 0,
+        "llc_cbb2": 0,
+        "llc_cbb3": 0
       },
       "RowOddPass": {
-        "core_cbb_0": 0,
-        "core_cbb_1": 0,
-        "core_cbb_2": 0,
-        "core_cbb_3": 0,
-        "llc_cbb_0": 0,
-        "llc_cbb_1": 0,
-        "llc_cbb_2": 0,
-        "llc_cbb_3": 0
+        "ia_cbb0": 0,
+        "ia_cbb1": 0,
+        "ia_cbb2": 0,
+        "ia_cbb3": 0,
+        "llc_cbb0": 0,
+        "llc_cbb1": 0,
+        "llc_cbb2": 0,
+        "llc_cbb3": 0
       },
       "ColumnEvenPass": {
-        "core_cbb_0": 0,
-        "core_cbb_1": 0,
-        "core_cbb_2": 0,
-        "core_cbb_3": 0,
-        "llc_cbb_0": 0,
-        "llc_cbb_1": 0,
-        "llc_cbb_2": 0,
-        "llc_cbb_3": 0
+        "ia_cbb0": 0,
+        "ia_cbb1": 0,
+        "ia_cbb2": 0,
+        "ia_cbb3": 0,
+        "llc_cbb0": 0,
+        "llc_cbb1": 0,
+        "llc_cbb2": 0,
+        "llc_cbb3": 0
       },
       "ColumnOddPass": {
-        "core_cbb_0": 0,
-        "core_cbb_1": 0,
-        "core_cbb_2": 0,
-        "core_cbb_3": 0,
-        "llc_cbb_0": 0,
-        "llc_cbb_1": 0,
-        "llc_cbb_2": 0,
-        "llc_cbb_3": 0
+        "ia_cbb0": 0,
+        "ia_cbb1": 0,
+        "ia_cbb2": 0,
+        "ia_cbb3": 0,
+        "llc_cbb0": 0,
+        "llc_cbb1": 0,
+        "llc_cbb2": 0,
+        "llc_cbb3": 0
       }
     }
   }

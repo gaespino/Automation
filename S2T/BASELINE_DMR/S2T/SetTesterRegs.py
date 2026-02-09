@@ -334,10 +334,10 @@ def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_m
 		s2tTest.targetTile = 4
 	elif Mask in valid_configs.keys():
 		s2tTest.targetTile = 1
-		s2tTest.target = Mask
+		s2tTest.target = Mask.lower()
 		s2tTest.fastboot = False
 
-	elif Mask.lower() in domain_names.keys():
+	elif Mask.lower() in domain_names:
 		s2tTest.targetTile = 2
 		s2tTest.target = Mask.lower()
 		s2tTest.fastboot = False
@@ -1750,7 +1750,7 @@ class S2TFlow():
 				except:
 					pass
 				print(f'--> System 2 Tester Configured in ATE Mode: {ate_config.upper()}')
-				self.target = ate_config
+				self.target = ate_config.lower()
 
 		# Need to check how to user input a list
 		elif self.targetTile == 2:
@@ -1925,13 +1925,17 @@ class S2TFlow():
 										execution_state=self.execution_state)
 
 		# Call different methods based on targetTile
-		# ATE Configuration
-		if self.targetTile == 1:
+		# ATE Configuration -- Will use Compute method as we are limited here -- once Class ATE evolves we reconfigure
+		if self.targetTile == 5: # Not used
 			mesh.setmesh(boot_postcode=self.boot_postcode,stop_after_mrc=self.stop_after_mrc, lsb = self.lsb, extMasks=self.extMasks)
 
 		 # Tile Isolation
 		elif self.targetTile == 2:
-			mesh.setTile(boot_postcode=self.boot_postcode,stop_after_mrc=self.stop_after_mrc)
+			mesh.setTile(boot_postcode=self.boot_postcode,stop_after_mrc=self.stop_after_mrc, extMasks=self.extMasks)
+
+		 # Compute Isolation -- New for DMR
+		elif self.targetTile == 1:
+			mesh.setCompute(boot_postcode=self.boot_postcode,stop_after_mrc=self.stop_after_mrc, extMasks=self.extMasks)
 
 		# Custom Configuration
 		elif self.targetTile == 3:

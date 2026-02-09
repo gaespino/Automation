@@ -268,24 +268,43 @@ class FrameworkUtils:
 ########## 		Masking Script
 #######################################################
 
-def DebugMask(basemask=None, root=None, callback = None):
+def DebugMask(basemask=None, root=None, callback=None):
+	"""
+	Create debug mask using DMR CBB-based configuration.
 
-	#masks, array = gcm.CheckMasks(readfuse = True, extMasks=None)
+	Args:
+		basemask: Optional base mask dictionary, if None reads from fuses
+		root: Tkinter root window
+		callback: Callback function for mask updates
+
+	Returns:
+		Dictionary with CBB-based masks (ia_cbb0-3, llc_cbb0-3)
+	"""
 	die = dpm.product_str()
-	masks = dpm.fuses(rdFuses = True, sktnum =[0], printFuse=False) if basemask == None else basemask
+	masks = dpm.fuses(rdFuses=True, sktnum=[0], printFuse=False) if basemask == None else basemask
 
-	# Checks for all configurations, the dpm fuses will return None if that die is non existing on the system product
+	# DMR uses CBB-based configuration (cbb0-3 instead of compute0-2)
+	# Each CBB has 32-bit masks for modules and LLCs
 
-	compute0_core_hex = str(masks["ia_compute_0"]) if masks["ia_compute_0"] != None else None
-	compute0_cha_hex = str(masks["llc_compute_0"]) if masks["llc_compute_0"] != None else None
-	compute1_core_hex = str(masks["ia_compute_1"]) if masks["ia_compute_1"] != None else None
-	compute1_cha_hex = str(masks["llc_compute_1"]) if masks["llc_compute_1"] != None else None
-	compute2_core_hex = str(masks["ia_compute_2"]) if masks["ia_compute_2"] != None else None
-	compute2_cha_hex = str(masks["llc_compute_2"]) if masks["llc_compute_2"] != None else None
+	cbb0_core_hex = str(masks["ia_cbb0"]) if masks.get("ia_cbb0") is not None else None
+	cbb0_llc_hex = str(masks["llc_cbb0"]) if masks.get("llc_cbb0") is not None else None
+	cbb1_core_hex = str(masks["ia_cbb1"]) if masks.get("ia_cbb1") is not None else None
+	cbb1_llc_hex = str(masks["llc_cbb1"]) if masks.get("llc_cbb1") is not None else None
+	cbb2_core_hex = str(masks["ia_cbb2"]) if masks.get("ia_cbb2") is not None else None
+	cbb2_llc_hex = str(masks["llc_cbb2"]) if masks.get("llc_cbb2") is not None else None
+	cbb3_core_hex = str(masks["ia_cbb3"]) if masks.get("ia_cbb3") is not None else None
+	cbb3_llc_hex = str(masks["llc_cbb3"]) if masks.get("llc_cbb3") is not None else None
 
-	newmask = gme.Masking(root, compute0_core_hex, compute0_cha_hex, compute1_core_hex, compute1_cha_hex, compute2_core_hex, compute2_cha_hex, product = die.upper(), callback=callback)
-	#editor = gme.SystemMaskEditor(compute0_core_hex, compute0_cha_hex, compute1_core_hex, compute1_cha_hex, compute2_core_hex, compute2_cha_hex, product = die.upper())
-	#newmask = editor.start()
+	# Call updated MaskEditor with CBB-based parameters
+	newmask = gme.Masking(
+		root,
+		cbb0_core_hex, cbb0_llc_hex,
+		cbb1_core_hex, cbb1_llc_hex,
+		cbb2_core_hex, cbb2_llc_hex,
+		cbb3_core_hex, cbb3_llc_hex,
+		product=die.upper(),
+		callback=callback
+	)
 
 	return newmask
 

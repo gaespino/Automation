@@ -39,7 +39,7 @@ class FrameworkReportBuilder:
 		self.custom_entries = {}
 		self.comments_entries = {}
 		self.skip_words_excel = ['Invalid']
-		self.products = ['GNR', 'CWF']
+		self.products = ['GNR', 'CWF', 'DMR']
 		self.folders = []
 		self.setup_ui()
 		self.experiment_types = ["Baseline", "Loops", "Voltage", "Frequency", "Shmoo", "Invalid", "Others"]

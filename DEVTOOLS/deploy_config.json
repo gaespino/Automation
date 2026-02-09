@@ -15,30 +15,30 @@
   },
   "product_configs": {
     "GNR": {
-      "source_type": "BASELINE",
-      "deployment_type": "DebugFramework",
-      "target_base": "",
+      "source_type": "PPV",
+      "deployment_type": "PPV",
+      "target_base": "C:\\Git\\Automation\\S2T\\BASELINE\\DebugFramework\\PPV",
       "replacement_csv": "",
       "rename_csv": "",
-      "manifest_file": "",
+      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_ppv.json",
       "selected_files": []
     },
     "CWF": {
-      "source_type": "BASELINE_DMR",
-      "deployment_type": "S2T",
-      "target_base": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\DMR\\prod\\S2T",
-      "replacement_csv": "C:\\Git\\Automation\\DEVTOOLS\\import_replacement_dmr.csv",
-      "rename_csv": "C:\\Git\\Automation\\DEVTOOLS\\file_rename_dmr.csv",
-      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_s2t.json",
+      "source_type": "PPV",
+      "deployment_type": "PPV",
+      "target_base": "C:\\Git\\Automation\\S2T\\BASELINE_DMR\\DebugFramework\\PPV",
+      "replacement_csv": "",
+      "rename_csv": "",
+      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_ppv.json",
       "selected_files": []
     },
     "DMR": {
-      "source_type": "BASELINE_DMR",
-      "deployment_type": "S2T",
-      "target_base": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\DMR\\prod\\S2T",
-      "replacement_csv": "C:\\Git\\Automation\\DEVTOOLS\\import_replacement_dmr.csv",
-      "rename_csv": "C:\\Git\\Automation\\DEVTOOLS\\file_rename_dmr.csv",
-      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_s2t.json",
+      "source_type": "PPV",
+      "deployment_type": "PPV",
+      "target_base": "C:\\Git\\Automation\\S2T\\BASELINE_DMR\\DebugFramework\\PPV",
+      "replacement_csv": "",
+      "rename_csv": "",
+      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_ppv.json",
       "selected_files": []
     }
   }

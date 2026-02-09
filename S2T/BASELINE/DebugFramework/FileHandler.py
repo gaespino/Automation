@@ -51,7 +51,7 @@ ORIGINAL_STDERR = sys.stderr
 
 
 class printlog():
-	
+
 	def __init__(self, log_file):
 		self.log_file = log_file
 		#self.event_type = event_type
@@ -72,7 +72,7 @@ class printlog():
 				message = message.to_string()
 			elif isinstance(message, list):
 				message = '\n'.join(map(str, message))  # Convert list to string
-		
+
 			f.write(message + '\n')
 
 class SafeStreamHandler(logging.StreamHandler):
@@ -118,13 +118,13 @@ class FrameworkLogger:
 		self.logger.setLevel(logging.DEBUG)
 		# Reset handlers if reset_handlers is True
 		if reset_handlers:
-			self.reset_all_handlers()	
+			self.reset_all_handlers()
 
 		# Define log format
 		# Python Console Logs Format
-		
+
 		self.pysvfomatter = logging.Formatter('%(message)s')
-		
+
 		# Framework Format
 		self.formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
@@ -148,7 +148,7 @@ class FrameworkLogger:
 		self.original_stdout = ORIGINAL_STDOUT
 		self.original_stderr = ORIGINAL_STDERR
 		self.capture_active = False
-	
+
 	def reset_all_handlers(self):
 		self.logger.handlers = []
 
@@ -160,7 +160,7 @@ class FrameworkLogger:
 			3: logging.ERROR,
 			4: logging.CRITICAL
 		}
-			
+
 		if event_type in event_types:
 			self.logger.log(event_types[event_type], message)
 			#if event_type <= 1 and self.console_output: print(message)
@@ -266,13 +266,13 @@ class TestUpload:
 		# Creates a temporal folder to store the data
 		self.TemporalFolder = create_path(self.temporal, folder)
 		create_folder_if_not_exists(self.TemporalFolder)
-		
+
 	def remove_temporal(self):
 
 		remove_folder_if_exists(self.TemporalFolder)
 
 	def copy_to_temporal(self, files):
-		
+
 		dest = self.TemporalFolder
 
 		# Provide full filename
@@ -280,7 +280,7 @@ class TestUpload:
 			copy_single_file(file, dest)
 
 	def copy_to_log_to_temporal(self, file):
-		
+
 		destination_dir = self.TemporalFolder
 		# Get the file name and extension
 		file_name, file_extension = os.path.splitext(file)
@@ -290,15 +290,15 @@ class TestUpload:
 			new_file_name = file_name + '.log'
 		else:
 			new_file_name = os.path.basename(file)
-			
+
 		# Define the full path for the new file
 		destination_file = os.path.join(destination_dir, new_file_name)
 
 		# Copy the file to the destination
-		shutil.copy(file, destination_file)	
+		shutil.copy(file, destination_file)
 
 	def generate_summary(self):
-		
+
 		#visual = self.vid
 		#name = self.name
 		#bucket = self.bucket
@@ -320,7 +320,7 @@ class TestUpload:
 
 	# This function will move the console print to a logger to save required data into a file
 	def initlog(self):
-		
+
 		self.log_file = os.path.join(self.TemporalFolder, 'DebugFrameworkLogger.log')
 		self.print = FrameworkLogger(self.log_file, 'FrameworkLogger', console_output=True)
 
@@ -333,8 +333,8 @@ class TestUpload:
 		## Get Running Content -- Not used
 		#self.running_content()
 
-		## Print Test Summary keys --- 
-		
+		## Print Test Summary keys ---
+
 		EMPTY_FIELDS = [None, 'None', '']
 		u600w = ['RVF5']
 		self.print(f'\t > Unit VisualID: {self.vid}')
@@ -357,7 +357,7 @@ class TestUpload:
 		#	printmasks = [["Type", "Value"]]
 		#	printmasks.append([[k,v] for k, v in self.extMask.items()])
 		#	self.print(f'\t > Using External Base Mask: {printmasks} \n')
-		#	self.print(tabulate(printmasks, headers="firstrow", tablefmt="grid"))	
+		#	self.print(tabulate(printmasks, headers="firstrow", tablefmt="grid"))
 
 	def Iteration_end(self, tnum, runName, runStatus, scratchpad, seed):
 
@@ -382,10 +382,10 @@ class TestUpload:
 		DATA_SERVER = r'\\crcv03a-cifs.cr.intel.com\mfg_tlo_001'
 		DATA_DESTINATION = rf'{DATA_SERVER}\DebugFramework\{Product}'
 
-		if UPLOAD_TO_DISK: 
+		if UPLOAD_TO_DISK:
 			logger('Copying Data to Framework disk --- \n')
 			dest_folder=copy_folder(src=tfolder, dest=DATA_DESTINATION, visual=visual, zipdata=True , logger = logger)
-		
+
 		if DATABASE_HANDLER_READY and UPLOAD_DATA:
 			try:
 				logger('Uploading Data to Danta Server --- \n')
@@ -428,14 +428,14 @@ def find_name_regex(file_path, pattern=r"-- Debug Framework (\w+) ---"):
 				match = re.search(pattern, line.strip())
 				if match:
 					return match.group(1)  # Return the first captured group
-					
+
 	except FileNotFoundError:
 		print(f"Error: File '{file_path}' not found.")
 		return None
 	except Exception as e:
 		print(f"Error reading file: {e}")
 		return None
-	
+
 	return None
 
 def manual_upload():
@@ -454,25 +454,25 @@ def extract_data_from_named_table(sheet):
 
 	param: sheet = An openpyxl worksheet object from which data is to be extracted.
 	return: A dictionary containing 'Field' and 'Value' pairs if the table is found, otherwise None.
-	"""    
-	
+	"""
+
 	# Iterate over all tables in the sheet
 	for table in sheet.tables.values():
 		# Get the table range
 		table_range = sheet[table.ref]
-		
+
 		# Check if the first row contains 'Field' and 'Value'
 		headers = [cell.value for cell in table_range[0]]
 		if 'Field' in headers and 'Value' in headers:
 			# Initialize a dictionary to store the values
 			data = {}
-			
+
 			# Iterate over the rows starting from the second row
 			for row in table_range[1:]:
 				field = row[headers.index('Field')].value
 				value = row[headers.index('Value')].value
 				data[field] = value
-			
+
 			return data
 	return None
 
@@ -485,18 +485,18 @@ def process_excel_file(file_path):
 	"""
 	# Load the Excel file
 	workbook = openpyxl.load_workbook(file_path, data_only=True)
-	
+
 	# Dictionary to store data from all sheets
 	all_data = {}
-	
+
 	# Iterate over each sheet
 	for sheet_name in workbook.sheetnames:
 		sheet = workbook[sheet_name]
 		data = extract_data_from_named_table(sheet)
-		
+
 		if data:
 			all_data[sheet_name] = data
-	
+
 	return all_data
 
 def create_tabulated_format(data_from_sheets):
@@ -513,17 +513,17 @@ def create_tabulated_format(data_from_sheets):
 		break
 	# Create a list to store DataFrame rows
 	rows = []
-	
+
 	# Populate the rows list
 	for field in all_fields:
 		row_data = {'Fields': field}
 		for sheet_name, data in data_from_sheets.items():
 			row_data[sheet_name] = data.get(field, 'None')
 		rows.append(row_data)
-	
+
 	# Create the DataFrame using pd.concat
 	tabulated_df = pd.DataFrame(rows, columns=['Fields'] + list(data_from_sheets.keys()))
-	
+
 	return tabulated_df
 
 # Function to create logs folder
@@ -610,7 +610,7 @@ def copy_files(src, dest, uinput = ""):
 					print(f'Skipping file replace {dest}')
 
 def copy_single_file(full_file_name, dest):
-	shutil.copy(full_file_name, dest)	
+	shutil.copy(full_file_name, dest)
 
 def merge_mca_files(input_folder: str, output_file: str):
 	"""
@@ -618,7 +618,7 @@ def merge_mca_files(input_folder: str, output_file: str):
 
 	:param input_folder: Path to the folder containing MCA Excel files.
 	:param output_file: Path to the output Excel file.
-	"""	
+	"""
 	merger.merge_excel_files(input_folder=input_folder, output_file=output_file, prefix = 'MCA_Report')
 
 def decode_mcas(name:str, week:str, source_file:str, label:str, path:str, product:str):
@@ -633,15 +633,15 @@ def decode_mcas(name:str, week:str, source_file:str, label:str, path:str, produc
 	:param product: Product flavour for ex. GNR, CWF, SPR,...
 
 	"""
-	
+
 	PPVMCAs = parser.ppv_report(name=name, week=week, label=label, source_file=source_file, report = path, reduced = True, overview = False, decode = True, mcdetail= False, product = product)
 	PPVMCAs.run(options = ['MESH', 'CORE'])
 
 # Looks for failing seed
-def extract_fail_seed(log_file_path: str, 
-					  PassString: list = ["Test Complete"], 
-					  FailString: list = ["Test Failed"], 
-					  HangString: list = ["running MerlinX.efi"], 
+def extract_fail_seed(log_file_path: str,
+					  PassString: list = ["Test Complete"],
+					  FailString: list = ["Test Failed"],
+					  HangString: list = ["running MerlinX.efi"],
 					  CheckString: list = [r"CHANGING BACK TO DIR: FS1:\EFI"], casesens=False):
 	"""
 	Extracts the failing seed from a log file.
@@ -653,7 +653,7 @@ def extract_fail_seed(log_file_path: str,
 	:param CheckString: Search Strings to declare a CHECK condition.
 	:return obj_file: The failing seed or None if not found.
 	"""
-	
+
 	if not casesens:
 		PassString = [p.lower() for p in PassString]
 		FailString = [f.lower() for f in FailString]
@@ -662,7 +662,7 @@ def extract_fail_seed(log_file_path: str,
 
 	def extract_obj_file(log_file_path):
 		obj_file = None
-		
+
 		# Search from top to bottom for "Test Failed"
 		with open(log_file_path, 'r') as file:
 			lines = file.readlines()
@@ -676,20 +676,20 @@ def extract_fail_seed(log_file_path: str,
 			# If not found, search from bottom to top for "running MerlinX.efi"
 			if not obj_file:
 				for line in reversed(lines):
-					
+
 					# Search for Pass String in lines
 					for search_string in PassString:
 						if (search_string in line) if casesens else (search_string.lower() in line.lower()):
-							obj_file = "PASS"   
-							return obj_file			
+							obj_file = "PASS"
+							return obj_file
 
-					# Search for CHECK String String in lines					
+					# Search for CHECK String String in lines
 					for search_string in CheckString:
 						if (search_string in line) if casesens else (search_string.lower() in line.lower()):
 							obj_file = "_CHECK_MCA"
-							return obj_file                        
+							return obj_file
 
-					# Search for Hang String in lines					
+					# Search for Hang String in lines
 					for search_string in HangString:
 						if (search_string in line) if casesens else (search_string.lower() in line.lower()):
 							obj_file = extract_obj_from_line(line)
@@ -748,9 +748,9 @@ def load_json_file(file_path):
 	return experiments
 
 def teraterm_check(com_port, ip_address='192.168.0.2', teraterm_path = r"C:\teraterm", seteo_h_path = r"C:\SETEO_H", ini_file = "TERATERM.INI", useparser=False, checkenv=True):
-	
+
 	def use_configparser():
-		
+
 		for k, v in init_check_variables.items():
 			print(f'Checking Teraterm Configuration :: {k} :: {config["Tera Term"][k]} --> {v}')
 			if config['Tera Term'][k] != v:
@@ -762,7 +762,7 @@ def teraterm_check(com_port, ip_address='192.168.0.2', teraterm_path = r"C:\tera
 			config.write(configfile)
 
 	def use_lineread():
-			
+
 		# Read the TERATERM.INI file
 		with open(ini_file_path, 'r') as file:
 			lines = file.readlines()
@@ -803,13 +803,13 @@ def teraterm_check(com_port, ip_address='192.168.0.2', teraterm_path = r"C:\tera
 	# Update the configuration settings
 	init_check_variables = {
 							'ComPort':str(com_port),
-							'BaudRate':'115200', 
-							'Parity':'none', 
-							'DataBit':'8', 
-							'StopBit':'1', 
-							'FlowCtrl':'none', 
-							'DelayPerChar':'100', 
-							'DelayPerLine':'100', 
+							'BaudRate':'115200',
+							'Parity':'none',
+							'DataBit':'8',
+							'StopBit':'1',
+							'FlowCtrl':'none',
+							'DelayPerChar':'100',
+							'DelayPerLine':'100',
 							}
 	# Pass and User set to None as we only check variable exists not eh value itself
 	host_variables = { 'FrameworkSerial': f'{com_port}',
@@ -848,7 +848,7 @@ def ini_to_dict_with_types(file_path, convert_section_underscores=False, convert
 	"""
 	if not Path(file_path).exists():
 		raise FileNotFoundError(f"File not found: {file_path}")
-	
+
 	config = configparser.ConfigParser()
 	config.read(file_path)
 
@@ -871,27 +871,27 @@ def ini_to_dict_with_types(file_path, convert_section_underscores=False, convert
 		except ValueError:
 			pass
 		return value
-	
+
 	result = {}
 	for section_name in config.sections():
 		converted_section_name = convert_name(section_name, convert_section_underscores)
 		result[converted_section_name] = {
-			convert_name(key, convert_key_underscores): convert_value(value) 
+			convert_name(key, convert_key_underscores): convert_value(value)
 			for key, value in config[section_name].items()
 		}
-	
+
 	return result
 
 def check_env_variables(variables):
 	for var_name, desired_value in variables.items():
 		current_value = os.getenv(var_name, None)
-		
+
 		if current_value is None:
 			# Environment variable does not exist, create it
 			#os.environ[var_name] = desired_value
 			#print(f"Created environment variable '{var_name}' with value '{desired_value}'.")
 			raise ValueError(f'System is not properly set env variable {var_name} is not configured...')
-		
+
 		elif current_value != desired_value and not (var_name == 'FrameworkDefaultPass' or var_name == 'FrameworkDefaultUser'):
 			# Environment variable exists but has a different value, update it
 			os.environ[var_name] = desired_value
@@ -924,7 +924,7 @@ def execute_file(file_path: str, logger = None):
 	try:
 		with open(file_path, 'r') as file:
 			lines = file.readlines()
-		
+
 		for line in lines:
 			stripped_line = line.strip()
 			if stripped_line:
@@ -972,7 +972,7 @@ def copy_folder(src, dest, visual = "unknown", zipdata=True , logger = None):
 		:param zip_file_name: Full path of the zip file, include the extension (\path\file.zip)
 		:param zip_filter: Filters out of zip and copy files ending with FrameworkLogger.log and Data.xlsx files
 		"""
-			
+
 		# Create a zip file with the folder name
 		with zipfile.ZipFile(zip_file_name, 'w', zipfile.ZIP_DEFLATED) as zipf:
 			# Iterate through all files in the folder
@@ -986,7 +986,7 @@ def copy_folder(src, dest, visual = "unknown", zipdata=True , logger = None):
 					zipf.write(file_path, os.path.relpath(file_path, src))
 
 	# Check if destination path exists
-	if logger == None: logger = print 
+	if logger == None: logger = print
 	if not os.path.exists(dest):
 		raise Exception(f"Destination folder ({dest}) does not exist, files are not being copied.")
 
@@ -996,7 +996,7 @@ def copy_folder(src, dest, visual = "unknown", zipdata=True , logger = None):
 	src_folder_name = os.path.basename(src.rstrip('/\\'))
 
 	# Create destination path with hostname and current date (includes source folder name)
-	
+
 	dest_path = os.path.join(dest, visual, hostname.lower(), current_date, src_folder_name)
 
 	try:
@@ -1011,7 +1011,7 @@ def copy_folder(src, dest, visual = "unknown", zipdata=True , logger = None):
 
 		zip_file_name = 'ExperimentData.zip'
 		zip_file_path = os.path.join(dest_path, zip_file_name)
-		
+
 
 		zip_folder_contents(zip_file_path, dest_path)
 		logger(f'Data operation Succesfull !!! --> Check file: {zip_file_path}')
@@ -1053,7 +1053,7 @@ class FrameworkConfigConverter:
 
 	def get_values(self):
 		return self._values
-	
+
 	def update_values(self, values):
 		self._values = values
 
@@ -1063,19 +1063,19 @@ class FrameworkConfigConverter:
 			if not os.path.exists(self.ini_file_path):
 				self.print(f"INI file not found, check if your TTL configuration is 1.0: {self.ini_file_path}", 1)
 				return False
-			
+
 			self.config = configparser.ConfigParser()
 			self.config.read(self.ini_file_path)
 			self.print(f"INI file loaded successfully: {self.ini_file_path}", 1)
 			# Clear cache when config is reloaded
 			self._cached_config_data = {}
 			return True
-			
+
 		except Exception as e:
 			self.print(f"Error reading INI file: {e}", 2)
 			return False
 
-	def update_ini(self, dragon_config=None, linux_config=None, config_dict=None, 
+	def update_ini(self, dragon_config=None, linux_config=None, config_dict=None,
 				   flow_type=None, command_timeout=None, output_path=None):
 		"""
 		Update existing INI configuration file with new values
@@ -1097,42 +1097,42 @@ class FrameworkConfigConverter:
 				if not self.read_ini():
 					self.print("Error: Could not load existing INI file", 2)
 					return False
-			
+
 			# If config_dict is provided, convert it to config objects
 			if config_dict:
 				dragon_config, linux_config = self._dict_to_config_objects(config_dict)
-			
+
 			# Update execution control if provided
 			if flow_type is not None:
 				self.config.set('EXECUTION_CONTROL', 'flow_type', flow_type.upper())
 			if command_timeout is not None:
 				self.config.set('EXECUTION_CONTROL', 'command_timeout', str(command_timeout))
-			
+
 			# Update configurations using field mapping
 			if dragon_config:
 				self._update_config_section(dragon_config, 'dragon')
-			
+
 			if linux_config:
 				self._update_config_section(linux_config, 'linux')
-			
+
 			# Determine output path
 			if output_path is None:
 				output_path = self.ini_file_path
-			
+
 			# Ensure directory exists
 			Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-			
+
 			# Write updated INI file
 			with open(output_path, 'w') as configfile:
 				self.config.write(configfile)
-			
+
 			self.print(f"INI configuration file updated: {output_path}", 1)
-			
+
 			# Clear cache since config was updated
 			self._cached_config_data = {}
-			
+
 			return True
-			
+
 		except Exception as e:
 			self.print(f"Error updating INI file: {e}", 2)
 			return False
@@ -1152,21 +1152,21 @@ class FrameworkConfigConverter:
 				'ulx_path': ('DRG_INIT', 'ULX_PATH'),
 				'ulx_cpu': ('DRG_INIT', 'ULX_CPU'),
 				'ulx_product': ('DRG_INIT', 'PRODUCT_CHOP'),
-				
+
 				# VVAR_SETUP section
 				'vvar0': ('VVAR_SETUP', 'VVAR0'),
 				'vvar1': ('VVAR_SETUP', 'VVAR1'),
 				'vvar2': ('VVAR_SETUP', 'VVAR2'),
 				'vvar3': ('VVAR_SETUP', 'VVAR3'),
 				'vvar_extra': ('VVAR_SETUP', 'VVAR_EXTRA'),
-				
+
 				# Content sections (flow-dependent)
 				'dragon_content_path': {
 					'SLICE': ('SETUP_SLICE', 'SLICE_CONTENT'),
 					'MESH': ('SETUP_MESH', 'MESH_CONTENT'),
 					'CUSTOM': ('CUSTOM', 'CUSTOM_PATH')
 				},
-				
+
 				# APIC CDIE
 				'apic_cdie': {
 					'SLICE': ('SETUP_SLICE', 'APIC_CDIE'),
@@ -1174,34 +1174,34 @@ class FrameworkConfigConverter:
 
 				# DRAGON_CONTENT section
 				'dragon_content_line': ('DRAGON_CONTENT', 'DRAGON_CONTENT_LINE'),
-				
+
 				# MERLIN_SETUP section
 				'merlin_name': ('MERLIN_SETUP', 'MERLIN'),
 				'merlin_drive': ('MERLIN_SETUP', 'MERLIN_DRIVE'),
 				'merlin_npath': ('MERLIN_SETUP', 'MERLIN_DIR'),
-				
+
 				# SETUP_REGRESSION section
 				'dragon_stop_on_fail': ('SETUP_REGRESSION', 'STOP_ON_FAIL'),
-				
+
 				# EFI_CMDS section
 				'dragon_pre_cmd': ('EFI_CMDS', 'EFI_PRE_EXEC_CMD'),
 				'dragon_post_cmd': ('EFI_CMDS', 'EFI_POST_EXEC_CMD'),
 			},
-			
+
 			'linux': {
 				# LINUX_INIT section
 				'linux_startup_cmd': ('LINUX_INIT', 'STARTUP_LINUX'),
-				
+
 				# LINUX_CONTENT section
 				'linux_content_path': ('LINUX_CONTENT', 'LINUX_PATH'),
 				'linux_wait_time': ('LINUX_CONTENT', 'LINUX_CONTENT_WAIT'),
 				'linux_pass_string': ('LINUX_CONTENT', 'LINUX_PASS_STRING'),
 				'linux_fail_string': ('LINUX_CONTENT', 'LINUX_FAIL_STRING'),
-				
+
 				# Linux content lines (0-9)
-				**{f'Linux_content_line{i}': ('LINUX_CONTENT', f'LINUX_CONTENT_LINE_{i}') 
+				**{f'Linux_content_line{i}': ('LINUX_CONTENT', f'LINUX_CONTENT_LINE_{i}')
 				   for i in range(10)},
-				
+
 				# LINUX_CMDS section
 				'linux_pre_cmd': ('LINUX_CMDS', 'LNX_PRE_EXEC_CMD'),
 				'linux_post_cmd': ('LINUX_CMDS', 'LNX_POST_EXEC_CMD'),
@@ -1212,18 +1212,18 @@ class FrameworkConfigConverter:
 		"""Convert dictionary to configuration objects"""
 		try:
 			field_mapping = self._get_field_to_ini_mapping()
-			
+
 			# Create config objects
-			dragon_data = {k: v for k, v in config_dict.items() 
+			dragon_data = {k: v for k, v in config_dict.items()
 						  if k in field_mapping['dragon'] and v is not None}
-			linux_data = {k: v for k, v in config_dict.items() 
+			linux_data = {k: v for k, v in config_dict.items()
 						 if k in field_mapping['linux'] and v is not None}
-			
+
 			dragon_config = type('DragonConfig', (), dragon_data)() if dragon_data else None
 			linux_config = type('LinuxConfig', (), linux_data)() if linux_data else None
-			
+
 			return dragon_config, linux_config
-			
+
 		except Exception as e:
 			self.print(f"Error converting dictionary to config objects: {e}", 2)
 			return None, None
@@ -1232,26 +1232,26 @@ class FrameworkConfigConverter:
 		"""Update INI sections based on config object"""
 		try:
 			field_mapping = self._get_field_to_ini_mapping()
-			
+
 			if config_type not in field_mapping:
 				return
-			
+
 			current_flow_type = self.get_current_flow_type()
-			
+
 			# Process each field in the config object
 			for field_name in dir(config_obj):
 				if field_name.startswith('_'):
 					continue
-					
+
 				field_value = getattr(config_obj, field_name)
 				if field_value is None:
 					continue
-				
+
 				if field_name not in field_mapping[config_type]:
 					continue
-				
+
 				mapping = field_mapping[config_type][field_name]
-				
+
 				# Handle flow-dependent mappings (like dragon_content_path)
 				if isinstance(mapping, dict):
 					if current_flow_type in mapping:
@@ -1260,24 +1260,24 @@ class FrameworkConfigConverter:
 						continue  # Skip if no mapping for current flow type
 				else:
 					section, key = mapping
-				
+
 				# Ensure section exists
 				if not self.config.has_section(section):
 					self.config.add_section(section)
-				
+
 				# Handle boolean values
 				if isinstance(field_value, bool):
 					field_value = '1' if field_value else '0'
-				
+
 				# Update the value
 				self.config.set(section, key, str(field_value))
 				self.print(f"Updated [{section}]{key} = {field_value}", 1)
-				
+
 		except Exception as e:
 			self.print(f"Error updating {config_type} configuration: {e}", 2)
 
 	# ========== FLOW DEFINITIONS - SINGLE SOURCE OF TRUTH ==========
-	
+
 	def _get_linux_flow_definition(self):
 		"""Define Linux flow configuration structure"""
 		return [
@@ -1304,7 +1304,7 @@ class FrameworkConfigConverter:
 			("LNX_POST_EXEC_CMD", "LINUX_CMDS", "LNX_POST_EXEC_CMD", ""),
 			("COMMAND_TIMEOUT", "EXECUTION_CONTROL", "command_timeout", "30")
 		]
-	
+
 	def _get_slice_flow_definition(self):
 		"""Define Slice flow configuration structure"""
 		return [
@@ -1328,7 +1328,7 @@ class FrameworkConfigConverter:
 			("EFI_POST_EXEC_CMD", "EFI_CMDS", "EFI_POST_EXEC_CMD", ""),
 			("COMMAND_TIMEOUT", "EXECUTION_CONTROL", "command_timeout", "30")
 		]
-	
+
 	def _get_mesh_flow_definition(self):
 		"""Define Mesh flow configuration structure"""
 		return [
@@ -1351,7 +1351,7 @@ class FrameworkConfigConverter:
 			("EFI_POST_EXEC_CMD", "EFI_CMDS", "EFI_POST_EXEC_CMD", ""),
 			("COMMAND_TIMEOUT", "EXECUTION_CONTROL", "command_timeout", "30")
 		]
-	
+
 	def _get_custom_flow_definition(self):
 		"""Define Custom flow configuration structure"""
 		return [
@@ -1363,7 +1363,7 @@ class FrameworkConfigConverter:
 		]
 
 	# ========== CORE METHOD - SINGLE SOURCE OF TRUTH ==========
-	
+
 	def get_flow_config_data(self, flow_type=None, include_empty=True, use_cache=True):
 		"""
 		Get flow configuration data as a dictionary - THE MAIN METHOD
@@ -1381,14 +1381,14 @@ class FrameworkConfigConverter:
 		# Determine flow type
 		if flow_type is None:
 			flow_type = self.get_current_flow_type()
-		
+
 		flow_type = flow_type.upper() if flow_type else None
-		
+
 		# Check cache first
 		cache_key = f"{flow_type}_{include_empty}"
 		if use_cache and cache_key in self._cached_config_data:
 			return self._cached_config_data[cache_key]
-		
+
 		# Flow type mapping
 		flow_definitions = {
 			'LINUX': self._get_linux_flow_definition,
@@ -1396,86 +1396,86 @@ class FrameworkConfigConverter:
 			'MESH': self._get_mesh_flow_definition,
 			'CUSTOM': self._get_custom_flow_definition
 		}
-		
+
 		if flow_type not in flow_definitions:
 			self.print(f"Error: Unknown or missing flow type '{flow_type}'", 2)
 			return None
-		
+
 		if self.config is None:
 			self.print("Error: Configuration not loaded. Call read_ini() first.", 2)
 			return None
-		
+
 		# Get flow definition and extract values
 		definition = flow_definitions[flow_type]()
 		config_dict = {}
-		
+
 		try:
 			for field_name, section, key, default_value in definition:
 				if section in self.config:
 					value = self.config[section].get(key, default_value)
 				else:
 					value = default_value
-				
+
 				# Include based on include_empty flag
 				if include_empty or value:
 					config_dict[field_name] = value
-			
+
 			# Cache the result
 			self._cached_config_data[cache_key] = config_dict
 			return config_dict
-			
+
 		except Exception as e:
 			self.print(f"Error extracting {flow_type} flow configuration: {e}", 2)
 			return None
 
 	# ========== LEGACY METHODS (NOW USE get_flow_config_data) ==========
-	
+
 	def get_linux_flow_values(self):
 		"""Extract Linux flow configuration values - LEGACY METHOD"""
 		config_data = self.get_flow_config_data('LINUX', include_empty=True)
 		if config_data is None:
 			self.update_values(values=None)
 			return None
-		
+
 		values = list(config_data.values())
 		self.update_values(values=values)
 		return values
-	
+
 	def get_slice_flow_values(self):
 		"""Extract Slice flow configuration values - LEGACY METHOD"""
 		config_data = self.get_flow_config_data('SLICE', include_empty=True)
 		if config_data is None:
 			self.update_values(values=None)
 			return None
-		
+
 		values = list(config_data.values())
 		self.update_values(values=values)
 		return values
-	
+
 	def get_mesh_flow_values(self):
 		"""Extract Mesh flow configuration values - LEGACY METHOD"""
 		config_data = self.get_flow_config_data('MESH', include_empty=True)
 		if config_data is None:
 			self.update_values(values=None)
 			return None
-		
+
 		values = list(config_data.values())
 		self.update_values(values=values)
 		return values
-	
+
 	def get_custom_flow_values(self):
 		"""Extract Custom flow configuration values - LEGACY METHOD"""
 		config_data = self.get_flow_config_data('CUSTOM', include_empty=True)
 		if config_data is None:
 			self.update_values(values=None)
 			return None
-		
+
 		values = list(config_data.values())
 		self.update_values(values=values)
 		return values
 
 	# ========== CSV CREATION ==========
-	
+
 	def create_flow_csv(self, flow_type, ttl_folder_path):
 		"""
 		Create CSV file for specified flow type using config data as source
@@ -1489,65 +1489,65 @@ class FrameworkConfigConverter:
 		"""
 		try:
 			Path(ttl_folder_path).mkdir(parents=True, exist_ok=True)
-			
+
 			# Get config data (include empty values for CSV to maintain order)
 			config_data = self.get_flow_config_data(flow_type, include_empty=True)
-			
+
 			if config_data is None:
 				return None
-			
+
 			# Define filename
 			flow_type_lower = flow_type.lower()
 			csv_filename = f"{flow_type_lower}_flow_params.csv"
 			csv_file_path = os.path.join(ttl_folder_path, csv_filename)
-			
+
 			# Create CSV file from config data values
 			values = list(config_data.values())
 			with open(csv_file_path, 'w') as f:
 				f.write(','.join(values))
-			
+
 			self.print(f"{flow_type} flow CSV file created: {csv_file_path}", 1)
 			return csv_file_path
-			
+
 		except Exception as e:
 			self.print(f"Error creating {flow_type} flow CSV file: {e}", 2)
 			return None
-	
+
 	def create_current_flow_csv(self, ttl_folder_path):
 		"""Create CSV for the flow type specified in EXECUTION_CONTROL"""
 		flow_type = self.get_current_flow_type()
 		return self.create_flow_csv(flow_type, ttl_folder_path)
-	
+
 	def get_current_flow_type(self):
 		"""Get the current flow type from EXECUTION_CONTROL section"""
 		if self.config is None:
 			return None
-		
+
 		if 'EXECUTION_CONTROL' in self.config:
 			return self.config['EXECUTION_CONTROL'].get('flow_type', 'SLICE')
-		
+
 		return 'SLICE'  # Default
 
 	# ========== UTILITY METHODS ==========
-	
+
 	def clear_cache(self):
 		"""Clear the configuration data cache"""
 		self._cached_config_data = {}
 		self.print("Configuration cache cleared", 1)
-	
+
 	def get_available_flow_types(self):
 		"""Get list of available flow types"""
 		return ['LINUX', 'SLICE', 'MESH', 'CUSTOM']
-	
+
 	def validate_flow_type(self, flow_type):
 		"""Validate if flow type is supported"""
 		return flow_type.upper() in self.get_available_flow_types()
 
 def create_default_framework_config(filename="framework_config.ini"):
 	"""Create a default framework configuration INI file with all flows"""
-	
+
 	config = configparser.ConfigParser()
-	
+
 	# Linux Configuration Section
 	config['LINUX_INIT'] = {
 		'STARTUP_LINUX': 'startup_linux.nsh',
@@ -1556,7 +1556,7 @@ def create_default_framework_config(filename="framework_config.ini"):
 		'WAIT_STRING3': 'Loading Linux',
 		'WAIT_STRING4': '--MORE--'
 	}
-	
+
 	config['LINUX_CONTENT'] = {
 		'LINUX_PATH': 'cd /root/content/LOS/TSL/bin',
 		'LINUX_CONTENT_WAIT': '20',
@@ -1573,7 +1573,7 @@ def create_default_framework_config(filename="framework_config.ini"):
 		'LINUX_CONTENT_LINE_8': '',
 		'LINUX_CONTENT_LINE_9': ''
 	}
-	
+
 	# Dragon Configuration Section
 	config['DRG_INIT'] = {
 		'STARTUP_EFI': 'startup_efi.nsh',
@@ -1581,7 +1581,7 @@ def create_default_framework_config(filename="framework_config.ini"):
 		'ULX_CPU': 'GNR_B0',
 		'PRODUCT_CHOP': 'GNR'
 	}
-	
+
 	config['VVAR_SETUP'] = {
 		'VVAR0': '0x4C4B40',
 		'VVAR1': '80064000',
@@ -1589,84 +1589,84 @@ def create_default_framework_config(filename="framework_config.ini"):
 		'VVAR3': '0x10000',
 		'VVAR_EXTRA': ' '
 	}
-	
+
 	config['SETUP_SLICE'] = {
 		'CONTENT': r'FS1:\content\Dragon\GNR1C_Q_Slice_2M_pseudoSBFT_System',
 		'APIC_CDIE': '0'
 	}
-	
+
 	config['SETUP_MESH'] = {
 		'MESH_CONTENT': r'FS1:\content\Dragon\7410_0x0E_PPV_MegaMem\GNR128C_H_1UP\\'
 	}
-	
+
 	config['DRAGON_CONTENT'] = {
 		'DRAGON_CONTENT_LINE': 'Ditto Blender Yakko'
 	}
-	
+
 	config['MERLIN_SETUP'] = {
 		'MERLIN': 'MerlinX',
 		'MERLIN_DRIVE': 'FS1:',
 		'MERLIN_DIR': r'FS1:\EFI\Version8.15\BinFiles\Release'
 	}
-	
+
 	config['SETUP_REGRESSION'] = {
 		'STOP_ON_FAIL': '0'
 	}
-	
+
 	config['CUSTOM'] = {
 		'CUSTOM_PATH': r'FS1:\CUSTOM',
 		'CMD_LINE_0': 'custom.nsh'
 	}
-	
+
 	config['EFI_CMDS'] = {
 		'EFI_PRE_EXEC_CMD': '',
 		'EFI_POST_EXEC_CMD': ''
 	}
-	
+
 	config['LINUX_CMDS'] = {
 		'LNX_PRE_EXEC_CMD': '',
 		'LNX_POST_EXEC_CMD': ''
 	}
-	
+
 	config['EXECUTION_CONTROL'] = {
 		'flow_type': 'SLICE',
 		'command_timeout': '30'
 	}
-	
+
 	# Write to file with comments
 	with open(filename, 'w') as configfile:
 		configfile.write("# Framework Configuration File\n")
 		configfile.write("# This file contains all parameters for different test flows\n\n")
 		config.write(configfile)
-	
+
 	print(f"Default framework configuration created: {filename}")
 	return filename
 
 if __name__ == "__main__":
-	
+
 	config_file = r'R:\Templates\GNR\version_2_0\TTL_Linux\config.ini'
 	print("Creating default framework configuration files...")
-	
+
 	# Create the main default config
 	#create_default_framework_config(config_file)
-	
+
 	# Initialize converter
 	converter = FrameworkConfigConverter(config_file)
 	flow_type = 'MESH'
 	ttl_folder = r"R:\Templates\GNR\version_2_0\TTL_Linux"
 	if converter.read_ini():
 
-		
+
 		# Create CSV for current flow type (from INI)
 		converter.create_current_flow_csv(ttl_folder)
-		
+
 		# Or create specific flow CSVs
 		#converter.create_flow_csv('LINUX', ttl_folder)
 		#converter.create_flow_csv('SLICE', ttl_folder)
 		#converter.create_flow_csv(flow_type, ttl_folder)
 		#converter.create_flow_csv('CUSTOM', ttl_folder)
 
-	
+
 	#manual_upload()
 	#path = r'Q:\DPM_Debug\GNR\Logs\IDI\74TQ507400300\RVP\Loops\Shmoo_Core_V_vs_F_25DegC_AVX3_Slice84\17_CORE Shmoo Hi_IA__84__ia_f36__cfc_f22__vcfg_fixed__ia_v0_95.log'
 
@@ -1682,7 +1682,7 @@ if __name__ == "__main__":
 #if __name__ == "__main__":
 #    if len(sys.argv) != 6:
 #        sys.exit("Usage: python script.py <base_file_path> <experiment_number> <new_com_port> <new_runregression_line> <new_dbmvvars_string>")
-#    
+#
 #    base_file_path = sys.argv[1]
 #    experiment_number = sys.argv[2]
 #    new_com_port = sys.argv[3]

@@ -166,7 +166,7 @@ def init_select_data(product):
 	return reduced_data_cha, reduced_data_core, reduced_data_others
 
 class ppv_report():
-	def __init__(self, name, week, label, source_file, report, data_core = None, data_cha = None, reduced = False, mcdetail = True, overview = False, decode = False, mode='Bucketer', product = None):
+	def __init__(self, name, week, label, source_file, report, data_core = None, data_cha = None, reduced = False, mcdetail = True, overview = False, decode = False, mode='Bucketer', product=None):
 
 		self.source_file = rf'{source_file}'
 		self.source_sheet = 'raw_data'
