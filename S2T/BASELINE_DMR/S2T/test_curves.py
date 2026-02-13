@@ -133,19 +133,25 @@ if __name__ == "__main__":
 	#print('IO: ', IO)
 
 	LICENSE = 'AMX'
-	CORE = 105
-	ATE_FREQ = 'F7'
+	CORE = 106
+	ATE_FREQ = 'F4'
 	IP = 'CFC'
-	DIE = 'CBO'
+	DIE = 'CBO10'
+	print_cfc = False
+	print_core = True
 
-	DATA = gtc.get_voltages_core(visual_id, core = CORE, ate_freq=ATE_FREQ,  hot=True, force=False)
-	DATA_MLC = gtc.get_voltages_mlc(visual_id, core = CORE, ate_freq=ATE_FREQ,  hot=True, force=False)
-	Value = gtc.filter_core_voltage(DATA, LICENSE, CORE, ATE_FREQ)
-	Value_MLC = gtc.filter_uncore_voltage(DATA_MLC, 'MLC', 'CBB0', ATE_FREQ)
+	if print_core:
+		DATA = gtc.get_voltages_core(visual_id, core = CORE, ate_freq=ATE_FREQ,  hot=True, force=False)
+		DATA_MLC = gtc.get_voltages_mlc(visual_id, core = CORE, ate_freq=ATE_FREQ,  hot=True, force=False)
+		Value = gtc.filter_core_voltage(DATA, LICENSE, CORE, ATE_FREQ)
+		Value_MLC = gtc.filter_uncore_voltage(DATA_MLC, 'MLC', 'CBB0', ATE_FREQ)
+		print(f'Voltage for {LICENSE} core {CORE} at {ATE_FREQ}: {Value} V')
+		print(f'Voltage for MLC {CORE} at {ATE_FREQ}: {Value_MLC} V')
 
-	#DATA = gtc.get_voltages_uncore(visual_id, ate_freq=ATE_FREQ, hot=True, force=False)
-	#Value = gtc.filter_uncore_voltage(DATA, IP, DIE, ATE_FREQ)
-	print(f'Voltage for {LICENSE} core {CORE} at {ATE_FREQ}: {Value} V')
-	print(f'Voltage for MLC {CORE} at {ATE_FREQ}: {Value_MLC} V')
+	if print_cfc:
+		DATA = gtc.get_voltages_uncore(visual_id, ate_freq=ATE_FREQ, hot=True, force=False)
+		Value = gtc.filter_uncore_voltage(DATA, IP, DIE, ATE_FREQ)
+		#print(f'Voltage for {LICENSE} core {CORE} at {ATE_FREQ}: {Value} V')
+		print(f'Voltage for {IP} {DIE} at {ATE_FREQ}: {Value} V')
 
 	#test_dump_functions()

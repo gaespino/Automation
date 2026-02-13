@@ -2639,9 +2639,9 @@ def modulesEnabled(moduleslicemask=None, logical=False, skip = False, print_modu
 			if print_modules:
 				for c in range(0, 4): headers.append(f'DCM{c}')  # Module columns
 
-			headers.append(f'TOP')  # Shaft/XBar columns
+			headers.append('TOP')  # Shaft/XBar columns
 			#headers.append(f'SHAFT')  # Shaft/XBar columns
-			headers.append(f'BASE')  # Shaft/XBar columns
+			headers.append('BASE')  # Shaft/XBar columns
 
 			if print_llcs:
 				for c in range(0, 4): headers.append(f'CL{c}')  # LLC columns
@@ -2726,14 +2726,14 @@ def modulesEnabled(moduleslicemask=None, logical=False, skip = False, print_modu
 				row_string = {'modules':[], 'xbar':[], 'llcs':[]}
 
 				if print_modules:
-					print(f'--- MODULES ENABLED VIEW ---')
+					print('--- MODULES ENABLED VIEW ---')
 					row_string['modules'] = _build_table_cbb(cbb, module_name= 'MOD', c0=0, c1=4, r0=0, r1=rows_num, cols=cols, mask=phy_module_dis_mask)
 
 				# Generate CrossBar and Shaft
 				row_string['xbar'] = _build_table_cbb(cbb, module_name= '', c0=4, c1=6, r0=0, r1=rows_num, cols=cols, mask=None)
 
 				if print_llcs:
-					print(f'--- LLCs ENABLED VIEW ---')
+					print('--- LLCs ENABLED VIEW ---')
 					row_string['llcs'] = _build_table_cbb(cbb, module_name= 'CBO', c0=6, c1=10, r0=0, r1=rows_num, cols=cols, mask=phy_llc_dis_mask)
 
 				# Merge the modules, xbar, and llcs data into complete rows in tile_cbss
@@ -2746,7 +2746,7 @@ def modulesEnabled(moduleslicemask=None, logical=False, skip = False, print_modu
 
 			if not logical:
 				bitstringlen = len(tile_cbss)*config.MAXLOGICAL
-				print(f'\n>>> CLASS Masking Bitstrings\n')
+				print('\n>>> CLASS Masking Bitstrings\n')
 				print(f'>>> CLASS {config.CORESTRING}s Mask Bitstring: 0b{bin(logicalStringCore)[2:].zfill(bitstringlen)}')
 				print(f'>>> CLASS LLCs Mask Bitstring:  0b{bin(logicalStringLLC)[2:].zfill(bitstringlen)}\n')
 

@@ -102,6 +102,7 @@ if cfl.DEV_MODE:
 	import Logger.logger as dpmlog
 	import Tools.portid2ip as p2ip
 	import Tools.requests_unit_info as reqinfo
+	import Tools.debugtools as debugtools
 
 else:
 	gcm = import_module(f'{BASE_PATH}.S2T.{LEGACY_NAMING}CoreManipulation')
@@ -109,6 +110,7 @@ else:
 	dpmlog = import_module(f'{BASE_PATH}.S2T.Logger.logger')
 	p2ip = import_module(f'{BASE_PATH}.S2T.Tools.portid2ip')
 	reqinfo = import_module(f'{BASE_PATH}.S2T.Tools.requests_unit_info')
+	debugtools = import_module(f'{BASE_PATH}.S2T.Tools.debugtools')
 
 
 ## Imports from THR folder - These are external scripts, always use same path
@@ -2332,11 +2334,11 @@ def fuses_vccin(types = ['io', 'compute'], domains = ['active', 'idle', 'safe'],
 
 # Reference Call to FuseOverride Class for VCCINF VBump arrays
 def fuses_vccinf( offset: float = 0,
-                 skip_init: bool = False,
-                 rgb_array: dict = {},
-                 target_socket: int | None = None,
-                 target_imhs: int | None = None,
-                 fixed_voltage: float | None = None) -> list:
+				 skip_init: bool = False,
+				 rgb_array: dict = {},
+				 target_socket: int | None = None,
+				 target_imhs: int | None = None,
+				 fixed_voltage: float | None = None) -> list:
 
 	if not skip_init: fuseRAM(refresh = True)
 
@@ -2350,14 +2352,14 @@ def fuses_vccinf( offset: float = 0,
 ## Below arrays uses the GNRFuseOverride script @ thr folder, adding them here for ease of use --
 # Reference Call to FuseOverride Class for CFC VBump arrays
 def fuses_cfc_vbumps(offset: float = 0,
-                     rgb_array: dict = {},
-                     skip_init: bool = False,
-                     target_socket: int | None = None,
-                     target_cbb: int | None = None,
-                     target_compute: int | None = None,
-                     target_core: int | None = None,
-                     fixed_voltage: float | None = None,
-                     ) -> list:
+					 rgb_array: dict = {},
+					 skip_init: bool = False,
+					 target_socket: int | None = None,
+					 target_cbb: int | None = None,
+					 target_compute: int | None = None,
+					 target_core: int | None = None,
+					 fixed_voltage: float | None = None,
+					 ) -> list:
 
 	if not skip_init: fuseRAM(refresh = True)
 	include_cbbs = True
@@ -2375,14 +2377,14 @@ def fuses_cfc_vbumps(offset: float = 0,
 
 # Reference Call to FuseOverride Class for CFCxIO VBump arrays
 def fuses_cfc_io_vbump_array(offset: float = 0,
-                     rgb_array: dict = {},
-                     skip_init: bool = False,
-                     target_socket: int | None = None,
-                     target_cbb: int | None = None,
-                     target_compute: int | None = None,
-                     target_core: int | None = None,
-                     fixed_voltage: float | None = None,
-                     ) -> list:
+					 rgb_array: dict = {},
+					 skip_init: bool = False,
+					 target_socket: int | None = None,
+					 target_cbb: int | None = None,
+					 target_compute: int | None = None,
+					 target_core: int | None = None,
+					 fixed_voltage: float | None = None,
+					 ) -> list:
 
 	if not skip_init: fuseRAM(refresh = True)
 	include_cbbs = False
@@ -2404,20 +2406,20 @@ def fuses_hdc_vbumps(offset = 0, rgb_array={}, point = None, skip_init=False, fi
 
 # Reference Call to FuseOverride Class for DDRD VBump arrays
 def fuses_ddrd_vbumps(offset: float = 0,
-                      skip_init: bool = False,
-                      rgb_array: dict = {},
-                      target_socket: int| None = None,
-                      target_imhs: int | None = None,
-                      fixed_voltage: float | None = None) -> list:
+					  skip_init: bool = False,
+					  rgb_array: dict = {},
+					  target_socket: int| None = None,
+					  target_imhs: int | None = None,
+					  fixed_voltage: float | None = None) -> list:
 
 	if not skip_init: fuseRAM(refresh = True)
 	#computes = len(sv.socket0.computes)
 	dpmarray = []
 	dpmarray = f.ddrd_vbump_array(offset = offset,
-                               rgb_array= rgb_array,
-                               target_socket = target_socket,
-                               target_imhs = target_imhs,
-                               fixed_voltage = fixed_voltage)
+							   rgb_array= rgb_array,
+							   target_socket = target_socket,
+							   target_imhs = target_imhs,
+							   fixed_voltage = fixed_voltage)
 	return dpmarray
 
 # This function is not implemented for DMR yet
@@ -2426,45 +2428,45 @@ def fuses_ddra_vbumps(offset = 0, rgb_array={}, point = None, skip_init=False, f
 
 # Reference Call to FuseOverride Class for IA VBump arrays
 def fuses_ia_vbumps(offset: float = 0,
-                    rgb_array: dict = {},
-                    skip_init: bool = False,
-                    fixed_voltage: float | None = None,
-                    target_socket: int | None = None,
-                    target_cbb: int | None = None,
-                    target_compute: int | None = None,
-                    target_core: int | None = None ) -> list:
+					rgb_array: dict = {},
+					skip_init: bool = False,
+					fixed_voltage: float | None = None,
+					target_socket: int | None = None,
+					target_cbb: int | None = None,
+					target_compute: int | None = None,
+					target_core: int | None = None ) -> list:
 
 	if not skip_init: fuseRAM(refresh = True)
 	dpmarray = []
 	dpmarray = f.ia_vbump_array(offset=offset,
-                             rgb_array=rgb_array,
-                             target_socket=target_socket,
-                             target_cbb=target_cbb,
-                             target_compute=target_compute,
-                             target_core=target_core,
-                             fixed_voltage=fixed_voltage)
+							 rgb_array=rgb_array,
+							 target_socket=target_socket,
+							 target_cbb=target_cbb,
+							 target_compute=target_compute,
+							 target_core=target_core,
+							 fixed_voltage=fixed_voltage)
 	return dpmarray
 
 # Reference Call to FuseOverride Class for MLC VBump arrays
 def fuses_mlc_vbumps(offset: float = 0,
-                    rgb_array: dict = {},
-                    skip_init: bool = True,
-                    fixed_voltage: float | None = None,
-                    target_socket: int | None = None,
-                    target_cbb: int | None = None,
-                    target_compute: int | None = None,
-                    target_core: int | None = None,
-                    fix=True) -> list:
+					rgb_array: dict = {},
+					skip_init: bool = True,
+					fixed_voltage: float | None = None,
+					target_socket: int | None = None,
+					target_cbb: int | None = None,
+					target_compute: int | None = None,
+					target_core: int | None = None,
+					fix=True) -> list:
 	# Note fix is now applied into the DMRFuseOverride class by default
 	if not skip_init: fuseRAM(refresh = True)
 	dpmarray = []
 	dpmarray = f.mlc_vbump_array(offset=offset,
-                             rgb_array=rgb_array,
-                             target_socket=target_socket,
-                             target_cbb=target_cbb,
-                             target_compute=target_compute,
-                             target_core=target_core,
-                             fixed_voltage=fixed_voltage)
+							 rgb_array=rgb_array,
+							 target_socket=target_socket,
+							 target_cbb=target_cbb,
+							 target_compute=target_compute,
+							 target_core=target_core,
+							 fixed_voltage=fixed_voltage)
 	return dpmarray
 
 
@@ -2514,6 +2516,20 @@ def ipc_powerdowns():
 	ipc.cv.machinecheckbreak=1
 	ipc.cv.shutdownbreak=1
 	ipc.go()
+
+
+########################################################################################################################################################################
+##
+## 													MDT Tools Interface -- Status Scope -- Including Per Product on Demand
+##
+########################################################################################################################################################################
+
+def mdt_tools():
+	return debugtools.MDT_Tools()
+
+def tor_dump(destination_path=None, visual_id=None):
+	dtools = debugtools.MDT_Tools(components='ccf')
+	dtools.dpm_tor_dump(destination_path, visual_id)
 
 ########################################################################################################################################################################
 ##

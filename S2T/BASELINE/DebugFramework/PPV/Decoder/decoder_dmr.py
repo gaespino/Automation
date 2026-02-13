@@ -368,7 +368,7 @@ class decoder_dmr():
 		BigCore (PNC) with one thread per core
 		"""
 		mcdata = self.data
-		columns = ['VisualID', 'Run', 'Operation', 'Core_MC', 'Compute', 'Core',
+		columns = ['VisualID', 'Run', 'Operation', 'Core_MC', 'CBB', 'Compute', 'Module', 'Core',
 		           'Bank', 'MC_STATUS', 'MC DECODE', 'MC_ADDR', 'MC_MISC']
 
 		data_dict = {k:[] for k in columns}
@@ -426,8 +426,10 @@ class decoder_dmr():
 					data_dict['Run'] += [run]
 					data_dict['Operation'] += [str(operation)]
 					data_dict['Core_MC'] += [data['TestName']]
-					data_dict['Compute'] += [f'CBB{cbb}_COMPUTE{compute}']
+					data_dict['CBB'] += [f'CBB{cbb}']
+					data_dict['Compute'] += [f'COMPUTE{compute}']
 					data_dict['Core'] += [f'CORE{core}']
+					data_dict['Module'] += [f'MODULE{module}']
 					data_dict['Bank'] += [f'{bank_name} (Bank {bank_id})']
 					data_dict['MC_STATUS'] += [mc_value]
 					data_dict['MC_ADDR'] += [addr_value]

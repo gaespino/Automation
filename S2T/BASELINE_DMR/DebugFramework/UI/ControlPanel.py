@@ -187,18 +187,20 @@ class EditExperimentWindow(tk.Toplevel):
 		# Initialize all possible fields with default values if they don't exist
 		self._initialize_missing_fields()
 
+		# CRITICAL: Exclude External Mask - it's managed by main control panel only
 		self.input_vars = {
 			key: tk.StringVar(value=str(value) if value is not None else '')
 			for key, value in self.data.items()
+			if key != 'External Mask'  # External Mask is NOT editable in edit window
 		}
-		
+
 		# Now that input_vars exist, populate MASK_OPTIONS based on current Test Mode
 		self.MASK_OPTIONS = self._get_field_options('Configuration (Mask)')
 		print(f"[EDIT WINDOW INIT] Initial MASK_OPTIONS based on Test Mode '{self.data.get('Test Mode', '')}': {self.MASK_OPTIONS}")
 
 		if 'Type' in self.input_vars:
 			self.input_vars['Type'].trace('w', self.on_type_change)
-		
+
 		# Bind Test Mode changes to update Configuration (Mask) field
 		if 'Test Mode' in self.input_vars:
 			self.input_vars['Test Mode'].trace('w', self.on_test_mode_change)
@@ -389,13 +391,33 @@ class EditExperimentWindow(tk.Toplevel):
 			field_types = self.data_types[field]
 			converted_value = None
 
+			# Check if field has conditional type based on context (e.g., Configuration (Mask))
+			field_config = self.field_configs.get(field, {})
+			if 'conditional_options' in field_config:
+				# Get dynamic type from config
+				dynamic_type = self._get_field_type_from_config(field, current_values)
+				if dynamic_type and value_str and value_str.strip() != '' and value_str != 'None':
+					try:
+						if dynamic_type == 'int':
+							converted_value = int(float(value_str))
+						elif dynamic_type == 'float':
+							converted_value = float(value_str)
+						elif dynamic_type == 'bool':
+							converted_value = value_str.lower() in ['true', '1', 'yes', 'on']
+						else:  # str or unknown
+							converted_value = str(value_str).strip()
+					except (ValueError, TypeError):
+						# Fallback to string if conversion fails
+						converted_value = str(value_str).strip()
+     
 			# Handle empty/None values
-			if not value_str or value_str.strip() == '' or value_str == 'None':
+			if converted_value is None and (not value_str or value_str.strip() == '' or value_str == 'None'):
 				if field in self.mandatory_fields:
 					converted_value = self.data.get(field, '')  # Keep original if mandatory
 				else:
 					converted_value = None
-			else:
+
+			elif converted_value is None:
 				# Try to convert to appropriate type
 				for field_type in field_types:
 					try:
@@ -488,7 +510,7 @@ class EditExperimentWindow(tk.Toplevel):
 		self.config_template = config_data
 		self.field_configs = config_data.get('field_configs', {})
 		self.field_enable_config = config_data.get('field_enable_config', {})
-		self.config_product = config_data.get('PRODUCT', 'GNR')
+		self.config_product = config_data.get('PRODUCT', 'DMR')
 		print(f"[EDIT WINDOW] Config loaded successfully. PRODUCT from config: '{self.config_product}', current_product: '{self.current_product}'")
 
 		# Build data_types from field_configs for backward compatibility
@@ -608,29 +630,71 @@ class EditExperimentWindow(tk.Toplevel):
 		"""Get options for a field from field_configs"""
 		if field_name not in self.field_configs:
 			return []
-		
+
 		field_config = self.field_configs[field_name]
-		
+
 		# Check for conditional_options (e.g., Configuration (Mask) depends on Test Mode)
 		if 'conditional_options' in field_config:
 			conditional = field_config['conditional_options']
 			dependent_field = conditional.get('field')
-			
+
 			if dependent_field:
 				# Get current value of the dependent field
 				current_value = self.data.get(dependent_field, '')
-				
+
 				# If dependent field is in input_vars, get the current UI value
 				if hasattr(self, 'input_vars') and dependent_field in self.input_vars:
 					current_value = self.input_vars[dependent_field].get()
-				
+
 				# Get options for the current value
 				if current_value in conditional:
 					option_config = conditional[current_value]
+
+					# Handle range-based options (e.g., numeric ranges per product)
+					if 'range' in option_config:
+						option_range = option_config['range']
+						if self.config_product in option_range:
+							start, end = option_range[self.config_product]
+							return list(range(start, end + 1))
+						# Fallback if product not found in range config
+						return []
 					return option_config.get('options', [])
-		
+
 		# Fall back to regular options
 		return field_config.get('options', [])
+
+	def _get_field_type_from_config(self, field_name, context_values=None):
+		"""Get the field type dynamically from config, considering conditional contexts
+
+		Args:
+			field_name: Name of the field
+			context_values: Dict of field values to use for resolving conditional types
+
+		Returns:
+			String type name ('int', 'str', 'float', 'bool') or None
+		"""
+		if field_name not in self.field_configs:
+			return None
+
+		field_config = self.field_configs[field_name]
+
+		# Check if field has conditional options with type info
+		if 'conditional_options' in field_config:
+			conditional = field_config['conditional_options']
+			dependent_field = conditional.get('field')
+
+			if dependent_field and context_values:
+				# Get the current value of the dependent field
+				current_value = context_values.get(dependent_field, '')
+
+				# Check if this value has a type specified
+				if current_value in conditional:
+					option_config = conditional[current_value]
+					if 'type' in option_config:
+						return option_config['type']
+
+		# Fall back to regular type
+		return field_config.get('type', 'str')
 
 	def _build_field_groups_from_sections(self):
 		"""Build FIELD_GROUPS structure from field_configs sections"""
@@ -905,27 +969,27 @@ class EditExperimentWindow(tk.Toplevel):
 		if 'Configuration (Mask)' in self.widgets:
 			# Update MASK_OPTIONS based on current Test Mode
 			self.MASK_OPTIONS = self._get_field_options('Configuration (Mask)')
-			
+
 			# Update the combobox widget with new options
 			for label, widget, indicator in self.widgets['Configuration (Mask)']:
 				if isinstance(widget, ttk.Combobox):
 					current_value = self.input_vars['Configuration (Mask)'].get()
 					widget['values'] = self.MASK_OPTIONS
-					
+
 					# Clear the field if the current value is not in the new options
 					if current_value and current_value not in self.MASK_OPTIONS and self.MASK_OPTIONS:
 						self.input_vars['Configuration (Mask)'].set('')
-						
+
 					# Set to first option if empty and options are available
 					if not current_value and self.MASK_OPTIONS:
 						self.input_vars['Configuration (Mask)'].set(self.MASK_OPTIONS[0] if self.MASK_OPTIONS[0] != '' else '')
-						
+
 					print(f"[TEST MODE CHANGE] Updated Configuration (Mask) options: {self.MASK_OPTIONS}")
 					break
-		
+
 		# Validate the field with new options
 		self.validate_field('Configuration (Mask)')
-	
+
 	def on_test_type_change(self, *args):
 		"""Handle test type change to show/hide relevant fields"""
 		self.refresh_all_tabs()
@@ -1037,8 +1101,35 @@ class EditExperimentWindow(tk.Toplevel):
 			elif value and value != 'None':
 				field_types = self.data_types.get(field, [str])
 
+				# Check if field has conditional type validation (e.g., Configuration (Mask))
+				field_config = self.field_configs.get(field, {})
+				if 'conditional_options' in field_config:
+					# Get current values for context
+					context_values = {k: v.get() for k, v in self.input_vars.items()}
+					dynamic_type = self._get_field_type_from_config(field, context_values)
+
+					if dynamic_type:
+						try:
+							if dynamic_type == 'int':
+								int_val = int(float(value))
+								if int_val < 0:
+									is_valid = False
+									error_message = "Must be non-negative"
+							elif dynamic_type == 'float':
+								float(value)  # Just validate it's a float
+							elif dynamic_type == 'str':
+								if not value.strip():
+									is_valid = False
+									error_message = "Cannot be empty"
+						except ValueError:
+							is_valid = False
+							type_name = {'int': 'integer', 'float': 'number', 'str': 'string'}.get(dynamic_type, dynamic_type)
+							dependent_field = field_config.get('conditional_options', {}).get('field', '')
+							dependent_value = context_values.get(dependent_field, '')
+							error_message = f"Must be a valid {type_name} for {dependent_field}={dependent_value}"
+
 				# Context-aware validation for Start, End, Steps based on Type field
-				if field in ['Start', 'End', 'Steps']:
+				elif field in ['Start', 'End', 'Steps']:
 					type_value = self.input_vars.get('Type', tk.StringVar()).get()
 					is_valid, error_message = self._validate_numeric_field_by_type(field, value, type_value)
 
@@ -2235,6 +2326,10 @@ class EditExperimentWindow(tk.Toplevel):
 			current_values = self.get_values()
 			updated_data = self._convert_values_to_proper_types(current_values)
 
+			# CRITICAL: Preserve External Mask - it's managed by main control panel only
+			if 'External Mask' in self.data:
+				updated_data['External Mask'] = self.data['External Mask']
+
 			# Find experiment name for logging
 			experiment_name = updated_data.get('Test Name', self.data.get('Test Name', 'Unknown'))
 
@@ -2395,9 +2490,9 @@ class DebugFrameworkControlPanel:
 				print(f"[CONTROL PANEL] Product from FrameworkUtils: {self.product}")
 			except Exception as e:
 				print(f"[CONTROL PANEL] Failed to get product from utils: {e}")
-				self.product = 'GNR'  # Default to GNR if call fails
+				self.product = 'DMR'  # Default to DMR if call fails
 		else:
-			self.product = 'GNR'  # Default to GNR if no Framework
+			self.product = 'DMR'  # Default to DMR if no Framework
 
 		# Log Framework and Product status
 		framework_status = "loaded" if Framework else "NOT loaded"

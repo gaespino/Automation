@@ -1,6 +1,6 @@
 ## GNR Set Tester Registers
-revision = 2.0
-date = '15/01/2026'
+revision = 2.01
+date = '12/02/2026'
 engineer ='gaespino'
 ##
 ## Version: 2.0
@@ -315,10 +315,10 @@ def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_m
 	s2tTest.u600w = apply_600w
 	s2tTest.fastboot = False if s2tTest.u600w == True else fastboot
 
-	# Set quickconfig variables
+	# Set External Variable for quick configuration
 	s2tTest.quick()
-	s2tTest.qvbumps_core = vbump_core
-	s2tTest.qvbumps_mesh = vbump_mesh
+	#s2tTest.qvbumps_core = vbump_core
+	#s2tTest.qvbumps_mesh = vbump_mesh
 
 	# Init System
 	s2tTest.mesh_init()
@@ -436,7 +436,7 @@ def SliceQuickTest(Target_core = None, core_freq = None, mesh_freq = None, vbump
 	s2tTest.fastboot =  False if s2tTest.u600w == True else fastboot
 	s2tTest.external_fusefile = external_fusefile # List of fuses to be included
 
-	# Set quickconfig variables
+	# Set External Variable for quick configuration
 	s2tTest.quick()
 
 
@@ -742,8 +742,7 @@ class S2TFlow():
 
 	## Quick Defeature Tool Init
 	def quick(self):
-		self.qvbumps_core = None
-		self.qvbumps_mesh = None
+
 		self.external = True
 
 	def init_managers(self):
@@ -777,7 +776,10 @@ class S2TFlow():
 		self.voltage_mgr.use_ate_volt = self.use_ate_volt
 
 		# Set external voltage variables
-		self.quick()
+		self.qvbumps_core = None
+		self.qvbumps_mesh = None
+		self.external = False
+		#self.quick(defaults=True)
 
 	#========================================================================================================#
 	#=============== INITIALIZATION AND FLOW CONTROL =======================================================#
@@ -1341,6 +1343,7 @@ class S2TFlow():
 					mode = 'slice',
 					core_string = self.core_string,
 					ate_freq=ate_freq,
+					flowid=self.flowid,
 				)
 
 				# Sync frequencies from manager
@@ -1646,6 +1649,7 @@ class S2TFlow():
 					mode = 'mesh',
 					core_string = self.core_string,
 					ate_freq=ate_freq,
+					flowid=self.flowid,
 				)
 
 				# Sync frequencies from manager
@@ -1742,7 +1746,7 @@ class S2TFlow():
 				except:
 					pass
 				print(f'--> System 2 Tester Configured in ATE Mode: {ate_config.upper()}')
-				self.target = ate_config
+				self.target = ate_config.lower()
 
 		# Need to check how to user input a list
 		elif self.targetTile == 2:

@@ -48,8 +48,8 @@ class teraterm():
 		#self.ttpath = ttpath
 		self.cmds = cmds
 		#print(cmds)
-		self.ttendw = PassString ## Test Succes Word
-		self.ttendfail = FailString ## Test FAIL Word
+		self.ttendw = [s.strip() for s in PassString.split(",")] #PassString ## Test Succes Word
+		self.ttendfail = [s.strip() for s in FailString.split(",")] #FailString ## Test FAIL Word
 		self.test = test # This will change the variable to be used
 		self.testtime = ttime
 		self.tnum = tnum
@@ -152,7 +152,7 @@ class teraterm():
 				mce = self.mca_checker()
 				if mce:
 					return False
-				if self.search_in_file(lines=total_lines, string=[self.ttendfail], casesens=False, search_up_to_line=10, reverse=True):
+				if self.search_in_file(lines=total_lines, string=self.ttendfail, casesens=False, search_up_to_line=10, reverse=True):
 					return False
 
 			if r'fs1:\efi\>' in current_last_line.lower() and numlines >= 2:
@@ -160,12 +160,12 @@ class teraterm():
 				self.DebugLog(f'Last line {-1} --times:{endcount} --> {previousline}', 1)
 				endcount += 1
 				mce = False
-				
-				if self.ttendw.lower() in previousline.lower() and endcount > 5:
+
+				if any(pass_str.lower() in previousline.lower() for pass_str in self.ttendw) and endcount > 5:
 					self.DebugLog("Test Finished Succesfully")
 					return True
 
-				if self.ttendfail.lower() in previousline.lower():
+				if any(fail_str.lower() in previousline.lower() for fail_str in self.ttendfail):
 					self.DebugLog("Test Failed -- Errors detected")
 					return False
 
@@ -175,12 +175,12 @@ class teraterm():
 				if mce:
 					self.DebugLog("MCE Founds -- Ending Test")
 					return False
-				
-				if self.search_in_file(lines=total_lines, string=[self.ttendfail], casesens=False, search_up_to_line=10, reverse=True):
+
+				if self.search_in_file(lines=total_lines, string=self.ttendfail, casesens=False, search_up_to_line=10, reverse=True):
 					self.DebugLog("Test Failed -- Errors detected")
 					return False
-									
-				if self.search_in_file(lines=total_lines, string=[self.ttendw], casesens=False, search_up_to_line=10, reverse=True):
+
+				if self.search_in_file(lines=total_lines, string=self.ttendw, casesens=False, search_up_to_line=10, reverse=True):
 					self.DebugLog("Test Finished Succesfully")
 					return True
 		 
@@ -191,13 +191,13 @@ class teraterm():
 				#        return False
 			else:
 				endcount = 0
-			
-			if self.ttendfail.lower() in current_last_line.lower():
+
+			if any(fail_str.lower() in current_last_line.lower() for fail_str in self.ttendfail):
 				self.DebugLog("Test Failed -- Errors detected")
 				return False
 				#break
 
-			if self.ttendw in current_last_line:
+			if any(pass_str.lower() in current_last_line.lower() for pass_str in self.ttendw):
 				# Last MCE Check before passing test
 				mce = self.mca_checker()
 				if mce:
@@ -251,7 +251,7 @@ class teraterm():
 				mce = self.mca_checker()
 				if mce:
 					return False
-				if self.search_in_file(lines=total_lines, string=[self.ttendfail], casesens=False, search_up_to_line=10, reverse=True):
+				if self.search_in_file(lines=total_lines, string=self.ttendfail, casesens=False, search_up_to_line=10, reverse=True):
 					return False
 				if unchanged_checks >= 20:
 					print(f'Console looks stuck -- ignore if running TSL -- No Changes Count: {unchanged_checks}')#return False
@@ -267,7 +267,7 @@ class teraterm():
 				endcount += 1
 				mce = False
 
-				if self.ttendw in previousline and endcount > 5:
+				if any(pass_str.lower() in previousline.lower() for pass_str in self.ttendw) and endcount > 5:
 					self.DebugLog("Test Finished Succesfully")
 					return True
 				
@@ -278,12 +278,12 @@ class teraterm():
 				if mce:
 					self.DebugLog("MCE Founds -- Ending Test")
 					return False
-				
-				if self.search_in_file(lines=total_lines, string=[self.ttendfail], casesens=False, search_up_to_line=10, reverse=True):
+
+				if self.search_in_file(lines=total_lines, string=self.ttendfail, casesens=False, search_up_to_line=10, reverse=True):
 					self.DebugLog("Test Failed -- Errors detected")
 					return False
-				
-				if self.search_in_file(lines=total_lines, string=[self.ttendw], casesens=False, search_up_to_line=10, reverse=True):
+
+				if self.search_in_file(lines=total_lines, string=self.ttendw, casesens=False, search_up_to_line=10, reverse=True):
 					self.DebugLog("Test Finished Succesfully")
 					return True
 				
@@ -294,7 +294,12 @@ class teraterm():
 			else:
 				endcount = 0
 
-			if self.ttendw in current_last_line:
+			if any(fail_str.lower() in current_last_line.lower() for fail_str in self.ttendfail):
+				self.DebugLog("Test Failed -- Errors detected")
+				return False
+				#break
+
+			if any(pass_str.lower() in current_last_line.lower() for pass_str in self.ttendw):
 				# Last MCE Check before passing test
 				mce = self.mca_checker()
 				if mce:

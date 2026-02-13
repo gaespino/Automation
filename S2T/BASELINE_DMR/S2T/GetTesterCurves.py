@@ -142,6 +142,7 @@ def set_variables(product, config):
 	global max_mlc_volt_per_cbb
 	global All_Safe_RST_PKG
 	global All_Safe_RST_CDIE
+	global All_Safe_CBB
 	global CORESTRING
 	global CORETYPES
 	global MAXLOGICAL
@@ -195,8 +196,8 @@ def set_variables(product, config):
 	}
 	'''
 	#FivrCondition	All_Safe_RST_CDie
-	All_Safe_RST_CDIE = DFF_VARS['All_Safe_CBB']
-
+	All_Safe_RST_CDIE = DFF_VARS['All_Safe_CBB'] # Legacy
+	All_Safe_CBB = DFF_VARS['All_Safe_CBB']
 	'''{# Safe Voltages
 		'VCORE_RST':0.85,
 		'VHDC_RST':0.90,
@@ -327,10 +328,12 @@ def get_voltages_mlc(visual, core = 0, ate_freq='F1',  hot=True, force=False):
 	phy2log = physical2ClassLogical
 	compute = int(core/MAXPHYSICAL)
 	coreLOG = phy2log[core%MAXPHYSICAL] + MAXLOGICAL*compute
-	print(f' -- DFF data for physical {CORESTRING}{core} -- ATE {CORESTRING} {coreLOG} (This one is the number shown in below table)')
+	CBB = int((core) / MAXPHYSICAL)
+	print(f' -- DFF data for physical {CORESTRING}{core} -- ATE CBB {CBB}::{CORESTRING}::{coreLOG} (This one is the number shown in below table)')
 	data, printdata = dump_core_curves(visual=visual, core = coreLOG, hot=hot, s2tcollect = True, force=force)
-	filtered_data = [row for row in printdata if (row[1] == ate_freq or row[1] == "CRVE") and row[2] == "MLC"]
-	print(tabulate(filtered_data, headers="firstrow", tablefmt="grid"))
+	header = [H.replace(CORESTRING, 'CBB').replace('LIC', 'IP') for H in printdata[0]]
+	filtered_data = [row for row in printdata if (row[1] == ate_freq) and row[2] == "MLC"]
+	print(tabulate(filtered_data, headers=header, tablefmt="grid"))
 	return data
 
 

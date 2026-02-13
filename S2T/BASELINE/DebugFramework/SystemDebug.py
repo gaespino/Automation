@@ -2695,6 +2695,12 @@ class Framework:
 					config_updates['corelic'] = int(value.split(":")[0])
 				elif recipe_key == 'Test Mode' and value:
 					config_updates['target'] = value.lower()
+				elif recipe_key == 'Content' and value == ContentType.PYSVCONSOLE.value:
+					conf_breakpoint = data.get('Boot Breakpoint', None)
+					print(f"Content is {value}, checking Boot Breakpoint: {conf_breakpoint}")
+					if conf_breakpoint:
+						config_updates['content'] = ContentType.BOOTBREAKS.value
+						print(f"Boot Breakpoint found, setting content to {config_updates['content']}")
 				else:
 					config_updates[config_key] = value
 
@@ -2745,6 +2751,19 @@ class Framework:
 					value = VoltageType(value)
 				debug_log(f"Configuration Updates: {key} -> {value}", 1, "CONFIGURATION")
 				setattr(self.config, key, value)
+
+	def update_s2t_configuration(self, config_data: dict):
+		"""Update S2T configuration"""
+		# Updates the PostCode Break from the recipe data if exists
+		print(f"Checking for postcode_break in config_data: {config_data}")
+		if ('postcode_break' in config_data) and (config_data['postcode_break'] is not None):
+			print(f"Updating S2T configuration with postcode_break: {config_data['postcode_break']}")
+			try:
+				if isinstance(config_data['postcode_break'], str):
+					config_data['postcode_break'] = int(config_data['postcode_break'].strip(), 16)  # Remove any whitespace and convert to int
+				self.s2t_config.BOOT_STOP_POSTCODE = config_data['postcode_break']
+			except ValueError:
+				print(f"Invalid postcode_break value: {config_data['postcode_break']}")
 
 	# ==================== END SUMMARY METHODS ==================
 
@@ -3093,6 +3112,7 @@ class Framework:
 			config_updates['extMask'] = extmask
 
 		self.update_configuration(**config_updates)
+		self.update_s2t_configuration(config_updates)
 
 		self.flow_type = self._get_current_flow_type()
 

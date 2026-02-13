@@ -1,6 +1,6 @@
 ## GNR Set Tester Registers
-revision = 2.0
-date = '15/01/2026'
+revision = 2.1
+date = '12/02/2026'
 engineer ='gaespino'
 ##
 ## Version: 2.0
@@ -315,10 +315,10 @@ def MeshQuickTest(core_freq = None, mesh_freq = None, vbump_core = None, vbump_m
 	s2tTest.u600w = apply_600w
 	s2tTest.fastboot = False if s2tTest.u600w == True else fastboot
 
-	# Set quickconfig variables
+	# Set External Variable for quick configuration
 	s2tTest.quick()
-	s2tTest.qvbumps_core = vbump_core
-	s2tTest.qvbumps_mesh = vbump_mesh
+	#s2tTest.qvbumps_core = vbump_core
+	#s2tTest.qvbumps_mesh = vbump_mesh
 
 	# Init System
 	s2tTest.mesh_init()
@@ -436,7 +436,7 @@ def SliceQuickTest(Target_core = None, core_freq = None, mesh_freq = None, vbump
 	s2tTest.fastboot =  False if s2tTest.u600w == True else fastboot
 	s2tTest.external_fusefile = external_fusefile # List of fuses to be included
 
-	# Set quickconfig variables
+	# Set External Variable for quick configuration
 	s2tTest.quick()
 
 
@@ -742,8 +742,7 @@ class S2TFlow():
 
 	## Quick Defeature Tool Init
 	def quick(self):
-		self.qvbumps_core = None
-		self.qvbumps_mesh = None
+
 		self.external = True
 
 	def init_managers(self):
@@ -777,7 +776,10 @@ class S2TFlow():
 		self.voltage_mgr.use_ate_volt = self.use_ate_volt
 
 		# Set external voltage variables
-		self.quick()
+		self.qvbumps_core = None
+		self.qvbumps_mesh = None
+		self.external = False
+		#self.quick(defaults=True)
 
 	#========================================================================================================#
 	#=============== INITIALIZATION AND FLOW CONTROL =======================================================#
@@ -1350,6 +1352,7 @@ class S2TFlow():
 					mode = 'slice',
 					core_string = self.core_string,
 					ate_freq=ate_freq,
+					flowid=self.flowid,
 				)
 
 				# Sync frequencies from manager
@@ -1464,6 +1467,7 @@ class S2TFlow():
 									   boot=True, ht_dis=False, dis_2CPM = self.dis_2CPM,
 									   dis_1CPM = self.dis_1CPM,fresh_state= False,
 									   fastboot = self.fastboot, ppvc_fuses=self.volt_config,
+									   clusterCheck=self.clusterCheck,
 									   external_fuses = self.external_fuses,
 									   execution_state = self.execution_state)
 
@@ -1654,6 +1658,7 @@ class S2TFlow():
 					mode = 'mesh',
 					core_string = self.core_string,
 					ate_freq=ate_freq,
+					flowid=self.flowid,
 				)
 
 				# Sync frequencies from manager
@@ -1921,6 +1926,7 @@ class S2TFlow():
 						   				ht_dis=self.dis_ht, dis_2CPM=self.dis_2CPM,
 										dis_1CPM=self.dis_1CPM, fresh_state=False, readFuse=True,
 										fastboot=self.fastboot, ppvc_fuses=self.volt_config,
+										clusterCheck=self.clusterCheck,
 										external_fuses = self.external_fuses,
 										execution_state=self.execution_state)
 
@@ -2364,24 +2370,35 @@ def set_tester(
 		return
 
 	if (core_ratio != None):
-		if(core_ratio == 0):
-			core_ratio=CoreDebugUtils.read_core_p1()
 		print (f"Setting flat IA Ratio to {core_ratio}")
+		if(core_ratio == 0):
+			print("Reading Core Ratio from core p1")
+			core_ratio=CoreDebugUtils.read_core_p1()
+
 		CoreDebugUtils.set_core_freq(core_ratio)
 	if (mesh_ratio != None):
-		if (mesh_ratio == 0 ):
-			mesh_ratio = CoreDebugUtils.read_uncore_p1()
 		print (f"Setting flat IA Ratio to {mesh_ratio}")
+		if (mesh_ratio == 0 ):
+			print("Reading Mesh Ratio from uncore p1")
+			mesh_ratio = CoreDebugUtils.read_uncore_p1()
+
 		CoreDebugUtils.set_mesh_freq(mesh_ratio)
 
 	## DCF Ratio is not available for AtomCores
-	if (dcf_ratio != None and product in dcf_allowed): CoreDebugUtils.dcf_set_ratio(dcf_ratio=dcf_ratio)
+	if (dcf_ratio != None and product in dcf_allowed):
+		print(f"Setting DCF Ratio to {dcf_ratio}")
+		CoreDebugUtils.dcf_set_ratio(dcf_ratio=dcf_ratio)
+
 	if (all_crs): crarray = _s2t_reg ##_slice_crs_all ## Nothing here, might want to check defaulting to _s2t_reg dict
 	if (sbft_type == "MESH" and mlcways):
+		print("Setting MLC Waymask for Mesh Tester Configuration")
 		CoreDebugUtils.set_mlc_waymask(mesh_tester = True )
+
 	# Check if there is any register to set if not just dont go here
 	#if cr_array_end != cr_array_start:
-	if (cr_array_start < 0xffff): _set_crs(crarray, cr_array_start, cr_array_end, skip_index_array, clear_ucode,  halt_pcu, skip_wbinvd, SVrefresh = False)
+	if (cr_array_start < 0xffff):
+		print(f"Setting CRs for {sbft_type} configuration, from index {cr_array_start} to {cr_array_end}, skipping indexes: {skip_index_array}")
+		_set_crs(crarray, cr_array_start, cr_array_end, skip_index_array, clear_ucode,  halt_pcu, skip_wbinvd, SVrefresh = False)
 	else: print (" Skipping Registers Configuration...")
 	if (license_level != None and product in lic_allowed):
 		print (f"Setting AVX license : {license_level}")

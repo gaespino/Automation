@@ -1452,16 +1452,21 @@ class UniversalDeploymentGUI:
     def should_include_file(self, rel_path: Path) -> bool:
         """Check if file should be included based on product selection."""
         product = self.product.get()
-        path_str = str(rel_path).lower()
         path_parts = [p.upper() for p in rel_path.parts]
-
-        # Check if path contains product-specific folders
-        has_product_folder = any(folder.lower() in path_str for folder in PRODUCT_SPECIFIC_FOLDERS)
+        
+        # Get just the directory parts (excluding the filename)
+        dir_parts = [p.lower() for p in rel_path.parts[:-1]]
+        
+        # Check if any directory part (not filename) contains product-specific folders
+        has_product_folder = any(
+            folder.lower() in dir_parts 
+            for folder in PRODUCT_SPECIFIC_FOLDERS
+        )
 
         if has_product_folder:
             # If it's in a product-specific folder, only include if it matches current product
             # or if it's in the generic product_specific folder with product name in path
-            if 'product_specific' in path_str:
+            if 'product_specific' in dir_parts:
                 # Check if any part of the path matches the product
                 return product in path_parts
             else:
@@ -1502,15 +1507,25 @@ class UniversalDeploymentGUI:
             messagebox.showerror("Error", f"Source path does not exist:\n{scan_base}")
             return
 
-        # Scan Python and JSON files
+        # Scan source files - Python, config files, and data files
         skipped_count = 0
         manifest_excluded = 0
+        total_files_seen = 0
+        
+        # Define scannable extensions
+        scannable_extensions = (
+            '.py', '.json', '.ttl', '.ini',  # Original extensions
+            '.xlsx', '.csv', '.md', '.txt',   # Data and documentation
+            '.xml', '.yaml', '.yml', '.cfg'   # Additional config formats
+        )
+        
         for root_dir, dirs, files in os.walk(scan_base):
             # Filter out system directories
             dirs[:] = [d for d in dirs if d not in ['__pycache__', '.vscode', '.git', '.pytest_cache']]
 
             for file in files:
-                if file.endswith(('.py', '.json', '.ttl', '.ini')) and not file.startswith('__'):
+                total_files_seen += 1
+                if file.endswith(scannable_extensions) and not file.startswith('__'):
                     source_path = Path(root_dir) / file
                     rel_path = source_path.relative_to(scan_base)
 
@@ -1519,18 +1534,23 @@ class UniversalDeploymentGUI:
                         should_include_manifest, reason = self.deployment_manifest.should_include_file(str(rel_path))
                         if not should_include_manifest:
                             manifest_excluded += 1
+                            # Uncomment for debugging:
+                            # print(f"Manifest excluded: {rel_path} - {reason}")
                             continue
 
                     # Check if file should be included based on product
                     if not self.should_include_file(rel_path):
                         skipped_count += 1
+                        # Uncomment for debugging:
+                        # print(f"Product filtered: {rel_path}")
                         continue
 
                     # Check if file should be renamed
                     new_rel_path, will_update_imports = self.file_renamer.get_new_path(str(rel_path))
                     target_path = self.target_base / new_rel_path
 
-                    # Compare with import replacement
+                    # Compare with import replacement (only for Python files)
+                    # For non-Python files, still do comparison but without import replacement
                     comparison = FileComparer.compare_files(
                         source_path,
                         target_path,
@@ -1551,6 +1571,8 @@ class UniversalDeploymentGUI:
             status_msg += f" (manifest excluded {manifest_excluded})"
         if skipped_count > 0:
             status_msg += f" (product filtered {skipped_count})"
+        if total_files_seen > 0:
+            status_msg += f" (scanned {total_files_seen} total)"
         self.status_label.config(text=status_msg)
 
     def populate_tree(self):
