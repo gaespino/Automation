@@ -221,6 +221,25 @@ __back*/
 # config.ini
 # credentials.json
 
+# Security: Prevent credential file commits (Intel security policy)
+*credentials*.txt
+*credentials*.json
+*credentials*.ini
+*credentials*.cfg
+*password*.txt
+*secret*.txt
+.secrets
+.credentials
+credentials/
+secrets/
+# Encrypted credentials files (DO NOT COMMIT)
+credentials.enc
+credentials.key
+*.enc
+*.key
+# Allow CREDENTIALS_SETUP.md (documentation without actual passwords)
+!**/CREDENTIALS_SETUP.md
+
 # Local development files
 .local/
 local/

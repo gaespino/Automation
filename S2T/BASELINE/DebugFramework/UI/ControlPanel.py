@@ -409,7 +409,7 @@ class EditExperimentWindow(tk.Toplevel):
 					except (ValueError, TypeError):
 						# Fallback to string if conversion fails
 						converted_value = str(value_str).strip()
-     
+
 			# Handle empty/None values
 			if converted_value is None and (not value_str or value_str.strip() == '' or value_str == 'None'):
 				if field in self.mandatory_fields:
@@ -665,34 +665,34 @@ class EditExperimentWindow(tk.Toplevel):
 
 	def _get_field_type_from_config(self, field_name, context_values=None):
 		"""Get the field type dynamically from config, considering conditional contexts
-		
+
 		Args:
 			field_name: Name of the field
 			context_values: Dict of field values to use for resolving conditional types
-			
+
 		Returns:
 			String type name ('int', 'str', 'float', 'bool') or None
 		"""
 		if field_name not in self.field_configs:
 			return None
-		
+
 		field_config = self.field_configs[field_name]
-		
+
 		# Check if field has conditional options with type info
 		if 'conditional_options' in field_config:
 			conditional = field_config['conditional_options']
 			dependent_field = conditional.get('field')
-			
+
 			if dependent_field and context_values:
 				# Get the current value of the dependent field
 				current_value = context_values.get(dependent_field, '')
-				
+
 				# Check if this value has a type specified
 				if current_value in conditional:
 					option_config = conditional[current_value]
 					if 'type' in option_config:
 						return option_config['type']
-		
+
 		# Fall back to regular type
 		return field_config.get('type', 'str')
 
@@ -1107,7 +1107,7 @@ class EditExperimentWindow(tk.Toplevel):
 					# Get current values for context
 					context_values = {k: v.get() for k, v in self.input_vars.items()}
 					dynamic_type = self._get_field_type_from_config(field, context_values)
-					
+
 					if dynamic_type:
 						try:
 							if dynamic_type == 'int':
@@ -2326,6 +2326,10 @@ class EditExperimentWindow(tk.Toplevel):
 			current_values = self.get_values()
 			updated_data = self._convert_values_to_proper_types(current_values)
 
+			# CRITICAL: Preserve External Mask - it's managed by main control panel only
+			if 'External Mask' in self.data:
+				updated_data['External Mask'] = self.data['External Mask']
+
 			# Find experiment name for logging
 			experiment_name = updated_data.get('Test Name', self.data.get('Test Name', 'Unknown'))
 
@@ -2386,7 +2390,7 @@ class EditExperimentWindow(tk.Toplevel):
 					elif key not in new_data:
 						print(f"  - REMOVED {key}: {old_value}")
 					else:
-						print(f"  ~ CHANGED {key}: '{old_value}' → '{new_value}'")
+						print(f"  ~ CHANGED {key}: '{old_value}' --> '{new_value}'")
 
 			if not changes_found:
 				print("  No changes detected")

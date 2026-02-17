@@ -103,6 +103,7 @@ if cfl.DEV_MODE:
 	import Tools.portid2ip as p2ip
 	import Tools.requests_unit_info as reqinfo
 	import Tools.debugtools as debugtools
+	import Tools.registerdump as registerdump
 
 else:
 	gcm = import_module(f'{BASE_PATH}.S2T.{LEGACY_NAMING}CoreManipulation')
@@ -111,7 +112,7 @@ else:
 	p2ip = import_module(f'{BASE_PATH}.S2T.Tools.portid2ip')
 	reqinfo = import_module(f'{BASE_PATH}.S2T.Tools.requests_unit_info')
 	debugtools = import_module(f'{BASE_PATH}.S2T.Tools.debugtools')
-
+	registerdump = import_module(f'{BASE_PATH}.S2T.Tools.registerdump')
 
 ## Imports from THR folder - These are external scripts, always use same path
 f = None
@@ -2530,6 +2531,19 @@ def mdt_tools():
 def tor_dump(destination_path=None, visual_id=None):
 	dtools = debugtools.MDT_Tools(components='ccf')
 	dtools.dpm_tor_dump(destination_path, visual_id)
+
+
+## Creates a Unit fuse dump file with all the fuses and their current values, this can be used for reference or to be modified and re-applied with the fuse override script
+def fuse_dump(base, file_path):
+    # Uses registerdump class to generate a dump of all fuses and their current values, then saves it to an Excel file for reference or modification.
+	# Update fuses from RAM to get current values
+	fuseRAM(refresh = True)
+
+	# Init the Class
+	fuse_dump = registerdump.RegisterDump(sv, ipc, base, file_path)
+
+	# Generate the dump	fuse_dump.dump_data()
+	fuse_dump.dump_registers()
 
 ########################################################################################################################################################################
 ##

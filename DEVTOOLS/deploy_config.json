@@ -16,29 +16,29 @@
   "product_configs": {
     "GNR": {
       "source_type": "BASELINE",
-      "deployment_type": "S2T",
-      "target_base": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\GNR\\prod\\S2T",
+      "deployment_type": "DebugFramework",
+      "target_base": "C:\\pythonsv\\graniterapids\\users\\gaespino\\DebugFramework",
       "replacement_csv": "C:\\Git\\Automation\\DEVTOOLS\\import_replacement_gnr.csv",
       "rename_csv": "C:\\Git\\Automation\\DEVTOOLS\\file_rename_gnr.csv",
-      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_s2t.json",
+      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_debugframework.json",
       "selected_files": []
     },
     "CWF": {
       "source_type": "BASELINE",
-      "deployment_type": "DebugFramework",
-      "target_base": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\CWF\\prod\\DebugFramework",
+      "deployment_type": "S2T",
+      "target_base": "C:\\pythonsv\\clearwaterforest\\users\\THR\\PythonScripts\\thr\\S2T",
       "replacement_csv": "C:\\Git\\Automation\\DEVTOOLS\\import_replacement_cwf.csv",
       "rename_csv": "C:\\Git\\Automation\\DEVTOOLS\\file_rename_cwf.csv",
-      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_debugframework.json",
+      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_s2t.json",
       "selected_files": []
     },
     "DMR": {
       "source_type": "BASELINE_DMR",
-      "deployment_type": "S2T",
-      "target_base": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\DMR\\prod\\S2T",
+      "deployment_type": "DebugFramework",
+      "target_base": "C:\\pythonsv\\diamondrapids\\users\\THR\\dmr_debug_utilities\\DebugFramework",
       "replacement_csv": "C:\\Git\\Automation\\DEVTOOLS\\import_replacement_dmr.csv",
       "rename_csv": "C:\\Git\\Automation\\DEVTOOLS\\file_rename_dmr.csv",
-      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_s2t.json",
+      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_debugframework.json",
       "selected_files": []
     }
   }

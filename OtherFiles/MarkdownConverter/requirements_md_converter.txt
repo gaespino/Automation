@@ -1,0 +1,13 @@
+# Markdown Converter Requirements
+# Install with: pip install -r requirements_md_converter.txt
+
+# Core requirement (mandatory)
+markdown>=3.4.0
+
+# Optional: For PDF support
+# Uncomment the line below if you want PDF conversion capability:
+# weasyprint>=59.0
+
+# Optional: For enhanced code highlighting
+# Uncomment if you want better syntax highlighting:
+# Pygments>=2.15.0

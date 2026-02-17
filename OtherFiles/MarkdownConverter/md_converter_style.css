@@ -1,0 +1,432 @@
+/*
+ * Markdown Converter Default Stylesheet
+ * Professional styling for converted markdown documents
+ */
+
+/* Base Styles */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #f5f5f5;
+}
+
+.container {
+    background: white;
+    padding: 40px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 8px;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+    color: #2c3e50;
+    margin-top: 24px;
+    margin-bottom: 16px;
+    font-weight: 600;
+}
+
+h1 {
+    font-size: 2.25em;
+    border-bottom: 3px solid #3498db;
+    padding-bottom: 10px;
+    margin-top: 0;
+}
+
+h2 {
+    font-size: 1.75em;
+    border-bottom: 2px solid #95a5a6;
+    padding-bottom: 8px;
+    margin-top: 30px;
+}
+
+h3 {
+    font-size: 1.4em;
+    color: #34495e;
+    margin-top: 20px;
+}
+
+h4 {
+    font-size: 1.2em;
+    color: #34495e;
+}
+
+p {
+    margin: 12px 0;
+}
+
+strong, b {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+em, i {
+    font-style: italic;
+}
+
+/* Code Blocks */
+code {
+    background: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.9em;
+    color: #e74c3c;
+}
+
+pre {
+    background: #2c3e50;
+    color: #ecf0f1;
+    padding: 15px;
+    border-radius: 5px;
+    overflow-x: auto;
+    border-left: 4px solid #3498db;
+    line-height: 1.5;
+}
+
+pre code {
+    background: transparent;
+    color: #ecf0f1;
+    padding: 0;
+    font-size: 0.95em;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+th {
+    background: #34495e;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #2c3e50;
+}
+
+td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+tr:hover {
+    background: #f8f9fa;
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Lists */
+ul, ol {
+    margin: 10px 0;
+    padding-left: 30px;
+}
+
+li {
+    margin: 8px 0;
+}
+
+ul ul, ul ol, ol ul, ol ol {
+    margin: 5px 0;
+}
+
+/* Links */
+a {
+    color: #3498db;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+a:hover {
+    color: #2980b9;
+    text-decoration: underline;
+}
+
+/* Blockquotes */
+blockquote {
+    border-left: 4px solid #3498db;
+    margin: 20px 0;
+    padding: 10px 20px;
+    background: #f8f9fa;
+    font-style: italic;
+    color: #555;
+}
+
+blockquote p {
+    margin: 5px 0;
+}
+
+/* Horizontal Rules */
+hr {
+    border: none;
+    border-top: 2px solid #ecf0f1;
+    margin: 30px 0;
+}
+
+/* Images */
+img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin: 10px 0;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+.status-failed {
+    background: #e74c3c;
+    color: white;
+}
+
+.status-warning {
+    background: #f39c12;
+    color: white;
+}
+
+.status-success {
+    background: #27ae60;
+    color: white;
+}
+
+.status-info {
+    background: #3498db;
+    color: white;
+}
+
+/* Callout Boxes */
+.callout {
+    padding: 15px 20px;
+    margin: 20px 0;
+    border-left: 4px solid #3498db;
+    background: #ebf5fb;
+    border-radius: 4px;
+}
+
+.callout-warning {
+    border-left-color: #f39c12;
+    background: #fef5e7;
+}
+
+.callout-danger {
+    border-left-color: #e74c3c;
+    background: #fadbd8;
+}
+
+.callout-success {
+    border-left-color: #27ae60;
+    background: #d5f4e6;
+}
+
+.callout h3 {
+    margin-top: 0;
+}
+
+/* Metadata Box */
+.metadata {
+    background: #ecf0f1;
+    padding: 15px;
+    border-radius: 5px;
+    margin: 20px 0;
+    font-size: 0.95em;
+}
+
+.metadata strong {
+    color: #2c3e50;
+}
+
+/* Print Styles */
+@media print {
+    @page {
+        margin: 0.75in;
+    }
+
+    body {
+        font-size: 10pt;
+        background: white;
+    }
+
+    .container {
+        box-shadow: none;
+        padding: 0;
+    }
+
+    h1 {
+        font-size: 18pt;
+        page-break-after: avoid;
+    }
+
+    h2 {
+        font-size: 14pt;
+        page-break-after: avoid;
+    }
+
+    h3 {
+        font-size: 12pt;
+        page-break-after: avoid;
+    }
+
+    table, pre, code, blockquote {
+        page-break-inside: avoid;
+    }
+
+    a {
+        color: #000;
+        text-decoration: underline;
+    }
+
+    /* Show URLs after links in print */
+    a[href]:after {
+        content: " (" attr(href) ")";
+        font-size: 0.8em;
+        color: #666;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .container {
+        padding: 20px;
+    }
+
+    h1 {
+        font-size: 1.75em;
+    }
+
+    h2 {
+        font-size: 1.5em;
+    }
+
+    table {
+        font-size: 0.9em;
+    }
+
+    th, td {
+        padding: 8px;
+    }
+}
+
+/* Dark Mode Support (Optional) */
+@media (prefers-color-scheme: dark) {
+    body {
+        background: #1a1a1a;
+        color: #e0e0e0;
+    }
+
+    .container {
+        background: #2d2d2d;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        color: #e0e0e0;
+    }
+
+    /* Brighter border colors for headings in dark mode */
+    h1 {
+        border-bottom-color: #64b5f6;
+    }
+
+    h2 {
+        border-bottom-color: #78909c;
+    }
+
+    code {
+        background: #3d3d3d;
+        color: #ff6b6b;
+    }
+
+    /* Better link colors for dark mode - much more readable */
+    a {
+        color: #64b5f6;
+    }
+
+    a:hover {
+        color: #90caf9;
+    }
+
+    table {
+        background: #2d2d2d;
+    }
+
+    th {
+        background: #1a1a1a;
+    }
+
+    td {
+        border-bottom-color: #3d3d3d;
+    }
+
+    tr:hover {
+        background: #3d3d3d;
+    }
+
+    blockquote {
+        background: #3d3d3d;
+        color: #b0b0b0;
+        border-left-color: #64b5f6;
+    }
+
+    .metadata {
+        background: #3d3d3d;
+    }
+
+    .metadata strong {
+        color: #e0e0e0;
+    }
+
+    /* Callout boxes for dark mode */
+    .callout {
+        background: #1e3a4a;
+        border-left-color: #64b5f6;
+    }
+
+    .callout-warning {
+        background: #3d2f1a;
+        border-left-color: #ffb74d;
+    }
+
+    .callout-danger {
+        background: #3d1a1a;
+        border-left-color: #ef5350;
+    }
+
+    .callout-success {
+        background: #1a3d2b;
+        border-left-color: #66bb6a;
+    }
+
+    /* Status badges remain bright for visibility */
+    .status-info {
+        background: #1976d2;
+    }
+
+    /* Horizontal rules */
+    hr {
+        border-top-color: #424242;
+    }
+
+    /* Strong text more visible */
+    strong, b {
+        color: #f5f5f5;
+    }
+}

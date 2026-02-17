@@ -100,10 +100,21 @@ The **BASELINE Framework** is Intel's comprehensive test automation and debug en
 
 ### Installation
 
-```bash
-# Install dependencies
-pip install -r requirements.txt --proxy http://proxy-dmz.intel.com:911/
+**Automated Installation (Recommended):**
+
+```powershell
+cd C:\Git\Automation\S2T\DOCUMENTATION\DEBUG_FRAMEWORK_S2T
+python installation/debug_framework_installer.py
 ```
+
+The Python GUI installer will:
+- Install all Python dependencies
+- Configure environment variables
+- Set up TeraTerm
+- Copy EFI content (optional)
+- Validate installation
+
+**For detailed installation instructions, see:** [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)
 
 ---
 
@@ -660,6 +671,20 @@ dpm.product_str()           # Get product string
 dpm.u600w(check=True)        # Check 600W unit
 dpm.reset_600w()            # Reset 600W unit
 dpm.hwls_miscompare()       # Check HWLS miscompare
+
+# MDT Tools (DMR Only - Available in Version 1.7+)
+mdt = dpm.mdt_tools()        # Initialize MDT tools interface
+dpm.tor_dump(                # Generate TOR dump from CCF
+    destination_path='C:\\Temp',
+    visual_id='test_001'
+)
+
+# Register/Fuse Dumps
+dpm.fuse_dump(               # Create comprehensive fuse dump
+    base=sv.socket0.cbb0.base.fuses,  # DMR: cbb0.base.fuses
+    # base=sv.socket0.compute0.fuses, # GNR/CWF: compute0.fuses
+    file_path='C:\\Temp\\fuse_dump.csv'
+)
 ```
 
 **See Jupyter Notebook:** `examples_dpmchecks.ipynb` for detailed examples
@@ -860,6 +885,106 @@ Detailed documentation: `S2T/product_specific/FUSEFILEGEN_README.md`
 - `dpm.external_fuses()` - Process and organize fuse lists
 - `dpm.process_fuse_file()` - Parse .fuse files
 - `dpm.pseudo_bs()` - Use fuses in bootscript
+
+---
+
+### MDT Tools Interface (Version 1.7+)
+
+**Availability:** DMR (Primary), GNR/CWF (Limited)
+**Purpose:** Access debug module tools for advanced hardware debugging and data collection
+
+**Overview:**
+
+The MDT (Module Debug Tools) interface provides convenient access to low-level debug components for hardware analysis, register dumps, and specialized debugging operations.
+
+**Basic Usage:**
+
+```python
+import S2T.dpmChecks as dpm
+
+# Use built-in TOR dump function
+dpm.tor_dump(
+    destination_path='C:\\Temp',
+    visual_id='unit_12345_test1'
+)
+# Output: C:\Temp\tor_dump_unit_12345_test1_2026-02-16_14-30-45.xlsx
+
+# Advanced: Initialize MDT tools directly
+mdt = dpm.mdt_tools()
+mdt.print_available_components()
+```
+
+**TOR Dump Function:**
+
+Generate Transaction Ordering Ring (TOR) dumps from CCF for debugging memory transactions:
+
+```python
+dpm.tor_dump()  # Default: saves to C:\Temp\
+
+dpm.tor_dump(
+    destination_path='C:\\Debug\\UnitTests',
+    visual_id='GNRAP_U0042_mesh_test'
+)
+```
+
+**Output:** Excel file with multiple sheets containing TOR tracker data and CBO information.
+
+---
+
+### Register and Fuse Dumps (Version 1.7+)
+
+**Purpose:** Create comprehensive dumps of register/fuse values for analysis, backup, or modification
+
+**Main Function:**
+
+```python
+import S2T.dpmChecks as dpm
+
+# DMR Example - Dump CBB0 base fuses
+dpm.fuse_dump(
+    base=sv.socket0.cbb0.base.fuses,
+    file_path='C:\\Temp\\cbb0_fuse_dump.csv'
+)
+
+# GNR/CWF Example - Dump compute0 fuses
+dpm.fuse_dump(
+    base=sv.socket0.compute0.fuses,
+    file_path='C:\\Temp\\compute0_fuse_dump.csv'
+)
+
+# DMR - Dump all CBBs
+for cbb in sv.socket0.cbbs:
+    dump_path = f'C:\\Temp\\{cbb.name}_fuse_dump.csv'
+    dpm.fuse_dump(base=cbb.base.fuses, file_path=dump_path)
+```
+
+**Use Cases:**
+- **Baseline Documentation** - Capture known-good configurations
+- **Debug Analysis** - Compare register states before/after failure
+- **Configuration Transfer** - Export settings from one unit to another
+- **Fuse Override Development** - Generate starting point for custom fuse files
+
+**Output Format:** CSV with columns for Register Name, Current Value, Default Value, Address, Bit Width, Category, and metadata.
+
+**Workflow Example - Compare Units:**
+
+```python
+import pandas as pd
+
+# Capture two units
+dpm.fuse_dump(sv.socket0.cbb0.base.fuses, 'C:\\Temp\\unit1.csv')
+dpm.fuse_dump(sv.socket0.cbb0.base.fuses, 'C:\\Temp\\unit2.csv')
+
+# Compare using pandas
+unit1 = pd.read_csv('C:\\Temp\\unit1.csv')
+unit2 = pd.read_csv('C:\\Temp\\unit2.csv')
+
+merged = unit1.merge(unit2, on='Register Name', suffixes=('_1', '_2'))
+differences = merged[merged['Current Value_1'] != merged['Current Value_2']]
+
+print(f"Found {len(differences)} different registers")
+differences.to_csv('C:\\Temp\\differences.csv', index=False)
+```
 
 ---
 
@@ -1162,6 +1287,9 @@ import S2T.DffDataCollector as dfc
 | dpmChecks | `bsknobs()` | BIOS knobs check |
 | dpmChecks | `process_fuse_file()` | Parse .fuse configuration files |
 | dpmChecks | `external_fuses()` | Process and organize external fuses |
+| dpmChecks | `mdt_tools()` | Initialize MDT tools interface (v1.7+) |
+| dpmChecks | `tor_dump()` | Generate TOR dump from CCF (v1.7+) |
+| dpmChecks | `fuse_dump()` | Create comprehensive register/fuse dump (v1.7+) |
 | CoreManipulation | `mask_fuse_core_array()` | Core masking |
 | CoreManipulation | `mask_fuse_llc_array()` | Slice masking |
 | CoreManipulation | `go_to_efi()` | Boot to EFI |

@@ -409,7 +409,7 @@ class EditExperimentWindow(tk.Toplevel):
 					except (ValueError, TypeError):
 						# Fallback to string if conversion fails
 						converted_value = str(value_str).strip()
-     
+
 			# Handle empty/None values
 			if converted_value is None and (not value_str or value_str.strip() == '' or value_str == 'None'):
 				if field in self.mandatory_fields:
@@ -2390,7 +2390,7 @@ class EditExperimentWindow(tk.Toplevel):
 					elif key not in new_data:
 						print(f"  - REMOVED {key}: {old_value}")
 					else:
-						print(f"  ~ CHANGED {key}: '{old_value}' → '{new_value}'")
+						print(f"  ~ CHANGED {key}: '{old_value}' --> '{new_value}'")
 
 			if not changes_found:
 				print("  No changes detected")

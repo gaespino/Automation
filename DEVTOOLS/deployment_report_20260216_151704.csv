@@ -1,0 +1,146 @@
+Deployment Report
+Timestamp,20260216_151704
+Product,CWF
+Source Type,BASELINE
+Deployment Type,DebugFramework
+Target,C:\pythonsv\clearwaterforest\users\gaespino\DebugFramework
+Total Files Scanned,117
+Product Filtered,102
+Deployed Successfully,15
+Errors,0
+
+DEPLOYED FILES
+Source File,Target File,Renamed,Old Name,New Name,Status,Similarity,Import Replacements,Filename Import Updates,Import Change Lines,Rename Change Lines
+PPV\Decoder\decoder.py,PPV\Decoder\decoder.py,No,decoder.py,decoder.py,minor_changes,84.9%,-,-,-,-
+PPV\parsers\Frameworkparser.py,PPV\parsers\Frameworkparser.py,No,Frameworkparser.py,Frameworkparser.py,minor_changes,81.6%,-,-,-,-
+PPV\gui\ExperimentBuilder.py,PPV\gui\ExperimentBuilder.py,No,ExperimentBuilder.py,ExperimentBuilder.py,minimal_changes,99.9%,-,-,-,-
+PPV\parsers\MCChecker\CWF\##Name##_##w##_##LABEL##_PPV_Unit_Overview.xlsx,PPV\parsers\MCChecker\CWF\##Name##_##w##_##LABEL##_PPV_Unit_Overview.xlsx,No,##Name##_##w##_##LABEL##_PPV_Unit_Overview.xlsx,##Name##_##w##_##LABEL##_PPV_Unit_Overview.xlsx,major_changes,27.5%,-,-,-,-
+PPV\utils\PPVReportMerger.py,PPV\utils\PPVReportMerger.py,No,PPVReportMerger.py,PPVReportMerger.py,minimal_changes,90.0%,-,-,-,-
+PPV\parsers\MCAparser.py,PPV\parsers\MCAparser.py,No,MCAparser.py,MCAparser.py,minor_changes,87.0%,-,-,-,-
+FileHandler.py,FileHandler.py,No,FileHandler.py,FileHandler.py,minor_changes,89.7%,-,-,-,-
+SystemDebug.py,CWFSystemDebug.py,Yes,SystemDebug.py,CWFSystemDebug.py,minimal_changes,99.7%,users.gaespino.dev.DebugFramework. → users.gaespino.DebugFramework.; users.gaespino.dev.S2T.CoreManipulation → users.THR.PythonScripts.thr.S2T.CWFCoreManipulation; users.gaespino.dev.S2T.dpmChecks → users.THR.PythonScripts.thr.S2T.dpmChecksCWF (+2 more),-,"51, 127, 128, 129, 132",-
+SerialConnection.py,SerialConnection.py,No,SerialConnection.py,SerialConnection.py,minimal_changes,96.1%,users.gaespino.dev.DebugFramework. → users.gaespino.DebugFramework.; users.gaespino.dev.S2T.dpmChecks → users.THR.PythonScripts.thr.S2T.dpmChecksCWF; users.gaespino.dev.S2T. → users.THR.PythonScripts.thr.S2T.,-,"8, 9, 10",-
+PPV\gui\PPVFrameworkReport.py,PPV\gui\PPVFrameworkReport.py,No,PPVFrameworkReport.py,PPVFrameworkReport.py,minimal_changes,99.8%,-,-,-,-
+PPV\gui\AutomationDesigner.py,PPV\gui\AutomationDesigner.py,No,AutomationDesigner.py,AutomationDesigner.py,minor_changes,82.8%,-,-,-,-
+PPV\Decoder\decoder_dmr.py,PPV\Decoder\decoder_dmr.py,No,decoder_dmr.py,decoder_dmr.py,minor_changes,82.3%,-,-,-,-
+PPV\api\dpmb.py,PPV\api\dpmb.py,No,dpmb.py,dpmb.py,minor_changes,82.5%,-,-,-,-
+UI\ControlPanel.py,UI\ControlPanel.py,No,ControlPanel.py,ControlPanel.py,minor_changes,83.5%,import DebugFramework.MaskEditor → import DebugFramework.CWFMaskEditor; import MaskEditor → import CWFMaskEditor,-,"30, 47",-
+PPV\configs\DMRControlPanelConfig.json,PPV\configs\DMRControlPanelConfig.json,No,DMRControlPanelConfig.json,DMRControlPanelConfig.json,minimal_changes,99.6%,-,-,-,-
+
+DETAILED LINE CHANGES
+File,Line,Change Type,Old Content,New Content
+SystemDebug.py,51,Import Replacement,#	import users.gaespino.dev.DebugFramework.Storage_Handler.DBHandler as db,#	import users.gaespino.DebugFramework.Storage_Handler.DBHandler as db
+SystemDebug.py,127,Import Replacement,import users.gaespino.dev.S2T.CoreManipulation as gcm,import users.THR.PythonScripts.thr.S2T.CWFCoreManipulation as gcm
+SystemDebug.py,128,Import Replacement,import users.gaespino.dev.S2T.dpmChecks as dpm,import users.THR.PythonScripts.thr.S2T.dpmChecksCWF as dpm
+SystemDebug.py,129,Import Replacement,import users.gaespino.dev.S2T.SetTesterRegs as s2t,import users.THR.PythonScripts.thr.S2T.CWFSetTesterRegs as s2t
+SystemDebug.py,132,Import Replacement,import users.gaespino.dev.S2T.Tools.utils as s2tutils,import users.THR.PythonScripts.thr.S2T.Tools.utils as s2tutils
+SerialConnection.py,8,Import Replacement,import users.gaespino.dev.S2T.Logger.ErrorReport as ereport,import users.THR.PythonScripts.thr.S2T.Logger.ErrorReport as ereport
+SerialConnection.py,9,Import Replacement,import users.gaespino.dev.S2T.dpmChecks as dpm,import users.THR.PythonScripts.thr.S2T.dpmChecksCWF as dpm
+SerialConnection.py,10,Import Replacement,import users.gaespino.dev.DebugFramework.UI.Serial as ttl,import users.gaespino.DebugFramework.UI.Serial as ttl
+UI\ControlPanel.py,30,Import Replacement,import DebugFramework.MaskEditor as gme,import DebugFramework.CWFMaskEditor as gme
+UI\ControlPanel.py,47,Import Replacement,#from .. import MaskEditor  as gme,#from .. import CWFMaskEditor  as gme
+
+SKIPPED FILES
+File,Reason,Status,Renamed,New Name
+PPV\gui\PPVTools.py,Not selected,identical,No,-
+Storage_Handler\Summary_75857N7H00175_DragonAllCores_Skipper_CFCm30_pega39-Check_30s_25_LLC_DATA_PARITY_PPV_Data.xlsx,Not selected,new,No,-
+Storage_Handler\MongoDBCredentials.py,Not selected,identical,No,-
+Automation_Flow\AutomationBuilder.py,Not selected,identical,No,-
+Storage_Handler\ReportUtils.py,Not selected,identical,No,-
+ExecutionHandler\utils\EmergencyCleanup.py,Not selected,new,No,-
+PPV\Decoder\CWF\upi_params.json,Not selected,identical,No,-
+UI\ProcessHandler\ProcessExecutor.py,Not selected,identical,No,-
+PPV\Decoder\CWF\cms_params.json,Not selected,identical,No,-
+ExecutionHandler\StatusManager.py,Not selected,identical,No,-
+PPV\parsers\OverviewAnalyzer.py,Not selected,identical,No,-
+TTL\TTL_Linux\Connect.ttl,Not selected,identical,No,-
+TTL\TTL_DragonSlice\Commands.ttl,Not selected,identical,No,-
+Misc.py,Not selected,new,No,-
+PPV\configs\CWFControlPanelConfig.json,Not selected,identical,No,-
+PPV\Decoder\CWF\log_portid.json,Not selected,identical,No,-
+TTL\TTL_Boot\Boot.ttl,Not selected,identical,No,-
+TTL\TTL_Boot\MeshContent.ttl,Not selected,identical,No,-
+TTL\TTL_DragonMesh\Commands.ttl,Not selected,identical,No,-
+Automation_Flow\AutomationHandler.py,Not selected,identical,No,-
+PPV\gui\ProductSelector.py,Not selected,identical,No,-
+TTL\TTL_DragonSlice\SliceContent.ttl,Not selected,identical,No,-
+UI\TestRunControlPanel.py,Not selected,new,No,-
+PPV\parsers\FrameworkAnalyzer.py,Not selected,identical,No,-
+MaskEditor.py,Not selected,identical,Yes,CWFMaskEditor.py
+EFI\Filecopy.py,Not selected,identical,No,-
+ExecutionHandler\utils\misc_utils.py,Not selected,new,No,-
+UI\StatusPanel.py,Not selected,identical,No,-
+UI\Sweep.py,Not selected,new,No,-
+Automation_Flow\TestFlow.py,Not selected,new,No,-
+ExecutionHandler\utils\ThreadsHandler.py,Not selected,identical,No,-
+UI\ProcessPanel.py,Not selected,identical,No,-
+PPV\utils\ExcelReportBuilder.py,Not selected,identical,No,-
+PPV\utils\folder_list.py,Not selected,new,No,-
+ExecutionHandler\utils\ThreadsManager.py,Not selected,new,No,-
+PPV\Decoder\CWF\mse_params.json,Not selected,identical,No,-
+ExecutionHandler\utils\DebugLogger.py,Not selected,identical,No,-
+TTL\TTL_Linux\Commands.ttl,Not selected,identical,No,-
+PPV\Decoder\CWF\ubox_params.json,Not selected,identical,No,-
+UI\GNRControlPanelConfig.json,Not selected,new,No,-
+PPV\gui\PPVDataChecks.py,Not selected,identical,No,-
+PPV\Decoder\CWF\b2cxl_params.json,Not selected,identical,No,-
+ExecutionHandler\utils\PanelManager.py,Not selected,new,No,-
+PPV\Decoder\TransformJson.py,Not selected,identical,No,-
+Storage_Handler\DBUserInterface.py,Not selected,identical,No,-
+PPV\Decoder\CWF\gnrtileconfig.csv,Not selected,identical,No,-
+UI\CWFControlPanelConfig.json,Not selected,new,No,-
+TTL\TTL_Linux\config.ini,Not selected,identical,No,-
+UI\ExperimentsForm.py,Not selected,new,No,-
+TTL\TTL_DragonMesh\MeshContent.ttl,Not selected,identical,No,-
+TTL\TTL_DragonMesh\config.ini,Not selected,identical,No,-
+ExecutionHandler\utils\ReportGenerator.py,Not selected,identical,No,-
+UI\StatusHandler.py,Not selected,identical,No,-
+ExecutionHandler\Exceptions.py,Not selected,identical,No,-
+TTL\TTL_CustomEFI\EFIContent.ttl,Not selected,identical,No,-
+PPV\parsers\PPVLoopsParser.py,Not selected,identical,No,-
+ExecutionHandler\Configurations.py,Not selected,identical,No,-
+PPV\utils\FrameworkFileFix.py,Not selected,identical,No,-
+Automation_Flow\AutomationFlows.py,Not selected,identical,No,-
+PPV\gui\PPVLoopChecks.py,Not selected,identical,No,-
+Automation_Flow\AutomationTracker.py,Not selected,identical,No,-
+Storage_Handler\DBClient.py,Not selected,identical,No,-
+TTL\TTL_CustomEFI\Commands.ttl,Not selected,identical,No,-
+PPV\configs\GNRControlPanelConfig.json,Not selected,identical,No,-
+PPV\Decoder\dragon_bucketing.py,Not selected,identical,No,-
+PPV\configs\README.md,Not selected,identical,No,-
+PPV\utils\DeveloperEnvironment.py,Not selected,new,No,-
+PPV\Decoder\faildetection.py,Not selected,identical,No,-
+UI\AutomationPanel.py,Not selected,identical,No,-
+PPV\gui\MCADecoder.py,Not selected,identical,No,-
+Automation_Flow\example.ini,Not selected,new,No,-
+Shmoos\RVPShmooConfig.json,Not selected,identical,No,-
+PPV\Decoder\CWF\core_params_bk.json,Not selected,identical,No,-
+PPV\Decoder\CWF\cha_params.xlsx,Not selected,identical,No,-
+PPV\utils\aqua_report.py,Not selected,new,No,-
+PPV\Decoder\CWF\b2hot_params.json,Not selected,identical,No,-
+ExecutionHandler\utils\FrameworkUtils.py,Not selected,identical,No,-
+UI\Serial.py,Not selected,identical,No,-
+ExecutionHandler\utils\FrameworkManager.py,Not selected,new,No,-
+Automation_Flow\AutomationDesigner.py,Not selected,new,No,-
+EFI\patternfinder.py,Not selected,identical,No,-
+TestFramework.py,Not selected,new,No,-
+PPV\Decoder\CWF\b2cmi_params.json,Not selected,identical,No,-
+Automation_Flow\Flows.json,Not selected,new,No,-
+Automation_Flow\TestFlow1.py,Not selected,new,No,-
+TTL\TTL_Boot\Commands.ttl,Not selected,identical,No,-
+PPV\run.py,Not selected,new,No,-
+PPV\Decoder\CWF\cha_params.json,Not selected,identical,No,-
+PPV\requirements.txt,Not selected,new,No,-
+PPV\gui\PPVFileHandler.py,Not selected,identical,No,-
+PPV\Decoder\CWF\mcchnl_params.json,Not selected,identical,No,-
+Storage_Handler\DBHandler.py,Not selected,identical,No,-
+UI\ProcessHandler\ProcessManager.py,Not selected,identical,No,-
+ExecutionHandler\Enums.py,Not selected,identical,No,-
+UI\ProcessHandler\ProcessTypes.py,Not selected,identical,No,-
+TTL\TTL_Linux\LinuxContent.ttl,Not selected,identical,No,-
+TTL\TTL_DragonMesh\mesh_flow_params.csv,Not selected,identical,No,-
+Interfaces\IFramework.py,Not selected,identical,No,-
+PPV\parsers\MCChecker\CWF\##Name##_##w##_##LABEL##_PPV_Data.xlsx,Not selected,identical,No,-
+UI\GNRAutomationPanel.json,Not selected,new,No,-
+PPV\Decoder\CWF\core_params.json,Not selected,identical,No,-
+TTL\TTL_DragonSlice\config.ini,Not selected,identical,No,-
