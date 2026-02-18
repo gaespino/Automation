@@ -2545,6 +2545,27 @@ def fuse_dump(base, file_path):
 	# Generate the dump	fuse_dump.dump_data()
 	fuse_dump.dump_registers()
 
+# Generates a fusfile in a compatible format with S2T and DebugFramework, using the registerdump class to process the input array and create the output file. The function also prints a report of the generation process, including any errors or warnings encountered.
+def generate_fusefile(array, output_file=None,):
+    product = config.SELECTED_PRODUCT.lower()
+    print("=" * 70)
+    print(f"Generate fuse file for {product.upper()}")
+    print("=" * 70)
+
+    generator = registerdump.FuseFileGenerator(fusemodule = ffg, register_array=array, product=product, output_file=output_file)
+
+    if generator.create_fuse_file():
+        report = generator.get_report()
+        print("\nGeneration Report:")
+        print(f"  Product: {product.upper()}")
+        print(f"  Output file: {report['output_file']}")
+        print(f"  Sections: {report['section_count']}")
+        print(f"  Total registers: {report['register_count']}")
+        print(f"  Errors: {len(report['errors'])}")
+        print(f"  Warnings: {len(report['warnings'])}")
+    else:
+        print("Failed to generate fuse file")
+
 ########################################################################################################################################################################
 ##
 ## 													Below all the scripts used by the burn in Test System

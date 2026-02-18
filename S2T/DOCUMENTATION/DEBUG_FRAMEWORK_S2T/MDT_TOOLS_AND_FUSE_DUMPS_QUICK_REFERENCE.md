@@ -466,10 +466,298 @@ if test_failed:
 
 ---
 
+## Generating Fuse Files from Register Arrays
+
+### Overview
+
+The `FuseFileGenerator` class performs the **inverse operation** of reading fuse files - it creates external `.fuse` files from register arrays. This is useful when you have register configurations from register dumps, test scripts, or programmatic configurations that need to be formatted as reusable fuse files.
+
+**Supported Products:** GNR, DMR, CWF, and extensible to future products
+
+### Quick Start
+
+```python
+from S2T.Tools.registerdump import FuseFileGenerator
+from S2T.product_specific.gnr import fusefilegen as gnr_fusefilegen
+
+# Your register array (from register dump, calculations, etc.)
+register_array = [
+    'sv.socket0.compute0.fuses.pcu.pcode_ddrd_ddr_vf_voltage_point0= 0xaa',
+    'sv.socket0.compute1.fuses.pcu.pcode_ddrd_ddr_vf_voltage_point0= 0xaa',
+    'sv.socket0.compute0.fuses.pcu.pcode_ddrd_ddr_vf_voltage_point1= 0xb1',
+]
+
+# Generate fuse file
+generator = FuseFileGenerator(gnr_fusefilegen, register_array, product='gnr')
+generator.create_fuse_file()
+# Output: C:\Temp\RegisterDumpLogs\2026-02-17_143022_generated.fuse
+```
+
+### Product-Specific Usage
+
+#### GNR/CWF Example
+
+```python
+from S2T.product_specific.gnr import fusefilegen as gnr_fusefilegen
+
+gnr_registers = [
+    'sv.socket0.compute0.fuses.pcu.config_register1= 0x10',
+    'sv.socket0.io0.fuses.pcie.link_config= 0xB2',
+    'sv.sockets.computes.fuses.pcu.global_setting= 0xFF',  # Applies to all
+]
+
+generator = FuseFileGenerator(gnr_fusefilegen, gnr_registers, product='gnr')
+generator.create_fuse_file()
+```
+
+#### DMR Example
+
+```python
+from S2T.product_specific.dmr import fusefilegen as dmr_fusefilegen
+
+dmr_registers = [
+    'sv.socket0.cbb0.base.fuses.pcu.config_register1= 0x10',
+    'sv.socket0.cbb0.compute0.fuses.pcu.compute_config= 0x20',
+    'sv.socket0.imh0.fuses.memory.timing_register= 0x30',
+    'sv.sockets.cbbs.base.fuses.pcu.global_setting= 0xFF',  # All CBBs
+]
+
+generator = FuseFileGenerator(dmr_fusefilegen, dmr_registers, product='dmr')
+generator.create_fuse_file()
+```
+
+### Custom Output Path
+
+```python
+# Specify custom output location
+output_path = r"C:\MyProject\configs\custom_fuses.fuse"
+generator = FuseFileGenerator(
+    gnr_fusefilegen,
+    register_array,
+    product='gnr',
+    output_file=output_path
+)
+generator.create_fuse_file()
+```
+
+### Generated Fuse File Format
+
+The output is in the standard `.fuse` format compatible with external fuse file processing:
+
+```ini
+# Fuse file generated from register array
+# Generated on: 2026-02-17 14:30:22
+# Total sections: 2
+# Total registers: 3
+
+[sv.socket0.compute0.fuses]
+pcu.config_register1 = 0x10
+pcu.pcode_ddrd_ddr_vf_voltage_point0 = 0xaa
+pcu.pcode_ddrd_ddr_vf_voltage_point1 = 0xb1
+
+[sv.socket0.compute1.fuses]
+pcu.pcode_ddrd_ddr_vf_voltage_point0 = 0xaa
+```
+
+### Get Generation Report
+
+```python
+generator = FuseFileGenerator(gnr_fusefilegen, register_array, product='gnr')
+generator.create_fuse_file()
+
+# Get detailed report
+report = generator.get_report()
+print(f"Product: {generator.product.upper()}")
+print(f"Output file: {report['output_file']}")
+print(f"Sections: {report['section_count']}")
+print(f"Registers: {report['register_count']}")
+print(f"Errors: {len(report['errors'])}")
+print(f"Warnings: {len(report['warnings'])}")
+```
+
+### Supported Hierarchies
+
+#### GNR/CWF
+- `sv.socket<N>.compute<N>.fuses` - Specific socket and compute
+- `sv.socket<N>.io<N>.fuses` - Specific socket and IO
+- `sv.sockets.computes.fuses` - All sockets, all computes
+- `sv.sockets.ios.fuses` - All sockets, all IOs
+
+#### DMR
+- `sv.socket<N>.cbb<N>.base.fuses` - Specific socket, CBB base
+- `sv.socket<N>.cbb<N>.compute<N>.fuses` - Specific socket, CBB, compute
+- `sv.socket<N>.imh<N>.fuses` - Specific socket and IMH
+- `sv.sockets.cbbs.base.fuses` - All sockets, all CBBs base
+- `sv.sockets.cbbs.computes.fuses` - All sockets, CBBs, computes
+- `sv.sockets.imhs.fuses` - All sockets, all IMHs
+
+### Common Workflows
+
+#### Workflow 1: Convert Register Dump to Reusable Fuse File
+
+```python
+import S2T.dpmChecks as dpm
+from S2T.Tools.registerdump import FuseFileGenerator
+from S2T.product_specific.dmr import fusefilegen as dmr_fusefilegen
+
+# Step 1: Get register dump (existing functionality)
+# This creates a raw register list
+dpm.fuse_dump(
+    base=sv.socket0.cbb0.base.fuses,
+    file_path='C:\\Temp\\cbb0_dump.csv'
+)
+
+# Step 2: Extract specific registers you want to preserve
+important_registers = [
+    'sv.socket0.cbb0.base.fuses.pcu.voltage_config= 0xAB',
+    'sv.socket0.cbb0.base.fuses.pcu.frequency_setting= 0x12',
+    'sv.socket0.cbb0.base.fuses.memory.timing_param= 0xFF',
+]
+
+# Step 3: Generate reusable fuse file
+generator = FuseFileGenerator(
+    dmr_fusefilegen,
+    important_registers,
+    product='dmr',
+    output_file='C:\\Configs\\working_config.fuse'
+)
+generator.create_fuse_file()
+
+# Step 4: Now you can use this file in future tests
+# See FUSE_FILE_QUICK_REFERENCE.md for usage
+```
+
+#### Workflow 2: Create Test Configuration from Script
+
+```python
+from S2T.Tools.registerdump import FuseFileGenerator
+from S2T.product_specific.gnr import fusefilegen as gnr_fusefilegen
+
+# Programmatically build register configuration
+voltage_points = []
+for socket in range(3):
+    for voltage_level in range(4):
+        value = 0xaa + voltage_level * 0x10
+        register = (
+            f'sv.socket0.compute{socket}.fuses.pcu.'
+            f'pcode_ddrd_ddr_vf_voltage_point{voltage_level}= {hex(value)}'
+        )
+        voltage_points.append(register)
+
+# Generate fuse file for these settings
+generator = FuseFileGenerator(
+    gnr_fusefilegen,
+    voltage_points,
+    product='gnr',
+    output_file='C:\\TestConfigs\\voltage_sweep_test.fuse'
+)
+generator.create_fuse_file()
+
+# Use in your test
+import S2T.dpmChecks as dpm
+fuses = dpm.process_fuse_file('C:\\TestConfigs\\voltage_sweep_test.fuse')
+config = dpm.external_fuses(external_fuses=fuses, bsformat=True)
+dpm.pseudo_bs(ClassMask='RowEvenPass', fuse_cbb=config, boot=True)
+```
+
+#### Workflow 3: Replicate Golden Configuration Across Units
+
+```python
+from S2T.Tools.registerdump import FuseFileGenerator
+from S2T.product_specific.dmr import fusefilegen as dmr_fusefilegen
+
+# Extract golden configuration from one unit
+golden_config = [
+    'sv.socket0.cbb0.base.fuses.pcu.golden_setting1= 0x100',
+    'sv.socket0.cbb0.base.fuses.pcu.golden_setting2= 0x200',
+]
+
+# Replicate to all CBBs using plural sections
+replicated_config = [
+    'sv.sockets.cbbs.base.fuses.pcu.golden_setting1= 0x100',
+    'sv.sockets.cbbs.base.fuses.pcu.golden_setting2= 0x200',
+]
+
+generator = FuseFileGenerator(
+    dmr_fusefilegen,
+    replicated_config,
+    product='dmr',
+    output_file='C:\\Configs\\replicated_golden.fuse'
+)
+generator.create_fuse_file()
+```
+
+### Features
+
+- **Multi-Product Support** - Works with GNR, DMR, CWF automatically
+- **Automatic Parsing** - Extracts sections and register names from full paths
+- **Validation** - Validates against product-specific hierarchy patterns
+- **Duplicate Detection** - Warns about duplicate registers
+- **Sorted Output** - Sections and registers alphabetically sorted
+- **Timestamped Files** - Auto-generated filenames with timestamps
+- **Custom Paths** - Specify exact output location
+- **Error Reporting** - Detailed error and warning messages
+
+### Verification Workflow
+
+After generating a fuse file, verify it works correctly:
+
+```python
+import S2T.dpmChecks as dpm
+from S2T.product_specific.gnr import fusefilegen as gnr_fusefilegen
+from S2T.product_specific.gnr.fusefilegen import process_fuse_file
+
+# Generate fuse file
+generator = FuseFileGenerator(gnr_fusefilegen, register_array, product='gnr')
+generator.create_fuse_file()
+
+# Verify by reading it back
+registers = process_fuse_file(generator.fuse_file_path)
+print(f"Successfully parsed {len(registers)} registers")
+
+# Use in test to confirm functionality
+config = dpm.external_fuses(external_fuses=registers, bsformat=True)
+dpm.pseudo_bs(ClassMask='FirstPass', fuse_cbb=config, boot=True)
+```
+
+### Error Handling
+
+```python
+generator = FuseFileGenerator(gnr_fusefilegen, invalid_array, product='gnr')
+
+if not generator.create_fuse_file():
+    # Check errors
+    for error in generator.errors:
+        print(f"ERROR: {error}")
+    
+    # Check warnings
+    for warning in generator.warnings:
+        print(f"WARNING: {warning}")
+else:
+    print(f"Successfully generated: {generator.fuse_file_path}")
+```
+
+### File Locations
+
+**Default Output Directory:**
+- `C:\Temp\RegisterDumpLogs\`
+
+**Auto-generated Filename Format:**
+- `YYYY-MM-DD_HHMMSS_generated.fuse`
+- Example: `2026-02-17_143022_generated.fuse`
+
+**Related Files:**
+- Example script: `S2T\BASELINE\S2T\Tools\fusefile_generator_example.py`
+- Class implementation: `S2T\BASELINE\S2T\Tools\registerdump.py`
+- Product patterns: `S2T\BASELINE\S2T\product_specific\{gnr|dmr|cwf}\fusefilegen.py`
+
+---
+
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1 | February 17, 2026 | Added FuseFileGenerator documentation and workflows |
 | 1.0 | February 16, 2026 | Initial MDT tools and fuse dump documentation |
 
 ---

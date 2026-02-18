@@ -12,7 +12,7 @@
 
 ## Overview
 
-The **THR Debug Tools** (Test Hole Resolution Debug Tools) suite is a comprehensive Python GUI application for unit characterization, post-silicon validation, and debug workflows. This tool hub integrates 8 specialized tools for MCA analysis, experiment configuration, data collection automation, and comprehensive report generation.
+The **THR Debug Tools** (Test Hole Resolution Debug Tools) suite is a comprehensive Python GUI application for unit characterization, post-silicon validation, and debug workflows. This tool hub integrates 9 specialized tools for MCA analysis, experiment configuration, data collection automation, fuse file generation, and comprehensive report generation.
 
 **Main Entry Point:** `run.py`
 
@@ -29,7 +29,7 @@ python run.py
 The application will:
 1. Display the THR Debug Tools banner
 2. Prompt for product selection (GNR/CWF/DMR)
-3. Launch the main Tools Hub with all 8 tools
+3. Launch the main Tools Hub with all 9 tools
 
 ---
 
@@ -42,7 +42,7 @@ All comprehensive documentation is located in the centralized documentation fold
 ### Available Documentation
 
 1. **[THR_DEBUG_TOOLS_USER_MANUAL.md](THR_DEBUG_TOOLS_USER_MANUAL.md)**
-   - Complete user manual for all 8 tools
+   - Complete user manual for all 9 tools
    - GUI and programmatic usage instructions
    - Parameter references and examples
    - Integration workflows
@@ -110,6 +110,11 @@ All comprehensive documentation is located in the centralized documentation fold
 **Color:** Red (#e74c3c)
 **Module:** `gui/MCADecoder.py`
 
+### 9. Fuse File Generator
+**Purpose:** Generate fuse configuration files with filtering and IP assignments
+**Color:** Orange (#e67e22)
+**Module:** `gui/fusefileui.py`
+
 ---
 
 ## 📂 PPV Folder Structure
@@ -126,6 +131,7 @@ PPV/
 │   ├── AutomationDesigner.py # Automation Flow Designer
 │   ├── ExperimentBuilder.py  # Experiment Builder
 │   ├── MCADecoder.py        # MCA Decoder
+│   ├── fusefileui.py        # Fuse File Generator
 │   └── ProductSelector.py   # Product selection dialog
 ├── parsers/                  # Data parsing modules
 │   ├── MCAparser.py         # MCA parsing engine
@@ -141,11 +147,17 @@ PPV/
 │   └── dpmb.py              # DPMB API client
 ├── utils/                    # Utility modules
 │   ├── PPVReportMerger.py   # Report merge/append
-│   └── ExcelReports.py      # Excel generation
+│   ├── ExcelReports.py      # Excel generation
+│   ├── fusefilegenerator.py # Fuse file generator engine
+│   └── status_bar.py        # Status bar component
 └── configs/                  # Configuration templates
     ├── GNRControlPanelConfig.json
     ├── CWFControlPanelConfig.json
-    └── DMRControlPanelConfig.json
+    ├── DMRControlPanelConfig.json
+    └── fuses/               # Fuse CSV data
+        ├── gnr/             # GNR fuse files
+        ├── cwf/             # CWF fuse files
+        └── dmr/             # DMR fuse files
 ```
 
 ---
@@ -213,6 +225,13 @@ ppv_report(mode='Bucketer', product='GNR', ...)
 4. Design flow with visual canvas
 5. Export to Control Panel
 
+### Workflow 5: Fuse Configuration
+1. Launch Tools Hub → **Fuse File Generator**
+2. Select product (GNR/CWF/DMR)
+3. Apply filters to find relevant fuses
+4. Configure IP assignments and values
+5. Generate .fuse file for silicon configuration
+
 ---
 
 ## 📖 Documentation Quick Reference
@@ -228,7 +247,11 @@ ppv_report(mode='Bucketer', product='GNR', ...)
 | Parse loop data | User Manual - Tool 1 |
 | Build Framework reports | User Manual - Tool 5 |
 | Decode MCA registers | User Manual - Tool 8 |
+| Generate fuse files | User Manual - Tool 9 |
 | Merge reports | User Manual - Tool 4 |
+| Design automation flows | User Manual - Tool 6 |
+| Create experiments | User Manual - Tool 7 |
+| Understand tool integration | [THR_DEBUG_TOOLS_FLOWS.md](THR_DEBUG_TOOLS_FLOWS.md) - Tool Integration Matrix |
 | Design automation flows | User Manual - Tool 6 |
 | Create experiments | User Manual - Tool 7 |
 | Understand tool integration | [THR_DEBUG_TOOLS_FLOWS.md](THR_DEBUG_TOOLS_FLOWS.md) - Tool Integration Matrix |

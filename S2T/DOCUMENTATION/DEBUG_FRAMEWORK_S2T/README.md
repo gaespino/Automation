@@ -1,7 +1,7 @@
 # Debug Framework & S2T Documentation - README
 
-**Version:** 1.7
-**Release Date:** February 16, 2026
+**Version:** 1.7.1
+**Release Date:** February 17, 2026
 **Organization:** Intel Corporation - Test & Validation
 **Classification:** Intel Confidential
 **Maintainer:** Gabriel Espinoza (gabriel.espinoza.ballestero@intel.com)
@@ -155,21 +155,34 @@ mdt = dpm.mdt_tools()
 mdt.print_available_components()
 ```
 
-### 3. Register/Fuse Dumps
+### 3. Register/Fuse Dumps & Generation
 
 - **Comprehensive dumps** - All register values to CSV/Excel
 - **Baseline documentation** - Capture known-good configs
 - **Comparison workflows** - Compare unit configurations
-- **Fuse file generation** - Export to .fuse format
+- **Fuse file generation from arrays** ⭐ **NEW** - Create reusable .fuse files from register arrays
 
 ```python
 import S2T.dpmChecks as dpm
 
-# Create dump
+# Dump registers
 dpm.fuse_dump(
     base=sv.socket0.cbb0.base.fuses,
     file_path='C:\\Temp\\baseline.csv'
 )
+
+# Generate fuse file from register array (NEW)
+from S2T.Tools.registerdump import FuseFileGenerator
+from S2T.product_specific.gnr import fusefilegen as gnr_fusefilegen
+
+register_array = [
+    'sv.socket0.compute0.fuses.pcu.config= 0xAA',
+    'sv.socket0.compute1.fuses.pcu.config= 0xAA',
+]
+
+generator = FuseFileGenerator(gnr_fusefilegen, register_array, product='gnr')
+generator.create_fuse_file()
+# Output: C:\Temp\RegisterDumpLogs\2026-02-17_143022_generated.fuse
 ```
 
 ### 4. Enhanced Documentation
@@ -202,6 +215,10 @@ dpm.fuse_dump(
 #### Create Custom Fuse File
 → Read: [FUSE_FILE_QUICK_REFERENCE.md](FUSE_FILE_QUICK_REFERENCE.md)
 → Use: `dpm.process_fuse_file()` + `dpm.external_fuses()`
+
+#### Generate Fuse File from Register Arrays ⭐ **NEW**
+→ Read: [MDT_TOOLS_AND_FUSE_DUMPS_QUICK_REFERENCE.md - Generating Fuse Files](MDT_TOOLS_AND_FUSE_DUMPS_QUICK_REFERENCE.md#generating-fuse-files-from-register-arrays)
+→ Use: `FuseFileGenerator()`
 
 #### Automate Test Flows
 → Read: [THR_DEBUG_FRAMEWORK_USER_MANUAL.md - Automation Panel](THR_DEBUG_FRAMEWORK_USER_MANUAL.md#automation-panel)
@@ -469,6 +486,7 @@ See: [INSTALLATION_GUIDE.md - Troubleshooting](INSTALLATION_GUIDE.md#troubleshoo
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| **1.7.1** | Feb 17, 2026 | FuseFileGenerator - Create .fuse files from register arrays |
 | **1.7** | Feb 16, 2026 | ⭐ Automated installation, MDT tools, fuse dumps |
 | 2.0 | Jan 15, 2026 | Unified manual for all products |
 | 1.0 | Jan 1, 2026 | Initial framework release |
@@ -483,6 +501,6 @@ This documentation and associated software are proprietary to Intel Corporation 
 
 ---
 
-**Last Updated:** February 16, 2026
-**Documentation Version:** 1.7
-**Framework Version:** 1.7
+**Last Updated:** February 17, 2026
+**Documentation Version:** 1.7.1
+**Framework Version:** 1.7.1

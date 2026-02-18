@@ -1,8 +1,14 @@
 import os
 import sys
 import pandas as pd
+import re
+import importlib
 from datetime import datetime
+from collections import defaultdict
 
+# Append the Main Scripts Path
+FILE_PATH = os.path.abspath(os.path.dirname(__file__))
+MAIN_PATH = os.path.join(FILE_PATH, '..')
 class RegisterDump():
 
 	def __init__(self, sv, ipc, fuse_base, dump_file):
@@ -169,3 +175,223 @@ class RegisterDump():
 		self._process_dump()
 		self._get_registers_info()
 		self._generate_dump_report()
+
+
+class FuseFileGenerator():
+	"""
+	Generate fuse configuration files from register arrays.
+
+	This class takes an array of fully-qualified register assignments and converts them
+	into a fuse file format compatible with fusefilegen.py.
+	Supports multiple products (GNR, DMR, CWF) by dynamically loading validation patterns.
+
+	Example input:
+		['sv.socket0.compute0.fuses.pcu.pcode_ddrd_ddr_vf_voltage_point0= 0xaa',
+		 'sv.socket0.compute1.fuses.pcu.pcode_ddrd_ddr_vf_voltage_point0= 0xaa']
+
+	Example output (.fuse file):
+		[sv.socket0.compute0.fuses]
+		pcu.pcode_ddrd_ddr_vf_voltage_point0 = 0xaa
+
+		[sv.socket0.compute1.fuses]
+		pcu.pcode_ddrd_ddr_vf_voltage_point0 = 0xaa
+	"""
+
+	def __init__(self, fusemodule, register_array, product='gnr', output_file=None):
+		"""
+		Initialize the FuseFileGenerator.
+
+		Args:
+			register_array: List of register assignments in format 'full.path.to.register=value'
+			product: Product name ('gnr', 'dmr', 'cwf') - determines validation patterns
+			output_file: Path to output fuse file. If None, auto-generates in default directory.
+		"""
+		self.fusemodule = fusemodule
+		self.register_array = register_array
+		self.product = product.lower()
+		self.output_file = output_file
+		self.parsed_data = defaultdict(dict)
+		self.errors = []
+		self.warnings = []
+		self.fuse_file_path = None
+		self.VALID_SECTION_PATTERNS = []
+		self._load_product_patterns()
+		self._check_defaults()
+
+	def _load_product_patterns(self):
+		"""
+		Load validation patterns from the provided fusefilegen module.
+
+		The fusemodule parameter should be the product-specific fusefilegen module
+		(e.g., S2T.product_specific.gnr.fusefilegen) passed during initialization.
+		"""
+		try:
+			# Get the FuseFileParser class and extract VALID_SECTION_PATTERNS
+			parser_class = self.fusemodule.FuseFileParser
+			self.VALID_SECTION_PATTERNS = parser_class.VALID_SECTION_PATTERNS
+
+			print(f"Loaded validation patterns for product: {self.product.upper()}")
+
+		except AttributeError as e:
+			self.errors.append(
+				f"FuseFileParser class or VALID_SECTION_PATTERNS not found in provided fusemodule. "
+				f"Error: {e}"
+			)
+			print(f"ERROR: {self.errors[-1]}")
+		except Exception as e:
+			self.errors.append(f"Error loading product patterns from fusemodule: {e}")
+			print(f"ERROR: {self.errors[-1]}")
+
+	def _check_defaults(self):
+		"""Set up default paths, reusing logic from RegisterDump"""
+		self.fusefile_path = r'C:\Temp\RegisterDumpLogs'
+
+		if not os.path.exists(self.fusefile_path):
+			os.makedirs(self.fusefile_path)
+
+	def _parse_register_entry(self, entry):
+		"""
+		Parse a single register entry into section, register, and value.
+
+		Args:
+			entry: String like 'sv.socket0.compute0.fuses.pcu.register_name= 0xaa'
+
+		Returns:
+			Tuple of (section, register, value) or None if invalid
+		"""
+		# Remove whitespace and split by '='
+		entry = entry.strip()
+		if '=' not in entry:
+			self.errors.append(f"Invalid entry format (no '='): {entry}")
+			return None
+
+		path, value = entry.split('=', 1)
+		path = path.strip()
+		value = value.strip()
+
+		# Find the section (everything up to and including .fuses)
+		# Try to match against all valid patterns to extract the section
+		section = None
+		for pattern in self.VALID_SECTION_PATTERNS:
+			# Convert validation pattern to extraction pattern
+			# Remove ^ and $ anchors, capture the entire pattern
+			extraction_pattern = pattern.replace('^', '').replace('$', '')
+			extraction_pattern = f'({extraction_pattern})'
+
+			match = re.search(extraction_pattern, path)
+			if match:
+				section = match.group(1)
+				break
+
+		if not section:
+			self.errors.append(
+				f"Could not extract valid fuse section from: {entry}. "
+				f"Product: {self.product.upper()}"
+			)
+			return None
+
+		# Everything after the section is the register name
+		register = path[len(section):].lstrip('.')
+
+		if not register:
+			self.errors.append(f"Empty register name in: {entry}")
+			return None
+
+		return section, register, value
+
+	def parse_array(self):
+		"""Parse the register array into structured data grouped by section"""
+		print(f"Parsing {len(self.register_array)} register entries...")
+
+		for entry in self.register_array:
+			result = self._parse_register_entry(entry)
+			if result:
+				section, register, value = result
+
+				# Check for duplicates
+				if register in self.parsed_data[section]:
+					self.warnings.append(
+						f"Duplicate register '{register}' in section '{section}'. "
+						f"Overwriting {self.parsed_data[section][register]} with {value}"
+					)
+
+				self.parsed_data[section][register] = value
+
+		if self.errors:
+			print(f"Parsing completed with {len(self.errors)} error(s)")
+			for error in self.errors:
+				print(f"  ERROR: {error}")
+			return False
+
+		if self.warnings:
+			print(f"Parsing completed with {len(self.warnings)} warning(s)")
+			for warning in self.warnings:
+				print(f"  WARNING: {warning}")
+
+		print(f"Successfully parsed {len(self.parsed_data)} section(s)")
+		return True
+
+	def generate_fuse_file(self):
+		"""Generate the fuse file from parsed data"""
+		if not self.parsed_data:
+			print("No data to generate. Did you run parse_array()?")
+			return False
+
+		# Generate output filename if not provided
+		if self.output_file is None:
+			timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+			self.fuse_file_path = os.path.join(self.fusefile_path, f"{timestamp}_generated.fuse")
+		else:
+			self.fuse_file_path = self.output_file
+			# Create directory if it doesn't exist
+			os.makedirs(os.path.dirname(self.fuse_file_path), exist_ok=True)
+
+		# Write the fuse file
+		try:
+			with open(self.fuse_file_path, 'w', encoding='utf-8') as f:
+				# Write header comment
+				f.write("# Fuse file generated from register array\n")
+				f.write(f"# Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+				f.write(f"# Total sections: {len(self.parsed_data)}\n")
+				f.write(f"# Total registers: {sum(len(regs) for regs in self.parsed_data.values())}\n")
+				f.write("\n")
+
+				# Write each section
+				for section in sorted(self.parsed_data.keys()):
+					f.write(f"[{section}]\n")
+
+					# Write registers for this section, sorted alphabetically
+					for register in sorted(self.parsed_data[section].keys()):
+						value = self.parsed_data[section][register]
+						f.write(f"{register} = {value}\n")
+
+					f.write("\n")  # Blank line between sections
+
+			print(f"Fuse file generated successfully: {self.fuse_file_path}")
+			return True
+
+		except Exception as e:
+			self.errors.append(f"Error writing fuse file: {e}")
+			print(f"ERROR: {e}")
+			return False
+
+	def create_fuse_file(self):
+		"""
+		Main method to create fuse file from register array.
+		Combines parsing and generation steps.
+		"""
+		if self.parse_array():
+			return self.generate_fuse_file()
+		return False
+
+	def get_report(self):
+		"""Get a report of the generation results"""
+		total_registers = sum(len(regs) for regs in self.parsed_data.values())
+		return {
+			'sections': list(self.parsed_data.keys()),
+			'section_count': len(self.parsed_data),
+			'register_count': total_registers,
+			'errors': self.errors,
+			'warnings': self.warnings,
+			'output_file': self.fuse_file_path
+		}

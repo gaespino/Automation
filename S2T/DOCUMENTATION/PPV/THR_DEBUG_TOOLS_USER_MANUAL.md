@@ -33,7 +33,7 @@ cd c:\Git\Automation\PPV
 python run.py
 ```
 
-The Tools Hub will display a product selector (GNR/CWF/DMR) and launch the main interface with access to all 8 tools.
+The Tools Hub will display a product selector (GNR/CWF/DMR) and launch the main interface with access to all 9 tools.
 
 ---
 
@@ -864,6 +864,280 @@ For multiple MCA entries, use PPV MCA Report Builder (Tool 2) instead of single-
 
 ---
 
+## Tool 9: Fuse File Generator
+
+**Purpose:** Interactive GUI for selecting, filtering, and generating fuse configuration files from product-specific CSV data sources. Provides comprehensive fuse management with advanced filtering, search capabilities, and product-specific hierarchy generation.
+
+**Color:** Orange (#e67e22)
+**Location:** `gui/fusefileui.py`
+**Generator Engine:** `utils/fusefilegenerator.py`
+**Status Bar Component:** `utils/status_bar.py`
+
+### Supported Products
+
+- **GNR (Granite Rapids)**: Compute and IO fuse hierarchies
+- **CWF (Clearwater Forest)**: Compute and IO fuse hierarchies
+- **DMR (Diamond Rapids)**: CBB (Base/Top) and IMH fuse hierarchies
+
+### Features
+
+- Load fuse data from product-specific CSV files
+- Multi-level filtering system:
+  - Pre-filters (Instance, Description, IP)
+  - Column-specific filters with wildcard support
+  - Quick search across displayed data
+- Column selection for customized data views
+- Excel-like table interface with sortable columns
+- Fuse selection management with viewer window
+- Product-specific fuse file generation with IP assignments
+- Configuration import/export for reusable setups
+- CSV export of filtered/selected fuses
+- Real-time fuse value validation
+
+### Fuse Data Structure
+
+#### GNR/CWF CSV Files
+Product folders should contain:
+- `compute.csv`: Compute fuse definitions
+- `io.csv`: IO fuse definitions
+
+#### DMR CSV Files
+Product folders should contain:
+- `cbbsbase.csv`: CBB base fuse definitions
+- `cbbstop.csv`: CBB top/compute fuse definitions
+- `imhs.csv`: IMH fuse definitions
+
+### CSV File Location
+Default location: `PPV/configs/fuses/<product>/`
+
+Example structure:
+```
+PPV/
+└── configs/
+    └── fuses/
+        ├── gnr/
+        │   ├── compute.csv
+        │   └── io.csv
+        ├── cwf/
+        │   ├── compute.csv
+        │   └── io.csv
+        └── dmr/
+            ├── cbbsbase.csv
+            ├── cbbstop.csv
+            └── imhs.csv
+```
+
+### Product-Specific Hierarchies
+
+#### GNR/CWF Hierarchy Patterns
+```
+sv.socket{socket}.compute{compute}.fuses   # Individual compute
+sv.socket{socket}.io{io}.fuses              # Individual IO
+sv.sockets.computes.fuses                   # All computes
+sv.sockets.ios.fuses                        # All IOs
+```
+
+#### DMR Hierarchy Patterns
+```
+sv.socket{socket}.cbb{cbb}.base.fuses           # CBB base
+sv.socket{socket}.cbb{cbb}.compute{compute}.fuses  # CBB top
+sv.socket{socket}.imh{imh}.fuses                # IMH
+sv.sockets.cbbs.base.fuses                      # All CBBs base
+sv.sockets.cbbs.computes.fuses                  # All CBBs top
+sv.sockets.imhs.fuses                           # All IMHs
+```
+
+### Usage
+
+#### GUI Launch
+1. From Tools Hub → Click **Fuse File Generator**
+2. Select product from dropdown (GNR, CWF, or DMR)
+3. Configure fuse file location (auto-detected: `configs/fuses/`)
+4. Click **📁** to browse custom location if needed
+
+#### Data Loading and Filtering
+1. Click **⚙️ Configure Filters** to set pre-filters:
+   - **Instance**: Filter by fuse instance name
+   - **Description**: Filter by fuse description
+   - **IP**: Filter by IP origin (COMPUTE, IO, CBB, IMH)
+   - Supports wildcards: `*text*` (contains), `text*` (starts with), `*text` (ends with)
+
+2. Click **📋 Select Columns** to choose display columns:
+   - Default columns: `original_name`, `Instance`, `description`, `VF_Name`, `IP_Origin`
+   - Additional columns from CSV: `fuse_width`, `numbits`, `reset_value`, etc.
+   - Select/deselect checkboxes and click **Apply**
+
+3. Click **🔄 Apply & Show Data** to load and display filtered fuses
+
+#### Column-Specific Filtering
+1. **Click on any column header** to open column filter dialog
+2. Filter options:
+   - **Contains**: Text matching
+   - **Starts With**: Prefix matching
+   - **Ends With**: Suffix matching
+   - **Exact Match**: Precise value matching
+3. Sort ascending/descending
+4. Active filters show **🔽** indicator in column header
+
+#### Selection Management
+1. **Select fuses** in table (click rows, Ctrl+Click, Shift+Click)
+2. Click **Add Highlighted to Selection** (Ctrl+A) to add to selection pool
+3. Click **View Selection** (Ctrl+S) to open Selection Viewer window
+4. In Selection Viewer:
+   - **Select All**: Select all fuses
+   - **Clear All**: Clear all selections
+   - **Select Filtered**: Select only filtered fuses
+   - **Clear Filtered**: Clear filtered fuses
+   - **Remove from Selection**: Remove selected items from pool
+
+#### Fuse File Generation
+1. Click **Generate Fuse File** with selected fuses
+2. Configure IP assignments:
+   - **GNR/CWF**: Select sockets, computes, IOs
+   - **DMR**: Select sockets, CBBs, CBB-computes, IMHs
+3. Click **Generate List** to create socket+IP+fuse combinations
+4. Configure fuse values:
+   - **Double-click** cells to edit values inline
+   - **Apply to All**: Set value for all rows
+   - **Apply to Selected**: Set value for selected rows
+   - Validation checks fuse width and bit limits
+5. Click **Generate Fuse File** and select output location
+
+#### Configuration Management
+
+**Export Configuration:**
+1. Click **Export Config** after setting up filters and selections
+2. Save as `.json` file with:
+   - Active filters (pre-filters and column filters)
+   - Display columns
+   - Selected fuse IDs
+3. Use for repeatable workflows
+
+**Import Configuration:**
+1. Click **Import Config** to load saved `.json`
+2. Validates configuration structure
+3. Verifies fuse IDs exist in current dataset
+4. Shows validation errors if issues found
+5. Applies filters and restores selections
+
+#### CSV Export
+1. Apply desired filters
+2. Click **Export to CSV**
+3. Choose output location
+4. Exports currently filtered data with selected columns
+
+### Parameters
+
+**Configuration:**
+- **Product** (str): Target product [`GNR`, `CWF`, `DMR`]
+- **Fuse Location** (str): Path to fuses folder (default: auto-detected)
+
+**Pre-Filters:**
+- **Instance** (str): Filter by instance name with wildcard support
+- **Description** (str): Filter by description with wildcard support
+- **IP** (str): Filter by IP origin [`COMPUTE`, `IO`, `CBB`, `IMH`]
+
+**Display Configuration:**
+- **Columns** (list): Selected columns to display
+- **Column Filters** (dict): Per-column filter values
+
+**Fuse Values:**
+- Supported formats: Hexadecimal (`0x1A`), Decimal (`26`), Binary (`0b11010`)
+- Validation against fuse width and numbits
+
+### Output Format
+
+Generated `.fuse` file structure:
+```
+# Fuse configuration file for GNR
+# Generated by PPV Engineering Tools - Fuse File Generator
+# Total fuses: 25
+#
+# This file is compatible with fusefilegen.py
+
+[sv.socket0.compute0.fuses]
+fuse_name_1 = 0x1
+fuse_name_2 = 0xFF
+fuse_name_3 = 0x0
+
+[sv.socket0.io0.fuses]
+fuse_name_4 = 0x2A
+fuse_name_5 = 0x1F
+
+[sv.sockets.computes.fuses]
+fuse_name_global = 0xAB
+```
+
+### Programmatic Usage
+
+```python
+from PPV.utils.fusefilegenerator import FuseFileGenerator, load_product_fuses
+
+# Load fuses for a product
+generator = load_product_fuses('GNR')
+
+# Get statistics
+stats = generator.get_statistics()
+print(f"Total fuses: {stats['total_fuses']}")
+print(f"IP Origins: {stats['ip_origins']}")
+
+# Search fuses
+results = generator.search_fuses('voltage', ['description', 'original_name'])
+print(f"Found {len(results)} matching fuses")
+
+# Filter fuses with wildcards
+filtered = generator.filter_fuses({
+    'IP_Origin': 'COMPUTE',
+    'description': '*voltage*'
+})
+
+# Get unique values for a column
+unique_ips = generator.get_column_unique_values('IP_Origin')
+
+# Export filtered results
+generator.export_to_csv(filtered, 'output/filtered_fuses.csv')
+
+# Generate fuse file
+ip_assignments = {
+    'compute0': {'fuse_name_1': '0x1', 'fuse_name_2': '0xFF'},
+    'io0': {'fuse_name_4': '0x2A'}
+}
+generator.generate_fuse_file(filtered, ip_assignments, 'output/fuses.fuse')
+```
+
+### Validation Functions
+
+**Fuse Value Validation:**
+```python
+from PPV.utils.fusefilegenerator import validate_fuse_value
+
+# Validate value fits within bit width
+is_valid = validate_fuse_value('0xFF', fuse_width=8, numbits=8)  # True
+is_valid = validate_fuse_value('0x1FF', fuse_width=8, numbits=8)  # False (exceeds 8 bits)
+is_valid = validate_fuse_value('256', fuse_width=8)  # False (256 requires 9 bits)
+```
+
+### Use Cases
+
+1. **Fuse Configuration Generation**: Create product-specific fuse files for silicon bring-up
+2. **Fuse Analysis**: Search and filter fuses by description, instance, or IP
+3. **Documentation**: Export filtered fuse lists as CSV for reference
+4. **Configuration Reuse**: Save/load filter configurations for repeatable workflows
+5. **Multi-IP Assignment**: Configure same fuses across multiple IPs (compute, IO, CBB, IMH)
+6. **Validation**: Verify fuse values fit within specified bit widths before generation
+
+### Tips and Best Practices
+
+- **Start with Pre-Filters**: Use Instance/Description/IP pre-filters to reduce dataset before column filtering
+- **Column Filters for Precision**: Use column-specific filters for exact value matching
+- **Save Configurations**: Export configurations for frequently-used filter combinations
+- **Validate Before Generate**: Tool validates fuse values against bit widths automatically
+- **Use Wildcards**: Leverage `*` wildcards for flexible text matching
+- **Selection Viewer**: Use dedicated Selection Viewer for managing large fuse selections
+- **Export Intermediate Results**: Export filtered CSVs for review before generating .fuse files
+
+---
+
 ## Integration Workflows
 
 ### Workflow 1: Complete Debug Cycle
@@ -890,6 +1164,16 @@ For multiple MCA entries, use PPV MCA Report Builder (Tool 2) instead of single-
 2. **MCA Report Builder** → Identify failure patterns
 3. **Experiment Builder** → Configure targeted tests
 4. **Export JSON** → Load to Control Panel for execution
+
+### Workflow 4: Fuse Configuration Generation
+
+1. **Fuse File Generator** → Load product-specific fuse CSVs
+2. **Apply Filters** → Filter by instance, description, or IP origin
+3. **Select Fuses** → Choose relevant fuses for configuration
+4. **Configure IP Assignments** → Set socket and IP mappings (compute, IO, CBB, IMH)
+5. **Assign Values** → Set fuse values with validation
+6. **Generate .fuse File** → Export for fusefilegen.py tool
+7. **Export Configuration** → Save filter/selection setup for reuse
 
 ---
 
@@ -963,6 +1247,19 @@ Check VPN connection and network permissions
 - Column headers must match
 - Check for corrupted files
 
+### Issue: Fuse File Generator CSV files not found
+**Solution:** Verify fuse folder structure and location
+- Check product folder exists: `PPV/configs/fuses/<product>/`
+- GNR/CWF: Ensure `compute.csv` and `io.csv` exist
+- DMR: Ensure `cbbsbase.csv`, `cbbstop.csv`, `imhs.csv` exist
+- Browse to custom location if using non-standard paths
+
+### Issue: Fuse value validation fails
+**Solution:** Check value format and bit width
+- Use proper format: `0x1A` (hex), `26` (decimal), or `0b11010` (binary)
+- Verify value fits within fuse's bit width
+- Example: For 8-bit fuse, max value is 0xFF (255)
+
 ---
 
 ## Advanced Topics
@@ -1029,6 +1326,7 @@ PPV/gui/
 ├── AutomationDesigner.py    # Automation Flow Designer
 ├── ExperimentBuilder.py     # Experiment Builder
 ├── MCADecoder.py            # MCA Single Line Decoder
+├── fusefileui.py            # Fuse File Generator
 └── ProductSelector.py       # Product Selection Dialog
 ```
 
@@ -1062,6 +1360,8 @@ PPV/api/
 PPV/utils/
 ├── PPVReportMerger.py       # Report merge/append
 ├── ExcelReports.py          # Excel generation
+├── fusefilegenerator.py     # Fuse file generator engine
+├── status_bar.py            # Status bar component
 └── FileFixes.py             # File repair utilities
 ```
 
@@ -1092,6 +1392,35 @@ PPV/utils/
     "START": {"next": "node_1"},
     "node_1": {"Pass": "END", "Fail": "END"}
   }
+}
+```
+
+### Fuse File Generator Configuration Template
+```json
+{
+  "product": "GNR",
+  "pre_filters": {
+    "instance": "*voltage*",
+    "description": "*ratio*",
+    "ip": "COMPUTE"
+  },
+  "display_columns": [
+    "original_name",
+    "Instance",
+    "description",
+    "VF_Name",
+    "IP_Origin",
+    "fuse_width",
+    "numbits"
+  ],
+  "column_filters": {
+    "IP_Origin": "COMPUTE"
+  },
+  "selected_fuses": [
+    "fuse_id_1",
+    "fuse_id_2",
+    "fuse_id_3"
+  ]
 }
 ```
 

@@ -487,6 +487,7 @@ View these for complete working examples.
 ## Related Documentation
 
 - **User Manual:** [THR_DEBUG_FRAMEWORK_USER_MANUAL.md](THR_DEBUG_FRAMEWORK_USER_MANUAL.md)
+- **FuseFileGenerator (Inverse Operation):** [MDT_TOOLS_AND_FUSE_DUMPS_QUICK_REFERENCE.md - Generating Fuse Files](MDT_TOOLS_AND_FUSE_DUMPS_QUICK_REFERENCE.md#generating-fuse-files-from-register-arrays) ⭐ **NEW**
 - **Detailed Docs:** `S2T/product_specific/FUSEFILEGEN_README.md`
 - **Examples:** `S2T/product_specific/<product>/example_*_fuses.fuse`
 
