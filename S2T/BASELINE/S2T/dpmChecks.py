@@ -1587,6 +1587,16 @@ def external_fuses(external_fuses = None, bsformat = False, ):
 	compute_range = sv.socket0.computes.name
 	io_range = sv.socket0.ios.name
 
+	# Temporal Fix to remove the sockets string from the array if present
+	# Note: Needs a ddiferent approach for multi-socket systems, currently this is only meant for single socket systems,
+	# will add a warning in case the user tries to use it with multi-socket and the string is present
+	if any('.sockets.' in fuse for fuse in external_fuses):
+		if len(sv.sockets) > 1:
+			print('WARNING: Detected "sv.sockets." string in fuses with multiple sockets present. Please make sure to specify the socket number in the fuse string (e.g. "sv.socket0.") to avoid misconfiguration.')
+		else:
+			print('>>> Detected "sv.sockets." string in fuses, replacing with "sv.socket0." for single socket configuration')
+			external_fuses = [f.replace('.sockets.', '.socket0.') for f in external_fuses]
+
 	# Initialize fuse dictionaries dynamically based on available units
 	compute_fuses = {compute: [] for compute in compute_range}
 	io_fuses = {io: [] for io in io_range}

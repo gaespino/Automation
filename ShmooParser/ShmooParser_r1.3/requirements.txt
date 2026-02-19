@@ -1,0 +1,28 @@
+# ============================================================================
+# ShmooParser Requirements
+# ============================================================================
+# Version: 1.3
+# Date: February 18, 2026
+#
+# Installation with Intel Proxy:
+# pip install -r requirements.txt --proxy=http://proxy-chain.intel.com:911
+#
+# Alternative Intel Proxy:
+# pip install -r requirements.txt --proxy=http://proxy-dmz.intel.com:911
+#
+# Or install individual packages:
+# pip install <package-name> --proxy=http://proxy-chain.intel.com:911
+# ============================================================================
+
+# Data manipulation and analysis
+pandas>=1.3.0
+
+# Visualization libraries
+seaborn>=0.11.0
+matplotlib>=3.3.0
+
+# Numerical computing
+numpy>=1.19.0
+
+# Excel file support
+openpyxl>=3.0.0

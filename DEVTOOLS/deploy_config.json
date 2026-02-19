@@ -17,7 +17,7 @@
     "GNR": {
       "source_type": "BASELINE",
       "deployment_type": "S2T",
-      "target_base": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\DMR\\prod\\S2T",
+      "target_base": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\GNR\\prod\\S2T",
       "replacement_csv": "C:\\Git\\Automation\\DEVTOOLS\\import_replacement_gnr.csv",
       "rename_csv": "C:\\Git\\Automation\\DEVTOOLS\\file_rename_gnr.csv",
       "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_s2t.json",

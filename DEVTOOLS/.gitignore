@@ -24,3 +24,9 @@ desktop.ini
 # Temporary files
 *.tmp
 *.bak
+
+# Reports
+*deployment_report_*.csv
+
+# Release files (HTML/PDF outputs)
+deploys/release_files/

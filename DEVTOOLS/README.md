@@ -1,4 +1,43 @@
-# PPV Deployment Tool
+# DEVTOOLS - Development and Release Management Tools
+
+This directory contains tools for managing deployments, generating release notes, and tracking changes across the Debug Framework projects.
+
+---
+
+## 📋 Release Notes Generator
+
+**Quick Start for Release Notes:**
+```powershell
+.\launch_release_notes.ps1
+```
+
+or for AI/Copilot: See [QUICKSTART_RELEASE.md](deploys/QUICKSTART_RELEASE.md)
+
+### Purpose
+Automate the creation of Debug Framework release notes, including tracking documents, email drafts, and HTML versions.
+
+### Key Files
+- **launch_release_notes.ps1** - Interactive launcher script
+- **generate_release_notes.py** - Core automation engine
+- **deploys/QUICKSTART_RELEASE.md** - Complete guide for AI assistants
+- **deploys/RELEASE_TEMPLATE.md** - Detailed 7-phase process guide
+- **deploys/RELEASE_v1.7.1_Feb2026.md** - Example release document
+- **deploys/RELEASE_EMAIL_v1.7.1_Feb2026.md** - Example release email
+
+### Quick Usage
+```powershell
+# Interactive mode
+.\launch_release_notes.ps1
+
+# Direct command
+python generate_release_notes.py --start-date 2026-01-22 --version 1.8.0 --html
+```
+
+**For AI:** This is a "skill" you can invoke. When asked to generate release notes, follow the process in [QUICKSTART_RELEASE.md](deploys/QUICKSTART_RELEASE.md).
+
+---
+
+## 🚀 PPV Deployment Tool
 
 A sophisticated GUI tool for managing deployment of PPV files from the main development directory to the DebugFramework location.
 
@@ -11,7 +50,7 @@ A sophisticated GUI tool for managing deployment of PPV files from the main deve
   - **New File**: Doesn't exist in target
   - **Identical**: Files are exactly the same (skippable)
   - **Minimal Changes**: >90% similar
-  - **Minor Changes**: 30-90% similar  
+  - **Minor Changes**: 30-90% similar
   - **Major Changes**: <30% similar (flagged for review)
 
 ### 📊 Interactive File Browser
@@ -23,7 +62,7 @@ A sophisticated GUI tool for managing deployment of PPV files from the main deve
   - 🟠 Orange: Minor changes
   - 🔴 Red: Major changes
   - ⚪ Gray: Identical files
-- **Smart Filters**: 
+- **Smart Filters**:
   - Text search across file names
   - Show only files with changes
   - Show only selected files
@@ -32,7 +71,7 @@ A sophisticated GUI tool for managing deployment of PPV files from the main deve
 
 ### 🔄 Side-by-Side Comparison
 - **Unified Diff View**: See exactly what will change
-- **Syntax Highlighting**: 
+- **Syntax Highlighting**:
   - Green for additions
   - Red for removals
 - **File Details**: Size, similarity percentage, paths
@@ -145,7 +184,7 @@ The DebugFramework PPV **includes**:
 - ✅ `run.py`
 - ✅ `api/` directory
 - ✅ `gui/` directory (except ExperimentBuilder.py)
-- ✅ `parsers/` directory  
+- ✅ `parsers/` directory
 - ✅ `utils/` directory
 - ✅ `Decoder/` directory
 - ✅ `DebugScripts/` directory
@@ -227,6 +266,6 @@ For issues or questions:
 
 ---
 
-**Author**: GitHub Copilot  
-**Date**: December 9, 2025  
+**Author**: GitHub Copilot
+**Date**: December 9, 2025
 **License**: Internal Use Only
