@@ -1493,8 +1493,13 @@ class S2TFlow():
 		## Apply Fuse Checks for SLICE Content
 		slice_mode.fuse_checks()
 
+		## Checks External Fuses if provided
+		if self.external_fusefile is not None:
+			slice_mode.external_fuses_print()
+
 		# Calls overview and last refresh
 		self.slice_end()
+
 
 	def slice_end(self):
 		print(f"\n{'='*80}")
@@ -1974,7 +1979,12 @@ class S2TFlow():
 		## Apply Fuse Checks for MESH Content
 		mesh.fuse_checks()
 
+		## Checks External Fuses if provided
+		if self.external_fusefile is not None:
+			mesh.external_fuses_print()
+
 		self.mesh_end()
+
 
 	def mesh_end(self):
 		"""Finalize mesh mode"""

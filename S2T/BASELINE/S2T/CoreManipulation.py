@@ -1491,6 +1491,17 @@ class System2Tester():
 				print(Fore.LIGHTCYAN_EX + f"{'>'*3} Checking fuses for io1 ---")
 				fuse_cmd_override_check(self.fuse_str_io_1, showresults = False, skip_init= skipinit, bsFuses = 'io1')
 
+	# Prints and Checks External Fuses after unit is booted
+	def external_fuses_print(self):
+
+		if self.external_fuses:
+			print(Fore.LIGHTCYAN_EX + "***********************************v********************************************")
+			print(Fore.LIGHTCYAN_EX + f"{'>'*3} Checking External Fuses configured after boot")
+
+			for key in self.external_fuses.keys():
+				bsFuses =  None if self.Fastboot else key.lower()
+				print(Fore.LIGHTCYAN_EX + f"{'>'*3} Checking fuses for {key.upper()} ---")
+				fuse_cmd_override_check(self.external_fuses[key], showresults = True, skip_init= True, bsFuses = bsFuses)
 
 	## Logic for bootscript retry
 	def bsRetry(self,boot_postcode, stop_after_mrc, bootcont, sv, ipc, boot_string, n, delay = 60):

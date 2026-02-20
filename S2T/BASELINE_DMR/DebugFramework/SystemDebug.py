@@ -406,7 +406,7 @@ class TestExecutor:
 				self._execute_custom_script(self.config.script_file)
 
 			debug_log("Stopping Python SV logging", 1, "PYTHON_LOG")
-			self._stop_python_logging()
+
 
 			# Handle test completion
 			# Send test execution notification (50% of iteration)
@@ -467,7 +467,7 @@ class TestExecutor:
 					seed=result.seed,
 					progress_weight=1.0
 				)
-
+			self._stop_python_logging()
 			debug_log(f"=== TEST ITERATION {self.config.tnumber} COMPLETED: {result.status} ===", 1, "TEST_COMPLETE")
 			return result
 

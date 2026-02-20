@@ -1,0 +1,29 @@
+# DebugFrameworkAgent — Python dependencies
+# ============================================================
+# STANDARD USAGE (zero pip installs required)
+# All CLI scripts use Python stdlib only:
+#   json, pathlib, argparse, re, sys, textwrap, subprocess, shutil
+# Python >= 3.10 required.
+#
+# PHASE 2 — MCP Server (GitHub Copilot Agent Mode integration)
+# Install only if you want the mcp_server.py tool integration:
+# pip install "mcp[cli]>=1.0"
+#
+# REPORT GENERATION
+# Markdown + HTML reports are built-in (zero deps).
+# For true PDF output (generate_report.py --format pdf):
+# pip install "fpdf2>=2.7"
+#
+# DEV / TESTING
+# pip install -r requirements.txt
+# ============================================================
+
+# Optional — MCP server integration
+# mcp[cli]>=1.0
+
+# Optional — PDF export (true PDF, not just print-to-PDF HTML)
+# fpdf2>=2.7
+
+# Dev only
+pytest>=9.0
+pytest-cov
