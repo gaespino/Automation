@@ -1,0 +1,130 @@
+name: List Presets
+
+# ---------------------------------------------------------------------------
+# Builds a catalog of all available experiment presets and uploads it as
+# a workflow artifact (presets_catalog.json).
+#
+# Trigger: manual dispatch only.
+# ---------------------------------------------------------------------------
+
+on:
+  workflow_dispatch:
+    inputs:
+      product:
+        description: 'Filter by product (leave blank for all)'
+        required: false
+        default:  ''
+        type: choice
+        options: ['', GNR, CWF, DMR]
+
+      format:
+        description: 'Output format for the catalog'
+        required: false
+        default: 'json'
+        type: choice
+        options: [json, markdown]
+
+jobs:
+  list-presets:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build preset catalog
+        working-directory: DebugFrameworkAgent
+        shell: python
+        run: |
+          import json, pathlib, sys
+
+          sys.path.insert(0, str(pathlib.Path("scripts")))
+          from _core import preset_loader
+
+          product_filter = "${{ inputs.product }}".strip().upper() or None
+          fmt            = "${{ inputs.format }}".strip().lower()
+
+          data = preset_loader.load_all()
+
+          # Flatten into a list of catalog entries
+          catalog = []
+          for key, preset in data.items():
+              prod = (
+                  preset.get("product")
+                  or (preset.get("experiment") or {}).get("Product Chop")
+                  or "?"
+              ).upper()
+
+              if product_filter and prod != product_filter:
+                  continue
+
+              catalog.append({
+                  "key":         key,
+                  "product":     prod,
+                  "description": preset.get("description", ""),
+                  "ask_user":    preset.get("ask_user", []),
+                  "fields":      list((preset.get("experiment") or {}).keys()),
+              })
+
+          catalog.sort(key=lambda e: (e["product"], e["key"]))
+
+          out_dir = pathlib.Path("output/catalog")
+          out_dir.mkdir(parents=True, exist_ok=True)
+
+          if fmt == "markdown":
+              lines = ["# Experiment Preset Catalog\n"]
+              current_prod = None
+              for entry in catalog:
+                  if entry["product"] != current_prod:
+                      current_prod = entry["product"]
+                      lines.append(f"\n## {current_prod}\n")
+                  ask = ", ".join(entry["ask_user"]) or "—"
+                  lines.append(f"### `{entry['key']}`")
+                  lines.append(f"**Description:** {entry['description'] or '—'}")
+                  lines.append(f"**Ask user:** {ask}")
+                  lines.append(f"**Fields ({len(entry['fields'])}):** "
+                               + ", ".join(f"`{f}`" for f in entry["fields"][:10])
+                               + (" …" if len(entry["fields"]) > 10 else ""))
+                  lines.append("")
+              out_path = out_dir / "presets_catalog.md"
+              out_path.write_text("\n".join(lines), encoding="utf-8")
+              print(f"Catalog written: {out_path}  ({len(catalog)} presets)")
+          else:
+              out_path = out_dir / "presets_catalog.json"
+              out_path.write_text(
+                  json.dumps({"presets": catalog, "total": len(catalog)}, indent=2),
+                  encoding="utf-8",
+              )
+              print(f"Catalog written: {out_path}  ({len(catalog)} presets)")
+
+      - name: Write step summary
+        if: always()
+        shell: python
+        run: |
+          import json, os, pathlib
+          catalog_path = pathlib.Path(
+              "DebugFrameworkAgent/output/catalog/presets_catalog.json"
+          )
+          if catalog_path.exists():
+              data = json.loads(catalog_path.read_text())
+              total = data.get("total", 0)
+              lines = [f"## Preset Catalog — {total} preset(s)\n"]
+              for p in data.get("presets", []):
+                  lines.append(f"- **{p['product']}** `{p['key']}` — {p['description'] or '(no description)'}")
+              summary = "\n".join(lines)
+          else:
+              summary = "No catalog file generated."
+          with open(os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null"), "a") as fh:
+              fh.write(summary + "\n")
+
+      - name: Upload catalog artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: presets-catalog-${{ github.run_number }}
+          path: DebugFrameworkAgent/output/catalog/
+          if-no-files-found: error
