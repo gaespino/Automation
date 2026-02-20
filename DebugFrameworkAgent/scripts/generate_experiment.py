@@ -69,6 +69,15 @@ def _parse_overrides(raw: list[str] | None) -> dict:
 
 def main():
     args = parse_args()
+
+    # Show PPV integration status once at startup
+    try:
+        from _core import ppv_bridge as _ppv
+        bridge = _ppv.get_bridge()
+        print(bridge.status_line)
+    except Exception:
+        pass
+
     overrides = _parse_overrides(args.set)
     if args.name:
         overrides["Test Name"] = args.name

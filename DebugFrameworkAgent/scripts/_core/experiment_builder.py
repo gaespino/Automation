@@ -15,6 +15,16 @@ from typing import Any
 
 from . import constraints as _c
 
+
+def _get_bridge():
+    """Lazily import and return the PPVBridge singleton, or None if unavailable."""
+    try:
+        from . import ppv_bridge as _ppv
+        return _ppv.get_bridge()
+    except Exception:  # pragma: no cover
+        return None
+
+
 # --------------------------------------------------------------------------
 # Product-specific defaults  (Skill Section 10)
 # --------------------------------------------------------------------------
@@ -243,36 +253,171 @@ def apply_preset(preset: dict, overrides: dict | None = None) -> dict[str, Any]:
     return exp
 
 
+# --------------------------------------------------------------------------
+# .tpl file helpers
+# --------------------------------------------------------------------------
+
+def _coerce_tpl_value(s: str) -> Any:
+    """
+    Convert a raw .tpl string cell back to a Python value.
+
+    Rules (applied in order):
+      - ``""``        → ``None``
+      - ``"true"``    → ``True``   (case-insensitive)
+      - ``"false"``   → ``False``  (case-insensitive)
+      - integer text  → ``int``
+      - float text    → ``float``
+      - anything else → ``str``
+    """
+    if s == "":
+        return None
+    lo = s.strip().lower()
+    if lo == "true":
+        return True
+    if lo == "false":
+        return False
+    try:
+        return int(s)
+    except ValueError:
+        pass
+    try:
+        return float(s)
+    except ValueError:
+        pass
+    return s
+
+
+def _load_tpl(p: pathlib.Path) -> list[dict[str, Any]]:
+    """
+    Parse a tab-separated .tpl file.
+
+    Format written by ``exporter.write_tpl()``:
+      Line 0   — tab-separated field names (header)
+      Line 1…  — one tab-separated value row per experiment
+
+    Returns a list of experiment dicts (one per data row).
+    Raises ``ValueError`` if the file cannot be parsed.
+    """
+    text  = p.read_text(encoding="utf-8")
+    lines = [ln for ln in text.splitlines() if ln.strip()]
+    if len(lines) < 2:
+        raise ValueError(
+            f"'{p}' does not look like a valid .tpl file "
+            f"(expected at least a header row and one data row; got {len(lines)} non-empty line(s))."
+        )
+
+    headers = lines[0].split("\t")
+    experiments: list[dict[str, Any]] = []
+    for row_idx, line in enumerate(lines[1:], start=1):
+        cells = line.split("\t")
+        # Pad with empty strings if row is shorter than headers
+        while len(cells) < len(headers):
+            cells.append("")
+        exp = {
+            header: _coerce_tpl_value(cells[i])
+            for i, header in enumerate(headers)
+        }
+        experiments.append(exp)
+    return experiments
+
+
+# --------------------------------------------------------------------------
+# File loading — supports .json and .tpl
+# --------------------------------------------------------------------------
+
+_SINGLE_EXP_KEYS: frozenset[str] = frozenset({"Test Name", "Experiment", "Test Type"})
+
+
+def _json_to_experiment_list(raw: Any, source: pathlib.Path) -> list[dict[str, Any]]:
+    """
+    Normalise a parsed JSON value into a list of experiment dicts.
+
+    Accepts three structures:
+      1. ``[ {...}, {...} ]``  — list of experiment dicts
+      2. ``{ "name": {...}, … }`` — outer dict whose *values* are experiment dicts
+      3. ``{ "Test Name": … }`` — single experiment dict
+
+    Raises ``ValueError`` for unexpected structures.
+    """
+    if isinstance(raw, list):
+        if not raw:
+            raise ValueError(f"'{source}' contains an empty list — no experiments to load.")
+        return [copy.deepcopy(e) for e in raw]
+    if isinstance(raw, dict):
+        if any(k in raw for k in _SINGLE_EXP_KEYS):
+            # Single experiment at root level
+            return [copy.deepcopy(raw)]
+        # Outer dict whose values are experiment dicts
+        values = [v for v in raw.values() if isinstance(v, dict)]
+        if not values:
+            raise ValueError(
+                f"'{source}' is a dict but none of its values look like experiment dicts."
+            )
+        return [copy.deepcopy(v) for v in values]
+    raise ValueError(
+        f"'{source}' does not contain an experiment or list of experiments "
+        f"(got {type(raw).__name__})."
+    )
+
+
 def load_from_file(path: pathlib.Path | str) -> dict[str, Any]:
     """
-    Load an existing experiment JSON file from disk.
+    Load a **single** experiment from disk.
 
-    The file must contain either:
-      - A single experiment dict (object at root), or
-      - A list with one experiment dict (first element used).
+    Supported file formats:
+      - ``.json`` — standard JSON export (single dict, list, or dict-of-dicts)
+      - ``.tpl``  — tab-separated PPV template (header row + one data row; if the
+                    .tpl contains multiple data rows, the **first** row is returned)
 
     Returns:  A copy of the experiment dict ready for editing.
-    Raises:   FileNotFoundError if the file does not exist.
-              ValueError if the file is not valid JSON or the structure is unexpected.
+    Raises:   ``FileNotFoundError`` if the file does not exist.
+              ``ValueError`` if the file cannot be parsed or has no experiments.
     """
     p = pathlib.Path(path).resolve()
     if not p.exists():
         raise FileNotFoundError(f"Experiment file not found: {p}")
 
+    if p.suffix.lower() == ".tpl":
+        exps = _load_tpl(p)
+        return copy.deepcopy(exps[0])
+
+    # JSON path
     try:
         raw = json.loads(p.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ValueError(f"Invalid JSON in '{p}': {exc}") from exc
 
-    if isinstance(raw, list):
-        if not raw:
-            raise ValueError(f"'{p}' contains an empty list — no experiment to load.")
-        raw = raw[0]
+    return _json_to_experiment_list(raw, p)[0]
 
-    if not isinstance(raw, dict):
-        raise ValueError(f"'{p}' does not contain an experiment dict (got {type(raw).__name__}).")
 
-    return copy.deepcopy(raw)
+def load_batch_from_file(path: pathlib.Path | str) -> list[dict[str, Any]]:
+    """
+    Load **all** experiments from a file, returning a list of experiment dicts.
+
+    Supported file formats:
+      - ``.json`` — single dict → ``[dict]``; list → list; dict-of-dicts → list of values
+      - ``.tpl``  — header + one or more data rows → one dict per row
+
+    This is the preferred loader for report generation, validation, and batch
+    workflows because it works transparently with both file types.
+
+    Returns:  List of experiment dicts (copies safe to mutate).
+    Raises:   ``FileNotFoundError`` / ``ValueError`` on missing or invalid files.
+    """
+    p = pathlib.Path(path).resolve()
+    if not p.exists():
+        raise FileNotFoundError(f"Experiment file not found: {p}")
+
+    if p.suffix.lower() == ".tpl":
+        return _load_tpl(p)
+
+    # JSON path
+    try:
+        raw = json.loads(p.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid JSON in '{p}': {exc}") from exc
+
+    return _json_to_experiment_list(raw, p)
 
 
 def update_fields(
@@ -313,7 +458,11 @@ def validate(
     Returns:
         (is_valid, errors, warnings)
         errors   — must be fixed before export
-        warnings — advisory; export still proceeds
+        warnings — advisory; export still proceeds.
+                   A warning starting with ``"EXPERIMENT_DISABLED:"`` means
+                   the ``"Experiment"`` field is set to ``"Disabled"``; all
+                   other validation is skipped and the caller should prompt
+                   the user about removing the experiment from the output.
     """
     errors:   list[str] = []
     warnings: list[str] = []
@@ -329,9 +478,17 @@ def validate(
     cont = exp.get("Content", "")
     prod = (product or exp.get("Product Chop") or "GNR").upper()
 
-    # ── Required non-empty fields ──────────────────────────────────────────
-    if not exp.get("Experiment"):
+    # ── Experiment status ──────────────────────────────────────────────────
+    _exp_status = str(exp.get("Experiment") or "").strip()
+    if not _exp_status:
         e("'Experiment' must not be empty.")
+    elif _exp_status.lower() == "disabled":
+        # Disabled experiments are intentionally skipped by the Framework.
+        # Skip all further validation and surface as a distinct advisory so
+        # callers (agent, CLI) can prompt the user about removal.
+        return True, [], ["EXPERIMENT_DISABLED: This experiment is marked Disabled and will be skipped at runtime."]
+
+    # ── Required non-empty fields ──────────────────────────────────────────
     if not name:
         e("'Test Name' must not be empty.")
 
@@ -381,39 +538,88 @@ def validate(
     _merge(*_c.check_check_core_set(exp))
     _merge(*_c.check_voltage_bumps(exp))
 
+    # ── Optional PPV enum validation (requires PPV on the host) ───────────
+    bridge = _get_bridge()
+    if bridge is not None and bridge.is_available:
+        _ENUM_FIELD_MAP = [
+            ("Test Mode",    "TEST_MODES"),
+            ("Test Type",    "TEST_TYPES"),
+            ("Content",      "CONTENT_OPTIONS"),
+            ("Voltage Type", "VOLTAGE_TYPES"),
+            ("Type",         "TYPES"),
+            ("Domain",       "DOMAINS"),
+        ]
+        for field_name, enum_key in _ENUM_FIELD_MAP:
+            field_val = exp.get(field_name)
+            if field_val:  # skip None / empty — other rules handle required fields
+                ok, msg = bridge.validate_enum_value(prod, enum_key, str(field_val))
+                if not ok:
+                    w(msg)
+
     return len(errors) == 0, errors, warnings
 
 
 def validate_batch(
     experiments: list[dict[str, Any]],
     product:     str | None = None,
-) -> tuple[bool, list[str], list[str]]:
+) -> tuple[bool, list[str], list[str], list[str]]:
     """
     Validate a list of experiments as a batch.
 
     Runs per-experiment validation on each member AND applies batch-level
     checks (consistent Check Core, test number ordering).
 
+    Disabled experiments (``"Experiment" == "Disabled"``) are never treated
+    as errors — they are instead collected into ``disabled_names`` so the
+    caller / agent can prompt the user about removing them from the output.
+
     Returns:
-        (all_valid, all_errors, all_warnings)
+        (all_valid, all_errors, all_warnings, disabled_names)
+        disabled_names — Test Names of experiments marked Disabled
     """
-    all_errors:   list[str] = []
-    all_warnings: list[str] = []
+    all_errors:        list[str] = []
+    all_warnings:      list[str] = []
+    disabled_names:    list[str] = []
+    enabled_exps:      list[dict[str, Any]] = []
 
     for i, exp in enumerate(experiments):
         ok, errs, warns = validate(exp, product=product)
         label = exp.get("Test Name", f"exp[{i}]")
-        for err  in errs:  all_errors.append(f"[{label}] {err}")
-        for warn in warns: all_warnings.append(f"[{label}] {warn}")
 
-    # Batch-level checks
-    _, batch_warns = _c.check_batch_check_core(experiments)
+        # Separate out the disabled-experiment advisory from regular warnings
+        disabled_flags = [w for w in warns if w.startswith("EXPERIMENT_DISABLED:")]
+        regular_warns  = [w for w in warns if not w.startswith("EXPERIMENT_DISABLED:")]
+
+        if disabled_flags:
+            disabled_names.append(label)
+        else:
+            enabled_exps.append(exp)
+
+        for err  in errs:          all_errors.append(f"[{label}] {err}")
+        for warn in regular_warns: all_warnings.append(f"[{label}] {warn}")
+
+    # Batch-level checks run only against enabled experiments so disabled
+    # entries do not pollute ordering / Check-Core consistency results.
+    _, batch_warns = _c.check_batch_check_core(enabled_exps)
     all_warnings.extend(batch_warns)
 
-    ordering_warns = _c.check_test_number_ordering(experiments)
+    ordering_warns = _c.check_test_number_ordering(enabled_exps)
     all_warnings.extend(ordering_warns)
 
-    return len(all_errors) == 0, all_errors, all_warnings
+    return len(all_errors) == 0, all_errors, all_warnings, disabled_names
+
+
+def filter_disabled(experiments: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return a copy of the experiment list with disabled experiments removed.
+
+    Disabled experiments have ``"Experiment" == "Disabled"`` (case-insensitive).
+    All other experiments (including those marked ``"Enabled"`` or with any
+    other truthy status) are kept.
+    """
+    return [
+        exp for exp in experiments
+        if str(exp.get("Experiment") or "").strip().lower() != "disabled"
+    ]
 
 
 def get_ask_user_fields(preset: dict) -> list[str]:

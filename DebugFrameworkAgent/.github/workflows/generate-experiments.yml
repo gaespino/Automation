@@ -1,0 +1,112 @@
+name: Generate Experiment
+
+# ---------------------------------------------------------------------------
+# Manually triggered workflow that generates an experiment JSON via
+# DebugFrameworkAgent and uploads it as a workflow artifact.
+#
+# Required secret:  GITHUB_TOKEN (automatically available in Actions)
+# Optional secret:  PPV_ROOT  — set if PPV is installed on the runner
+# ---------------------------------------------------------------------------
+
+on:
+  workflow_dispatch:
+    inputs:
+      product:
+        description: 'Target product (GNR / CWF / DMR)'
+        required: true
+        default:  'GNR'
+        type: choice
+        options: [GNR, CWF, DMR]
+
+      preset:
+        description: 'Preset key (leave blank for blank template)'
+        required: false
+        default:  ''
+        type: string
+
+      mode:
+        description: 'Test mode for blank experiments'
+        required: false
+        default:  'mesh'
+        type: choice
+        options: [mesh, slice, boot, linux]
+
+      unit_id:
+        description: 'Unit ID (used for output folder naming)'
+        required: false
+        default:  ''
+        type: string
+
+      overrides:
+        description: |
+          Extra field overrides as KEY=VALUE pairs, one per line.
+          Example:
+            Loops=50
+            Test Name=My CI Run
+        required: false
+        default:  ''
+        type: string
+
+      report_format:
+        description: 'Report formats to generate (comma-separated)'
+        required: false
+        default:  'md,html'
+        type: string
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build --set arguments
+        id: build_set
+        shell: python
+        run: |
+          import os, sys
+
+          overrides_raw = """${{ inputs.overrides }}"""
+          lines = [ln.strip() for ln in overrides_raw.splitlines() if ln.strip()]
+          set_args = " ".join(f'--set "{ln}"' for ln in lines)
+
+          unit_id = "${{ inputs.unit_id }}".strip()
+          out_dir = f"output/{unit_id}" if unit_id else "output/ci_run"
+
+          report_formats = "${{ inputs.report_format }}".replace(",", " ").strip()
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"set_args={set_args}\n")
+              fh.write(f"out_dir={out_dir}\n")
+              fh.write(f"report_formats={report_formats}\n")
+
+      - name: Generate experiment
+        working-directory: DebugFrameworkAgent
+        env:
+          PPV_ROOT: ${{ secrets.PPV_ROOT || '' }}
+        run: |
+          PRESET_ARG=""
+          if [ -n "${{ inputs.preset }}" ]; then
+            PRESET_ARG="--preset ${{ inputs.preset }}"
+          fi
+
+          python scripts/generate_experiment.py \
+            --product  ${{ inputs.product }} \
+            --mode     ${{ inputs.mode }} \
+            $PRESET_ARG \
+            --out      ${{ steps.build_set.outputs.out_dir }} \
+            --report-format ${{ steps.build_set.outputs.report_formats }} \
+            ${{ steps.build_set.outputs.set_args }}
+
+      - name: Upload experiment artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-${{ inputs.product }}-${{ github.run_number }}
+          path: DebugFrameworkAgent/output/
+          if-no-files-found: error

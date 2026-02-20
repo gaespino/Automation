@@ -1,0 +1,152 @@
+name: Validate Experiments
+
+# ---------------------------------------------------------------------------
+# Validates all experiment JSON files in the output/ directory.
+#
+# Triggers:
+#   - Push to main / master (any branch can be configured below)
+#   - Pull-request (adds a review comment summarising validation results)
+#   - Manual dispatch
+#
+# Required permissions for PR commenting:
+#   pull-requests: write
+# ---------------------------------------------------------------------------
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'DebugFrameworkAgent/output/**/*.json'
+      - 'DebugFrameworkAgent/scripts/**/*.py'
+      - 'DebugFrameworkAgent/defaults/**/*.json'
+
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'DebugFrameworkAgent/output/**/*.json'
+      - 'DebugFrameworkAgent/scripts/**/*.py'
+      - 'DebugFrameworkAgent/defaults/**/*.json'
+
+  workflow_dispatch:
+    inputs:
+      product:
+        description: 'Product context for orphan JSON files (GNR / CWF / DMR)'
+        required: false
+        default:  'GNR'
+        type: choice
+        options: [GNR, CWF, DMR]
+
+permissions:
+  contents:      read
+  pull-requests: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Find experiment JSON files
+        id:   find_files
+        run: |
+          FILES=$(find DebugFrameworkAgent/output -name "*.json" 2>/dev/null | head -200 | tr '\n' ' ')
+          echo "files=${FILES}" >> "$GITHUB_OUTPUT"
+          COUNT=$(echo "$FILES" | wc -w)
+          echo "count=${COUNT}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate experiments
+        id:   validate
+        working-directory: DebugFrameworkAgent
+        shell: python
+        run: |
+          import json, os, pathlib, sys
+
+          # Add scripts to path
+          sys.path.insert(0, str(pathlib.Path("scripts")))
+          from _core import experiment_builder
+
+          product  = "${{ inputs.product || 'GNR' }}"
+          files_str = "${{ steps.find_files.outputs.files }}"
+          files    = [f for f in files_str.split() if f.endswith(".json")]
+
+          if not files:
+              print("No experiment JSON files found — nothing to validate.")
+              with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+                  fh.write("summary=No experiment JSON files found.\n")
+                  fh.write("failed=0\n")
+                  fh.write("passed=0\n")
+              sys.exit(0)
+
+          failed = 0
+          passed = 0
+          lines  = ["## Experiment Validation Results\n"]
+
+          for fpath in files:
+              rel = pathlib.Path(fpath)
+              try:
+                  exp = experiment_builder.load_from_file(rel)
+                  prod = exp.get("Product Chop") or product
+                  ok, errors, warnings = experiment_builder.validate(exp, product=prod)
+              except Exception as exc:
+                  lines.append(f"### ❌ `{rel}` — Load error\n```\n{exc}\n```\n")
+                  failed += 1
+                  continue
+
+              if ok:
+                  warn_text = ""
+                  if warnings:
+                      warn_text = "  \n".join(f"⚠️ {w}" for w in warnings)
+                      lines.append(f"### ✅ `{rel}` — Valid (with warnings)\n{warn_text}\n")
+                  else:
+                      lines.append(f"### ✅ `{rel}` — Valid\n")
+                  passed += 1
+              else:
+                  err_text = "  \n".join(f"❌ {e}" for e in errors)
+                  lines.append(f"### ❌ `{rel}` — Invalid\n{err_text}\n")
+                  failed += 1
+
+          lines.append(f"\n**Total:** {passed + failed}  |  ✅ Passed: {passed}  |  ❌ Failed: {failed}")
+          summary = "\n".join(lines)
+
+          # Write to step summary
+          with open(os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null"), "a") as fh:
+              fh.write(summary + "\n")
+
+          # Write outputs
+          # Escape newlines for GITHUB_OUTPUT
+          escaped = summary.replace("%", "%25").replace("\n", "%0A").replace("\r", "%0D")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"summary={escaped}\n")
+              fh.write(f"failed={failed}\n")
+              fh.write(f"passed={passed}\n")
+
+          if failed:
+              sys.exit(1)
+
+      - name: Comment on pull request
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const summary = decodeURIComponent("${{ steps.validate.outputs.summary }}");
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner:        context.repo.owner,
+              repo:         context.repo.repo,
+              body:         summary,
+            });
+
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-report-${{ github.run_number }}
+          path: DebugFrameworkAgent/output/
+          if-no-files-found: warn

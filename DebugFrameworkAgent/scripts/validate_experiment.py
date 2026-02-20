@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """
-validate_experiment.py — Validate an experiment JSON file against framework rules.
+validate_experiment.py — Validate an experiment JSON or TPL file against framework rules.
 
 Usage examples:
     python validate_experiment.py experiment.json
+    python validate_experiment.py experiment.tpl
     python validate_experiment.py ./output/my_test.json
     python validate_experiment.py --json experiment.json
+
+Accepted formats:
+  .json — single experiment dict, list of dicts, or outer dict-of-dicts
+  .tpl  — tab-separated PPV template (header row + one or more data rows)
 """
 from __future__ import annotations
 import argparse
@@ -24,7 +29,7 @@ def parse_args():
         epilog=__doc__,
     )
     p.add_argument("file", metavar="FILE",
-                   help="Path to experiment JSON file (single dict or list).")
+                   help="Path to experiment file (.json or .tpl).")
     p.add_argument("--json", action="store_true", dest="as_json",
                    help="Output results as JSON.")
     return p.parse_args()
@@ -40,14 +45,15 @@ def main():
     args = parse_args()
     path = pathlib.Path(args.file)
 
-    if not path.exists():
+    # load_batch_from_file handles .json (all three structures) and .tpl transparently
+    try:
+        experiments = experiment_builder.load_batch_from_file(path)
+    except FileNotFoundError:
         print(f"File not found: {path}")
         sys.exit(1)
-
-    with open(path, encoding="utf-8") as fh:
-        data = json.load(fh)
-
-    experiments = data if isinstance(data, list) else [data]
+    except ValueError as exc:
+        print(f"Error loading file: {exc}")
+        sys.exit(1)
     results = [validate_one(exp, i) for i, exp in enumerate(experiments)]
 
     if args.as_json:

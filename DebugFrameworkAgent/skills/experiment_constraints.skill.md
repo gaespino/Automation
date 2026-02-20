@@ -313,6 +313,51 @@ Use `constraints.expand_dmr_pseudo_mesh(unit_chop, base_experiment)` to generate
 
 ---
 
+## Rule 15 — Disabled Experiments in a Batch
+
+The `"Experiment"` field accepts two values:
+- **`"Enabled"`** — the experiment is active and will run on the Framework.
+- **`"Disabled"`** — the experiment is intentionally skipped by the Framework at runtime.
+
+### Validation behaviour
+
+`experiment_builder.validate()` **never errors** on a disabled experiment.
+Instead it returns a warning tagged `"EXPERIMENT_DISABLED: ..."` so the caller can detect it.
+`experiment_builder.validate_batch()` returns a dedicated 4th value, `disabled_names`, listing the `Test Name` of every disabled experiment found.
+
+### Agent behaviour — what to do when disabled experiments are detected
+
+When loading a file (`load_from_file`) or receiving a batch that includes disabled experiments:
+
+1. **Do NOT raise an error or block the workflow.**
+2. List the disabled experiments clearly:
+   ```
+   The following experiments are marked Disabled:
+     • <Test Name 1>
+     • <Test Name 2>
+   ```
+3. Ask the user:
+   > *"These experiments are disabled — they will be skipped by the Framework at runtime. Would you like to remove them from the output file, or keep them as-is?"*
+   >
+   > Options:
+   > - **Remove all** → call `experiment_builder.filter_disabled(experiments)` and proceed with the filtered list.
+   > - **Keep all** → leave the list unchanged and proceed.
+   > - **Remove specific ones** → ask which ones to remove, then pop them by Test Name before proceeding.
+4. If the user says they want to re-enable any: set `"Experiment": "Enabled"` using `update_fields(exp, {"Experiment": "Enabled"})`.
+5. After the user's choice, continue with validation and export as normal.
+
+### When to prompt vs. when to stay silent
+
+| Scenario | Action |
+|---|---|
+| Single experiment loaded and it is Disabled | Prompt as above before editing |
+| Batch loaded with ≥1 Disabled entry | Prompt once, list all disabled names |
+| Batch loaded with ALL entries Disabled | Prompt the same way — do not auto-remove silently |
+| User explicitly Creates a new experiment and asks for `Experiment = Disabled` | Accept, no prompt needed — the user already knows |
+| validate_batch returns `disabled_names = []` | No prompt needed — nothing to ask |
+
+---
+
 ## Config File Compliance Notes
 
 *(Source: GNRControlPanelConfig.json, CWFControlPanelConfig.json, DMRControlPanelConfig.json)*

@@ -27,6 +27,61 @@ def _safe_filename(name: str) -> str:
     return "".join(c for c in name if c.isalnum() or c in "-_. ").strip()
 
 
+def _resolve_output_dir(
+    out_dir:  pathlib.Path | str | None,
+    unit_id:  str | None = None,
+    product:  str | None = None,
+) -> pathlib.Path:
+    """
+    Resolve the best output directory to use.
+
+    When *out_dir* is provided it is used as-is (resolved absolute).
+    When *out_dir* is None the PPV bridge is consulted for a suggestion;
+    if PPV is unavailable the default is DebugFrameworkAgent/output/.
+
+    Args:
+        out_dir: Caller-supplied directory, or None to auto-resolve.
+        unit_id: Optional unit identifier used by the PPV bridge.
+        product: Optional product hint (currently unused; reserved for future).
+
+    Returns:
+        Resolved absolute Path to the chosen output directory.
+    """
+    if out_dir is not None:
+        return pathlib.Path(out_dir).resolve()
+
+    # Try PPV bridge for a context-aware path suggestion
+    try:
+        from . import ppv_bridge as _ppv
+        bridge = _ppv.get_bridge()
+        if bridge.is_available:
+            return bridge.get_output_path(unit_id=unit_id)
+    except Exception:
+        pass
+
+    # Fallback: DebugFrameworkAgent/output/
+    fallback = pathlib.Path(__file__).parents[2] / "output"
+    if unit_id:
+        fallback = fallback / unit_id
+    return fallback.resolve()
+
+
+def suggest_output_dir(
+    unit_id: str | None = None,
+    product: str | None = None,
+) -> pathlib.Path:
+    """
+    Return a suggested output directory without writing any files.
+
+    Useful for agent/CLI tools that want to display the expected path
+    before committing to it.
+
+    Returns:
+        Resolved output directory Path (PPV-aware when available).
+    """
+    return _resolve_output_dir(None, unit_id=unit_id, product=product)
+
+
 # --------------------------------------------------------------------------
 # Experiment export
 # --------------------------------------------------------------------------

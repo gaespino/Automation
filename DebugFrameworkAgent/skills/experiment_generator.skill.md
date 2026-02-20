@@ -427,3 +427,62 @@ Used with content path: `DMR32M_L_RO_Bcast_pseudoSBFT_Tester`. Both require `Sto
 | Frequency flat — IA (GNR) | IA | `8.0` | `32.0` | `4.0` |
 | Frequency flat — IA (CWF/DMR) | IA | `8.0` | `24.0` | `4.0` |
 | Frequency high — IA (GNR) | IA | `36.0` | `40.0` | `4.0` |
+
+---
+
+## 11. Scripts File & Post Process — Authoring Rules
+
+### How these fields are executed
+
+Both `Scripts File` and `Post Process` point to **`.txt` files** whose content is read at runtime and executed via Python's `eval()` / `exec()` mechanism inside the Framework. They are **not** imported as modules — they are plain text evaluated in the framework's execution context.
+
+Because of this, **complex Python constructs are fragile inside these files**. The Framework evaluates them in a specific scope and any syntax Python cannot cleanly resolve in `eval`/`exec` (multi-step logic, nested functions, class definitions, exception handling blocks) will cause silent failures or hard-to-debug errors.
+
+### Rule: Keep script content minimal
+
+When asked to write, edit, or suggest content for a `Scripts File` or `Post Process` text file, follow these constraints:
+
+| ✅ Allowed | ❌ Avoid |
+|---|---|
+| Simple import statements | Class definitions |
+| Single-line function calls | `try` / `except` / `finally` blocks |
+| Direct variable assignments | Multi-level nested `if`/`for`/`while` |
+| Calls to already-imported module functions | Lambda expressions with side effects |
+| One-liner conditionals (ternary only) | `async`/`await` constructs |
+| `print()` for logging | Decorator definitions |
+
+**Good example** (acceptable script file content):
+```python
+import my_post_processor
+my_post_processor.run(results_folder, unit_id)
+```
+
+**Bad example** (do NOT suggest):
+```python
+def process():
+    for r in results:
+        if r.status == 'FAIL':
+            try:
+                upload(r)
+            except Exception as e:
+                print(e)
+process()
+```
+
+### Rule: Complex logic → external `.py` module
+
+If the user's requirement cannot be expressed in one or two lines:
+
+1. **Suggest building a standalone `.py` file** in the same folder as the script (e.g. alongside the existing `fuse_generation.txt`).
+2. The `.py` file contains all the complex logic as ordinary importable Python.
+3. The `.txt` script file keeps a single `import` + single function call.
+
+**Suggested phrasing when escalating:**
+> "This logic is too complex for a direct script file (`.txt` files are executed via `eval`). I recommend creating `<name>.py` in `R:/Templates/scripts/` with the full logic, then calling it from the script file with a single import + function call."
+
+### Applies to both fields
+
+- `Scripts File` — runs before/during the test loop (setup, fuse operations, custom instrumentation)
+- `Post Process` — runs after all results are collected (data upload, report generation, file staging)
+
+Both share the same execution constraints described above.

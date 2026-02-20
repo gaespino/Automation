@@ -16,21 +16,21 @@
   "product_configs": {
     "GNR": {
       "source_type": "BASELINE",
-      "deployment_type": "S2T",
-      "target_base": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\GNR\\prod\\S2T",
-      "replacement_csv": "C:\\Git\\Automation\\DEVTOOLS\\import_replacement_gnr.csv",
-      "rename_csv": "C:\\Git\\Automation\\DEVTOOLS\\file_rename_gnr.csv",
-      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_s2t.json",
+      "deployment_type": "DebugFramework",
+      "target_base": "",
+      "replacement_csv": "",
+      "rename_csv": "",
+      "manifest_file": "",
       "selected_files": []
     },
     "CWF": {
       "source_type": "BASELINE",
-      "deployment_type": "S2T",
-      "target_base": "C:\\pythonsv\\clearwaterforest\\users\\THR\\PythonScripts\\thr\\S2T",
+      "deployment_type": "DebugFramework",
+      "target_base": "C:\\pythonsv\\clearwaterforest\\users\\gaespino\\DebugFramework",
       "replacement_csv": "C:\\Git\\Automation\\DEVTOOLS\\import_replacement_cwf.csv",
-      "selected_files": [],
       "rename_csv": "C:\\Git\\Automation\\DEVTOOLS\\file_rename_cwf.csv",
-      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_s2t.json"
+      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_debugframework.json",
+      "selected_files": []
     },
     "DMR": {
       "source_type": "BASELINE_DMR",

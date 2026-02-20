@@ -321,6 +321,132 @@ class TestLoadFromFile:
         with pytest.raises(ValueError):
             experiment_builder.load_from_file(p)
 
+    # .tpl format
+    def test_loads_tpl_single_row(self, tmp_path):
+        p = tmp_path / "exp.tpl"
+        p.write_text("Test Name\tLoops\tExperiment\nTplTest\t7\tEnabled\n", encoding="utf-8")
+        result = experiment_builder.load_from_file(p)
+        assert result["Test Name"] == "TplTest"
+        assert result["Loops"] == 7
+        assert result["Experiment"] == "Enabled"
+
+    def test_loads_tpl_multi_row_returns_first(self, tmp_path):
+        p = tmp_path / "multi.tpl"
+        p.write_text(
+            "Test Name\tLoops\nFirst\t1\nSecond\t2\n",
+            encoding="utf-8",
+        )
+        result = experiment_builder.load_from_file(p)
+        assert result["Test Name"] == "First"
+
+    def test_raises_for_tpl_missing_data_row(self, tmp_path):
+        p = tmp_path / "bad.tpl"
+        p.write_text("Test Name\tLoops\n", encoding="utf-8")
+        with pytest.raises(ValueError, match="valid .tpl"):
+            experiment_builder.load_from_file(p)
+
+    def test_tpl_coerces_empty_to_none(self, tmp_path):
+        p = tmp_path / "empty.tpl"
+        p.write_text("Test Name\tLoops\nMyTest\t\n", encoding="utf-8")
+        result = experiment_builder.load_from_file(p)
+        assert result["Loops"] is None
+
+    def test_tpl_coerces_bool_true(self, tmp_path):
+        p = tmp_path / "bool.tpl"
+        p.write_text("Test Name\tFastBoot\nMyTest\tTrue\n", encoding="utf-8")
+        result = experiment_builder.load_from_file(p)
+        assert result["FastBoot"] is True
+
+    def test_tpl_coerces_bool_false(self, tmp_path):
+        p = tmp_path / "bool2.tpl"
+        p.write_text("Test Name\tFastBoot\nMyTest\tFalse\n", encoding="utf-8")
+        result = experiment_builder.load_from_file(p)
+        assert result["FastBoot"] is False
+
+    def test_tpl_coerces_int(self, tmp_path):
+        p = tmp_path / "int.tpl"
+        p.write_text("Test Name\tLoops\nMyTest\t5\n", encoding="utf-8")
+        result = experiment_builder.load_from_file(p)
+        assert result["Loops"] == 5
+        assert isinstance(result["Loops"], int)
+
+    def test_tpl_coerces_float(self, tmp_path):
+        p = tmp_path / "flt.tpl"
+        p.write_text("Test Name\tVoltage IA\nMyTest\t0.05\n", encoding="utf-8")
+        result = experiment_builder.load_from_file(p)
+        assert abs(result["Voltage IA"] - 0.05) < 1e-9
+
+
+# ---------------------------------------------------------------------------
+# load_batch_from_file
+# ---------------------------------------------------------------------------
+
+class TestLoadBatchFromFile:
+    """load_batch_from_file handles all file structures and returns list[dict]."""
+
+    def test_json_list(self, tmp_path):
+        data = [{"Test Name": "A"}, {"Test Name": "B"}]
+        p = tmp_path / "batch.json"
+        p.write_text(json.dumps(data), encoding="utf-8")
+        result = experiment_builder.load_batch_from_file(p)
+        assert len(result) == 2
+        assert result[0]["Test Name"] == "A"
+        assert result[1]["Test Name"] == "B"
+
+    def test_json_single_dict(self, tmp_path):
+        data = {"Test Name": "Single", "Experiment": "Enabled"}
+        p = tmp_path / "single.json"
+        p.write_text(json.dumps(data), encoding="utf-8")
+        result = experiment_builder.load_batch_from_file(p)
+        assert len(result) == 1
+        assert result[0]["Test Name"] == "Single"
+
+    def test_json_dict_of_dicts(self, tmp_path):
+        data = {
+            "exp1": {"Test Name": "X"},
+            "exp2": {"Test Name": "Y"},
+        }
+        p = tmp_path / "dod.json"
+        p.write_text(json.dumps(data), encoding="utf-8")
+        result = experiment_builder.load_batch_from_file(p)
+        assert len(result) == 2
+        names = {r["Test Name"] for r in result}
+        assert names == {"X", "Y"}
+
+    def test_tpl_single_row(self, tmp_path):
+        p = tmp_path / "s.tpl"
+        p.write_text("Test Name\tLoops\nOne\t3\n", encoding="utf-8")
+        result = experiment_builder.load_batch_from_file(p)
+        assert len(result) == 1
+        assert result[0]["Test Name"] == "One"
+        assert result[0]["Loops"] == 3
+
+    def test_tpl_multi_row(self, tmp_path):
+        p = tmp_path / "m.tpl"
+        p.write_text("Test Name\tLoops\nFirst\t1\nSecond\t2\nThird\t3\n", encoding="utf-8")
+        result = experiment_builder.load_batch_from_file(p)
+        assert len(result) == 3
+        assert [r["Test Name"] for r in result] == ["First", "Second", "Third"]
+
+    def test_raises_for_missing_file(self, tmp_path):
+        with pytest.raises(FileNotFoundError):
+            experiment_builder.load_batch_from_file(tmp_path / "no.json")
+
+    def test_raises_for_empty_json_list(self, tmp_path):
+        p = tmp_path / "empty.json"
+        p.write_text("[]", encoding="utf-8")
+        with pytest.raises(ValueError, match="empty"):
+            experiment_builder.load_batch_from_file(p)
+
+    def test_returns_independent_copies(self, tmp_path):
+        data = [{"Test Name": "Copy", "Loops": 1}]
+        p = tmp_path / "c.json"
+        p.write_text(json.dumps(data), encoding="utf-8")
+        r1 = experiment_builder.load_batch_from_file(p)
+        r1[0]["Loops"] = 999
+        r2 = experiment_builder.load_batch_from_file(p)
+        assert r2[0]["Loops"] == 1
+
 
 # ---------------------------------------------------------------------------
 # update_fields
@@ -365,3 +491,128 @@ class TestUpdateFields:
         assert result["Loops"] == 10
         assert result["Bucket"] == "MARGIN"
         assert result["Check Core"] == 36
+
+
+# ---------------------------------------------------------------------------
+# Disabled experiment handling
+# ---------------------------------------------------------------------------
+
+class TestDisabledExperiment:
+    """validate() and validate_batch() behaviour for Experiment == 'Disabled'."""
+
+    def _disabled_exp(self, name="Skip Me"):
+        """Minimal experiment marked Disabled (missing required fields on purpose)."""
+        return {"Experiment": "Disabled", "Test Name": name}
+
+    def _enabled_exp(self, name="Active Test", **overrides):
+        exp = {
+            "Experiment": "Enabled",
+            "Test Name": name,
+            "Test Mode": "Mesh",
+            "Test Type": "Loops",
+            "IP Address": "192.168.0.1",
+            "COM Port": 11,
+            "TTL Folder": "S:\\GNR\\TTL",
+        }
+        exp.update(overrides)
+        return exp
+
+    # ── validate() ──────────────────────────────────────────────────────────
+
+    def test_disabled_is_valid(self):
+        ok, errors, warnings = experiment_builder.validate(self._disabled_exp())
+        assert ok
+
+    def test_disabled_has_no_errors(self):
+        _, errors, _ = experiment_builder.validate(self._disabled_exp())
+        assert errors == []
+
+    def test_disabled_produces_experiment_disabled_warning(self):
+        _, _, warnings = experiment_builder.validate(self._disabled_exp())
+        assert len(warnings) == 1
+        assert warnings[0].startswith("EXPERIMENT_DISABLED:")
+
+    def test_disabled_skips_other_validation(self):
+        # A disabled experiment with missing required fields (IP, Mode, etc.)
+        # must NOT produce errors for those fields.
+        exp = self._disabled_exp()
+        ok, errors, _ = experiment_builder.validate(exp)
+        assert ok
+        assert errors == []
+
+    def test_empty_experiment_field_still_errors(self):
+        exp = self._enabled_exp()
+        exp["Experiment"] = ""
+        ok, errors, _ = experiment_builder.validate(exp)
+        assert not ok
+        assert any("Experiment" in e for e in errors)
+
+    def test_none_experiment_field_errors(self):
+        exp = self._enabled_exp()
+        exp["Experiment"] = None
+        ok, errors, _ = experiment_builder.validate(exp)
+        assert not ok
+        assert any("Experiment" in e for e in errors)
+
+    def test_enabled_exp_not_flagged_as_disabled(self):
+        _, _, warnings = experiment_builder.validate(self._enabled_exp())
+        assert not any(w.startswith("EXPERIMENT_DISABLED:") for w in warnings)
+
+    # ── validate_batch() ────────────────────────────────────────────────────
+
+    def test_validate_batch_returns_four_values(self):
+        result = experiment_builder.validate_batch([self._enabled_exp()])
+        assert len(result) == 4
+
+    def test_validate_batch_disabled_names(self):
+        exps = [self._enabled_exp("A"), self._disabled_exp("B"), self._enabled_exp("C")]
+        _, _, _, disabled = experiment_builder.validate_batch(exps)
+        assert disabled == ["B"]
+
+    def test_validate_batch_all_disabled(self):
+        exps = [self._disabled_exp("D1"), self._disabled_exp("D2")]
+        ok, errors, _, disabled = experiment_builder.validate_batch(exps)
+        assert ok
+        assert errors == []
+        assert set(disabled) == {"D1", "D2"}
+
+    def test_validate_batch_no_disabled(self):
+        exps = [self._enabled_exp("X"), self._enabled_exp("Y")]
+        _, _, _, disabled = experiment_builder.validate_batch(exps)
+        assert disabled == []
+
+    def test_validate_batch_disabled_not_in_errors(self):
+        exps = [self._enabled_exp("Good"), self._disabled_exp()]
+        _, errors, _, _ = experiment_builder.validate_batch(exps)
+        assert not any("Skip Me" in e for e in errors)
+
+    # ── filter_disabled() ───────────────────────────────────────────────────
+
+    def test_filter_disabled_removes_disabled(self):
+        exps = [self._enabled_exp("Keep"), self._disabled_exp()]
+        result = experiment_builder.filter_disabled(exps)
+        names = [e.get("Test Name") for e in result]
+        assert "Keep" in names
+        assert "Skip Me" not in names
+
+    def test_filter_disabled_keeps_enabled(self):
+        exps = [self._enabled_exp("A"), self._enabled_exp("B")]
+        result = experiment_builder.filter_disabled(exps)
+        assert len(result) == 2
+
+    def test_filter_disabled_all_disabled_returns_empty(self):
+        exps = [self._disabled_exp(), self._disabled_exp()]
+        result = experiment_builder.filter_disabled(exps)
+        assert result == []
+
+    def test_filter_disabled_does_not_mutate_input(self):
+        exps = [self._enabled_exp("K"), self._disabled_exp()]
+        original_len = len(exps)
+        experiment_builder.filter_disabled(exps)
+        assert len(exps) == original_len
+
+    def test_filter_disabled_case_insensitive(self):
+        exp = self._enabled_exp("CaseTest")
+        exp["Experiment"] = "DISABLED"
+        result = experiment_builder.filter_disabled([exp])
+        assert result == []

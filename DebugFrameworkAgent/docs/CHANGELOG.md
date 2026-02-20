@@ -8,6 +8,73 @@ All notable changes to the DebugFrameworkAgent package are documented here.
 
 ---
 
+## [2.7.0] — 2026-02-20
+
+### Added
+- **Disabled experiment handling** — experiments with `"Experiment": "Disabled"` are no longer treated as errors anywhere in the validation pipeline:
+  - `experiment_builder.validate()` — early-exit path for `Disabled` status: returns `(True, [], ["EXPERIMENT_DISABLED: …"])` and skips all further field checks; empty/`None` still raises an error
+  - `experiment_builder.validate_batch()` — now returns a **4th value** `disabled_names` (`list[str]`): the `Test Name` of every disabled experiment found; batch-level ordering and Check Core checks run only on enabled experiments; signature change: `(bool, list, list, list)`
+  - `experiment_builder.filter_disabled(experiments)` — new helper that returns the experiment list with all `Disabled` entries removed (case-insensitive)
+  - `skills/experiment_constraints.skill.md` **Rule 15** — "Disabled Experiments in a Batch": specifies the agent prompt flow (list disabled names → ask remove / keep / remove specific), re-enable guidance, and a table of when to prompt vs. stay silent
+  - `agents/experiment.agent.md` Path C — new step 2 after `load_from_file()`: detect disabled experiments, list them, ask the user; Step 5 updated to cover `validate_batch()` returning non-empty `disabled_names` mid-session
+- **`.tpl` file support** throughout the pipeline — the PPV tab-separated template format is now a first-class input alongside `.json`:
+  - `experiment_builder._coerce_tpl_value(s)` — converts raw TSV string cells to `None` / `bool` / `int` / `float` / `str`
+  - `experiment_builder._load_tpl(path)` — parses header + one-or-more data rows into `list[dict]`
+  - `experiment_builder._json_to_experiment_list(raw, source)` — extracted shared helper that normalises all three JSON structures (list / dict-of-dicts / single dict) into `list[dict]`
+  - `experiment_builder.load_from_file()` — updated to detect `.tpl` suffix and parse via `_load_tpl`; `.json` path uses the shared helper
+  - `experiment_builder.load_batch_from_file(path)` — **new public function** that returns `list[dict]` from any supported format (`.json` all variants, `.tpl` single or multi-row); preferred entry point for report generation, validation, and batch workflows
+  - `scripts/generate_report.py` — replaced manual `json.load()` + three-format detection block with `load_batch_from_file()`; accepts `.json` and `.tpl` transparently
+  - `scripts/validate_experiment.py` — same replacement; validates `.tpl` files identically to `.json`
+- **Scripts File & Post Process authoring rules** — `skills/experiment_generator.skill.md` **Section 11**:
+  - Both fields point to `.txt` files executed via `eval`/`exec` — not imported as modules
+  - Allowed vs. avoid table (simple imports/assignments OK; class defs, try/except, nested loops not)
+  - Escalation rule: complex logic → create `<name>.py`, single import + function call in the `.txt`
+  - Suggested agent phrasing for explaining the constraint to users
+- **16 new tests** in `tests/test_experiment_builder.py` — `.tpl` loading (single/multi row, coercion of `None`/`bool`/`int`/`float`, empty cell), `load_batch_from_file()` coverage (all JSON structures, `.tpl`, edge cases, copy safety)
+- **17 new tests** in `tests/test_experiment_builder.py` — `TestDisabledExperiment` class covering `validate()`, `validate_batch()`, and `filter_disabled()` for all disabled-experiment scenarios
+
+### Changed
+- `experiment_builder.validate_batch()` — **breaking signature change**: now returns `(all_valid, all_errors, all_warnings, disabled_names)` instead of `(all_valid, all_errors, all_warnings)`; callers that unpack exactly 3 values must be updated
+- `report_builder.build_batch_summary_markdown()` / `build_batch_summary_html()` — **diff table redesign**: replaced the unbounded wide table (one column per experiment) with per-experiment vertical subsections, each showing `Field | Value` for that experiment's differing fields only; HTML version wraps each block in a styled `.diff-card` panel; table width is now fixed regardless of batch size
+- `scripts/generate_report.py` — `json` import removed (no longer needed); `EXPERIMENT_JSON` positional arg renamed to `EXPERIMENT_FILE` in help text; docstring updated to document `.tpl` support
+- `scripts/validate_experiment.py` — same doc/help update; internal format-detection code removed in favour of `load_batch_from_file()`
+
+### Tests
+- Total: **384 passed, 1 skipped** (up from 368 before this release)
+
+---
+
+## [2.6.0] — 2026-02-20
+
+### Added
+- **PPV Bridge** (`scripts/_core/ppv_bridge.py`) — optional read-only integration with a local PPV installation:
+  - `discover_ppv()` — multi-priority auto-discovery: `PPV_ROOT` env var → explicit override → relative path candidates (repo-layout-aware) → common absolute paths; validated by checking for `configs/*ControlPanelConfig.json`
+  - `PPVBridge` class — `load_live_field_config()`, `sync_enums()`, `get_valid_enum()`, `get_field_enable_config()`, `get_field_configs()`, `load_ppv_experiment()`, `get_output_path()`, `validate_enum_value()`
+  - Module-level singleton: `get_bridge()` / `reset_bridge()`
+  - Fully graceful degradation — all methods return `None` / fallback when PPV is absent
+- **Enum validation in `experiment_builder.validate()`** — when PPV bridge is available, `Test Mode`, `Test Type`, `Content`, `Voltage Type`, `Type`, and `Domain` are validated against the live PPV config; soft warnings (not errors) for mismatches
+- **`exporter._resolve_output_dir()`** — resolves the best output directory: caller-supplied → PPV bridge suggestion → `DebugFrameworkAgent/output/` fallback
+- **`exporter.suggest_output_dir(unit_id, product)`** — public helper for tools/agents to display the expected output path before writing
+- **PPV status line in `generate_experiment.py`** — prints `"PPV detected at: …"` or `"PPV not found — running in standalone mode."` on startup
+- **GitHub Models client** (`scripts/github_model_client.py`) — stdlib-only (`urllib` + `json`) AI client:
+  - `GitHubModelClient(token, model, timeout)` — reads `GITHUB_TOKEN` from env
+  - `ask()`, `ask_with_agent_context()`, `translate_to_overrides()`
+  - `load_agent_file()`, `load_skill_file()`, `load_prompt_file()` helpers
+  - CLI: `--message`, `--agent`, `--skill`, `--prompt-file`, `--translate`, `--product`, `--model`, `--list-models`
+- **GitHub Actions workflows** (`.github/workflows/`):
+  - `generate-experiments.yml` — manual dispatch: product / preset / mode / unit_id / overrides / report_format inputs; uploads experiment + report artifacts
+  - `validate-experiments.yml` — push + PR + manual triggers; validates all output JSONs; posts summary comment on pull requests
+  - `list-presets.yml` — manual dispatch: builds preset catalog in JSON or Markdown; uploads as artifact
+- **`docs/GITHUB_ACTIONS.md`** — setup guide, workflow reference, client API docs, and troubleshooting table
+- **`tests/test_ppv_bridge.py`** — 42 tests covering discovery, availability, config loading, enum sync, field config, experiment loading, output path, enum validation, and singleton management
+- **`tests/test_github_integration.py`** — 33 tests covering workflow file structure, client initialisation, ask/translate behaviour, and prompt file loading (all network calls mocked)
+
+### Changed
+- `experiment_builder._get_bridge()` — lazy-import helper so bridge is only loaded when validation actually runs (zero cost when PPV absent)
+- `generate_experiment.py` — PPV status line printed once at startup before argument processing
+
+---
+
 ## [2.5.0] — 2026-02-20
 
 ### Added

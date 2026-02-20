@@ -35,12 +35,23 @@ Call `experiment_builder.new_blank(product, mode)` to create a fully-zeroed work
 
 **Path C — Existing JSON file (edit mode):**
 If `experiment_file` is present in the delegation context:
-1. Call `experiment_builder.load_from_file(path)` to read the file into the working experiment.
-2. Go directly to **Step 3** — show the user the loaded values as the "current" defaults table for each content type section.
-3. Ask: *"I've loaded `<filename>`. Which fields do you want to change?"*
-4. Apply all requested changes using `experiment_builder.update_fields(exp, changes)`.
-5. After changes, re-run validation (Step 5) and re-export (Step 7) — overwrite the original file unless the user specifies a new output path.
-6. Skip Step 6 (test number assignment) unless the user asks for it.
+1. Call `experiment_builder.load_from_file(path)` to read the file into the working experiment list.
+2. **Disabled experiment check** — scan for any experiments where `"Experiment" == "Disabled"`:
+   - If any are found, list them by Test Name:
+     ```
+     The following experiments are marked Disabled:
+       • <Test Name 1>
+       • <Test Name 2>
+     ```
+   - Ask: *"These experiments are disabled — they will be skipped at runtime. Would you like to remove them from the output, keep them, or remove specific ones?"*
+   - **Remove all** → call `experiment_builder.filter_disabled(experiments)` before proceeding.
+   - **Remove specific** → ask which, then drop those by Test Name.
+   - **Keep all** → proceed unchanged.
+3. Go directly to **Step 3** — show the user the loaded values as the "current" defaults table for each content type section.
+4. Ask: *"I've loaded `<filename>`. Which fields do you want to change?"*
+5. Apply all requested changes using `experiment_builder.update_fields(exp, changes)`.
+6. After changes, re-run validation (Step 5) and re-export (Step 7) — overwrite the original file unless the user specifies a new output path.
+7. Skip Step 6 (test number assignment) unless the user asks for it.
 
 ### Step 2 - Apply overrides
 - Merge all fields from overrides
@@ -140,6 +151,13 @@ If `experiment_file` is present in the delegation context:
 ### Step 5 - Validate
 Run experiment_builder.validate(exp, product=product).
 All errors must be resolved before export. Surface warnings to user and ask to confirm.
+
+For batch validation, use experiment_builder.validate_batch(experiments, product=product).
+- The 4th return value `disabled_names` is a list of Test Names for disabled experiments.
+- If `disabled_names` is non-empty and the disabled check was not already performed in Path C
+  (e.g. user added a disabled experiment mid-session), prompt the user the same way as Path C step 2:
+  ask whether to remove all, keep all, or remove specific disabled experiments before export.
+- Disabled experiments do NOT count as errors — never block the workflow because of them.
 
 ### Step 6 - Test Number Assignment (batch only)
 - Call constraints.assign_test_numbers(experiments) to apply priority order.

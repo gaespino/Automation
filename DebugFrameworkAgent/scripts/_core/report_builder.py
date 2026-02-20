@@ -608,14 +608,20 @@ def build_batch_summary_markdown(
         # Differences between experiments
         lines += ["### Differences Between Experiments", ""]
         if diff_fields:
-            exp_names = [e.get("Test Name") or f"Exp {i + 1}" for i, e in enumerate(exps)]
-            header = "| Field | " + " | ".join(exp_names) + " |"
-            sep    = "|-------|" + "|".join(["----"] * len(exps)) + "|"
-            lines += [header, sep]
-            for field in diff_fields:
-                row_vals = " | ".join(_fmt_value(e.get(field)) for e in exps)
-                lines.append(f"| `{field}` | {row_vals} |")
+            lines.append(
+                f"The following {len(diff_fields)} field(s) differ between experiments "
+                f"— each experiment\'s individual values are shown below:"
+            )
             lines.append("")
+            for i, exp in enumerate(exps):
+                exp_name = exp.get("Test Name") or f"Exp {i + 1}"
+                lines.append(f"#### {exp_name}")
+                lines.append("")
+                lines.append("| Field | Value |")
+                lines.append("|-------|-------|")
+                for field in diff_fields:
+                    lines.append(f"| `{field}` | {_fmt_value(exp.get(field))} |")
+                lines.append("")
         else:
             lines += [
                 "> All compared fields are identical — no differences found.",
@@ -712,18 +718,25 @@ def build_batch_summary_html(
         # Differences
         parts.append("<h3>Differences Between Experiments</h3>")
         if diff_fields:
-            exp_names = [e.get("Test Name") or f"Exp {i + 1}" for i, e in enumerate(exps)]
-            tbl = "<table><thead><tr><th>Field</th>"
-            for n in exp_names:
-                tbl += f"<th>{esc(str(n))}</th>"
-            tbl += "</tr></thead><tbody>"
-            for field in diff_fields:
-                tbl += f"<tr><td><code>{esc(field)}</code></td>"
-                for exp in exps:
-                    tbl += f"<td>{esc(_fmt_value(exp.get(field)))}</td>"
-                tbl += "</tr>"
-            tbl += "</tbody></table>"
-            parts.append(tbl)
+            parts.append(
+                f"<p>The following <strong>{len(diff_fields)}</strong> field(s) differ between "
+                f"experiments \u2014 each experiment\u2019s individual values are shown below:</p>"
+            )
+            for i, exp in enumerate(exps):
+                exp_name = esc(exp.get("Test Name") or f"Exp {i + 1}")
+                parts.append(
+                    f'<div class="diff-card">'
+                    f'<div class="diff-card-title">{exp_name}</div>'
+                    f'<table><thead><tr><th style="width:220px">Field</th><th>Value</th></tr></thead><tbody>'
+                )
+                for field in diff_fields:
+                    val = esc(_fmt_value(exp.get(field)))
+                    empty = _fmt_value(exp.get(field)) == "\u2014"
+                    val_cell = f'<span style="color:#bbb">\u2014</span>' if empty else val
+                    parts.append(
+                        f"<tr><td><code>{esc(field)}</code></td><td>{val_cell}</td></tr>"
+                    )
+                parts.append("</tbody></table></div>")
         else:
             parts.append("<p><em>All compared fields are identical — no differences found.</em></p>")
 
@@ -734,6 +747,14 @@ def build_batch_summary_html(
         "padding-left: 6px; border-left: 3px solid #5588cc; }"
     )
     small_css = "small { font-weight: normal; font-size: 12px; color: #666; }"
+    diff_card_css = (
+        ".diff-card { border: 1px solid #d0d7e3; border-radius: 6px; margin: 10px 0 16px 0; "
+        "overflow: hidden; } "
+        ".diff-card-title { background: #e8eef8; color: #003366; font-weight: 700; "
+        "font-size: 12px; padding: 6px 12px; border-bottom: 1px solid #d0d7e3; } "
+        ".diff-card table { margin-bottom: 0; } "
+        ".diff-card td, .diff-card th { font-size: 11.5px; }"
+    )
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -745,6 +766,7 @@ def build_batch_summary_html(
 {_HTML_CSS}
 {h3_css}
 {small_css}
+{diff_card_css}
 </style>
 </head>
 <body>
