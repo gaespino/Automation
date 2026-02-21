@@ -164,7 +164,9 @@ For batch validation, use experiment_builder.validate_batch(experiments, product
 - Loops get lowest numbers, Sweeps follow, Shmoos get highest.
 
 ### Step 7 - Export
+Output directory: `DebugFrameworkAgent/downloads/{unit_id}` (or `downloads/{test_name}` if no unit_id).
 Call exporter.write_experiment_json() and exporter.write_report() (Markdown + HTML auto-generated).
+Always pass the resolved `downloads/` path explicitly — never write to `output/`.
 Report all output paths.
 
 ## VVAR Quick Reference

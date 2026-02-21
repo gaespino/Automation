@@ -1,7 +1,7 @@
 name: Validate Experiments
 
 # ---------------------------------------------------------------------------
-# Validates all experiment JSON files in the output/ directory.
+# Validates all experiment JSON files in the downloads/ directory.
 #
 # Triggers:
 #   - Push to main / master (any branch can be configured below)
@@ -16,14 +16,14 @@ on:
   push:
     branches: [main, master]
     paths:
-      - 'DebugFrameworkAgent/output/**/*.json'
+      - 'DebugFrameworkAgent/downloads/**/*.json'
       - 'DebugFrameworkAgent/scripts/**/*.py'
       - 'DebugFrameworkAgent/defaults/**/*.json'
 
   pull_request:
     branches: [main, master]
     paths:
-      - 'DebugFrameworkAgent/output/**/*.json'
+      - 'DebugFrameworkAgent/downloads/**/*.json'
       - 'DebugFrameworkAgent/scripts/**/*.py'
       - 'DebugFrameworkAgent/defaults/**/*.json'
 
@@ -56,20 +56,19 @@ jobs:
       - name: Find experiment JSON files
         id:   find_files
         run: |
-          FILES=$(find DebugFrameworkAgent/output -name "*.json" 2>/dev/null | head -200 | tr '\n' ' ')
+          FILES=$(find DebugFrameworkAgent/downloads -name "*.json" 2>/dev/null | head -200 | tr '\n' ' ')
           echo "files=${FILES}" >> "$GITHUB_OUTPUT"
           COUNT=$(echo "$FILES" | wc -w)
           echo "count=${COUNT}" >> "$GITHUB_OUTPUT"
 
       - name: Validate experiments
         id:   validate
-        working-directory: DebugFrameworkAgent
         shell: python
         run: |
           import json, os, pathlib, sys
 
-          # Add scripts to path
-          sys.path.insert(0, str(pathlib.Path("scripts")))
+          # Add scripts to path (repo-root-relative; no working-directory override)
+          sys.path.insert(0, str(pathlib.Path("DebugFrameworkAgent/scripts")))
           from _core import experiment_builder
 
           product  = "${{ inputs.product || 'GNR' }}"
@@ -148,5 +147,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: validation-report-${{ github.run_number }}
-          path: DebugFrameworkAgent/output/
+          path: DebugFrameworkAgent/downloads/
           if-no-files-found: warn

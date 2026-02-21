@@ -14,6 +14,9 @@ build/
 develop-eggs/
 dist/
 downloads/
+# Allow DebugFrameworkAgent generated experiment outputs to be committed
+!DebugFrameworkAgent/downloads/
+!DebugFrameworkAgent/downloads/**
 eggs/
 .eggs/
 lib/

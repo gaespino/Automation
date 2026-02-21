@@ -59,8 +59,8 @@ def _resolve_output_dir(
     except Exception:
         pass
 
-    # Fallback: DebugFrameworkAgent/output/
-    fallback = pathlib.Path(__file__).parents[2] / "output"
+    # Fallback: DebugFrameworkAgent/downloads/
+    fallback = pathlib.Path(__file__).parents[2] / "downloads"
     if unit_id:
         fallback = fallback / unit_id
     return fallback.resolve()

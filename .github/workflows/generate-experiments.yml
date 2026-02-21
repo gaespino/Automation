@@ -77,7 +77,7 @@ jobs:
           set_args = " ".join(f'--set "{ln}"' for ln in lines)
 
           unit_id = "${{ inputs.unit_id }}".strip()
-          out_dir = f"output/{unit_id}" if unit_id else "output/ci_run"
+          out_dir = f"downloads/{unit_id}" if unit_id else "downloads/ci_run"
 
           report_formats = "${{ inputs.report_format }}".replace(",", " ").strip()
 
@@ -108,5 +108,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: experiment-${{ inputs.product }}-${{ github.run_number }}
-          path: DebugFrameworkAgent/output/
+          path: DebugFrameworkAgent/downloads/
           if-no-files-found: error

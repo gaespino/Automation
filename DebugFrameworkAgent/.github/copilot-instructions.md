@@ -61,10 +61,10 @@ python DebugFrameworkAgent/scripts/generate_experiment.py --product CWF --mode m
 python DebugFrameworkAgent/scripts/apply_preset.py --product GNR --preset gnr_baseline --name "Run1"
 
 # Validate an experiment
-python DebugFrameworkAgent/scripts/validate_experiment.py ./output/Run1.json
+python DebugFrameworkAgent/scripts/validate_experiment.py ./downloads/Run1.json
 
 # Build flow files
-python DebugFrameworkAgent/scripts/generate_flow.py --experiments ./output/exps.json --out ./flow/
+python DebugFrameworkAgent/scripts/generate_flow.py --experiments ./downloads/exps.json --out ./flow/
 ```
 
 ## VS Code Tasks (Ctrl+Shift+P → Tasks: Run Task)
