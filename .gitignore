@@ -257,6 +257,9 @@ local/
 results/
 output/
 logs/
+# Allow committed experiment outputs in DebugFrameworkAgent
+!DebugFrameworkAgent/output/
+!DebugFrameworkAgent/output/**
 
 # SIMULATIONS folder (test mocks and simulations)
 S2T/SIMULATIONS/
