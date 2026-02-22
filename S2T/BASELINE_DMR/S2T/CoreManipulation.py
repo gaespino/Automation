@@ -2088,6 +2088,91 @@ def mask_fuse_llc_array(llc_masks = {'cbb0':0x0, 'cbb1':0x0, 'cbb2':0x0, 'cbb3':
 
 	return(ret_array)
 
+## Generates external mask for Core Disable experiment (disables IA only, LLC unchanged)
+def gen_core_disable_mask(core_list, current_masks=None):
+	'''
+	Generate an external mask with the specified modules disabled in the IA domain.
+	The LLC mask is preserved from the current system mask.
+
+	Input:
+		core_list: (List[int]) List of global physical module numbers to disable (e.g. [62, 70])
+		current_masks: (Dict, optional) Current system masks; if None, reads from hardware
+
+	Output:
+		result: (Dict) External mask dict with hex strings for ia_cbbX and llc_cbbX
+	'''
+	if current_masks is None:
+		current_masks = dpm.fuses(rdFuses=True, sktnum=[0], printFuse=False)
+
+	sv = _get_global_sv()
+	result = {}
+
+	for cbb in sv.socket0.cbbs:
+		cbbN = cbb.instance
+		cbb_name = cbb.name
+
+		ia_val = current_masks[f'ia_{cbb_name}']
+		ia_mask = ia_val.value if hasattr(ia_val, 'value') else (int(ia_val, 16) if isinstance(ia_val, str) else ia_val)
+
+		llc_val = current_masks[f'llc_{cbb_name}']
+		llc_mask = llc_val.value if hasattr(llc_val, 'value') else (int(llc_val, 16) if isinstance(llc_val, str) else llc_val)
+
+		for core in core_list:
+			if core // config.MODS_PER_CBB == cbbN:
+				ia_mask |= (1 << (core % config.MODS_PER_CBB))
+
+		result[f'ia_{cbb_name}'] = hex(ia_mask)
+		result[f'llc_{cbb_name}'] = hex(llc_mask)
+
+	print(Fore.CYAN + f'> Core Disable mask generated for modules: {core_list}' + Fore.WHITE)
+	for key, val in result.items():
+		print(Fore.CYAN + f'  {key}: {val}' + Fore.WHITE)
+
+	return result
+
+## Generates external mask for Slice Disable experiment (disables both IA and LLC)
+def gen_slice_disable_mask(core_list, current_masks=None):
+	'''
+	Generate an external mask with the specified modules and their LLC slices disabled.
+
+	Input:
+		core_list: (List[int]) List of global physical module numbers to disable (e.g. [60, 72])
+		current_masks: (Dict, optional) Current system masks; if None, reads from hardware
+
+	Output:
+		result: (Dict) External mask dict with hex strings for ia_cbbX and llc_cbbX
+	'''
+	if current_masks is None:
+		current_masks = dpm.fuses(rdFuses=True, sktnum=[0], printFuse=False)
+
+	sv = _get_global_sv()
+	result = {}
+
+	for cbb in sv.socket0.cbbs:
+		cbbN = cbb.instance
+		cbb_name = cbb.name
+
+		ia_val = current_masks[f'ia_{cbb_name}']
+		ia_mask = ia_val.value if hasattr(ia_val, 'value') else (int(ia_val, 16) if isinstance(ia_val, str) else ia_val)
+
+		llc_val = current_masks[f'llc_{cbb_name}']
+		llc_mask = llc_val.value if hasattr(llc_val, 'value') else (int(llc_val, 16) if isinstance(llc_val, str) else llc_val)
+
+		for core in core_list:
+			if core // config.MODS_PER_CBB == cbbN:
+				bit_pos = core % config.MODS_PER_CBB
+				ia_mask |= (1 << bit_pos)
+				llc_mask |= (1 << bit_pos)
+
+		result[f'ia_{cbb_name}'] = hex(ia_mask)
+		result[f'llc_{cbb_name}'] = hex(llc_mask)
+
+	print(Fore.CYAN + f'> Slice Disable mask generated for modules: {core_list}' + Fore.WHITE)
+	for key, val in result.items():
+		print(Fore.CYAN + f'  {key}: {val}' + Fore.WHITE)
+
+	return result
+
 ## FastBoot Fuse Override
 def fuse_cmd_override_reset(fuse_cmd_array, skip_init=False, boot = True, s2t=False, execution_state=None):
 	'''

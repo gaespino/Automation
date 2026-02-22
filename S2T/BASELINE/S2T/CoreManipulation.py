@@ -1662,6 +1662,89 @@ def mask_fuse_llc_array(slicemask = {'compute0':0x0, 'compute1':0x0, 'compute2':
 
 	return(ret_array)
 
+## Generates external mask for Core Disable experiment (disables IA only, LLC unchanged)
+def gen_core_disable_mask(core_list, current_masks=None):
+	'''
+	Generate an external mask with the specified cores disabled in the IA domain.
+	The LLC mask is preserved from the current system mask.
+
+	Input:
+		core_list: (List[int]) List of global physical core numbers to disable (e.g. [62, 70])
+		current_masks: (Dict, optional) Current system masks; if None, reads from hardware
+
+	Output:
+		result: (Dict) External mask dict with hex strings for ia_compute_X and llc_compute_X
+	'''
+	if current_masks is None:
+		current_masks = dpm.fuses(rdFuses=True, sktnum=[0], printFuse=False)
+
+	sv = _get_global_sv()
+	result = {}
+
+	for compute in sv.socket0.computes:
+		computeN = compute.instance
+
+		ia_val = current_masks[f'ia_compute_{computeN}']
+		ia_mask = ia_val.value if hasattr(ia_val, 'value') else (int(ia_val, 16) if isinstance(ia_val, str) else ia_val)
+
+		llc_val = current_masks[f'llc_compute_{computeN}']
+		llc_mask = llc_val.value if hasattr(llc_val, 'value') else (int(llc_val, 16) if isinstance(llc_val, str) else llc_val)
+
+		for core in core_list:
+			if core // MAXPHYSICAL == computeN:
+				ia_mask |= (1 << (core % MAXPHYSICAL))
+
+		result[f'ia_compute_{computeN}'] = hex(ia_mask)
+		result[f'llc_compute_{computeN}'] = hex(llc_mask)
+
+	print(Fore.CYAN + f'> Core Disable mask generated for cores: {core_list}' + Fore.WHITE)
+	for key, val in result.items():
+		print(Fore.CYAN + f'  {key}: {val}' + Fore.WHITE)
+
+	return result
+
+## Generates external mask for Slice Disable experiment (disables both IA and LLC)
+def gen_slice_disable_mask(core_list, current_masks=None):
+	'''
+	Generate an external mask with the specified cores and their LLC slices disabled.
+
+	Input:
+		core_list: (List[int]) List of global physical core numbers to disable (e.g. [60, 72])
+		current_masks: (Dict, optional) Current system masks; if None, reads from hardware
+
+	Output:
+		result: (Dict) External mask dict with hex strings for ia_compute_X and llc_compute_X
+	'''
+	if current_masks is None:
+		current_masks = dpm.fuses(rdFuses=True, sktnum=[0], printFuse=False)
+
+	sv = _get_global_sv()
+	result = {}
+
+	for compute in sv.socket0.computes:
+		computeN = compute.instance
+
+		ia_val = current_masks[f'ia_compute_{computeN}']
+		ia_mask = ia_val.value if hasattr(ia_val, 'value') else (int(ia_val, 16) if isinstance(ia_val, str) else ia_val)
+
+		llc_val = current_masks[f'llc_compute_{computeN}']
+		llc_mask = llc_val.value if hasattr(llc_val, 'value') else (int(llc_val, 16) if isinstance(llc_val, str) else llc_val)
+
+		for core in core_list:
+			if core // MAXPHYSICAL == computeN:
+				bit_pos = core % MAXPHYSICAL
+				ia_mask |= (1 << bit_pos)
+				llc_mask |= (1 << bit_pos)
+
+		result[f'ia_compute_{computeN}'] = hex(ia_mask)
+		result[f'llc_compute_{computeN}'] = hex(llc_mask)
+
+	print(Fore.CYAN + f'> Slice Disable mask generated for cores: {core_list}' + Fore.WHITE)
+	for key, val in result.items():
+		print(Fore.CYAN + f'  {key}: {val}' + Fore.WHITE)
+
+	return result
+
 ## FastBoot Fuse Override
 def fuse_cmd_override_reset(fuse_cmd_array, skip_init=False, boot = True, s2t=False, execution_state=None):
 	sv = _get_global_sv()
