@@ -2088,6 +2088,40 @@ def mask_fuse_llc_array(llc_masks = {'cbb0':0x0, 'cbb1':0x0, 'cbb2':0x0, 'cbb3':
 
 	return(ret_array)
 
+## Helper: extract integer mask value from hardware register object or hex string
+def _extract_mask_value(val):
+	'''Return integer mask value from a register object, hex string, or integer.'''
+	if hasattr(val, 'value'):
+		return val.value
+	if isinstance(val, str):
+		return int(val, 16)
+	return int(val)
+
+## Helper: apply disable bits into an integer mask for a given CBB unit
+def _apply_disable_bits(mask, unit_index, core_list, unit_size, disable_llc=False, llc_mask=None):
+	'''
+	Set disable bits in an IA (and optionally LLC) mask for all modules in core_list
+	that belong to the given CBB unit.
+
+	Input:
+		mask: (int) Current IA disable mask for this CBB
+		unit_index: (int) CBB index
+		core_list: (List[int]) Global physical module numbers
+		unit_size: (int) Number of physical modules per CBB (config.MODS_PER_CBB)
+		disable_llc: (bool) If True, also apply bits to llc_mask
+		llc_mask: (int) Current LLC disable mask (required if disable_llc is True)
+
+	Output:
+		Tuple (ia_mask, llc_mask) with updated values
+	'''
+	for core in core_list:
+		if core // unit_size == unit_index:
+			bit_pos = core % unit_size
+			mask |= (1 << bit_pos)
+			if disable_llc and llc_mask is not None:
+				llc_mask |= (1 << bit_pos)
+	return mask, llc_mask
+
 ## Generates external mask for Core Disable experiment (disables IA only, LLC unchanged)
 def gen_core_disable_mask(core_list, current_masks=None):
 	'''
@@ -2110,17 +2144,9 @@ def gen_core_disable_mask(core_list, current_masks=None):
 	for cbb in sv.socket0.cbbs:
 		cbbN = cbb.instance
 		cbb_name = cbb.name
-
-		ia_val = current_masks[f'ia_{cbb_name}']
-		ia_mask = ia_val.value if hasattr(ia_val, 'value') else (int(ia_val, 16) if isinstance(ia_val, str) else ia_val)
-
-		llc_val = current_masks[f'llc_{cbb_name}']
-		llc_mask = llc_val.value if hasattr(llc_val, 'value') else (int(llc_val, 16) if isinstance(llc_val, str) else llc_val)
-
-		for core in core_list:
-			if core // config.MODS_PER_CBB == cbbN:
-				ia_mask |= (1 << (core % config.MODS_PER_CBB))
-
+		ia_mask = _extract_mask_value(current_masks[f'ia_{cbb_name}'])
+		llc_mask = _extract_mask_value(current_masks[f'llc_{cbb_name}'])
+		ia_mask, _ = _apply_disable_bits(ia_mask, cbbN, core_list, config.MODS_PER_CBB)
 		result[f'ia_{cbb_name}'] = hex(ia_mask)
 		result[f'llc_{cbb_name}'] = hex(llc_mask)
 
@@ -2151,19 +2177,9 @@ def gen_slice_disable_mask(core_list, current_masks=None):
 	for cbb in sv.socket0.cbbs:
 		cbbN = cbb.instance
 		cbb_name = cbb.name
-
-		ia_val = current_masks[f'ia_{cbb_name}']
-		ia_mask = ia_val.value if hasattr(ia_val, 'value') else (int(ia_val, 16) if isinstance(ia_val, str) else ia_val)
-
-		llc_val = current_masks[f'llc_{cbb_name}']
-		llc_mask = llc_val.value if hasattr(llc_val, 'value') else (int(llc_val, 16) if isinstance(llc_val, str) else llc_val)
-
-		for core in core_list:
-			if core // config.MODS_PER_CBB == cbbN:
-				bit_pos = core % config.MODS_PER_CBB
-				ia_mask |= (1 << bit_pos)
-				llc_mask |= (1 << bit_pos)
-
+		ia_mask = _extract_mask_value(current_masks[f'ia_{cbb_name}'])
+		llc_mask = _extract_mask_value(current_masks[f'llc_{cbb_name}'])
+		ia_mask, llc_mask = _apply_disable_bits(ia_mask, cbbN, core_list, config.MODS_PER_CBB, disable_llc=True, llc_mask=llc_mask)
 		result[f'ia_{cbb_name}'] = hex(ia_mask)
 		result[f'llc_{cbb_name}'] = hex(llc_mask)
 

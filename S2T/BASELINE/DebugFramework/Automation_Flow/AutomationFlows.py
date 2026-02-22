@@ -1319,6 +1319,8 @@ class AdaptiveFlowInstance(FlowInstance):
 			'Boot Breakpoint',
 			'Disable 2 Cores',
 			'Core License',
+			'Core Disable List',
+			'Slice Disable List',
 			
 			# All other experiment settings (Linux, Dragon, etc.)
 			'Linux Pre Command', 'Linux Post Command', 'Startup Linux', 'Linux Path',
@@ -1714,6 +1716,8 @@ class CharacterizationFlowInstance(FlowInstance):
 			'Boot Breakpoint',
 			'Disable 2 Cores',
 			'Core License',
+			'Core Disable List',
+			'Slice Disable List',
 			
 			# Linux settings
 			'Linux Pre Command',
@@ -2760,6 +2764,8 @@ class AnalysisFlowInstance(FlowInstance):
 			'Boot Breakpoint': self.Experiment.get('Boot Breakpoint'),
 			'Disable 2 Cores': self.Experiment.get('Disable 2 Cores'),
 			'Check Core': self.Experiment.get('Check Core', 7),
+			'Core Disable List': self.Experiment.get('Core Disable List'),
+			'Slice Disable List': self.Experiment.get('Slice Disable List'),
 			'Voltage Type': self.Experiment.get('Voltage Type', 'vbump'),
 			'Voltage IA': self.Experiment.get('Voltage IA'),
 			'Voltage CFC': self.Experiment.get('Voltage CFC'),

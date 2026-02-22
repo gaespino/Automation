@@ -1662,6 +1662,40 @@ def mask_fuse_llc_array(slicemask = {'compute0':0x0, 'compute1':0x0, 'compute2':
 
 	return(ret_array)
 
+## Helper: extract integer mask value from hardware register object or hex string
+def _extract_mask_value(val):
+	'''Return integer mask value from a register object, hex string, or integer.'''
+	if hasattr(val, 'value'):
+		return val.value
+	if isinstance(val, str):
+		return int(val, 16)
+	return int(val)
+
+## Helper: apply disable bits into an integer mask for a given compute/CBB
+def _apply_disable_bits(mask, unit_index, core_list, unit_size, disable_llc=False, llc_mask=None):
+	'''
+	Set disable bits in an IA (and optionally LLC) mask for all cores in core_list
+	that belong to the given compute/CBB unit.
+
+	Input:
+		mask: (int) Current IA disable mask for this unit
+		unit_index: (int) Compute/CBB index
+		core_list: (List[int]) Global physical core numbers
+		unit_size: (int) Number of physical cores per compute/CBB (MAXPHYSICAL or MODS_PER_CBB)
+		disable_llc: (bool) If True, also apply bits to llc_mask
+		llc_mask: (int) Current LLC disable mask (required if disable_llc is True)
+
+	Output:
+		Tuple (ia_mask, llc_mask) with updated values
+	'''
+	for core in core_list:
+		if core // unit_size == unit_index:
+			bit_pos = core % unit_size
+			mask |= (1 << bit_pos)
+			if disable_llc and llc_mask is not None:
+				llc_mask |= (1 << bit_pos)
+	return mask, llc_mask
+
 ## Generates external mask for Core Disable experiment (disables IA only, LLC unchanged)
 def gen_core_disable_mask(core_list, current_masks=None):
 	'''
@@ -1683,17 +1717,9 @@ def gen_core_disable_mask(core_list, current_masks=None):
 
 	for compute in sv.socket0.computes:
 		computeN = compute.instance
-
-		ia_val = current_masks[f'ia_compute_{computeN}']
-		ia_mask = ia_val.value if hasattr(ia_val, 'value') else (int(ia_val, 16) if isinstance(ia_val, str) else ia_val)
-
-		llc_val = current_masks[f'llc_compute_{computeN}']
-		llc_mask = llc_val.value if hasattr(llc_val, 'value') else (int(llc_val, 16) if isinstance(llc_val, str) else llc_val)
-
-		for core in core_list:
-			if core // MAXPHYSICAL == computeN:
-				ia_mask |= (1 << (core % MAXPHYSICAL))
-
+		ia_mask = _extract_mask_value(current_masks[f'ia_compute_{computeN}'])
+		llc_mask = _extract_mask_value(current_masks[f'llc_compute_{computeN}'])
+		ia_mask, _ = _apply_disable_bits(ia_mask, computeN, core_list, MAXPHYSICAL)
 		result[f'ia_compute_{computeN}'] = hex(ia_mask)
 		result[f'llc_compute_{computeN}'] = hex(llc_mask)
 
@@ -1723,19 +1749,9 @@ def gen_slice_disable_mask(core_list, current_masks=None):
 
 	for compute in sv.socket0.computes:
 		computeN = compute.instance
-
-		ia_val = current_masks[f'ia_compute_{computeN}']
-		ia_mask = ia_val.value if hasattr(ia_val, 'value') else (int(ia_val, 16) if isinstance(ia_val, str) else ia_val)
-
-		llc_val = current_masks[f'llc_compute_{computeN}']
-		llc_mask = llc_val.value if hasattr(llc_val, 'value') else (int(llc_val, 16) if isinstance(llc_val, str) else llc_val)
-
-		for core in core_list:
-			if core // MAXPHYSICAL == computeN:
-				bit_pos = core % MAXPHYSICAL
-				ia_mask |= (1 << bit_pos)
-				llc_mask |= (1 << bit_pos)
-
+		ia_mask = _extract_mask_value(current_masks[f'ia_compute_{computeN}'])
+		llc_mask = _extract_mask_value(current_masks[f'llc_compute_{computeN}'])
+		ia_mask, llc_mask = _apply_disable_bits(ia_mask, computeN, core_list, MAXPHYSICAL, disable_llc=True, llc_mask=llc_mask)
 		result[f'ia_compute_{computeN}'] = hex(ia_mask)
 		result[f'llc_compute_{computeN}'] = hex(llc_mask)
 
