@@ -3125,6 +3125,20 @@ class Framework:
 			config_updates['extMask'] = gcm.gen_core_disable_mask(config_updates['coredislist'])
 		elif config_updates.get('slicedislist'):
 			FrameworkUtils.FrameworkPrint(f' Generating Slice Disable external mask for modules: {config_updates["slicedislist"]}')
+			# Validate: in slice mode, the target module cannot be in the disable list
+			target_mode = config_updates.get('target', getattr(self.config, 'target', None))
+			if target_mode is not None and str(target_mode).lower() == 'slice':
+				target_mask = config_updates.get('mask', getattr(self.config, 'mask', None))
+				if target_mask is not None:
+					try:
+						if int(target_mask) in config_updates['slicedislist']:
+							raise ValueError(
+								f"Configuration Error: target module {target_mask} is in the Slice Disable List "
+								f"{config_updates['slicedislist']}. A module cannot be both the test target and disabled."
+							)
+					except (TypeError, ValueError) as e:
+						if 'Configuration Error' in str(e):
+							raise
 			config_updates['extMask'] = gcm.gen_slice_disable_mask(config_updates['slicedislist'])
 
 		self.update_configuration(**config_updates)
