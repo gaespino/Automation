@@ -3122,7 +3122,7 @@ class Framework:
 			config_updates['extMask'] = extmask
 		elif config_updates.get('coredislist'):
 			FrameworkUtils.FrameworkPrint(f' Generating Core Disable external mask for modules: {config_updates["coredislist"]}')
-			config_updates['extMask'] = gcm.gen_core_disable_mask(config_updates['coredislist'])
+			config_updates['extMask'] = gcm.build_disable_extmask(config_updates['coredislist'], 'core')
 		elif config_updates.get('slicedislist'):
 			FrameworkUtils.FrameworkPrint(f' Generating Slice Disable external mask for modules: {config_updates["slicedislist"]}')
 			# Validate: in slice mode, the target module cannot be in the disable list
@@ -3139,7 +3139,7 @@ class Framework:
 					except (TypeError, ValueError) as e:
 						if 'Configuration Error' in str(e):
 							raise
-			config_updates['extMask'] = gcm.gen_slice_disable_mask(config_updates['slicedislist'])
+			config_updates['extMask'] = gcm.build_disable_extmask(config_updates['slicedislist'], 'slice')
 
 		self.update_configuration(**config_updates)
 		self.update_s2t_configuration(config_updates)

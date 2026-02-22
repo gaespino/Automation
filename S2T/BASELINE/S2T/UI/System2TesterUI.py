@@ -905,11 +905,13 @@ class QuickDefeatureTool:
 				self.s2t.qvbumps_mesh = vbump_mesh
 			self.s2t.targetLogicalCore = int(Mask)
 
-		# Core/Slice Disable List — store on s2t for mask generation in init
+		# Core/Slice Disable List — generate extMask via CoreManipulation and pass through existing extMasks channel
 		core_dis_str = options.get("Core Disable List")
 		slice_dis_str = options.get("Slice Disable List")
-		self.s2t.coredislist = [int(x.strip()) for x in core_dis_str.split(',') if x.strip()] if core_dis_str else None
-		self.s2t.slicedislist = [int(x.strip()) for x in slice_dis_str.split(',') if x.strip()] if slice_dis_str else None
+		if core_dis_str:
+			self.s2t.extMasks = self.s2t.build_disable_extmask(core_dis_str, 'core')
+		elif slice_dis_str:
+			self.s2t.extMasks = self.s2t.build_disable_extmask(slice_dis_str, 'slice')
 
 		# Run Mesh
 		#s2tTest.setupMeshMode()

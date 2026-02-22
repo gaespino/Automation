@@ -2189,8 +2189,35 @@ def gen_slice_disable_mask(core_list, current_masks=None):
 
 	return result
 
-## FastBoot Fuse Override
-def fuse_cmd_override_reset(fuse_cmd_array, skip_init=False, boot = True, s2t=False, execution_state=None):
+## Single interface for generating a core or slice disable external mask
+def build_disable_extmask(core_list_input, mode, current_masks=None):
+	'''
+	Parse a comma-separated string or int list, then generate an external mask.
+	Single entry point used by SystemDebug and System2TesterUI to keep generation logic
+	in one place and avoid duplicating parsing or routing logic in callers.
+
+	Input:
+		core_list_input: (str or List[int]) Comma-separated string (e.g. "62, 70") or list of ints
+		mode:            ('core' or 'slice') 'core' disables IA only; 'slice' disables IA and LLC
+		current_masks:   (Dict, optional) Current system masks; if None, reads from hardware
+
+	Output:
+		extmask: (Dict) External mask dict ready to pass as extMask/extMasks to the tester
+	'''
+	if isinstance(core_list_input, str):
+		try:
+			core_list = [int(x.strip()) for x in core_list_input.split(',') if x.strip()]
+		except ValueError as e:
+			raise ValueError(f'Invalid core disable list "{core_list_input}": expected comma-separated integers') from e
+	else:
+		core_list = list(core_list_input)
+
+	if mode == 'core':
+		return gen_core_disable_mask(core_list, current_masks)
+	elif mode == 'slice':
+		return gen_slice_disable_mask(core_list, current_masks)
+	else:
+		raise ValueError(f'Unknown disable mode "{mode}": expected "core" or "slice"')
 	'''
 	Overrides each fuse given as input array with its specified values.
 	Full fuse names and values are required.

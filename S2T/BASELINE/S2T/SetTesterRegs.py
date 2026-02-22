@@ -1269,12 +1269,6 @@ class S2TFlow():
 		self.masks, self.array = scm.CheckMasks(extMasks=self.extMasks)
 		self.core_dict = {f'{key}':{key: value} for key,value in self.array['CORES'].items()}
 
-		# Generate extMasks from Core/Slice Disable List if set via UI
-		if getattr(self, 'coredislist', None):
-			self.extMasks = scm.gen_core_disable_mask(self.coredislist, self.masks)
-		elif getattr(self, 'slicedislist', None):
-			self.extMasks = scm.gen_slice_disable_mask(self.slicedislist, self.masks)
-
 	def slice_core(self, array, core_dict):
 		"""Select core for slice mode using strategy"""
 
@@ -1617,12 +1611,6 @@ class S2TFlow():
 
 		self.init_flow()
 		self.masks, self.array = scm.CheckMasks(extMasks=self.extMasks)
-
-		# Generate extMasks from Core/Slice Disable List if set via UI
-		if getattr(self, 'coredislist', None):
-			self.extMasks = scm.gen_core_disable_mask(self.coredislist, self.masks)
-		elif getattr(self, 'slicedislist', None):
-			self.extMasks = scm.gen_slice_disable_mask(self.slicedislist, self.masks)
 
 	def mesh_ate(self):
 		"""
@@ -2045,6 +2033,21 @@ class S2TFlow():
 		if scm.check_user_cancel(self.execution_state):
 			return
 		scm.svStatus()
+
+	def build_disable_extmask(self, core_list_input, mode):
+		'''
+		Interface wrapper: delegate to CoreManipulation.build_disable_extmask().
+		Allows callers (e.g. System2TesterUI) to generate an extMask without importing
+		CoreManipulation directly — using the same scm module already loaded here.
+
+		Input:
+			core_list_input: (str or List[int]) Comma-separated string or list of ints
+			mode:            ('core' or 'slice')
+
+		Output:
+			extmask: (Dict) External mask dict ready to pass as extMasks to the tester
+		'''
+		return scm.build_disable_extmask(core_list_input, mode)
 
 
 #========================================================================================================#
