@@ -500,8 +500,10 @@ def validate(
         domain     = exp.get("Domain")
         sweep_type = exp.get("Type")
 
-        if start is None or start == 0:
-            e("Sweep: 'Start' must be set and non-zero.")
+        if start is None:
+            e("Sweep: 'Start' must be set.")
+        elif start == 0 and sweep_type == "Frequency":
+            e("Sweep: 'Start' must be non-zero for Frequency sweeps.")
         if end is None or end == 0:
             e("Sweep: 'End' must be set and non-zero.")
         if steps is None or steps == 0:
