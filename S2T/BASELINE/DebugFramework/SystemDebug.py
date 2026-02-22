@@ -3111,6 +3111,26 @@ class Framework:
 			FrameworkUtils.FrameworkPrint(f' Updating External Mask to: {extmask}')
 			config_updates['extMask'] = extmask
 
+		# Handle Core Disable and Slice Disable lists from template
+		coredislist = config_updates.get('coredislist')
+		slicedislist = config_updates.get('slicedislist')
+		if coredislist or slicedislist:
+			# Use current extMask as base if already set, otherwise dpm.fuses() will be called inside
+			base_mask = config_updates.get('extMask')
+			if coredislist and str(coredislist).strip():
+				core_list = [int(x.strip()) for x in str(coredislist).split(',') if x.strip().isdigit()]
+				if core_list:
+					FrameworkUtils.FrameworkPrint(f' Generating Core Disable Mask for cores: {core_list}')
+					base_mask = gcm.generate_core_disable_mask(core_list, current_mask=base_mask)
+			if slicedislist and str(slicedislist).strip():
+				slice_list = [int(x.strip()) for x in str(slicedislist).split(',') if x.strip().isdigit()]
+				if slice_list:
+					FrameworkUtils.FrameworkPrint(f' Generating Slice Disable Mask for slices: {slice_list}')
+					base_mask = gcm.generate_slice_disable_mask(slice_list, current_mask=base_mask)
+			if base_mask is not None:
+				FrameworkUtils.FrameworkPrint(f' External Mask after Core/Slice Disable: {base_mask}')
+				config_updates['extMask'] = base_mask
+
 		self.update_configuration(**config_updates)
 		self.update_s2t_configuration(config_updates)
 

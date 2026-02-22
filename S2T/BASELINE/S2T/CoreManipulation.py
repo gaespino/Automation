@@ -1942,6 +1942,114 @@ def CheckMasks(readfuse = True, extMasks=None):
 
 	return masks, array
 
+def _mask_value_to_int(mask_value):
+	'''Convert a mask value to int regardless of its type (PySV object, int, or hex string).'''
+	if mask_value is None:
+		return None
+	if hasattr(mask_value, 'value'):
+		return int(mask_value.value)
+	if isinstance(mask_value, int):
+		return int(mask_value)
+	return int(mask_value, 16)
+
+## Generate an external mask with specified physical cores disabled in the IA core mask only.
+## The LLC mask is carried over from the current system mask unchanged.
+def generate_core_disable_mask(core_list, current_mask=None):
+	'''
+	Generate an external mask with specified physical cores disabled in the IA core mask (Core Disable).
+	The LLC mask is kept from the current system mask.
+
+	Args:
+		core_list (list of int): Global physical core indices to disable (0-based, spanning all computes).
+		current_mask (dict, optional): Base mask dict (same format as dpm.fuses() output or extMask hex strings).
+		                               If None, reads current system mask from hardware via dpm.fuses().
+	Returns:
+		dict: External mask dict with hex string values for ia_compute_X and llc_compute_X.
+	'''
+	if current_mask is None:
+		current_mask = dpm.fuses(rdFuses=True, sktnum=[0], printFuse=False)
+
+	ia = {}
+	llc = {}
+	for comp_num in range(3):
+		ia_val = current_mask.get(f'ia_compute_{comp_num}')
+		llc_val = current_mask.get(f'llc_compute_{comp_num}')
+		ia[comp_num] = _mask_value_to_int(ia_val)
+		llc[comp_num] = _mask_value_to_int(llc_val)
+
+	for core in core_list:
+		cinst = core // MAXPHYSICAL
+		local_phys = core % MAXPHYSICAL
+		if cinst > 2 or ia.get(cinst) is None:
+			print(Fore.YELLOW + f'>>> Warning: Core {core} compute instance {cinst} not available, skipping' + Fore.RESET)
+			continue
+		ia[cinst] |= (1 << local_phys)
+
+	result = {}
+	for comp_num in range(3):
+		if ia[comp_num] is not None and llc[comp_num] is not None:
+			result[f'ia_compute_{comp_num}'] = hex(ia[comp_num])
+			result[f'llc_compute_{comp_num}'] = hex(llc[comp_num])
+		else:
+			result[f'ia_compute_{comp_num}'] = None
+			result[f'llc_compute_{comp_num}'] = None
+
+	print(Fore.CYAN + f'>>> Core Disable Mask generated for cores: {core_list}' + Fore.RESET)
+	for comp_num in range(3):
+		if result[f'ia_compute_{comp_num}'] is not None:
+			print(Fore.CYAN + f'\t> compute{comp_num}: ia = {result[f"ia_compute_{comp_num}"]}, llc = {result[f"llc_compute_{comp_num}"]}' + Fore.RESET)
+
+	return result
+
+## Generate an external mask with specified physical cores/slices disabled in both IA core and LLC slice masks.
+def generate_slice_disable_mask(slice_list, current_mask=None):
+	'''
+	Generate an external mask with specified physical cores/slices disabled in both the IA core mask
+	and the LLC slice mask (full Slice Disable).
+
+	Args:
+		slice_list (list of int): Global physical core/slice indices to disable (0-based, spanning all computes).
+		current_mask (dict, optional): Base mask dict (same format as dpm.fuses() output or extMask hex strings).
+		                               If None, reads current system mask from hardware via dpm.fuses().
+	Returns:
+		dict: External mask dict with hex string values for ia_compute_X and llc_compute_X.
+	'''
+	if current_mask is None:
+		current_mask = dpm.fuses(rdFuses=True, sktnum=[0], printFuse=False)
+
+	ia = {}
+	llc = {}
+	for comp_num in range(3):
+		ia_val = current_mask.get(f'ia_compute_{comp_num}')
+		llc_val = current_mask.get(f'llc_compute_{comp_num}')
+		ia[comp_num] = _mask_value_to_int(ia_val)
+		llc[comp_num] = _mask_value_to_int(llc_val)
+
+	for core in slice_list:
+		cinst = core // MAXPHYSICAL
+		local_phys = core % MAXPHYSICAL
+		if cinst > 2 or ia.get(cinst) is None:
+			print(Fore.YELLOW + f'>>> Warning: Slice {core} compute instance {cinst} not available, skipping' + Fore.RESET)
+			continue
+		ia[cinst] |= (1 << local_phys)
+		llc[cinst] |= (1 << local_phys)
+
+	result = {}
+	for comp_num in range(3):
+		if ia[comp_num] is not None and llc[comp_num] is not None:
+			result[f'ia_compute_{comp_num}'] = hex(ia[comp_num])
+			result[f'llc_compute_{comp_num}'] = hex(llc[comp_num])
+		else:
+			result[f'ia_compute_{comp_num}'] = None
+			result[f'llc_compute_{comp_num}'] = None
+
+	print(Fore.CYAN + f'>>> Slice Disable Mask generated for slices: {slice_list}' + Fore.RESET)
+	for comp_num in range(3):
+		if result[f'ia_compute_{comp_num}'] is not None:
+			print(Fore.CYAN + f'\t> compute{comp_num}: ia = {result[f"ia_compute_{comp_num}"]}, llc = {result[f"llc_compute_{comp_num}"]}' + Fore.RESET)
+
+	return result
+
 ## Done an improvement will be to add the IO Dies fuse config - Later - Working for single socket masks only
 def coresEnabled(coreslicemask=None, logical=False, die = None, skip = False, print_cores = True, print_llcs = True, rdfuses = True):
 	'''
