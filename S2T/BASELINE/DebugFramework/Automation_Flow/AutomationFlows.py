@@ -572,7 +572,9 @@ class FlowInstance(ABC):
 				'freq_cfc': getattr(config, 'freq_cfc', None),
 				'content': getattr(config, 'content', None),
 				'mask': getattr(config, 'mask', None),
-				'check_core': getattr(config, 'check_core', None)
+				'check_core': getattr(config, 'check_core', None),
+				'coredislist': getattr(config, 'coredislist', None),
+				'slicedislist': getattr(config, 'slicedislist', None),
 			}
 		return {}
 	
@@ -1874,7 +1876,9 @@ class CharacterizationFlowInstance(FlowInstance):
 			'content': 'Content',
 			'mask': 'Configuration (Mask)',
 			'check_core': 'Check Core',
-			'voltage_type': 'Voltage Type'
+			'voltage_type': 'Voltage Type',
+			'coredislist': 'Core Disable List',
+			'slicedislist': 'Slice Disable List',
 		}
 		
 		for snapshot_key, exp_key in config_mapping.items():
@@ -2074,7 +2078,7 @@ class CharacterizationFlowInstance(FlowInstance):
 		
 		# Failure reproduction conditions
 		self.logger("Failure Reproduction Conditions:")
-		repro_params = ['Content', 'Configuration (Mask)', 'Check Core', 'Voltage Type']
+		repro_params = ['Content', 'Configuration (Mask)', 'Check Core', 'Voltage Type', 'Core Disable List', 'Slice Disable List']
 		for param in repro_params:
 			value = self.Experiment.get(param, 'Not Set')
 			self.logger(f"  {param}: {value}")
@@ -2698,6 +2702,10 @@ class AnalysisFlowInstance(FlowInstance):
 					recovery_experiment['Configuration (Mask)'] = recovery_config['mask']
 				if recovery_config.get('check_core') is not None:
 					recovery_experiment['Check Core'] = recovery_config['check_core']
+				if recovery_config.get('coredislist') is not None:
+					recovery_experiment['Core Disable List'] = recovery_config['coredislist']
+				if recovery_config.get('slicedislist') is not None:
+					recovery_experiment['Slice Disable List'] = recovery_config['slicedislist']
 				
 				proposals.append({
 					'type': 'recovery_validation',
@@ -2817,7 +2825,9 @@ class AnalysisFlowInstance(FlowInstance):
 			'frequency_cfc': 'Frequency CFC',
 			'content': 'Content',
 			'mask': 'Configuration (Mask)',
-			'check_core': 'Check Core'
+			'check_core': 'Check Core',
+			'coredislist': 'Core Disable List',
+			'slicedislist': 'Slice Disable List',
 		}
 		
 		for config_key, exp_key in config_mapping.items():
@@ -3097,11 +3107,11 @@ class AnalysisFlowInstance(FlowInstance):
 			config = best_overall['configuration']
 			
 			# Show base configuration
-			base_fields = ['mask', 'check_core', 'voltage_type', 'voltage_ia', 'voltage_cfc', 'frequency_ia', 'frequency_cfc']
+			base_fields = ['mask', 'check_core', 'coredislist', 'slicedislist', 'voltage_type', 'voltage_ia', 'voltage_cfc', 'frequency_ia', 'frequency_cfc']
 			for field in base_fields:
 				if config.get(field) is not None:
 					print(f"       {field}: {config[field]}")
-			
+
 			# Show content-specific configuration
 			if best_overall['content_type'].lower() == 'dragon':
 				dragon_fields = ['vvar0', 'vvar1', 'vvar2', 'vvar3', 'vvar_extra', 'dragon_content_path', 'dragon_content_line']
@@ -3142,7 +3152,7 @@ class AnalysisFlowInstance(FlowInstance):
 				print("       Configuration Details:")
 				
 				# Base configuration
-				base_fields = ['mask', 'check_core', 'voltage_type', 'voltage_ia', 'voltage_cfc', 'frequency_ia', 'frequency_cfc']
+				base_fields = ['mask', 'check_core', 'coredislist', 'slicedislist', 'voltage_type', 'voltage_ia', 'voltage_cfc', 'frequency_ia', 'frequency_cfc']
 				for field in base_fields:
 					if config.get(field) is not None:
 						print(f"         {field}: {config[field]}")
