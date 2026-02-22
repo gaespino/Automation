@@ -292,7 +292,8 @@ All other fields are available for all products.
 | `Test Name` must not be empty | Error |
 | Experiment names must be unique in the export file | Error |
 | `IP Address` must match `^\d{1,3}(\.\d{1,3}){3}$` if provided | Error |
-| If `Test Type == "Sweep"`: `Start`, `End`, `Steps` must all be non-zero | Error |
+| If `Test Type == "Sweep"`: `Start` must be set (non-`null`); `Start=0` is valid for Voltage sweeps but not Frequency sweeps | Error |
+| If `Test Type == "Sweep"`: `End` and `Steps` must be set and non-zero | Error |
 | If `Test Type == "Sweep"`: `End > Start` | Error |
 | If `Test Type == "Shmoo"`: `ShmooFile` must not be empty | Error |
 | If `Content == "Linux"`: `Linux Path` is empty | Warning |
