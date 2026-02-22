@@ -2691,6 +2691,16 @@ class Framework:
 					config_updates['dis2CPM'] = int(value, 16)
 				elif recipe_key == 'Disable 1 Core' and value:
 					config_updates['dis1CPM'] = int(value, 16)
+				elif recipe_key == 'Core Disable List' and value:
+					try:
+						config_updates['coredislist'] = [int(c.strip()) for c in str(value).split(',') if c.strip()]
+					except ValueError:
+						FrameworkUtils.FrameworkPrint(f' Invalid Core Disable List value: {value}. Expected comma-separated integers.', 2)
+				elif recipe_key == 'Slice Disable List' and value:
+					try:
+						config_updates['slicedislist'] = [int(c.strip()) for c in str(value).split(',') if c.strip()]
+					except ValueError:
+						FrameworkUtils.FrameworkPrint(f' Invalid Slice Disable List value: {value}. Expected comma-separated integers.', 2)
 				elif recipe_key == 'Core License' and value:
 					config_updates['corelic'] = int(value.split(":")[0])
 				elif recipe_key == 'Test Mode' and value:
@@ -3110,6 +3120,12 @@ class Framework:
 		if extmask:
 			FrameworkUtils.FrameworkPrint(f' Updating External Mask to: {extmask}')
 			config_updates['extMask'] = extmask
+		elif config_updates.get('coredislist'):
+			FrameworkUtils.FrameworkPrint(f' Generating Core Disable external mask for modules: {config_updates["coredislist"]}')
+			config_updates['extMask'] = gcm.gen_core_disable_mask(config_updates['coredislist'])
+		elif config_updates.get('slicedislist'):
+			FrameworkUtils.FrameworkPrint(f' Generating Slice Disable external mask for modules: {config_updates["slicedislist"]}')
+			config_updates['extMask'] = gcm.gen_slice_disable_mask(config_updates['slicedislist'])
 
 		self.update_configuration(**config_updates)
 		self.update_s2t_configuration(config_updates)

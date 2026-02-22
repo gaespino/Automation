@@ -258,6 +258,20 @@
             "description": "Specific core to check/monitor",
             "required": false
         },
+        "Core Disable List": {
+            "section": "Test Configuration",
+            "type": "str",
+            "default": "",
+            "description": "Comma-separated list of physical module numbers to disable (IA only, e.g. '62, 70')",
+            "required": false
+        },
+        "Slice Disable List": {
+            "section": "Test Configuration",
+            "type": "str",
+            "default": "",
+            "description": "Comma-separated list of physical module numbers to disable (module and LLC, e.g. '60, 72')",
+            "required": false
+        },
         "Voltage Type": {
             "section": "Voltage & Frequency",
             "type": "str",
