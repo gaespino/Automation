@@ -885,14 +885,14 @@ class decoder_dmr():
 
 				# Detect FailFlow (FF) type from test name to differentiate FF vs non-FF cases
 				# Example: DPMB_FF_VBUMP_100_SOCKET0__... -> ff_type = 'VBUMP_100'
-				ff_match = re.search(r'_FF_(.+?)_SOCKET0', test_name)
+				ff_match = re.search(r'_FF_(.+?)_SOCKET\d+', test_name)
 				ff_type = ff_match.group(1) if ff_match else ''
 				# Build prefix to scope lookup patterns: FF prefix for FF cases,
 				# or the test name's own prefix for non-FF to avoid cross-matching
 				if ff_type:
 					ff_prefix = f'FF_{ff_type}_'
 				else:
-					prefix_match = re.search(r'^(.+?)SOCKET0', test_name)
+					prefix_match = re.search(r'^(.+?)SOCKET\d+', test_name)
 					ff_prefix = prefix_match.group(1) if prefix_match else ''
 
 				# Determine memory type and extract instance information
