@@ -883,6 +883,18 @@ class decoder_dmr():
 				test_name = data['TestName']
 				mc_value = data['TestValue']
 
+				# Detect FailFlow (FF) type from test name to differentiate FF vs non-FF cases
+				# Example: DPMB_FF_VBUMP_100_SOCKET0__... -> ff_type = 'VBUMP_100'
+				ff_match = re.search(r'_FF_(.+?)_SOCKET\d+', test_name)
+				ff_type = ff_match.group(1) if ff_match else ''
+				# Build prefix to scope lookup patterns: FF prefix for FF cases,
+				# or the test name's own prefix for non-FF to avoid cross-matching
+				if ff_type:
+					ff_prefix = f'FF_{ff_type}_'
+				else:
+					prefix_match = re.search(r'^(.+?)SOCKET\d+', test_name)
+					ff_prefix = prefix_match.group(1) if prefix_match else ''
+
 				# Determine memory type and extract instance information
 				mem_type = ''
 				instance = ''
@@ -954,8 +966,8 @@ class decoder_dmr():
 					if imh_match and ha_match:
 						imh_num = imh_match.group(1)
 						ha_num = ha_match.group(1)
-						addr_pattern = self.mem_lookup_pattern(imh=imh_num, ha=ha_num, suffix='ADDR', ptype='ha')
-						misc_pattern = self.mem_lookup_pattern(imh=imh_num, ha=ha_num, suffix='MISC', ptype='ha')
+						addr_pattern = self.mem_lookup_pattern(imh=imh_num, ha=ha_num, suffix='ADDR', ptype='ha', ff_prefix=ff_prefix)
+						misc_pattern = self.mem_lookup_pattern(imh=imh_num, ha=ha_num, suffix='MISC', ptype='ha', ff_prefix=ff_prefix)
 
 				elif mem_type == 'HSF':
 					imh_match = re.search(r'IMH(\d+)', test_name)
@@ -963,8 +975,8 @@ class decoder_dmr():
 					if imh_match and hsf_match:
 						imh_num = imh_match.group(1)
 						hsf_num = hsf_match.group(1)
-						addr_pattern = self.mem_lookup_pattern(imh=imh_num, hsf=hsf_num, suffix='ADDR', ptype='hsf')
-						misc_pattern = self.mem_lookup_pattern(imh=imh_num, hsf=hsf_num, suffix='MISC', ptype='hsf')
+						addr_pattern = self.mem_lookup_pattern(imh=imh_num, hsf=hsf_num, suffix='ADDR', ptype='hsf', ff_prefix=ff_prefix)
+						misc_pattern = self.mem_lookup_pattern(imh=imh_num, hsf=hsf_num, suffix='MISC', ptype='hsf', ff_prefix=ff_prefix)
 
 				elif mem_type == 'SUBCHN':
 					imh_match = re.search(r'IMH(\d+)', test_name)
@@ -974,8 +986,8 @@ class decoder_dmr():
 						imh_num = imh_match.group(1)
 						mc_num = mc_match.group(1)
 						subch_num = subch_match.group(1) if subch_match else '0'
-						addr_pattern = self.mem_lookup_pattern(imh=imh_num, mc=mc_num, subch=subch_num, suffix='ADDR', ptype='subchn')
-						misc_pattern = self.mem_lookup_pattern(imh=imh_num, mc=mc_num, subch=subch_num, suffix='MISC', ptype='subchn')
+						addr_pattern = self.mem_lookup_pattern(imh=imh_num, mc=mc_num, subch=subch_num, suffix='ADDR', ptype='subchn', ff_prefix=ff_prefix)
+						misc_pattern = self.mem_lookup_pattern(imh=imh_num, mc=mc_num, subch=subch_num, suffix='MISC', ptype='subchn', ff_prefix=ff_prefix)
 
 				elif mem_type == 'MSE':
 					imh_match = re.search(r'IMH(\d+)', test_name)
@@ -985,8 +997,8 @@ class decoder_dmr():
 						imh_num = imh_match.group(1)
 						mc_num = mc_match.group(1)
 						subch_num = subch_match.group(1) if subch_match else '0'
-						addr_pattern = self.mem_lookup_pattern(imh=imh_num, mc=mc_num, subch=subch_num, suffix='ADDR', ptype='mse')
-						misc_pattern = self.mem_lookup_pattern(imh=imh_num, mc=mc_num, subch=subch_num, suffix='MISC', ptype='mse')
+						addr_pattern = self.mem_lookup_pattern(imh=imh_num, mc=mc_num, subch=subch_num, suffix='ADDR', ptype='mse', ff_prefix=ff_prefix)
+						misc_pattern = self.mem_lookup_pattern(imh=imh_num, mc=mc_num, subch=subch_num, suffix='MISC', ptype='mse', ff_prefix=ff_prefix)
 
 				elif mem_type == 'SCA':
 					imh_match = re.search(r'IMH(\d+)', test_name)
@@ -994,11 +1006,11 @@ class decoder_dmr():
 					if imh_match and sca_match:
 						imh_num = imh_match.group(1)
 						sca_num = sca_match.group(1)
-						addr_pattern = self.mem_lookup_pattern(imh=imh_num, sca=sca_num, suffix='ADDR', ptype='sca')
-						misc_pattern = self.mem_lookup_pattern(imh=imh_num, sca=sca_num, suffix='MISC', ptype='sca')
+						addr_pattern = self.mem_lookup_pattern(imh=imh_num, sca=sca_num, suffix='ADDR', ptype='sca', ff_prefix=ff_prefix)
+						misc_pattern = self.mem_lookup_pattern(imh=imh_num, sca=sca_num, suffix='MISC', ptype='sca', ff_prefix=ff_prefix)
 
 				else:
-					# Fallback to simple replacement
+					# Fallback to simple replacement (test_name already contains FF prefix if applicable)
 					if 'MCI_STATUS' in test_name:
 						addr_pattern = test_name.replace('_MCI_STATUS', '_MCI_ADDR')
 						misc_pattern = test_name.replace('_MCI_STATUS', '_MCI_MISC')
@@ -1014,7 +1026,8 @@ class decoder_dmr():
 				# Get Run Info
 				run = str(LotsSeqKey) + "-" + str(UnitTestingSeqKey)
 				data_dict['Run'] += [run]
-				data_dict['Operation'] += [str(operation)]
+				# Append FF type to operation to differentiate FF vs non-FF cases (e.g. 8749_VBUMP_100)
+				data_dict['Operation'] += [f'{operation}_{ff_type}' if ff_type else str(operation)]
 				data_dict['Type'] += [mem_type]
 				data_dict['MEM_MC'] += [test_name]
 				data_dict['IMH'] += [imh]
@@ -1028,7 +1041,7 @@ class decoder_dmr():
 		new_df = pd.DataFrame(data_dict)
 		return new_df
 
-	def mem_lookup_pattern(self, imh='', ha='', hsf='', mc='', subch='', sca='', suffix='ADDR', ptype='ha'):
+	def mem_lookup_pattern(self, imh='', ha='', hsf='', mc='', subch='', sca='', suffix='ADDR', ptype='ha', ff_prefix=''):
 		"""
 		Build register path patterns for DMR Memory MCA ADDR/MISC lookup
 
@@ -1041,6 +1054,7 @@ class decoder_dmr():
 			sca: SCA number (string)
 			suffix: 'ADDR' or 'MISC'
 			ptype: Pattern type
+			ff_prefix: FailFlow prefix to prepend to pattern (e.g. 'FF_VBUMP_100_' or 'DPMB_')
 
 		Pattern types:
 			- ha: SOCKET0__IMH{n}__SCF__HAMVF__HA_{n}__MCI_{ADDR/MISC}
@@ -1051,27 +1065,27 @@ class decoder_dmr():
 		"""
 		if ptype == 'ha':
 			# HA pattern: SOCKET0__IMH{n}__SCF__HAMVF__HA_{n}__MCI_ADDR/MISC
-			pattern = f'SOCKET0__IMH{imh}__SCF__HAMVF__HA_{ha}__MCI_{suffix}'
+			pattern = f'{ff_prefix}SOCKET0__IMH{imh}__SCF__HAMVF__HA_{ha}__MCI_{suffix}'
 
 		elif ptype == 'hsf':
 			# HSF pattern: SOCKET0__IMH{n}__SCF__HAMVF__HSF_{n}__UTIL__MCI_ADDR/MISC
-			pattern = f'SOCKET0__IMH{imh}__SCF__HAMVF__HSF_{hsf}__UTIL__MCI_{suffix}'
+			pattern = f'{ff_prefix}SOCKET0__IMH{imh}__SCF__HAMVF__HSF_{hsf}__UTIL__MCI_{suffix}'
 
 		elif ptype == 'subchn':
 			# SUBCHN pattern: SOCKET0__IMH{n}__MEMSS__MC{n}__SUBCH{n}__MCDATA__IMC0_MC{8_ADDR or _MISC}
 			# Special case: ADDR uses IMC0_MC8_ADDR, MISC uses IMC0_MC_MISC
 			if suffix == 'ADDR':
-				pattern = f'SOCKET0__IMH{imh}__MEMSS__MC{mc}__SUBCH{subch}__MCDATA__IMC0_MC8_ADDR'
+				pattern = f'{ff_prefix}SOCKET0__IMH{imh}__MEMSS__MC{mc}__SUBCH{subch}__MCDATA__IMC0_MC8_ADDR'
 			else:
-				pattern = f'SOCKET0__IMH{imh}__MEMSS__MC{mc}__SUBCH{subch}__MCDATA__IMC0_MC_{suffix}'
+				pattern = f'{ff_prefix}SOCKET0__IMH{imh}__MEMSS__MC{mc}__SUBCH{subch}__MCDATA__IMC0_MC_{suffix}'
 
 		elif ptype == 'mse':
 			# MSE pattern: SOCKET0__IMH{n}__MEMSS__MC{n}__SUBCH{n}__MSE__MSE_MCI_ADDR/MISC
-			pattern = f'SOCKET0__IMH{imh}__MEMSS__MC{mc}__SUBCH{subch}__MSE__MSE_MCI_{suffix}'
+			pattern = f'{ff_prefix}SOCKET0__IMH{imh}__MEMSS__MC{mc}__SUBCH{subch}__MSE__MSE_MCI_{suffix}'
 
 		elif ptype == 'sca':
 			# SCA pattern: SOCKET0__IMH{n}__SCF__SCA__SCA{n}__UTIL__MC_ADDR/MISC
-			pattern = f'SOCKET0__IMH{imh}__SCF__SCA__SCA{sca}__UTIL__MC_{suffix}'
+			pattern = f'{ff_prefix}SOCKET0__IMH{imh}__SCF__SCA__SCA{sca}__UTIL__MC_{suffix}'
 
 		else:
 			pattern = ''
