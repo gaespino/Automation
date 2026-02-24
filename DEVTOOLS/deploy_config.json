@@ -15,31 +15,31 @@
   },
   "product_configs": {
     "GNR": {
-      "source_type": "BASELINE",
-      "deployment_type": "DebugFramework",
-      "target_base": "",
-      "replacement_csv": "",
-      "rename_csv": "",
-      "manifest_file": "",
+      "source_type": "PPV",
+      "deployment_type": "PPV",
+      "target_base": "C:\\Git\\Automation\\S2T\\BASELINE\\DebugFramework\\PPV",
+      "replacement_csv": "C:\\Git\\Automation\\DEVTOOLS\\import_replacement_cwf.csv",
+      "rename_csv": "C:\\Git\\Automation\\DEVTOOLS\\file_rename_cwf.csv",
+      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_ppv.json",
       "selected_files": []
     },
     "CWF": {
-      "source_type": "BASELINE",
-      "deployment_type": "DebugFramework",
-      "target_base": "C:\\pythonsv\\clearwaterforest\\users\\gaespino\\DebugFramework",
-      "replacement_csv": "C:\\Git\\Automation\\DEVTOOLS\\import_replacement_cwf.csv",
-      "rename_csv": "C:\\Git\\Automation\\DEVTOOLS\\file_rename_cwf.csv",
-      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_debugframework.json",
+      "source_type": "PPV",
+      "deployment_type": "PPV",
+      "target_base": "C:\\Git\\Automation\\S2T\\BASELINE\\DebugFramework\\PPV",
+      "replacement_csv": "",
+      "rename_csv": "",
+      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_ppv.json",
       "selected_files": []
     },
     "DMR": {
-      "source_type": "BASELINE_DMR",
-      "deployment_type": "DebugFramework",
-      "target_base": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\DMR\\prod\\DebugFramework",
-      "replacement_csv": "C:\\Git\\Automation\\DEVTOOLS\\import_replacement_dmr.csv",
-      "selected_files": [],
-      "rename_csv": "C:\\Git\\Automation\\DEVTOOLS\\file_rename_dmr.csv",
-      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_debugframework.json"
+      "source_type": "PPV",
+      "deployment_type": "PPV",
+      "target_base": "C:\\Git\\Automation\\S2T\\BASELINE\\DebugFramework\\PPV",
+      "replacement_csv": "",
+      "rename_csv": "",
+      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_ppv.json",
+      "selected_files": []
     }
   }
 }

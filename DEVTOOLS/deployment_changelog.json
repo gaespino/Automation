@@ -1,0 +1,91 @@
+[
+  {
+    "timestamp": "20260223_175840",
+    "date": "2026-02-23",
+    "product": "DMR",
+    "source_type": "PPV",
+    "deployment_type": "PPV",
+    "target": "C:\\Git\\Automation\\S2T\\BASELINE_DMR\\DebugFramework\\PPV",
+    "files_deployed": [
+      "Decoder\\decoder_dmr.py",
+      "configs\\fuses\\dmr\\cbbsbase.csv",
+      "configs\\fuses\\dmr\\cbbstop.csv",
+      "gui\\PPVFrameworkReport.py",
+      "utils\\FrameworkFileFix.py",
+      "utils\\status_bar.py",
+      "utils\\fusefilegenerator.py",
+      "configs\\fuses\\dmr\\imhs.csv",
+      "gui\\PPVTools.py",
+      "gui\\fusefileui.py"
+    ],
+    "files_deployed_count": 10,
+    "files_skipped_count": 52,
+    "errors_count": 0,
+    "replacements_count": 0,
+    "renames_count": 0,
+    "report_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_report_20260223_175840.csv"
+  },
+  {
+    "timestamp": "20260223_180001",
+    "date": "2026-02-23",
+    "product": "DMR",
+    "source_type": "PPV",
+    "deployment_type": "PPV",
+    "target": "C:\\Git\\Automation\\S2T\\BASELINE\\DebugFramework\\PPV",
+    "files_deployed": [
+      "Decoder\\decoder_dmr.py",
+      "configs\\fuses\\dmr\\cbbsbase.csv",
+      "configs\\fuses\\dmr\\cbbstop.csv",
+      "parsers\\Frameworkparser.py",
+      "gui\\PPVFrameworkReport.py",
+      "utils\\FrameworkFileFix.py",
+      "utils\\status_bar.py",
+      "utils\\fusefilegenerator.py",
+      "configs\\fuses\\dmr\\imhs.csv",
+      "gui\\PPVTools.py",
+      "gui\\fusefileui.py"
+    ],
+    "files_deployed_count": 11,
+    "files_skipped_count": 51,
+    "errors_count": 0,
+    "replacements_count": 0,
+    "renames_count": 0,
+    "report_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_report_20260223_180001.csv"
+  },
+  {
+    "timestamp": "20260223_180019",
+    "date": "2026-02-23",
+    "product": "CWF",
+    "source_type": "PPV",
+    "deployment_type": "PPV",
+    "target": "C:\\Git\\Automation\\S2T\\BASELINE\\DebugFramework\\PPV",
+    "files_deployed": [
+      "configs\\fuses\\cwf\\compute.csv",
+      "configs\\fuses\\cwf\\io.csv"
+    ],
+    "files_deployed_count": 2,
+    "files_skipped_count": 59,
+    "errors_count": 0,
+    "replacements_count": 0,
+    "renames_count": 0,
+    "report_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_report_20260223_180019.csv"
+  },
+  {
+    "timestamp": "20260223_180035",
+    "date": "2026-02-23",
+    "product": "GNR",
+    "source_type": "PPV",
+    "deployment_type": "PPV",
+    "target": "C:\\Git\\Automation\\S2T\\BASELINE\\DebugFramework\\PPV",
+    "files_deployed": [
+      "configs\\fuses\\gnr\\compute.csv",
+      "configs\\fuses\\gnr\\io.csv"
+    ],
+    "files_deployed_count": 2,
+    "files_skipped_count": 62,
+    "errors_count": 0,
+    "replacements_count": 0,
+    "renames_count": 0,
+    "report_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_report_20260223_180035.csv"
+  }
+]

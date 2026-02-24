@@ -7,14 +7,15 @@ launch_deploy_universal.bat
 python deploy_universal.py
 ```
 
-## 📋 Workflow
+## 📋 Tab 1 — Deploy
 
 ### 1️⃣ Configure Source
 ```
 Source: [BASELINE] [BASELINE_DMR] [PPV]
 Deploy: [DebugFramework] [S2T] [PPV*]
+Product: [GNR] [CWF] [DMR]
 ```
-*PPV deploy option only available with PPV source
+*PPV deploy only available with PPV source
 
 ### 2️⃣ Select Target
 ```
@@ -24,17 +25,23 @@ Browse to: Product-specific directory
 
 ### 3️⃣ Load Import Replacements (Optional)
 ```
-Click: "Load CSV..."
+Click: "Load CSV..."  or  "Generate..."
 Select: import_replacement_gnr.csv (or cwf, dmr)
 ```
 
-### 4️⃣ Scan Files
+### 4️⃣ Load File Rename CSV (Optional)
+```
+Click: "Load CSV..."  or  "Generate..."
+Select: file_rename_gnr.csv (or cwf, dmr)
+```
+
+### 5️⃣ Scan Files
 ```
 Click: "Scan Files"
 Review: File list, statuses, similarity scores
 ```
 
-### 5️⃣ Filter & Select
+### 6️⃣ Filter & Select
 ```
 ☑ Checkbox to select files
 🔍 Text filter to search
@@ -43,18 +50,45 @@ Review: File list, statuses, similarity scores
 ☐ "Show files with replacements" to filter
 ```
 
-### 6️⃣ Review Changes
+### 7️⃣ Review Changes
 ```
 Click file: View details and diff
 Check: Import replacements that will apply
 Verify: Changes are expected
 ```
 
-### 7️⃣ Deploy
+### 8️⃣ Deploy
 ```
 Click: "Deploy Selected"
 Confirm: Deployment summary
-Done: Files deployed with backups
+Done: Files deployed with backups + changelog updated
+```
+
+## 📊 Tab 2 — Reports & Changelog
+
+```
+View history: Scrollable deployment list
+Open report: Click any entry -> opens CSV in default app
+View changelog: "View Changelog" button -> CHANGELOG.md
+```
+
+Every deployment auto-appends to `deployment_changelog.json` and `CHANGELOG.md`.
+
+## 📄 Tab 3 — Release Notes
+
+```
+Generate: From deployment history
+Save:     Draft Markdown file
+Export:   HTML version
+PR:       Create draft PR via gh CLI
+```
+
+## 🔍 Validation Agent
+
+```
+Button: "Validate & Review..."
+Runs: deploy_agent.py in a streaming log window
+Flags: --validate  --lint  --test --quick  --pr --draft
 ```
 
 ## 🎯 Common Tasks
@@ -89,27 +123,22 @@ Done: Files deployed with backups
 
 ## 🔄 Import Replacement CSV
 
-### Generate Templates
-```bash
-# GNR
-python generate_import_replacement_csv.py --mode product --product GNR
+### Generate from UI
+```
+In Tab 1, click "Generate..." next to Import Replacement CSV
+Select product -> customize -> Generate
+CSV is created and loaded automatically
+```
 
-# CWF
-python generate_import_replacement_csv.py --mode product --product CWF
-
-# DMR
-python generate_import_replacement_csv.py --mode product --product DMR
+### Or load an existing CSV
+```
+Click "Load CSV..." and select import_replacement_<product>.csv
 ```
 
 ### CSV Format
 ```csv
 old_import,new_import,description,enabled
 from X.Y import,from X.GNRY import,Description,yes
-```
-
-### Validate CSV
-```bash
-python generate_import_replacement_csv.py --mode validate --validate myfile.csv
 ```
 
 ## 🎨 Status Colors
@@ -223,10 +252,13 @@ PPV/
 | File | Purpose |
 |------|---------|
 | `deploy_universal.py` | Main deployment tool |
-| `generate_import_replacement_csv.py` | CSV generator |
+| `deploy_agent.py` | Validation + PR agent |
 | `import_replacement_gnr.csv` | GNR import rules |
 | `import_replacement_cwf.csv` | CWF import rules |
 | `import_replacement_dmr.csv` | DMR import rules |
+| `file_rename_gnr.csv` | GNR file rename rules |
+| `file_rename_cwf.csv` | CWF file rename rules |
+| `file_rename_dmr.csv` | DMR file rename rules |
 | `UNIVERSAL_DEPLOY_GUIDE.md` | Full documentation |
 
 ## 📞 Quick Commands
@@ -236,19 +268,19 @@ PPV/
 launch_deploy_universal.bat
 ```
 
-### Generate New CSV
+### Run Validation Agent (CLI)
 ```bash
-python generate_import_replacement_csv.py --mode product --product GNR
+python deploy_agent.py --validate --lint --test --quick --product GNR --target DEVTOOLS
 ```
 
-### Validate Existing CSV
+### Create Draft PR
 ```bash
-python generate_import_replacement_csv.py --mode validate --validate myfile.csv
+python deploy_agent.py --pr --draft --title "Release v1.8.0"
 ```
 
-### Export Selection
+### Export Selection (from UI)
 ```
-UI: Click "Export Selection" → Save as CSV
+Click "Export Selection" -> Save as CSV
 ```
 
 ## ⚠️ Remember
@@ -261,4 +293,4 @@ UI: Click "Export Selection" → Save as CSV
 
 ---
 
-**Version**: 2.0.0 | **Date**: December 9, 2025
+**Version**: 3.0.0 | **Date**: February 23, 2026

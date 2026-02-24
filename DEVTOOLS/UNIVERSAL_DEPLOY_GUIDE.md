@@ -16,15 +16,19 @@ launch_deploy_universal.bat
 python deploy_universal.py
 ```
 
-### Basic Workflow
+### Basic Workflow (Tab 1 — Deploy)
 
 1. **Select Source**: Choose BASELINE, BASELINE_DMR, or PPV
 2. **Select Deployment Type**: Choose S2T or DebugFramework (or PPV for PPV source)
-3. **Select Target**: Click "Select Target..." and choose destination directory
-4. **Load Import Replacements** (Optional): Load CSV with replacement rules
-5. **Scan Files**: Click "Scan Files" to compare source and target
-6. **Review Changes**: Check files, view diffs, see import replacements
-7. **Deploy**: Select files and click "Deploy Selected"
+3. **Select Product**: GNR, CWF, or DMR
+4. **Select Target**: Click "Select Target..." and choose destination directory
+5. **Load Import Replacements** (Optional): Load or generate a CSV with replacement rules
+6. **Load File Rename CSV** (Optional): Load CSV to rename files during deployment
+7. **Scan Files**: Click "Scan Files" to compare source and target
+8. **Review Changes**: Check files, view diffs, see import replacements
+9. **Deploy**: Select files and click "Deploy Selected"
+
+After deploying, switch to **Tab 2 (Reports & Changelog)** to review the history or **Tab 3 (Release Notes)** to generate release documentation.
 
 ## 📋 Features
 
@@ -50,19 +54,26 @@ python deploy_universal.py
 - **Show only selected**: Show only checked files
 - **Show files with replacements**: Filter files that have import rules
 
-### CSV Generation (New! ⭐)
-- **Generate from UI**: Create import and rename CSVs without command line
+### CSV Generation
+- **Generate from UI**: Click "Generate..." in the Import Replacement or File Rename CSV row
 - **Product-aware templates**: Automatically matches selected product
 - **Auto-load**: Generated CSVs are loaded immediately
 - **Customizable**: Change prefix, filename, and location
-- See [CSV_GENERATION_GUIDE.md](CSV_GENERATION_GUIDE.md) for details
 
 ### Import Replacement
-- Load CSV files with import replacement rules
-- **Or generate them** directly from the UI (New!)
+- Load CSV files with import replacement rules, or generate them directly from the UI
 - Automatically applies during deployment
 - See which files will be modified
 - Preview replacements before deploying
+
+### Deployment History & Changelog
+- Every deployment appends an entry to `deployment_changelog.json` and `CHANGELOG.md`
+- Tab 2 shows a scrollable history; click any entry to open its CSV report
+
+### Validation Agent
+- Click "Validate & Review..." to run `deploy_agent.py` from within the UI
+- Streams syntax validation, lint, and test results to an in-app log window
+- Can create a draft PR via the `gh` CLI
 
 ### File Comparison
 - MD5 hash comparison for exact matches
@@ -90,45 +101,6 @@ python deploy_universal.py
 3. Review the dialog and customize if needed
 4. Click **"Generate"**
 5. CSV is created and loaded automatically!
-
-See [CSV_GENERATION_GUIDE.md](CSV_GENERATION_GUIDE.md) for detailed instructions.
-
-#### From Command Line (Alternative)
-
-```bash
-# Generate GNR-specific replacements
-python generate_import_replacement_csv.py --mode product --product GNR
-
-# Generate CWF-specific replacements
-python generate_import_replacement_csv.py --mode product --product CWF
-
-# Generate DMR-specific replacements
-python generate_import_replacement_csv.py --mode product --product DMR
-```
-
-#### Generate Custom Template
-
-```bash
-python generate_import_replacement_csv.py --mode template --target-prefix GNR
-```
-
-#### Generate from Import Analysis
-
-```bash
-python generate_import_replacement_csv.py \
-    --mode analysis \
-    --analysis BASELINE_IMPORTS_DETAILED.md \
-    --source-prefix "DebugFramework" \
-    --target-prefix "GNR"
-```
-
-#### Validate Existing CSV
-
-```bash
-python generate_import_replacement_csv.py \
-    --mode validate \
-    --validate import_replacement_gnr.csv
-```
 
 ### CSV Format
 
@@ -183,21 +155,6 @@ import DebugFramework.SystemDebug,import DebugFramework.GNRSystemDebug as System
 4. Click **"Generate"**
 5. CSV is created, loaded, and files are rescanned automatically!
 
-See [FILE_RENAME_GUIDE.md](FILE_RENAME_GUIDE.md) for detailed instructions.
-
-#### From Command Line (Alternative)
-
-```bash
-# Generate GNR-specific renames
-python generate_file_rename_csv.py --mode product --product GNR
-
-# Generate CWF-specific renames
-python generate_file_rename_csv.py --mode product --product CWF
-
-# Generate DMR-specific renames
-python generate_file_rename_csv.py --mode product --product DMR
-```
-
 ### CSV Format
 
 ```csv
@@ -250,28 +207,41 @@ When file rename CSV is loaded:
 
 ## 🎨 GUI Components
 
-### Header
-- **Source Selection**: Radio buttons for BASELINE/BASELINE_DMR/PPV
-- **Deployment Type**: Radio buttons for DebugFramework/S2T/PPV
-- **Target Directory**: Selection and display
-- **Import CSV**: Load and manage replacement rules
+The tool uses a 3-tab `ttk.Notebook` layout (minimum 1100×700, fully resizable).
 
-### File List (Left Panel)
-- **Checkboxes**: Visual selection indicators
-- **Status Column**: File comparison status
-- **Similarity**: Percentage match
-- **Replacements**: Number of import rules that apply
-- **Filters**: Text search and smart filters
+### Tab 1 — Deploy
 
-### Details Panel (Right)
-- **File Information**: Path, status, similarity
-- **Import Replacements**: List of rules that will apply
-- **Diff Preview**: Side-by-side comparison with color coding
+**Source Configuration panel** (top):
+- Source radio buttons: BASELINE / BASELINE_DMR / PPV
+- Deployment type: DebugFramework / S2T / PPV
+- Product: GNR / CWF / DMR
+- Target directory picker
+- Import replacement CSV picker + Generate button
+- File rename CSV picker + Generate button
+- Manifest JSON picker
 
-### Bottom Bar
-- **Status Display**: Current operation and selection count
-- **Export Selection**: Save selected files to CSV
-- **Deploy Selected**: Execute deployment
+**File list panel** (left):
+- Checkboxes, status, similarity %, replacement count
+- Text filter, Show only changes, Show only selected
+
+**Details panel** (right):
+- File path, status, similarity score
+- Import replacements that will be applied
+- Color-coded unified diff preview
+
+**Bottom bar**:
+- Status / file counts
+- Export Selection, Scan Files, Validate & Review…, Deploy Selected
+
+### Tab 2 — Reports & Changelog
+- Scrollable deployment history list
+- Click any entry → opens its CSV report in the default application
+- "View Changelog" button → opens `CHANGELOG.md`
+
+### Tab 3 — Release Notes
+- Generate and edit release notes from deployment history
+- Save draft, export to HTML
+- Create draft PR via `gh` CLI
 
 ## 🔧 Configuration
 
@@ -402,18 +372,27 @@ This shows only changed files named "dpm*" that have import replacements.
 
 ## 🔗 Related Tools
 
-- **deploy_ppv.py**: Original PPV-specific deployment tool
+- **deploy_agent.py**: CLI validation agent — syntax, lint, tests, draft PR
 - **analyze_imports.py**: Import analysis for creating CSV templates
-- **generate_import_replacement_csv.py**: CSV template generator
+- **generate_release_notes.py**: Release notes automation engine
 
 ## 📝 Version History
+
+### v3.0.0 (February 23, 2026)
+- 3-tab notebook UI: Deploy / Reports & Changelog / Release Notes
+- Deployment changelog (JSON + Markdown auto-append on every deploy)
+- Validation agent UI (`ValidationAgentDialog`)
+- Draft PR creation via `gh` CLI
+- Quick test mode (pytest -x -q)
+- Fully resizable window (min 1100x700)
 
 ### v2.0.0 (December 9, 2025)
 - Universal deployment for BASELINE/BASELINE_DMR/PPV
 - Import replacement from CSV
 - Selective S2T/DebugFramework deployment
-- CSV template generator
+- CSV generation from UI
 - Enhanced filtering and selection
+- Deployment manifests for test/dev file filtering
 
 ## 🆘 Support
 

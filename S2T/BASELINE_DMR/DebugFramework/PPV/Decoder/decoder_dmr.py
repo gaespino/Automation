@@ -37,8 +37,23 @@ class decoder_dmr():
 		filtered = df[(df[dfcol].str.contains(regex_pat, case=False, na=False))]
 		return filtered
 
+	def check_fail_flow_prefix(self, test_name):
+
+		# Detect FailFlow (FF) type from test name to differentiate FF vs non-FF cases
+		# Example: DPMB_FF_VBUMP_100_SOCKET0__... -> ff_type = 'VBUMP_100'
+		ff_match = re.search(r'_FF_(.+?)_SOCKET\d+', test_name)
+		ff_type = ff_match.group(1) if ff_match else ''
+		# Build prefix to scope lookup patterns: FF prefix for FF cases,
+		# or the test name's own prefix for non-FF to avoid cross-matching
+		if ff_type:
+			ff_prefix = f'FF_{ff_type}_'
+		else:
+			prefix_match = re.search(r'^(.+?)SOCKET\d+', test_name)
+			ff_prefix = prefix_match.group(1) if prefix_match else ''
+		return ff_type, ff_prefix
+
 	# Define the lookup pattern for each column - DMR specific patterns
-	def lookup_pattern(self, cbb, compute, module, location, operation, suffix, env='', inst='', ptype='ccf'):
+	def lookup_pattern(self, cbb, compute, module, location, operation, suffix, env='', inst='', ptype='ccf', ff_prefix=''):
 		"""
 		DMR-specific register path patterns based on actual ErrorReport.py structure
 
@@ -65,52 +80,160 @@ class decoder_dmr():
 			# Pattern: SOCKET0__CBB{x}__BASE__I_CCF_ENV{env}__CBREGS_ALL{instance}__MC_STATUS
 			# Must match exact ENV and CBREGS_ALL pair
 			# Note: CCF contains LLC + CHA functionality (32 merged CBO instances)
-			pattern = f"SOCKET0__CBB{cbb}__BASE__I_CCF_ENV{env}__CBREGS_ALL{inst}__MC_{suffix}"
+			pattern = f"{ff_prefix}SOCKET0__CBB{cbb}__BASE__I_CCF_ENV{env}__CBREGS_ALL{inst}__MC_{suffix}"
 
 		elif ptype == 'ncu':
 			# NCU (Node Control Unit) - Bank 5
 			# Pattern: SOCKET0__CBB{x}__BASE__SNCU_TOP__SNCEVENTS__MC5_STATUS
-			pattern = f"SOCKET0__CBB{cbb}__BASE__SNCU_TOP__SNCEVENTS__MC5_{suffix}"
+			pattern = f"{ff_prefix}SOCKET0__CBB{cbb}__BASE__SNCU_TOP__SNCEVENTS__MC5_{suffix}"
 
 		elif ptype == 'punit_cbb':
 			# Power Unit CBB - Bank 4
 			# Pattern: SOCKET0__CBB{x}__BASE__PUNIT_REGS__PUNIT_GPSB__GPSB_INFVNN_CRS__MC_STATUS
-			pattern = f"SOCKET0__CBB{cbb}__BASE__PUNIT_REGS__PUNIT_GPSB__GPSB_INFVNN_CRS__MC_{suffix}"
+			pattern = f"{ff_prefix}SOCKET0__CBB{cbb}__BASE__PUNIT_REGS__PUNIT_GPSB__GPSB_INFVNN_CRS__MC_{suffix}"
 
 		# Core Patterns (Banks 0-3) - Need CBB, COMPUTE, MODULE, and CORE numbers
 		elif ptype == 'core_ifu':
 			# IFU - Bank 0 (Instruction Fetch Unit)
 			# Pattern: SOCKET0__CBB{x}__COMPUTE{y}__MODULE{z}__CORE{w}__IFU_CR_MC0_STATUS
 			# Note: DMR has one thread per core (no SMT/HT)
-			pattern = f"SOCKET0__CBB{cbb}__COMPUTE{compute}__MODULE{module}__CORE{location}__IFU_CR_MC0_{suffix}"
+			pattern = f"{ff_prefix}SOCKET0__CBB{cbb}__COMPUTE{compute}__MODULE{module}__CORE{location}__IFU_CR_MC0_{suffix}"
 
 		elif ptype == 'core_dcu':
 			# DCU - Bank 1 (Data Cache Unit)
-			pattern = f"SOCKET0__CBB{cbb}__COMPUTE{compute}__MODULE{module}__CORE{location}__DCU_CR_MC1_{suffix}"
+			pattern = f"{ff_prefix}SOCKET0__CBB{cbb}__COMPUTE{compute}__MODULE{module}__CORE{location}__DCU_CR_MC1_{suffix}"
 
 		elif ptype == 'core_dtlb':
 			# DTLB - Bank 2 (Data TLB)
-			pattern = f"SOCKET0__CBB{cbb}__COMPUTE{compute}__MODULE{module}__CORE{location}__DTLB_CR_MC2_{suffix}"
+			pattern = f"{ff_prefix}SOCKET0__CBB{cbb}__COMPUTE{compute}__MODULE{module}__CORE{location}__DTLB_CR_MC2_{suffix}"
 
 		elif ptype == 'core_ml2':
 			# MLC - Bank 3 (Module Level Cache / L2)
 			# Pattern: SOCKET0__CBB{x}__COMPUTE{y}__MODULE{z}__ML2_CR_MC3_STATUS
-			pattern = f"SOCKET0__CBB{cbb}__COMPUTE{compute}__MODULE{module}__ML2_CR_MC3_{suffix}"
+			pattern = f"{ff_prefix}SOCKET0__CBB{cbb}__COMPUTE{compute}__MODULE{module}__ML2_CR_MC3_{suffix}"
 
 		# IMH Domain Patterns
 		elif ptype == 'punit_imh':
 			# Power Unit IMH - Bank 11
 			# Pattern: SOCKET0__IMH{imh}__PUNIT__RAS__GPSB__MC_STATUS
-			pattern = f"SOCKET0__IMH{location}__PUNIT__RAS__GPSB__MC_{suffix}"
+			pattern = f"{ff_prefix}SOCKET0__IMH{location}__PUNIT__RAS__GPSB__MC_{suffix}"
 
 		elif ptype == 'rasip':
 			# RASIP - Bank 10
 			# Pattern: SOCKET0__IMH{imh}__RASIP__ROOT_RAS__RASIP_REGS_BLOCK__RASIP_REG_MSG_CR_RASIP_ERROR_HANDLER_CR__REG_CR_MCI_STATUS
-			pattern = f"SOCKET0__IMH{location}__RASIP__ROOT_RAS__RASIP_REGS_BLOCK__RASIP_REG_MSG_CR_RASIP_ERROR_HANDLER_CR__REG_CR_MCI_{suffix}"
+			pattern = f"{ff_prefix}SOCKET0__IMH{location}__RASIP__ROOT_RAS__RASIP_REGS_BLOCK__RASIP_REG_MSG_CR_RASIP_ERROR_HANDLER_CR__REG_CR_MCI_{suffix}"
 
 		else:
 			# Default pattern if ptype is not recognized
 			pattern = ""
+
+		return pattern
+
+	def io_lookup_pattern(self, imh='', cbb='', stack='', ula='', uxi='', uio='', iocache='', suffix='ADDR', ptype='ula_uios', ff_prefix=''):
+		"""
+		Build register path patterns for DMR IO MCA ADDR/MISC lookup
+
+		Args:
+			imh: IMH number (string)
+			cbb: CBB number (string)
+			stack: Stack number (string)
+			ula: ULA number (string)
+			uxi: UXI number (string)
+			uio: UIO number (string)
+			iocache: IOCACHE number (string)
+			suffix: 'ADDR' or 'MISC' or 'AD' or 'MS'
+			ptype: Pattern type
+
+		Pattern types:
+			- ula_uios: SOCKET0__IMH{n}__ULA__ULA_UIO{n}__ULA_MC_{AD/MS}
+			- ula_d2dio: SOCKET0__IMH{n}__D2D_STACK__D2D_STACK_{n}__UXI_{n}__ULA_MC_{AD/MS}
+			- ula_d2dcbb: SOCKET0__CBB{n}__BASE__D2D_STACK_{n}__ULA_{n}__ULA__ULA_MC_{AD/MS}
+			- iocache: SOCKET0__IMH{n}__SCF__SCA__IOCACHE{n}__UTIL__MCI_{ADDR/MISC}
+		"""
+		if ptype == 'ula_uios':
+			# ULA_UIOS pattern: SOCKET0__IMH{n}__ULA__ULA_UIO{n}__ULA_MC_AD/MS
+			if suffix in ['ADDR', 'AD']:
+				pattern = f'{ff_prefix}SOCKET0__IMH{imh}__ULA__ULA_UIO{uio}__ULA_MC_AD'
+			elif suffix in ['MISC', 'MS']:
+				pattern = f'{ff_prefix}SOCKET0__IMH{imh}__ULA__ULA_UIO{uio}__ULA_MC_MS'
+			else:
+				pattern = f'{ff_prefix}SOCKET0__IMH{imh}__ULA__ULA_UIO{uio}__ULA_MC_{suffix}'
+
+		elif ptype == 'ula_d2dio':
+			# ULA D2D IMH pattern: SOCKET0__IMH{n}__D2D_STACK__D2D_STACK_{n}__UXI_{n}__ULA_MC_AD/MS
+			if suffix in ['ADDR', 'AD']:
+				pattern = f'{ff_prefix}SOCKET0__IMH{imh}__D2D_STACK__D2D_STACK_{stack}__UXI_{uxi}__ULA_MC_AD'
+			elif suffix in ['MISC', 'MS']:
+				pattern = f'{ff_prefix}SOCKET0__IMH{imh}__D2D_STACK__D2D_STACK_{stack}__UXI_{uxi}__ULA_MC_MISC'
+			else:
+				pattern = f'{ff_prefix}SOCKET0__IMH{imh}__D2D_STACK__D2D_STACK_{stack}__UXI_{uxi}__ULA_MC_{suffix}'
+
+		elif ptype == 'ula_d2dcbb':
+			# ULA D2D CBB pattern: SOCKET0__CBB{n}__BASE__D2D_STACK_{n}__ULA_{n}__ULA__ULA_MC_AD/MS
+			if suffix in ['ADDR', 'AD']:
+				pattern = f'{ff_prefix}SOCKET0__CBB{cbb}__BASE__D2D_STACK_{stack}__ULA_{ula}__ULA__ULA_MC_AD'
+			elif suffix in ['MISC', 'MS']:
+				pattern = f'{ff_prefix}SOCKET0__CBB{cbb}__BASE__D2D_STACK_{stack}__ULA_{ula}__ULA__ULA_MC_MISC'
+			else:
+				pattern = f'{ff_prefix}SOCKET0__CBB{cbb}__BASE__D2D_STACK_{stack}__ULA_{ula}__ULA__ULA_MC_{suffix}'
+
+		elif ptype == 'iocache':
+			# IOCACHE pattern: SOCKET0__IMH{n}__SCF__SCA__IOCACHE{n}__UTIL__MCI_ADDR/MISC
+			pattern = f'{ff_prefix}SOCKET0__IMH{imh}__SCF__SCA__IOCACHE{iocache}__UTIL__MCI_{suffix}'
+
+		else:
+			pattern = ''
+
+		return pattern
+
+	def mem_lookup_pattern(self, imh='', ha='', hsf='', mc='', subch='', sca='', suffix='ADDR', ptype='ha', ff_prefix=''):
+		"""
+		Build register path patterns for DMR Memory MCA ADDR/MISC lookup
+
+		Args:
+			imh: IMH number (string)
+			ha: HA number (string)
+			hsf: HSF number (string)
+			mc: MC number (string)
+			subch: Subchannel number (string)
+			sca: SCA number (string)
+			suffix: 'ADDR' or 'MISC'
+			ptype: Pattern type
+			ff_prefix: FailFlow prefix to prepend to pattern (e.g. 'FF_VBUMP_100_' or 'DPMB_')
+
+		Pattern types:
+			- ha: SOCKET0__IMH{n}__SCF__HAMVF__HA_{n}__MCI_{ADDR/MISC}
+			- hsf: SOCKET0__IMH{n}__SCF__HAMVF__HSF_{n}__UTIL__MCI_{ADDR/MISC}
+			- subchn: SOCKET0__IMH{n}__MEMSS__MC{n}__SUBCH{n}__MCDATA__IMC0_MC{8_ADDR or _MISC}
+			- mse: SOCKET0__IMH{n}__MEMSS__MC{n}__SUBCH{n}__MSE__MSE_MCI_{ADDR/MISC}
+			- sca: SOCKET0__IMH{n}__SCF__SCA__SCA{n}__UTIL__MC_{ADDR/MISC}
+		"""
+		if ptype == 'ha':
+			# HA pattern: SOCKET0__IMH{n}__SCF__HAMVF__HA_{n}__MCI_ADDR/MISC
+			pattern = f'{ff_prefix}SOCKET0__IMH{imh}__SCF__HAMVF__HA_{ha}__MCI_{suffix}'
+
+		elif ptype == 'hsf':
+			# HSF pattern: SOCKET0__IMH{n}__SCF__HAMVF__HSF_{n}__UTIL__MCI_ADDR/MISC
+			pattern = f'{ff_prefix}SOCKET0__IMH{imh}__SCF__HAMVF__HSF_{hsf}__UTIL__MCI_{suffix}'
+
+		elif ptype == 'subchn':
+			# SUBCHN pattern: SOCKET0__IMH{n}__MEMSS__MC{n}__SUBCH{n}__MCDATA__IMC0_MC{8_ADDR or _MISC}
+			# Special case: ADDR uses IMC0_MC8_ADDR, MISC uses IMC0_MC_MISC
+			if suffix == 'ADDR':
+				pattern = f'{ff_prefix}SOCKET0__IMH{imh}__MEMSS__MC{mc}__SUBCH{subch}__MCDATA__IMC0_MC8_ADDR'
+			else:
+				pattern = f'{ff_prefix}SOCKET0__IMH{imh}__MEMSS__MC{mc}__SUBCH{subch}__MCDATA__IMC0_MC_{suffix}'
+
+		elif ptype == 'mse':
+			# MSE pattern: SOCKET0__IMH{n}__MEMSS__MC{n}__SUBCH{n}__MSE__MSE_MCI_ADDR/MISC
+			pattern = f'{ff_prefix}SOCKET0__IMH{imh}__MEMSS__MC{mc}__SUBCH{subch}__MSE__MSE_MCI_{suffix}'
+
+		elif ptype == 'sca':
+			# SCA pattern: SOCKET0__IMH{n}__SCF__SCA__SCA{n}__UTIL__MC_ADDR/MISC
+			pattern = f'{ff_prefix}SOCKET0__IMH{imh}__SCF__SCA__SCA{sca}__UTIL__MC_{suffix}'
+
+		else:
+			pattern = ''
 
 		return pattern
 
@@ -205,13 +328,17 @@ class decoder_dmr():
 
 				operation = data['Operation']
 
+				# Checks for new DMR fail flow prefix in test names (e.g., "FF_", "DMRFF_") to determine if special handling is needed
+				test_name = data['TestName']
+				ff_type, ff_prefix = self.check_fail_flow_prefix(test_name)
+
 				## Address lookup pattern - use exact CBB, ENV and instance for precise matching
 				addr_lut = self.lookup_pattern(cbb=cbb, compute='', module='', location='', operation=operation,
-				                                suffix="ADDR", env=env, inst=instance, ptype='ccf')
+				                                suffix="ADDR", env=env, inst=instance, ptype='ccf', ff_prefix=ff_prefix)
 				misc_lut = self.lookup_pattern(cbb=cbb, compute='', module='', location='', operation=operation,
-				                                suffix="MISC", env=env, inst=instance, ptype='ccf')
+				                                suffix="MISC", env=env, inst=instance, ptype='ccf', ff_prefix=ff_prefix)
 				misc3_lut = self.lookup_pattern(cbb=cbb, compute='', module='', location='', operation=operation,
-				                                 suffix="MISC3", env=env, inst=instance, ptype='ccf')
+				                                 suffix="MISC3", env=env, inst=instance, ptype='ccf', ff_prefix=ff_prefix)
 
 				## MCA Lookup values
 				mc_value = data['TestValue']
@@ -225,7 +352,7 @@ class decoder_dmr():
 				## Get Run Info
 				run = str(LotsSeqKey) + "-" + str(UnitTestingSeqKey)
 				data_dict['Run'] += [run]
-				data_dict['Operation'] += [str(operation)]
+				data_dict['Operation'] += [f'{operation}_{ff_type}' if ff_type else str(operation)]
 				data_dict['CCF_MC'] += [data['TestName']]
 				data_dict['CBB'] += [f'CBB{cbb}']
 				data_dict['ENV'] += [f'ENV{env}']
@@ -409,12 +536,16 @@ class decoder_dmr():
 					core = core_match.group(1) if core_match else '0'
 
 					operation = data['Operation']
+					test_name = data['TestName']
+
+					# Checks for new DMR fail flow prefix in test names (e.g., "FF_", "DMRFF_") to determine if special handling is needed
+					ff_type, ff_prefix = self.check_fail_flow_prefix(test_name)
 
 					# Use exact CBB, COMPUTE, MODULE, and CORE for precise matching
 					addr_lut = self.lookup_pattern(cbb=cbb, compute=compute, module=module, location=core,
-					                                operation=operation, suffix="ADDR", ptype=ptype)
+					                                operation=operation, suffix="ADDR", ptype=ptype, ff_prefix=ff_prefix)
 					misc_lut = self.lookup_pattern(cbb=cbb, compute=compute, module=module, location=core,
-					                                operation=operation, suffix="MISC", ptype=ptype)
+					                                operation=operation, suffix="MISC", ptype=ptype, ff_prefix=ff_prefix)
 
 					mc_value = data['TestValue']
 					addr_value = self.xlookup(lookup_array=addr_filtered, testname=addr_lut,
@@ -424,7 +555,7 @@ class decoder_dmr():
 
 					run = str(LotsSeqKey) + "-" + str(UnitTestingSeqKey)
 					data_dict['Run'] += [run]
-					data_dict['Operation'] += [str(operation)]
+					data_dict['Operation'] += [f'{operation}_{ff_type}' if ff_type else str(operation)]
 					data_dict['Core_MC'] += [data['TestName']]
 					data_dict['CBB'] += [f'CBB{cbb}']
 					data_dict['Compute'] += [f'COMPUTE{compute}']
@@ -573,6 +704,9 @@ class decoder_dmr():
 				test_name = data['TestName']
 				mc_value = data['TestValue']
 
+				# Checks for new DMR fail flow prefix in test names (e.g., "FF_", "DMRFF_") to determine if special handling is needed
+				ff_type, ff_prefix = self.check_fail_flow_prefix(test_name)
+
 				# Determine IO type and extract instance information
 				io_type = ''
 				instance = ''
@@ -647,8 +781,8 @@ class decoder_dmr():
 					if imh_match and uio_match:
 						imh_num = imh_match.group(1)
 						uio_num = uio_match.group(1)
-						addr_pattern = self.io_lookup_pattern(imh=imh_num, uio=uio_num, suffix='AD', ptype='ula_uios')
-						misc_pattern = self.io_lookup_pattern(imh=imh_num, uio=uio_num, suffix='MS', ptype='ula_uios')
+						addr_pattern = self.io_lookup_pattern(imh=imh_num, uio=uio_num, suffix='AD', ptype='ula_uios', ff_prefix=ff_prefix)
+						misc_pattern = self.io_lookup_pattern(imh=imh_num, uio=uio_num, suffix='MS', ptype='ula_uios', ff_prefix=ff_prefix)
 
 				elif io_type == 'ULA_D2DIO':
 					imh_match = re.search(r'IMH(\d+)', test_name)
@@ -658,8 +792,8 @@ class decoder_dmr():
 						imh_num = imh_match.group(1)
 						stack_num = stack_match.group(1)
 						uxi_num = uxi_match.group(1)
-						addr_pattern = self.io_lookup_pattern(imh=imh_num, stack=stack_num, uxi=uxi_num, suffix='AD', ptype='ula_d2dio')
-						misc_pattern = self.io_lookup_pattern(imh=imh_num, stack=stack_num, uxi=uxi_num, suffix='MS', ptype='ula_d2dio')
+						addr_pattern = self.io_lookup_pattern(imh=imh_num, stack=stack_num, uxi=uxi_num, suffix='AD', ptype='ula_d2dio', ff_prefix=ff_prefix)
+						misc_pattern = self.io_lookup_pattern(imh=imh_num, stack=stack_num, uxi=uxi_num, suffix='MS', ptype='ula_d2dio', ff_prefix=ff_prefix)
 
 				elif io_type == 'ULA_D2DCBB':
 					cbb_match = re.search(r'CBB(\d+)', test_name)
@@ -669,8 +803,8 @@ class decoder_dmr():
 						cbb_num = cbb_match.group(1)
 						stack_num = stack_match.group(1)
 						ula_num = ula_match.group(1)
-						addr_pattern = self.io_lookup_pattern(cbb=cbb_num, stack=stack_num, ula=ula_num, suffix='AD', ptype='ula_d2dcbb')
-						misc_pattern = self.io_lookup_pattern(cbb=cbb_num, stack=stack_num, ula=ula_num, suffix='MS', ptype='ula_d2dcbb')
+						addr_pattern = self.io_lookup_pattern(cbb=cbb_num, stack=stack_num, ula=ula_num, suffix='AD', ptype='ula_d2dcbb', ff_prefix=ff_prefix)
+						misc_pattern = self.io_lookup_pattern(cbb=cbb_num, stack=stack_num, ula=ula_num, suffix='MS', ptype='ula_d2dcbb', ff_prefix=ff_prefix)
 
 				elif io_type == 'IOCACHE':
 					imh_match = re.search(r'IMH(\d+)', test_name)
@@ -678,8 +812,8 @@ class decoder_dmr():
 					if imh_match and cache_match:
 						imh_num = imh_match.group(1)
 						cache_num = cache_match.group(1)
-						addr_pattern = self.io_lookup_pattern(imh=imh_num, iocache=cache_num, suffix='ADDR', ptype='iocache')
-						misc_pattern = self.io_lookup_pattern(imh=imh_num, iocache=cache_num, suffix='MISC', ptype='iocache')
+						addr_pattern = self.io_lookup_pattern(imh=imh_num, iocache=cache_num, suffix='ADDR', ptype='iocache', ff_prefix=ff_prefix)
+						misc_pattern = self.io_lookup_pattern(imh=imh_num, iocache=cache_num, suffix='MISC', ptype='iocache', ff_prefix=ff_prefix)
 
 				else:
 					# Fallback to simple replacement
@@ -694,7 +828,7 @@ class decoder_dmr():
 				# Get Run Info
 				run = str(LotsSeqKey) + "-" + str(UnitTestingSeqKey)
 				data_dict['Run'] += [run]
-				data_dict['Operation'] += [str(operation)]
+				data_dict['Operation'] += [f'{operation}_{ff_type}' if ff_type else str(operation)]
 				data_dict['Type'] += [io_type]
 				data_dict['IO_MC'] += [test_name]
 				data_dict['IMH_CBB'] += [imh_cbb]
@@ -707,63 +841,6 @@ class decoder_dmr():
 
 		new_df = pd.DataFrame(data_dict)
 		return new_df
-
-	def io_lookup_pattern(self, imh='', cbb='', stack='', ula='', uxi='', uio='', iocache='', suffix='ADDR', ptype='ula_uios'):
-		"""
-		Build register path patterns for DMR IO MCA ADDR/MISC lookup
-
-		Args:
-			imh: IMH number (string)
-			cbb: CBB number (string)
-			stack: Stack number (string)
-			ula: ULA number (string)
-			uxi: UXI number (string)
-			uio: UIO number (string)
-			iocache: IOCACHE number (string)
-			suffix: 'ADDR' or 'MISC' or 'AD' or 'MS'
-			ptype: Pattern type
-
-		Pattern types:
-			- ula_uios: SOCKET0__IMH{n}__ULA__ULA_UIO{n}__ULA_MC_{AD/MS}
-			- ula_d2dio: SOCKET0__IMH{n}__D2D_STACK__D2D_STACK_{n}__UXI_{n}__ULA_MC_{AD/MS}
-			- ula_d2dcbb: SOCKET0__CBB{n}__BASE__D2D_STACK_{n}__ULA_{n}__ULA__ULA_MC_{AD/MS}
-			- iocache: SOCKET0__IMH{n}__SCF__SCA__IOCACHE{n}__UTIL__MCI_{ADDR/MISC}
-		"""
-		if ptype == 'ula_uios':
-			# ULA_UIOS pattern: SOCKET0__IMH{n}__ULA__ULA_UIO{n}__ULA_MC_AD/MS
-			if suffix in ['ADDR', 'AD']:
-				pattern = f'SOCKET0__IMH{imh}__ULA__ULA_UIO{uio}__ULA_MC_AD'
-			elif suffix in ['MISC', 'MS']:
-				pattern = f'SOCKET0__IMH{imh}__ULA__ULA_UIO{uio}__ULA_MC_MS'
-			else:
-				pattern = f'SOCKET0__IMH{imh}__ULA__ULA_UIO{uio}__ULA_MC_{suffix}'
-
-		elif ptype == 'ula_d2dio':
-			# ULA D2D IMH pattern: SOCKET0__IMH{n}__D2D_STACK__D2D_STACK_{n}__UXI_{n}__ULA_MC_AD/MS
-			if suffix in ['ADDR', 'AD']:
-				pattern = f'SOCKET0__IMH{imh}__D2D_STACK__D2D_STACK_{stack}__UXI_{uxi}__ULA_MC_AD'
-			elif suffix in ['MISC', 'MS']:
-				pattern = f'SOCKET0__IMH{imh}__D2D_STACK__D2D_STACK_{stack}__UXI_{uxi}__ULA_MC_MISC'
-			else:
-				pattern = f'SOCKET0__IMH{imh}__D2D_STACK__D2D_STACK_{stack}__UXI_{uxi}__ULA_MC_{suffix}'
-
-		elif ptype == 'ula_d2dcbb':
-			# ULA D2D CBB pattern: SOCKET0__CBB{n}__BASE__D2D_STACK_{n}__ULA_{n}__ULA__ULA_MC_AD/MS
-			if suffix in ['ADDR', 'AD']:
-				pattern = f'SOCKET0__CBB{cbb}__BASE__D2D_STACK_{stack}__ULA_{ula}__ULA__ULA_MC_AD'
-			elif suffix in ['MISC', 'MS']:
-				pattern = f'SOCKET0__CBB{cbb}__BASE__D2D_STACK_{stack}__ULA_{ula}__ULA__ULA_MC_MISC'
-			else:
-				pattern = f'SOCKET0__CBB{cbb}__BASE__D2D_STACK_{stack}__ULA_{ula}__ULA__ULA_MC_{suffix}'
-
-		elif ptype == 'iocache':
-			# IOCACHE pattern: SOCKET0__IMH{n}__SCF__SCA__IOCACHE{n}__UTIL__MCI_ADDR/MISC
-			pattern = f'SOCKET0__IMH{imh}__SCF__SCA__IOCACHE{iocache}__UTIL__MCI_{suffix}'
-
-		else:
-			pattern = ''
-
-		return pattern
 
 	def io_ula_decoder(self, value):
 		"""
@@ -883,17 +960,8 @@ class decoder_dmr():
 				test_name = data['TestName']
 				mc_value = data['TestValue']
 
-				# Detect FailFlow (FF) type from test name to differentiate FF vs non-FF cases
-				# Example: DPMB_FF_VBUMP_100_SOCKET0__... -> ff_type = 'VBUMP_100'
-				ff_match = re.search(r'_FF_(.+?)_SOCKET\d+', test_name)
-				ff_type = ff_match.group(1) if ff_match else ''
-				# Build prefix to scope lookup patterns: FF prefix for FF cases,
-				# or the test name's own prefix for non-FF to avoid cross-matching
-				if ff_type:
-					ff_prefix = f'FF_{ff_type}_'
-				else:
-					prefix_match = re.search(r'^(.+?)SOCKET\d+', test_name)
-					ff_prefix = prefix_match.group(1) if prefix_match else ''
+				# Checks for new DMR fail flow prefix in test names (e.g., "FF_", "DMRFF_") to determine if special handling is needed
+				ff_type, ff_prefix = self.check_fail_flow_prefix(test_name)
 
 				# Determine memory type and extract instance information
 				mem_type = ''
@@ -1040,57 +1108,6 @@ class decoder_dmr():
 
 		new_df = pd.DataFrame(data_dict)
 		return new_df
-
-	def mem_lookup_pattern(self, imh='', ha='', hsf='', mc='', subch='', sca='', suffix='ADDR', ptype='ha', ff_prefix=''):
-		"""
-		Build register path patterns for DMR Memory MCA ADDR/MISC lookup
-
-		Args:
-			imh: IMH number (string)
-			ha: HA number (string)
-			hsf: HSF number (string)
-			mc: MC number (string)
-			subch: Subchannel number (string)
-			sca: SCA number (string)
-			suffix: 'ADDR' or 'MISC'
-			ptype: Pattern type
-			ff_prefix: FailFlow prefix to prepend to pattern (e.g. 'FF_VBUMP_100_' or 'DPMB_')
-
-		Pattern types:
-			- ha: SOCKET0__IMH{n}__SCF__HAMVF__HA_{n}__MCI_{ADDR/MISC}
-			- hsf: SOCKET0__IMH{n}__SCF__HAMVF__HSF_{n}__UTIL__MCI_{ADDR/MISC}
-			- subchn: SOCKET0__IMH{n}__MEMSS__MC{n}__SUBCH{n}__MCDATA__IMC0_MC{8_ADDR or _MISC}
-			- mse: SOCKET0__IMH{n}__MEMSS__MC{n}__SUBCH{n}__MSE__MSE_MCI_{ADDR/MISC}
-			- sca: SOCKET0__IMH{n}__SCF__SCA__SCA{n}__UTIL__MC_{ADDR/MISC}
-		"""
-		if ptype == 'ha':
-			# HA pattern: SOCKET0__IMH{n}__SCF__HAMVF__HA_{n}__MCI_ADDR/MISC
-			pattern = f'{ff_prefix}SOCKET0__IMH{imh}__SCF__HAMVF__HA_{ha}__MCI_{suffix}'
-
-		elif ptype == 'hsf':
-			# HSF pattern: SOCKET0__IMH{n}__SCF__HAMVF__HSF_{n}__UTIL__MCI_ADDR/MISC
-			pattern = f'{ff_prefix}SOCKET0__IMH{imh}__SCF__HAMVF__HSF_{hsf}__UTIL__MCI_{suffix}'
-
-		elif ptype == 'subchn':
-			# SUBCHN pattern: SOCKET0__IMH{n}__MEMSS__MC{n}__SUBCH{n}__MCDATA__IMC0_MC{8_ADDR or _MISC}
-			# Special case: ADDR uses IMC0_MC8_ADDR, MISC uses IMC0_MC_MISC
-			if suffix == 'ADDR':
-				pattern = f'{ff_prefix}SOCKET0__IMH{imh}__MEMSS__MC{mc}__SUBCH{subch}__MCDATA__IMC0_MC8_ADDR'
-			else:
-				pattern = f'{ff_prefix}SOCKET0__IMH{imh}__MEMSS__MC{mc}__SUBCH{subch}__MCDATA__IMC0_MC_{suffix}'
-
-		elif ptype == 'mse':
-			# MSE pattern: SOCKET0__IMH{n}__MEMSS__MC{n}__SUBCH{n}__MSE__MSE_MCI_ADDR/MISC
-			pattern = f'{ff_prefix}SOCKET0__IMH{imh}__MEMSS__MC{mc}__SUBCH{subch}__MSE__MSE_MCI_{suffix}'
-
-		elif ptype == 'sca':
-			# SCA pattern: SOCKET0__IMH{n}__SCF__SCA__SCA{n}__UTIL__MC_ADDR/MISC
-			pattern = f'{ff_prefix}SOCKET0__IMH{imh}__SCF__SCA__SCA{sca}__UTIL__MC_{suffix}'
-
-		else:
-			pattern = ''
-
-		return pattern
 
 	def mem_decoder(self, value, mem_type):
 		"""

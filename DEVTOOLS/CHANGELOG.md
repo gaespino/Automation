@@ -1,11 +1,78 @@
 # Changelog
 
-All notable changes to the PPV Deployment Tool will be documented in this file.
+All notable changes to the **Universal Central Deployment Tool** are documented here.
+Deployment entries are appended automatically after each deploy operation.
+
+---
+
+## [3.0.0] - 2026-02-23
+
+### Added
+- **Tabbed UI** (`ttk.Notebook`) with three tabs: Deploy / Reports & Changelog / Release Notes
+- **Fully resizable** window with `minsize(1100, 700)` — works on 1280×720 and larger
+- **Deployment Changelog** — every deploy appends to `deployment_changelog.json` (JSON) and this file (Markdown)
+- **Reports & Changelog tab** — deployment history listbox + CHANGELOG.md viewer
+- **Release Notes tab** — GUI front-end for `generate_release_notes.py`; includes Markdown editor, HTML export, and Draft PR creation
+- **Validate & Review button** — opens `ValidationAgentDialog` which runs `deploy_agent.py` with live streaming output
+- **`deploy_agent.py`** — standalone validation + PR script (syntax check, linting, quick tests, draft PR via `gh` CLI)
+- **`deploy_validator.agent.md`** — GitHub Copilot agent mode definition (in `.github/agents/`)
+- Horizontal scrollbar added to file tree
+- `_run_agent_command()` helper for streaming subprocess output into Toplevel windows
+- `open_csv_report()` button in Reports tab
+- `export_release_html()` converts Markdown release docs to self-contained HTML (stdlib only)
+
+### Changed
+- Window title updated to "Universal Central Deployment Tool"
+- `setup_ui()` fully restructured into `_setup_deploy_tab()`, `_setup_reports_tab()`, `_setup_release_tab()`
+- Source Configuration panel converted from `pack`-stacked rows to compact `grid` layout (fits smaller screens)
+- `self.report_button` stored as direct `ttk.Button` reference (replaces fragile `children[]` lookup)
+- Button labels shortened in CSV row for horizontal fit
+
+### Future Enhancements Completed
+- [x] Syntax validation before deployment (`deploy_agent.py --validate`)
+- [x] Export comparison reports (HTML export in Release Notes tab)
+- [x] Deployment history log (`deployment_changelog.json`)
+- [x] Git integration / PR creation (`deploy_agent.py --pr`)
+
+---
+
+## [2.0.0] - 2025-12-09
+
+### Added
+- Universal deployment tool replacing `deploy_ppv.py`
+- Multi-product support (GNR, CWF, DMR)
+- Multiple source types (BASELINE, BASELINE_DMR, PPV)
+- Import replacement from CSV configuration
+- File rename CSV support
+- Deployment manifest (JSON) filtering
+- CSV template generator dialog
+- Per-product config persistence (`deploy_config.json`)
+- Detailed deployment reports (CSV)
+- File similarity scoring and color-coded diff viewer
+
+---
 
 ## [1.0.0] - 2025-12-09
 
 ### Added
-- Initial release of PPV Deployment Tool
+- Initial release of PPV Deployment Tool (`deploy_ppv.py`)
+- Interactive GUI with tree view for file browsing
+- Visual selection checkboxes (☐/☑) for each file
+- Smart file comparison using MD5 hashing and difflib
+- Similarity scoring (0-100%) for change detection
+- Color-coded status indicators
+- Side-by-side diff viewer with syntax highlighting
+- Automatic backup system with timestamps
+- Selective file deployment
+- Configurable settings via JSON file
+
+---
+
+## Deployment History
+
+*(Entries below are appended automatically by the deploy tool after each deployment)*
+
+
 - Interactive GUI with tree view for file browsing
 - **Visual selection checkboxes** (☐/☑) for each file
 - **Click-to-select** functionality on checkbox column
@@ -109,9 +176,9 @@ If you encounter bugs or have feature requests:
 
 ## Credits
 
-**Created by**: GitHub Copilot  
-**Date**: December 9, 2025  
-**Python Version**: 3.x  
+**Created by**: GitHub Copilot
+**Date**: December 9, 2025
+**Python Version**: 3.x
 **License**: Internal Use Only
 
 ---
@@ -139,3 +206,88 @@ This is intentional as these files are development-specific and not needed in th
 - Efficient difflib algorithm for similarity scoring
 - Responsive GUI even with 100+ files
 - Background scanning won't freeze the interface
+
+## [20260223_175840] — DMR Deploy — February 23, 2026
+
+### Summary
+- **Product:** DMR  
+- **Source:** PPV / PPV  
+- **Target:** `C:\Git\Automation\S2T\BASELINE_DMR\DebugFramework\PPV`  
+- **Files Deployed:** 10  
+- **Errors:** 0  
+- **Import Replacements:** 0  
+- **File Renames:** 0  
+
+### Deployed Files
+- `Decoder\decoder_dmr.py`
+- `configs\fuses\dmr\cbbsbase.csv`
+- `configs\fuses\dmr\cbbstop.csv`
+- `gui\PPVFrameworkReport.py`
+- `utils\FrameworkFileFix.py`
+- `utils\status_bar.py`
+- `utils\fusefilegenerator.py`
+- `configs\fuses\dmr\imhs.csv`
+- `gui\PPVTools.py`
+- `gui\fusefileui.py`
+
+---
+
+## [20260223_180001] — DMR Deploy — February 23, 2026
+
+### Summary
+- **Product:** DMR  
+- **Source:** PPV / PPV  
+- **Target:** `C:\Git\Automation\S2T\BASELINE\DebugFramework\PPV`  
+- **Files Deployed:** 11  
+- **Errors:** 0  
+- **Import Replacements:** 0  
+- **File Renames:** 0  
+
+### Deployed Files
+- `Decoder\decoder_dmr.py`
+- `configs\fuses\dmr\cbbsbase.csv`
+- `configs\fuses\dmr\cbbstop.csv`
+- `parsers\Frameworkparser.py`
+- `gui\PPVFrameworkReport.py`
+- `utils\FrameworkFileFix.py`
+- `utils\status_bar.py`
+- `utils\fusefilegenerator.py`
+- `configs\fuses\dmr\imhs.csv`
+- `gui\PPVTools.py`
+- `gui\fusefileui.py`
+
+---
+
+## [20260223_180019] — CWF Deploy — February 23, 2026
+
+### Summary
+- **Product:** CWF  
+- **Source:** PPV / PPV  
+- **Target:** `C:\Git\Automation\S2T\BASELINE\DebugFramework\PPV`  
+- **Files Deployed:** 2  
+- **Errors:** 0  
+- **Import Replacements:** 0  
+- **File Renames:** 0  
+
+### Deployed Files
+- `configs\fuses\cwf\compute.csv`
+- `configs\fuses\cwf\io.csv`
+
+---
+
+## [20260223_180035] — GNR Deploy — February 23, 2026
+
+### Summary
+- **Product:** GNR  
+- **Source:** PPV / PPV  
+- **Target:** `C:\Git\Automation\S2T\BASELINE\DebugFramework\PPV`  
+- **Files Deployed:** 2  
+- **Errors:** 0  
+- **Import Replacements:** 0  
+- **File Renames:** 0  
+
+### Deployed Files
+- `configs\fuses\gnr\compute.csv`
+- `configs\fuses\gnr\io.csv`
+
+---

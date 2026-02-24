@@ -584,7 +584,7 @@ class LogSummaryParser:
 
 			# Check if location is valid (not NaN and not in invalid list)
 			if pd.isna(location):
-				print(f"Skipping UBOX entry: Location is NaN")
+				print("Skipping UBOX entry: Location is NaN")
 				return None
 
 			location_str = str(location).strip()

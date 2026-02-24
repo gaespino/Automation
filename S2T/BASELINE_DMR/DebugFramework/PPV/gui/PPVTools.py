@@ -17,6 +17,7 @@ try:
     from .AutomationDesigner import start_automation_flow_designer
     from .ExperimentBuilder import ExperimentBuilderGUI
     from .MCADecoder import MCADecoderGUI
+    from .fusefileui import FuseFileUI
 except ImportError:
     from gui.PPVLoopChecks import PTCReportGUI
     from gui.PPVDataChecks import PPVReportGUI
@@ -26,6 +27,7 @@ except ImportError:
     from gui.AutomationDesigner import start_automation_flow_designer
     from gui.ExperimentBuilder import ExperimentBuilderGUI
     from gui.MCADecoder import MCADecoderGUI
+    from gui.fusefileui import FuseFileUI
 #import pyfiglet
 
 def display_banner():
@@ -204,6 +206,14 @@ class Tools(tk.Frame):
 			"#1abc9c",
 			self.open_experiment_builder)
 
+		self.create_tool_card(tools_container, 4, 0,
+			"Fuse File Generator",
+			"Engineering tool for managing and generating fuse configuration files from CSV data.",
+			"• Parse and filter fuse CSV files\n• Product-specific IP configuration\n• Generate .fuse files for fusefilegen",
+			"#e67e22",
+			self.open_fuse_generator,
+			colspan=2)
+
 		# Footer with close button
 		footer_frame = tk.Frame(self.scrollable_frame, bg='#f0f0f0', pady=20)
 		footer_frame.pack(fill="x", padx=20)
@@ -369,6 +379,10 @@ class Tools(tk.Frame):
 		root6.title('MCA Single Decoder')
 		app6 = MCADecoderGUI(root6, default_product=self.default_product)
 		self.center_window(root6)
+
+	def open_fuse_generator(self):
+		"""Open Fuse File Generator - Engineering Tools"""
+		FuseFileUI(parent=self.root, default_product=self.default_product)
 
 	def center_window(self, window):
 		"""Center a window on the screen"""
