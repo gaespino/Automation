@@ -14,7 +14,13 @@ except ImportError:
 try:
     from ..utils import PPVReportMerger as prm
 except ImportError:
-    from utils import PPVReportMerger as prm
+    try:
+        _parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if _parent not in sys.path:
+            sys.path.insert(0, _parent)
+        from utils import PPVReportMerger as prm
+    except ImportError:
+        prm = None
 
 class FileHandlerGUI:
     def __init__(self, root, default_product="GNR"):

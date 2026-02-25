@@ -5,7 +5,7 @@ from openpyxl import load_workbook
 from openpyxl.worksheet.table import Table, TableStyleInfo
 import shutil
 #import win32com.client as win32
-import xlwings as xw
+# xlwings removed — not compatible with CaaS headless environments; use openpyxl instead
 import sys
 import os
 #import json
@@ -606,14 +606,8 @@ class ppv_report():
 
 # File manipulation scripts
 def file_open(file):
-	# Variables Init
-	#source_file = self.data_file
-	#target_file = self.mca_file
-
-	# Open the source and target workbooks
-	wb = xw.Book(file)
-	#target_wb = xw.Book(target_file)
-
+	# Open workbook using openpyxl (replaces xlwings which requires a local Excel install)
+	wb = load_workbook(file)
 	return wb
 
 def file_close(file, save = True): #source_wb, target_wb):

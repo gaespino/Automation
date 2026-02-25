@@ -48,8 +48,8 @@ layout = dbc.Container(fluid=True, className="pb-5", children=[
                           style={"backgroundColor": "#1a1d26", "color": "#e0e0e0",
                                  "border": "1px solid rgba(255,255,255,0.1)"}),
 
-                html.Label("Lots Seq Key", style={"color": "#a0a0a0", "fontSize": "0.83rem"}),
-                dbc.Input(id="lp-lots-key", placeholder="e.g. 74BJ", type="text",
+                html.Label("Sequence Key", style={"color": "#a0a0a0", "fontSize": "0.83rem"}),
+                dbc.Input(id="lp-lots-key", placeholder="100 (default)", type="text",
                           className="mb-3",
                           style={"backgroundColor": "#1a1d26", "color": "#e0e0e0",
                                  "border": "1px solid rgba(255,255,255,0.1)"}),
@@ -74,10 +74,10 @@ layout = dbc.Container(fluid=True, className="pb-5", children=[
                 dbc.Checklist(
                     id="lp-options",
                     options=[
-                        {"label": "ZIP input", "value": "zip"},
-                        {"label": "DPMB format output", "value": "dpmb"},
+                        {"label": "ZIP input",          "value": "zip"},
+                        {"label": "PySV logging format", "value": "pysv"},
                     ],
-                    value=["dpmb"],
+                    value=[],
                     inputStyle={"marginRight": "6px"},
                     labelStyle={"color": "#e0e0e0", "fontSize": "0.88rem"},
                     className="mb-3"
@@ -159,12 +159,20 @@ def run_parser(n_clicks, contents_list, filenames, bucket, lots_key, start_ww, o
             out_name = output_name or "parsed_output.xlsx"
             out_path = os.path.join(tmpdir, out_name)
             use_zip = "zip" in (options or [])
-            use_dpmb = "dpmb" in (options or [])
+            # Original PPV: "PySV logging format" unchecked → dpmbformat=True (DPMB output)
+            # When "pysv" is checked → dpmbformat=False (PySV format)
+            use_dpmb = "pysv" not in (options or [])
+
+            # Sequence key: default 100 (matching PPV original default)
+            try:
+                seq_key = int(lots_key) if lots_key and lots_key.strip() else 100
+            except ValueError:
+                seq_key = 100
 
             parser = LogsPTC(
                 StartWW=start_ww or "",
                 bucket=bucket or "",
-                LotsSeqKey=lots_key or "",
+                LotsSeqKey=seq_key,
                 folder_path=tmpdir,
                 output_file=out_path,
                 zipfile=use_zip,

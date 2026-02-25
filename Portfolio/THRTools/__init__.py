@@ -19,16 +19,27 @@ Main Entry Point:
 __version__ = "2.0.0"
 __author__ = "Gaespino"
 
-# Import main components for easy access
-from .gui import (
-    Tools,
-    PTCReportGUI,
-    PPVReportGUI,
-    FileHandlerGUI,
-    FrameworkReportBuilder
-)
-
-from .api import dpmbGUI
+# GUI imports are optional — tkinter is not available in CaaS/headless environments.
+# The web app uses the parsers/utils/api backends directly; GUI classes are only
+# needed when running the standalone Tkinter app (python run.py).
+try:
+    from .gui import (
+        Tools,
+        PTCReportGUI,
+        PPVReportGUI,
+        FileHandlerGUI,
+        FrameworkReportBuilder,
+    )
+    from .api import dpmbGUI
+    _GUI_AVAILABLE = True
+except ImportError:
+    _GUI_AVAILABLE = False
+    Tools = None
+    PTCReportGUI = None
+    PPVReportGUI = None
+    FileHandlerGUI = None
+    FrameworkReportBuilder = None
+    dpmbGUI = None
 
 __all__ = [
     'Tools',
@@ -36,5 +47,6 @@ __all__ = [
     'PPVReportGUI',
     'FileHandlerGUI',
     'FrameworkReportBuilder',
-    'dpmbGUI'
+    'dpmbGUI',
+    '_GUI_AVAILABLE',
 ]

@@ -6,7 +6,7 @@ if __name__ == "__main__":
 
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-import xlwings as xw
+# xlwings removed — not compatible with CaaS headless environments
 
 try:
     from .PPVLoopChecks import PTCReportGUI

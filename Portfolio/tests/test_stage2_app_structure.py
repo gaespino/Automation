@@ -35,7 +35,11 @@ class TestPageRegistry:
         self.app = app_module.app
 
     def test_dash_app_has_use_pages(self):
-        assert self.app.config.get("pages_folder") == "pages"
+        pages_folder = self.app.config.get("pages_folder") or ""
+        # Dash may resolve to an absolute path; check that it ends with 'pages'
+        assert str(pages_folder).endswith("pages"), (
+            f"Expected pages_folder to end with 'pages', got: {pages_folder!r}"
+        )
 
     def test_all_expected_pages_registered(self):
         import dash

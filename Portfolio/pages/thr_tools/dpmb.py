@@ -25,6 +25,7 @@ OPERATIONS = ['Bucketing', 'UoD Bucketing', 'Final Bucketing', 'Final UoD Bucket
 
 layout = dbc.Container(fluid=True, className="pb-5", children=[
     html.Div(id="dpmb-toast"),
+    dcc.Download(id="dpmb-download"),
 
     dbc.Row(dbc.Col(html.Div([
         html.H4([
