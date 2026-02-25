@@ -31,7 +31,12 @@ import re
 import dash
 from dash import html, dcc, Input, Output, State, callback, no_update, ctx
 import dash_bootstrap_components as dbc
-import dash_cytoscape as cyto
+try:
+    import dash_cytoscape as cyto
+    _CYTO_AVAILABLE = True
+except ImportError:
+    cyto = None  # type: ignore[assignment]
+    _CYTO_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +149,20 @@ def _make_node_element(node_id, node_type, label, exp_name, x, y):
     }
 
 
-layout = dbc.Container(fluid=True, className="pb-5", children=[
+def _cyto_fallback_layout():
+    return dbc.Container(fluid=True, className="pb-5", children=[
+        dbc.Alert([
+            html.Strong("dash-cytoscape is not installed. "),
+            "Run: ", html.Code("pip install dash-cytoscape"),
+            " then restart the server.",
+        ], color="warning", className="mt-4"),
+    ])
+
+
+def layout():
+    if not _CYTO_AVAILABLE:
+        return _cyto_fallback_layout()
+    return dbc.Container(fluid=True, className="pb-5", children=[
     html.Div(id="ad-toast"),
     dcc.Download(id="ad-download"),
     dcc.Store(id="ad-nodes-store",       data={}),   # node_id -> node_data
@@ -384,7 +402,7 @@ layout = dbc.Container(fluid=True, className="pb-5", children=[
             ]), className="card-premium border-0"),
         ]),
     ]),
-])
+    ])
 
 
 # ── Helper: rebuild cytoscape elements from stores ─────────────────────────────

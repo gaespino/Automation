@@ -40,7 +40,9 @@ class TestToolPageSmoke:
 
     def test_layout_has_download_component(self, module_path, expected_path, name_hint):
         mod = importlib.import_module(module_path)
-        layout_str = str(mod.layout)
+        # layout may be a Dash component or a callable (function) — handle both
+        layout_val = mod.layout() if callable(mod.layout) else mod.layout
+        layout_str = str(layout_val)
         assert "Download" in layout_str or "download" in layout_str
 
     def test_page_path_registered(self, module_path, expected_path, name_hint):
