@@ -111,12 +111,9 @@ Dashboard/
 
 ## 8. xlwings Dependency
 
-**Status:** Commented out in `requirements.txt`. Some THRTools backends used xlwings for Excel manipulation.
-
-**Action needed:**
-- Audit which functions in `THRTools/` use `xlwings`
-- Replace with `openpyxl` equivalents for CaaS compatibility
-- `xlwings` requires a local Excel installation — not available in headless containers
+**Status:** ✅ RESOLVED in v2.1.0.
+`file_open()` in `MCAparser.py` was the only usage — replaced with `openpyxl.load_workbook()`.
+`PPVTools.py` import removed (was unused).
 
 ---
 
@@ -127,3 +124,72 @@ Dashboard/
 **Action needed (future integration stage):**
 - Poll or subscribe to Framework server for live experiment status
 - WebSocket or SSE endpoint for real-time updates
+
+---
+
+## 10. Automation Designer — Visual Canvas (Drag-and-Drop)
+
+**Status:** Current web implementation is an ordered step-list editor (add/remove/reorder nodes).
+The backend logic and export format (`FrameworkAutomationStructure.json`, `FrameworkAutomationFlows.json`,
+`FrameworkAutomationInit.ini`, `FrameworkAutomationPositions.json`) is already in
+`pages/thr_tools/automation_designer.py` and matches the original PPV designer's output exactly.
+
+**Action needed:**
+- Implement drag-and-drop visual canvas using `dash-cytoscape` or a React-based graph library
+- The node position metadata (`FrameworkAutomationPositions.json`) is already tracked
+  so layout can be preserved when the canvas is implemented
+- Connection lines between nodes (currently chain connections) should be customizable
+  per port (multi-output: success/fail/majority branches)
+
+**Implementation steps:**
+1. `pip install dash-cytoscape` (add to `requirements.txt`)
+2. Create cytoscape graph from `ad-nodes-store` and `ad-experiments-store`
+3. Map node types to cytoscape node styles using `_NODE_COLORS`
+4. Handle drag events to update node x/y in store
+5. Add edge drawing for connections (per-port output mapping)
+
+---
+
+## 11. Experiment Builder — Conditional Section Toggle via Callbacks
+
+**Status:** Conditional sections (Loops/Sweep/Shmoo, Linux/Dragon) are pre-rendered
+with `display:none` based on initial product config. Dynamic toggling requires a callback
+that reads Test Type and Content from the PATTERN-MATCH field store and hides/shows sections.
+
+**Action needed:**
+- Add a callback that listens to `eb-field` pattern-match inputs for "Test Type" and "Content"
+- On change, toggle visibility of section divs
+  (e.g., `eb-section-loops`, `eb-section-sweep`, `eb-section-linux`, `eb-section-dragon`)
+- This requires using `dash.ALL` inputs with a section-visibility Output list
+
+---
+
+## 12. MCA Decoder — Register File Upload Parsing
+
+**Status:** Upload field exists in layout but upload content is not yet parsed.
+
+**Action needed:**
+- Parse uploaded `.txt` or `.csv` register file (line format: `REGISTER: 0xVALUE`)
+- Populate the register input fields from the parsed values
+- Run decode automatically after upload
+
+---
+
+## 13. THRTools GUI — Remove Old Deprecated Code (Stage 5)
+
+**Status:** Per the migration plan, the final stage is removing old deprecated code
+inside the `Portfolio/` folder (PPV Tkinter GUIs that have been fully replaced by Dash pages).
+
+**Files to remove after verification:**
+- `Portfolio/THRTools/gui/PPVTools.py`
+- `Portfolio/THRTools/gui/PPVLoopChecks.py`
+- `Portfolio/THRTools/gui/PPVDataChecks.py`
+- `Portfolio/THRTools/gui/PPVFileHandler.py`
+- `Portfolio/THRTools/gui/PPVFrameworkReport.py`
+- `Portfolio/THRTools/gui/MCADecoder.py`
+- `Portfolio/THRTools/gui/ExperimentBuilder.py`
+- `Portfolio/THRTools/gui/AutomationDesigner.py`
+- `Portfolio/THRTools/gui/fusefileui.py`
+- `Portfolio/THRTools/MCAparser_bkup.py`
+
+**Prerequisite:** All web tool pages must be fully verified before removing desktop GUIs.
