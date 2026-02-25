@@ -83,6 +83,23 @@ _NODE_TYPES = [
 _TYPE_MAP = {n["type"]: n for n in _NODE_TYPES}
 _NODE_TYPE_OPTIONS = [{"label": n["label"], "value": n["type"]} for n in _NODE_TYPES]
 
+# Port sets per node type — matches original draw_connection_ports logic:
+#   StartNode              → P0 only (success path)
+#   EndNode                → no outputs
+#   Characterization/Data/Analysis/Adaptive → P0 + P3 (OK + Error)
+#   SingleFail/AllFail/MajorityFail         → P0–P3 (all four ports)
+_NODE_PORTS: dict[str, list[int]] = {
+    "StartNode":                    [0],
+    "EndNode":                      [],
+    "SingleFailFlowInstance":       [0, 1, 2, 3],
+    "AllFailFlowInstance":          [0, 1, 2, 3],
+    "MajorityFailFlowInstance":     [0, 1, 2, 3],
+    "AdaptiveFlowInstance":         [0, 3],
+    "CharacterizationFlowInstance": [0, 3],
+    "DataCollectionFlowInstance":   [0, 3],
+    "AnalysisFlowInstance":         [0, 3],
+}
+
 # Convenience styles
 _IS = {
     "backgroundColor": "#0a0d14", "color": "#dde4ee",
@@ -153,27 +170,35 @@ _PORT_COLORS_LIST = ["#1abc9c", "#e74c3c", "#f39c12", "#9b59b6"]
 
 
 def _node_svg(type_label: str, name: str, exp_name: str,
-              color: str, colorL: str, colorD: str, node_type: str) -> str:
-    """Return a SVG data-URL for a flow node with IN-port strip at top and
-    OUT-port dots at bottom.  All colours are drawn in SVG so they survive
-    cytoscape stylesheet resets."""
+              color: str, colorL: str, colorD: str, node_type: str,
+              ports: "list[int] | None" = None) -> str:
+    """SVG background for a cytoscape node.
+
+    Layout (top → bottom):
+      ▲ INPUT strip  (hidden on StartNode)
+      NAME   (large, bold, white)        ← most prominent
+      Type   (medium, light-grey)
+      [exp]  (small, italic teal — only when assigned)
+      ▼ OUT strip with coloured port dots (hidden on EndNode)
+    """
     W, H, R = 190, 130, 9
-    STRIP = 22          # px height for IN / OUT strip
+    STRIP = 22
+    if ports is None:
+        ports = _NODE_PORTS.get(node_type, [0, 1, 2, 3])
     is_start = node_type == "StartNode"
-    is_end   = node_type == "EndNode"
+    is_end   = (len(ports) == 0)
 
     def esc(s: str) -> str:
         return (str(s)
                 .replace("&", "&amp;").replace("<", "&lt;")
                 .replace(">", "&gt;").replace('"', "&quot;"))
 
-    sname = (name[:22] + "\u2026") if len(name) > 22 else name
-    sexp  = (exp_name[:24] + "\u2026") if len(exp_name) > 24 else exp_name
+    sname = (name[:20] + "\u2026") if len(name) > 20 else name
+    sexp  = (exp_name[:22] + "\u2026") if len(exp_name) > 22 else exp_name
 
     p: list[str] = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
         f'style="font-family:Segoe UI,Inter,Arial,sans-serif">',
-        # ── gradients ──────────────────────────────────────────────────────
         '<defs>',
         f'<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">',
         f'  <stop offset="0%"   stop-color="{colorL}"/>',
@@ -189,23 +214,18 @@ def _node_svg(type_label: str, name: str, exp_name: str,
         f'  <stop offset="100%" stop-color="#000" stop-opacity="0.60"/>',
         '</linearGradient>',
         '</defs>',
-        # ── body ────────────────────────────────────────────────────────────
         f'<rect x="1" y="1" width="{W-2}" height="{H-2}" rx="{R}" ry="{R}" '
         f'fill="url(#bg)" stroke="{colorL}" stroke-width="2"/>',
     ]
 
-    # ── TOP strip: INPUT (all nodes except StartNode) ────────────────────────
+    # ── TOP strip: INPUT (hidden on StartNode) ────────────────────────────────
     if not is_start:
         p += [
-            # rounded-top rect overlay
             f'<rect x="1" y="1" width="{W-2}" height="{STRIP}" '
             f'rx="{R}" ry="{R}" fill="url(#ts)"/>',
-            # square-bottom extension to fill below rounded corners
             f'<rect x="1" y="{1+R}" width="{W-2}" height="{STRIP-R}" fill="url(#ts)"/>',
-            # separator line
             f'<line x1="18" y1="{STRIP}" x2="{W-18}" y2="{STRIP}" '
             f'stroke="{colorL}" stroke-opacity="0.35" stroke-width="0.5"/>',
-            # ▲ INPUT label
             f'<text x="{W//2}" y="{STRIP//2+1}" text-anchor="middle" '
             f'dominant-baseline="middle" fill="#9ab4c8" font-size="8" '
             f'font-weight="600" letter-spacing="1.5">\u25b2  INPUT</text>',
@@ -213,15 +233,16 @@ def _node_svg(type_label: str, name: str, exp_name: str,
 
     # ── content area ─────────────────────────────────────────────────────────
     top_off = STRIP if not is_start else 4
-    bot_off = STRIP if not is_end   else 4
+    bot_off = STRIP if ports else 4     # EndNode has no OUT strip → use 4px bottom margin
     avail_h = H - top_off - bot_off
 
+    # Name FIRST (most visible), then type label, then experiment
     rows: list[tuple[str, int, str, str]] = [
-        (esc(type_label), 12, "#ffffff",  "700"),
-        (esc(sname),      10, "#c8d8e8",  "400"),
+        (esc(sname),      13, "#ffffff",  "700"),   # node name — big + bold
+        (esc(type_label),  9, "#b0c8d8",  "400"),   # type — smaller, lighter
     ]
     if sexp:
-        rows.append((f"[ {esc(sexp)} ]", 8, "#7a9ab0", "300"))
+        rows.append((f"[ {esc(sexp)} ]", 8, "#1abc9c", "300"))  # experiment — teal italic
 
     total_h = sum(sz + 5 for _, sz, _, _ in rows)
     y_cur   = top_off + (avail_h - total_h) // 2
@@ -235,32 +256,32 @@ def _node_svg(type_label: str, name: str, exp_name: str,
         )
         y_cur += 5
 
-    # ── BOTTOM strip: OUTPUT ports (all nodes except EndNode) ────────────────
-    if not is_end:
+    # ── BOTTOM strip: OUTPUT ports (only for nodes that have output ports) ────
+    if ports:
         ys = H - STRIP
         p += [
             f'<line x1="18" y1="{ys}" x2="{W-18}" y2="{ys}" '
             f'stroke="{colorL}" stroke-opacity="0.35" stroke-width="0.5"/>',
-            # rounded-bottom rect overlay
             f'<rect x="1" y="{ys}" width="{W-2}" height="{STRIP}" '
             f'rx="0" ry="0" fill="url(#bs)"/>',
             f'<rect x="1" y="{H-1-R}" width="{W-2}" height="{R+1}" '
             f'rx="{R}" ry="{R}" fill="url(#bs)"/>',
-            # ▼ OUT label
             f'<text x="11" y="{H - STRIP//2}" dominant-baseline="middle" '
             f'fill="#6a8a9a" font-size="7" font-weight="600" letter-spacing="1">'
             f'\u25bc OUT</text>',
         ]
-        # P0 / P1 / P2 / P3 dots
-        dot_start_x = W - 4 * 22 + 3
-        for i, pc in enumerate(_PORT_COLORS_LIST):
-            cx = dot_start_x + i * 22
+        # Draw only the port dots valid for this node type
+        n_p = len(ports)
+        dot_start_x = W - n_p * 22 - 4
+        for i, pi in enumerate(sorted(ports)):
+            pc = _PORT_COLORS.get(pi, "#888")
+            cx = dot_start_x + i * 22 + 11
             cy = H - STRIP // 2
             p += [
-                f'<circle cx="{cx}" cy="{cy}" r="7" fill="{pc}" opacity="0.92"/>',
+                f'<circle cx="{cx}" cy="{cy}" r="8" fill="{pc}" opacity="0.92"/>',
                 f'<text x="{cx}" y="{cy}" text-anchor="middle" '
                 f'dominant-baseline="middle" fill="white" '
-                f'font-size="6.5" font-weight="700">P{i}</text>',
+                f'font-size="7" font-weight="700">P{pi}</text>',
             ]
 
     p.append('</svg>')
@@ -272,15 +293,16 @@ def _node_elem(node_id, node_type, name, exp_name, x, y, pending=False):
         node_type,
         {"label": node_type, "color": "#555", "colorL": "#777", "colorD": "#333"},
     )
+    ports = _NODE_PORTS.get(node_type, [0, 1, 2, 3])
     svg_bg = _node_svg(
         info["label"], name or node_id, exp_name or "",
         info["color"], info.get("colorL", info["color"]), info.get("colorD", info["color"]),
-        node_type,
+        node_type, ports,
     )
     return {
         "data": {
             "id":         node_id,
-            "label":      "",          # text is inside the SVG
+            "label":      "",
             "type":       node_type,
             "name":       name or node_id,
             "experiment": exp_name or "",
@@ -295,12 +317,35 @@ def _node_elem(node_id, node_type, name, exp_name, x, y, pending=False):
     }
 
 
-def _build_elements(nodes_store, edges_store, pending_source=None):
+def _canvas_pos_map(canvas_elements):
+    """Build a {node_id: {x, y}} map from the current Cytoscape elements list.
+    This preserves user-dragged positions when we rebuild elements."""
+    pos = {}
+    for el in (canvas_elements or []):
+        if "position" in el and "data" in el and "source" not in el.get("data", {}):
+            nid = el["data"].get("id")
+            if nid:
+                pos[nid] = el["position"]
+    return pos
+
+
+def _build_elements(nodes_store, edges_store, pending_source=None, canvas_pos=None):
+    """Build cytoscape elements list.
+
+    *canvas_pos* is the position map from _canvas_pos_map().  When provided,
+    existing nodes use their current canvas positions (preserving user drags)
+    instead of the stored initial positions.
+    """
+    pos_map = canvas_pos or {}
     elems = []
     for nid, nd in (nodes_store or {}).items():
+        # Prefer canvas position (preserves drag) over stored position
+        cp  = pos_map.get(nid)
+        x   = cp["x"] if cp else nd.get("x", 200)
+        y   = cp["y"] if cp else nd.get("y", 200)
         elems.append(_node_elem(
             nid, nd["type"], nd.get("name", ""), nd.get("experiment", ""),
-            nd.get("x", 200), nd.get("y", 200),
+            x, y,
             pending=(nid == pending_source),
         ))
     for edge in (edges_store or []):
@@ -421,7 +466,7 @@ def _left_offcanvas():
             html.I(className="bi bi-cpu me-2", style={"color": ACCENT}),
             "Unit Configuration",
         ], style={"color": ACCENT, "fontWeight": "700"}),
-        is_open=False, placement="start", backdrop=False, scrollable=True,
+        is_open=True, placement="start", backdrop=False, scrollable=True,
         style={"backgroundColor": "#10131c", "color": "#dde4ee",
                "width": "270px", "borderRight": "1px solid rgba(26,188,156,0.2)"},
         children=[
@@ -801,40 +846,43 @@ def select_edge(edge_data):
 
 
 @callback(
-    Output("ad-nodes-store",   "data"),
-    Output("ad-edges-store",   "data"),
-    Output("ad-counter-store", "data"),
-    Output("ad-canvas",        "elements"),
-    Output("ad-node-list",     "children"),
-    Output("ad-connect-mode",  "data",     allow_duplicate=True),
-    Output("ad-connect-hint",  "children", allow_duplicate=True),
-    Output("ad-canvas-stats",  "children"),
-    Output("ad-log",           "value"),
-    Output("ad-statusbar",     "children", allow_duplicate=True),
-    Output("ad-toast",         "children", allow_duplicate=True),
-    Input("ad-add-node-btn",   "n_clicks"),
-    Input("ad-del-node-btn",   "n_clicks"),
-    Input("ad-del-edge-btn",   "n_clicks"),
-    Input("ad-layout-btn",     "n_clicks"),
-    Input("ad-load-upload",    "contents"),
-    Input("ad-canvas",         "tapNodeData"),
-    Input("ad-canvas",         "elements"),
-    State("ad-node-type-sel",  "value"),
-    State("ad-nodes-store",    "data"),
-    State("ad-edges-store",    "data"),
-    State("ad-counter-store",  "data"),
-    State("ad-canvas",         "selectedNodeData"),
-    State("ad-connect-mode",   "data"),
-    State("ad-selected-edge-store", "data"),
-    State("ad-load-upload",    "filename"),
-    State("ad-log",            "value"),
+    Output("ad-nodes-store",       "data"),
+    Output("ad-edges-store",       "data"),
+    Output("ad-counter-store",     "data"),
+    Output("ad-canvas",            "elements"),
+    Output("ad-node-list",         "children"),
+    Output("ad-connect-mode",      "data",     allow_duplicate=True),
+    Output("ad-connect-hint",      "children", allow_duplicate=True),
+    Output("ad-canvas-stats",      "children"),
+    Output("ad-log",               "value"),
+    Output("ad-statusbar",         "children", allow_duplicate=True),
+    Output("ad-toast",             "children", allow_duplicate=True),
+    Output("ad-experiments-store", "data",     allow_duplicate=True),
+    Output("ad-exp-list",          "children", allow_duplicate=True),
+    Input("ad-add-node-btn",       "n_clicks"),
+    Input("ad-del-node-btn",       "n_clicks"),
+    Input("ad-del-edge-btn",       "n_clicks"),
+    Input("ad-layout-btn",         "n_clicks"),
+    Input("ad-load-upload",        "contents"),
+    Input("ad-canvas",             "tapNodeData"),
+    State("ad-node-type-sel",      "value"),
+    State("ad-nodes-store",        "data"),
+    State("ad-edges-store",        "data"),
+    State("ad-counter-store",      "data"),
+    State("ad-canvas",             "selectedNodeData"),
+    State("ad-connect-mode",       "data"),
+    State("ad-selected-edge-store","data"),
+    State("ad-load-upload",        "filename"),
+    State("ad-log",                "value"),
+    State("ad-canvas",             "elements"),   # State (not Input!) — avoids feedback loop
     prevent_initial_call=True,
 )
 def manage_canvas(add_c, del_c, del_edge_c, layout_c, load_content,
-                  tap_node, canvas_elements,
+                  tap_node,
                   node_type, nodes, edges, counter,
                   selected_nodes, connect_mode, sel_edge,
-                  load_fname, log_val):
+                  load_fname, log_val,
+                  cur_elements):
     trigger = ctx.triggered_id
     nodes   = dict(nodes   or {})
     edges   = list(edges   or [])
@@ -842,6 +890,8 @@ def manage_canvas(add_c, del_c, del_edge_c, layout_c, load_content,
     cmode   = dict(connect_mode or {"active": False, "pending": None, "port": "0"})
     hint    = no_update
     status  = no_update
+    # canvas_pos preserves user-dragged positions when rebuilding elements
+    cpos    = _canvas_pos_map(cur_elements)
 
     def _log(msg):
         nonlocal log
@@ -851,18 +901,12 @@ def manage_canvas(add_c, del_c, del_edge_c, layout_c, load_content,
     def _stats():
         return f"{len(nodes)} nodes \xb7 {len(edges)} edges"
 
-    # ── Position update from drag — never rebuild elements ──
-    if trigger == "ad-canvas" and canvas_elements and tap_node is None:
-        for el in canvas_elements:
-            if "position" in el and "data" in el:
-                nid = el["data"].get("id")
-                if nid and nid in nodes:
-                    nodes[nid]["x"] = el["position"]["x"]
-                    nodes[nid]["y"] = el["position"]["y"]
-        return (nodes, edges, counter, no_update, no_update,
-                cmode, hint, _stats(), log, status, no_update)
+    def _no_change():
+        return (no_update, no_update, no_update, no_update, no_update,
+                cmode, hint, no_update, log, status, no_update,
+                no_update, no_update)
 
-    # ── Add node ──
+    # ── Add node ──────────────────────────────────────────────────────────────
     if trigger == "ad-add-node-btn":
         nid  = f"NODE_{counter:03d}"
         counter += 1
@@ -871,17 +915,19 @@ def manage_canvas(add_c, del_c, del_edge_c, layout_c, load_content,
         nodes[nid] = {"id": nid, "name": nid, "type": node_type,
                       "x": x, "y": y, "experiment": "", "connections": {}}
         _log(f"Added {_TYPE_MAP.get(node_type, {}).get('label', node_type)}: {nid}")
-        elems = _build_elements(nodes, edges, cmode.get("pending"))
+        elems = _build_elements(nodes, edges, cmode.get("pending"), cpos)
         return (nodes, edges, counter, elems, _node_list_html(nodes),
                 cmode, hint, _stats(), log, f"Added {nid}.",
-                _toast(f"Added {nid}", "success", 1500))
+                _toast(f"Added {nid}", "success", 1500),
+                no_update, no_update)
 
-    # ── Delete node ──
+    # ── Delete node ───────────────────────────────────────────────────────────
     if trigger == "ad-del-node-btn":
         if not selected_nodes:
             return (no_update, no_update, no_update, no_update, no_update,
                     cmode, hint, no_update, log, "Select a node first.",
-                    _toast("Select a node first.", "warning"))
+                    _toast("Select a node first.", "warning"),
+                    no_update, no_update)
         for nd in selected_nodes:
             nid = nd.get("id")
             if nid in nodes:
@@ -889,17 +935,19 @@ def manage_canvas(add_c, del_c, del_edge_c, layout_c, load_content,
                 edges = [e for e in edges
                          if e.get("source") != nid and e.get("target") != nid]
                 _log(f"Deleted {nid}")
-        elems = _build_elements(nodes, edges, cmode.get("pending"))
+        elems = _build_elements(nodes, edges, cmode.get("pending"), cpos)
         return (nodes, edges, counter, elems, _node_list_html(nodes),
                 cmode, hint, _stats(), log, "Node(s) deleted.",
-                _toast("Deleted.", "info", 1500))
+                _toast("Deleted.", "info", 1500),
+                no_update, no_update)
 
-    # ── Delete selected edge ──
+    # ── Delete selected edge ──────────────────────────────────────────────────
     if trigger == "ad-del-edge-btn":
         if not sel_edge:
             return (no_update, no_update, no_update, no_update, no_update,
                     cmode, hint, no_update, log, "Click an edge first.",
-                    _toast("Click an edge on the canvas first.", "warning"))
+                    _toast("Click an edge on the canvas first.", "warning"),
+                    no_update, no_update)
         src  = sel_edge.get("source")
         tgt  = sel_edge.get("target")
         port = int(sel_edge.get("port", -1))
@@ -910,26 +958,29 @@ def manage_canvas(add_c, del_c, del_edge_c, layout_c, load_content,
         if src in nodes and len(edges) < before:
             nodes[src].get("connections", {}).pop(str(port), None)
             _log(f"Removed edge {src}\u2192{tgt} P{port}")
-        elems = _build_elements(nodes, edges, cmode.get("pending"))
+        elems = _build_elements(nodes, edges, cmode.get("pending"), cpos)
         return (nodes, edges, counter, elems, _node_list_html(nodes),
                 cmode, hint, _stats(), log, "Edge removed.",
-                _toast("Edge removed.", "info", 1500))
+                _toast("Edge removed.", "info", 1500),
+                no_update, no_update)
 
-    # ── Auto layout ──
+    # ── Auto layout ───────────────────────────────────────────────────────────
     if trigger == "ad-layout-btn":
         nodes = _auto_layout(nodes, edges)
         _log("Applied auto layout")
         elems = _build_elements(nodes, edges, cmode.get("pending"))
         return (nodes, edges, counter, elems, _node_list_html(nodes),
-                cmode, hint, _stats(), log, "Auto layout applied.", no_update)
+                cmode, hint, _stats(), log, "Auto layout applied.", no_update,
+                no_update, no_update)
 
-    # ── Load flow design ──
+    # ── Load flow design ──────────────────────────────────────────────────────
     if trigger == "ad-load-upload" and load_content:
         try:
             if "," not in load_content:
                 return (no_update, no_update, no_update, no_update, no_update,
                         cmode, hint, no_update, log, "Invalid file format.",
-                        _toast("Invalid file format.", "danger"))
+                        _toast("Invalid file format.", "danger"),
+                        no_update, no_update)
             _, data  = load_content.split(",", 1)
             design   = json.loads(base64.b64decode(data).decode("utf-8"))
             new_nodes, new_edges, new_ctr = {}, [], 1
@@ -940,39 +991,58 @@ def manage_canvas(add_c, del_c, del_edge_c, layout_c, load_content,
                     new_ctr = max(new_ctr, int(m.group(1)) + 1)
                 for prt, tgt in nd.get("connections", {}).items():
                     new_edges.append({"source": nid, "target": tgt, "port": int(prt)})
+            # Also restore experiments embedded in the flow file
+            loaded_exps = design.get("experiments", {})
+            exp_items = [
+                html.Div(f"\u2022 {n}",
+                         style={"color": "#c0d0e0", "fontSize": "0.74rem",
+                                "marginBottom": "1px"})
+                for n in list(loaded_exps.keys())[:40]
+            ]
+            if len(loaded_exps) > 40:
+                exp_items.append(html.Div(
+                    f"\u2026{len(loaded_exps)-40} more",
+                    style={"color": "#4a5a6a", "fontSize": "0.7rem"}))
+            if not exp_items:
+                exp_items = [html.Span("No experiments in this file.",
+                                       style={"color": "#3a4a5a", "fontSize": "0.74rem"})]
             elems = _build_elements(new_nodes, new_edges)
-            _log(f"Loaded: {load_fname} ({len(new_nodes)} nodes)")
+            _log(f"Loaded: {load_fname} ({len(new_nodes)} nodes, "
+                 f"{len(loaded_exps)} experiments)")
             return (new_nodes, new_edges, new_ctr, elems, _node_list_html(new_nodes),
                     cmode, hint,
                     f"{len(new_nodes)} nodes \xb7 {len(new_edges)} edges",
                     log, f"Flow loaded: {load_fname}",
-                    _toast(f"Loaded: {load_fname}", "success"))
+                    _toast(f"Loaded: {load_fname}", "success"),
+                    loaded_exps if loaded_exps else no_update,
+                    exp_items if loaded_exps else no_update)
         except Exception as exc:
             _log(f"Load error: {exc}")
             return (no_update, no_update, no_update, no_update, no_update,
                     cmode, hint, no_update, log, f"Load error: {exc}",
-                    _toast(str(exc), "danger"))
+                    _toast(str(exc), "danger"),
+                    no_update, no_update)
 
-    # ── Node tap ──
+    # ── Node tap ──────────────────────────────────────────────────────────────
     if trigger == "ad-canvas" and tap_node:
         nid = tap_node.get("id")
-        # If connect mode is not active — plain selection info
         if not cmode.get("active"):
             return (no_update, no_update, no_update, no_update, no_update,
                     cmode, hint, no_update, log,
                     f"Selected: {nid}  ({tap_node.get('type', '')})",
-                    no_update)
+                    no_update, no_update, no_update)
 
         # Connect mode — first click sets source
         if cmode.get("pending") is None:
             new_cmode = {**cmode, "pending": nid}
             hint      = f"Source: {nid} \u2192 Click target"
-            elems     = _build_elements(nodes, edges, pending_source=nid)
+            elems     = _build_elements(nodes, edges, pending_source=nid, canvas_pos=cpos)
             _log(f"Connect source: {nid}")
             return (nodes, edges, counter, elems, no_update,
                     new_cmode, hint, _stats(), log,
                     f"Connect mode: source = {nid}. Now click target.",
-                    _toast(f"Source: {nid}. Click target node.", "info", 3000))
+                    _toast(f"Source: {nid}. Click target node.", "info", 3000),
+                    no_update, no_update)
 
         # Connect mode — second click creates edge
         src_id   = cmode["pending"]
@@ -980,10 +1050,10 @@ def manage_canvas(add_c, del_c, del_edge_c, layout_c, load_content,
         if nid == src_id:
             new_cmode = {**cmode, "pending": None}
             hint      = "Click source node \u2192"
-            elems     = _build_elements(nodes, edges)
+            elems     = _build_elements(nodes, edges, canvas_pos=cpos)
             return (nodes, edges, counter, elems, no_update,
                     new_cmode, hint, _stats(), log, "Cancelled (same node).",
-                    no_update)
+                    no_update, no_update, no_update)
         # Deduplicate then add
         edges = [e for e in edges
                  if not (e["source"] == src_id and e["target"] == nid
@@ -992,16 +1062,16 @@ def manage_canvas(add_c, del_c, del_edge_c, layout_c, load_content,
         nodes[src_id].setdefault("connections", {})[str(port_num)] = nid
         new_cmode = {**cmode, "pending": None}
         hint      = "Click source node \u2192"
-        elems     = _build_elements(nodes, edges)
+        elems     = _build_elements(nodes, edges, canvas_pos=cpos)
         lbl       = _PORT_LABELS.get(port_num, "")
         _log(f"Connected {src_id}\u2192{nid} P{port_num}:{lbl}")
         return (nodes, edges, counter, elems, _node_list_html(nodes),
                 new_cmode, hint, _stats(), log,
                 f"Connected {src_id} \u2192 {nid} (P{port_num}:{lbl})",
-                _toast(f"{src_id} \u2192 {nid}", "success", 1500))
+                _toast(f"{src_id} \u2192 {nid}", "success", 1500),
+                no_update, no_update)
 
-    return (no_update, no_update, no_update, no_update, no_update,
-            cmode, hint, no_update, log, status, no_update)
+    return _no_change()
 
 
 @callback(
@@ -1069,14 +1139,16 @@ def show_node_editor(tap, nodes, experiments):
     State("ad-nodes-store",   "data"),
     State("ad-edges-store",   "data"),
     State("ad-connect-mode",  "data"),
+    State("ad-canvas",        "elements"),
     prevent_initial_call=True,
 )
-def apply_edit(n, node_id, name, exp, nodes, edges, cmode):
+def apply_edit(n, node_id, name, exp, nodes, edges, cmode, cur_elements):
     if not node_id or node_id not in (nodes or {}):
         return no_update, no_update, no_update, _toast("No node selected.", "warning")
     nodes[node_id]["name"]       = name or node_id
     nodes[node_id]["experiment"] = exp or ""
-    elems = _build_elements(nodes, edges or [], (cmode or {}).get("pending"))
+    cpos  = _canvas_pos_map(cur_elements)
+    elems = _build_elements(nodes, edges or [], (cmode or {}).get("pending"), cpos)
     return nodes, elems, _node_list_html(nodes), _toast(f"{node_id} updated.", "success", 1500)
 
 
@@ -1097,14 +1169,24 @@ def apply_edit(n, node_id, name, exp, nodes, edges, cmode):
     State("ad-ip",             "value"),
     State("ad-unit-flags",     "value"),
     State("ad-save-name",      "value"),
+    State("ad-canvas",         "elements"),
     prevent_initial_call=True,
 )
 def save_or_export(save_c, export_c, validate_c,
                    nodes, edges, experiments,
-                   vid, bucket, com, ip, flags, save_name):
+                   vid, bucket, com, ip, flags, save_name,
+                   cur_elements):
     trigger = ctx.triggered_id
     nodes   = nodes   or {}
     edges   = edges   or []
+    # Capture latest drag positions from cytoscape before saving
+    cpos = _canvas_pos_map(cur_elements)
+    nodes_with_pos = {}
+    for nid, nd in nodes.items():
+        cp = cpos.get(nid)
+        nodes_with_pos[nid] = {**nd,
+                               "x": cp["x"] if cp else nd.get("x", 200),
+                               "y": cp["y"] if cp else nd.get("y", 200)}
 
     if trigger == "ad-validate-btn":
         errs, _ = _validate(nodes, edges, experiments or {})
@@ -1122,7 +1204,8 @@ def save_or_export(save_c, export_c, validate_c,
         if not nodes:
             return no_update, no_update, _toast("Nothing to save.", "warning"), no_update
         design = {
-            "nodes": nodes, "edges": edges,
+            "nodes": nodes_with_pos, "edges": edges,
+            "experiments": experiments or {},
             "unit_config": {
                 "Visual ID":  vid or "",
                 "Bucket":     bucket or "",
@@ -1140,7 +1223,7 @@ def save_or_export(save_c, export_c, validate_c,
                 _toast(f"Saved: {fname}", "success"), None)
 
     if trigger == "ad-export-btn":
-        errs, _ = _validate(nodes, edges, experiments or {})
+        errs, _ = _validate(nodes_with_pos, edges, experiments or {})
         if errs:
             return (no_update, no_update,
                     _toast("Fix validation errors first.", "danger"), no_update)
@@ -1153,14 +1236,14 @@ def save_or_export(save_c, export_c, validate_c,
             "Check Core": "check_core" in (flags or []),
         }
         enriched = {}
-        for nid, nd in nodes.items():
+        for nid, nd in nodes_with_pos.items():
             en = nd.get("experiment")
             if en and en in (experiments or {}):
                 entry = dict(experiments[en])
                 entry.update({k: v for k, v in unit_cfg.items()
                               if v not in ("", False, None)})
                 enriched[en] = entry
-        zb  = _build_export_zip(nodes, edges, enriched, unit_cfg)
+        zb  = _build_export_zip(nodes_with_pos, edges, enriched, unit_cfg)
         ts  = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d_%H%M%S")
         fn  = f"FrameworkAutomation_{ts}.zip"
         b64 = base64.b64encode(zb).decode()
