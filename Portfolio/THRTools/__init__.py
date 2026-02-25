@@ -1,52 +1,20 @@
 """
-PPV (Pre-Production Validation) Tools Package
+THR Tools Backend Package
 
-A comprehensive suite of tools for PPV data analysis and management.
+Web-based backend modules for the Portfolio THR Tools Dash application.
+All tkinter/desktop GUI code has been removed — the Dash pages in
+Portfolio/pages/thr_tools/ are the new UI layer.
 
 Package Structure:
-- gui: Graphical user interface modules
 - parsers: Data parsing and analysis modules
 - utils: Utility functions and helper modules
 - api: API integration modules
 - Decoder: MCA decoder modules
-- MCChecker: MCA checker tools
+- configs: Product-specific configuration JSON files
 - DebugScripts: Debugging and utility scripts
-
-Main Entry Point:
-    Run 'python run.py' to start the PPV Tools Hub
 """
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 __author__ = "Gaespino"
 
-# GUI imports are optional — tkinter is not available in CaaS/headless environments.
-# The web app uses the parsers/utils/api backends directly; GUI classes are only
-# needed when running the standalone Tkinter app (python run.py).
-try:
-    from .gui import (
-        Tools,
-        PTCReportGUI,
-        PPVReportGUI,
-        FileHandlerGUI,
-        FrameworkReportBuilder,
-    )
-    from .api import dpmbGUI
-    _GUI_AVAILABLE = True
-except ImportError:
-    _GUI_AVAILABLE = False
-    Tools = None
-    PTCReportGUI = None
-    PPVReportGUI = None
-    FileHandlerGUI = None
-    FrameworkReportBuilder = None
-    dpmbGUI = None
-
-__all__ = [
-    'Tools',
-    'PTCReportGUI',
-    'PPVReportGUI',
-    'FileHandlerGUI',
-    'FrameworkReportBuilder',
-    'dpmbGUI',
-    '_GUI_AVAILABLE',
-]
+__all__ = []

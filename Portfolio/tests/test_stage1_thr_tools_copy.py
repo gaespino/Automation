@@ -1,6 +1,10 @@
 """
 test_stage1_thr_tools_copy.py
-Stage 1: THRTools copy — clean imports, tkinter guards, no hardcoded paths in non-config files
+Stage 1: THRTools — backend modules exist, no tkinter at package level,
+no hardcoded production paths.
+
+All tkinter/desktop GUI code has been removed from Portfolio/THRTools/.
+The Dash pages in Portfolio/pages/thr_tools/ are the only UI layer.
 """
 import os
 import sys
@@ -36,38 +40,25 @@ class TestTHRToolsExists:
     def test_dpmb_module_exists(self):
         assert os.path.exists(os.path.join(THRTOOLS, "api", "dpmb.py"))
 
-
-class TestTkinterGuards:
-    """Verify that tkinter-dependent modules import without raising on headless systems."""
-
-    def _import_module(self, rel_path: str, module_name: str):
-        """Import a THRTools module by file path, isolating sys.modules."""
-        spec = importlib.util.spec_from_file_location(
-            module_name,
-            os.path.join(THRTOOLS, rel_path)
+    def test_gui_folder_removed(self):
+        """Verify the tkinter GUI folder has been fully removed (no desktop GUI in CaaS)."""
+        assert not os.path.exists(os.path.join(THRTOOLS, "gui")), (
+            "THRTools/gui/ should be removed — Dash pages replace desktop GUIs"
         )
-        mod = importlib.util.module_from_spec(spec)
-        try:
-            spec.loader.exec_module(mod)
-        except ImportError as e:
-            # Only fail if the error is NOT tkinter
-            if "tkinter" not in str(e).lower():
-                raise
-        return mod
 
-    def test_dpmb_imports_without_crash(self):
-        self._import_module("api/dpmb.py", "thr_dpmb")
 
-    def test_file_handler_imports_without_crash(self):
-        self._import_module("gui/PPVFileHandler.py", "thr_pph")
+class TestNoTkinterAtPackageLevel:
+    """THRTools __init__.py must not import tkinter-dependent code."""
 
-    def test_experiment_builder_imports_without_crash(self):
-        self._import_module("gui/ExperimentBuilder.py", "thr_eb")
+    def test_thrtools_imports_without_crash(self):
+        import importlib
+        # Reload to ensure fresh import
+        if "THRTools" in sys.modules:
+            del sys.modules["THRTools"]
+        mod = importlib.import_module("THRTools")
+        assert mod is not None
 
-    def test_automation_designer_imports_without_crash(self):
-        self._import_module("gui/AutomationDesigner.py", "thr_ad")
-
-    def test_dpmb_has_guard(self):
+    def test_dpmb_has_tkinter_guard(self):
         path = os.path.join(THRTOOLS, "api", "dpmb.py")
         content = open(path, encoding="utf-8").read()
         assert "TKINTER_AVAILABLE" in content or "ImportError" in content
