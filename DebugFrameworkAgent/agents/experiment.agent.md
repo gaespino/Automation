@@ -27,11 +27,25 @@ You receive a delegation block from the Orchestrator and produce validated exper
 
 ### Step 1 - Select starting point
 
+> **Product must be known before loading any preset.**
+> If `product` is not present in the delegation context, stop and ask:
+> *"Which product is this experiment for? (GNR / CWF / DMR)"*
+> Do NOT proceed to preset loading until product is confirmed.
+
+**Preset file priority — always follow this order:**
+
+1. **Product-specific file first**: `../defaults/presets/GNR.json`, `CWF.json`, or `DMR.json`
+   — these contain real field values (VVAR0, VVAR1, VVAR2, VVAR3, paths, TTL folders, etc.) for that product.
+2. **`common.json` is a schema template only** — its VVAR fields and paths are intentionally blank (`""`).
+   Never use `common.json` as the source of truth for product-specific field values.
+3. When a field is present and non-empty in the product file → use that value.
+   When a field is missing or blank in the product file → it is intentionally unset; leave it as `""` or `null`, do NOT backfill from `common.json`.
+
 **Path A — Preset key provided:**
-Look up key in `../defaults/presets/` (auto-merged by `preset_loader.load_all()`). Use the preset's `experiment` dict as the working experiment.
+Look up key in `../defaults/presets/{PRODUCT}.json` first. Fall back to `common.json` only if the key does not exist in the product file. Use the preset's `experiment` dict as the working experiment.
 
 **Path B — Blank experiment:**
-Call `experiment_builder.new_blank(product, mode)` to create a fully-zeroed working experiment.
+Load the closest matching preset from `../defaults/presets/{PRODUCT}.json` as the starting template (matched by `test_mode` and `content`). If no match exists, call `experiment_builder.new_blank(product, mode)` to create a fully-zeroed working experiment. Never seed a blank experiment with values from `common.json`.
 
 **Path C — Existing JSON file (edit mode):**
 If `experiment_file` is present in the delegation context:
