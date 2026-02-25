@@ -39,6 +39,7 @@ import logging
 import zipfile
 import datetime
 import re
+import urllib.parse
 
 import dash
 from dash import html, dcc, Input, Output, State, callback, no_update, ctx
@@ -91,52 +92,44 @@ _LS = {"color": "#6a7a8a", "fontSize": "0.73rem", "marginBottom": "2px"}
 
 
 # ── Cytoscape stylesheet ───────────────────────────────────────────────────────
+# Nodes use SVG data-URL backgrounds (generated per-node in _node_svg) so that
+# we can draw rich content: type header, name, experiment, IN port at top and
+# OUT port dots at bottom.  Cytoscape only applies shadow + selection overlay.
 _STYLESHEET = [
-    # Base node — gradient + shadow + port-colour ring (pie chart)
     {"selector": "node", "style": {
-        "label":              "data(label)",
-        "background-color":   "data(colorD)",
-        "background-gradient-stop-colors":    "data(grad)",
-        "background-gradient-stop-positions": "0 45 100",
-        "background-gradient-direction":      "to-bottom",
-        "width": 160, "height": 80,
+        "label": "",                           # all text is inside the SVG
+        "background-image": "data(svgBg)",
+        "background-fit":   "cover",
+        "background-color": "transparent",
+        "background-opacity": 0,
+        "width": 190, "height": 130,
         "shape": "roundrectangle",
-        "border-width": 2, "border-color": "data(colorL)",
-        "shadow-blur": 14, "shadow-color": "data(color)",
-        "shadow-opacity": 0.40, "shadow-offset-x": 0, "shadow-offset-y": 5,
-        "color": "#ffffff",
-        "text-valign": "center", "text-halign": "center",
-        "font-size": "11px",
-        "font-family": "'Segoe UI', Inter, Arial, sans-serif",
-        "font-weight": "600",
-        "text-wrap": "wrap", "text-max-width": 148,
-        # Pie-chart port indicators (small colour ring)
-        "pie-size": "16%",
-        "pie-1-background-color": "#1abc9c", "pie-1-background-size": 25,
-        "pie-2-background-color": "#e74c3c", "pie-2-background-size": 25,
-        "pie-3-background-color": "#f39c12", "pie-3-background-size": 25,
-        "pie-4-background-color": "#9b59b6", "pie-4-background-size": 25,
+        "border-width": 0,                     # border is drawn inside the SVG
+        "shadow-blur": 22,
+        "shadow-color": "data(color)",
+        "shadow-opacity": 0.50,
+        "shadow-offset-x": 0, "shadow-offset-y": 5,
     }},
-    # Start / End — no port ring, thicker border
-    {"selector": "node[type='StartNode'], node[type='EndNode']", "style": {
-        "pie-size": "0%",
-        "border-width": 3,
-    }},
-    # Selected
+    # Selected — gold outline overlay
     {"selector": "node:selected", "style": {
-        "border-color": "#f1c40f", "border-width": 4,
-        "overlay-color": "#f1c40f", "overlay-padding": 5, "overlay-opacity": 0.1,
+        "border-width": 3, "border-color": "#f1c40f",
+        "shadow-color": "#f1c40f", "shadow-blur": 30, "shadow-opacity": 0.75,
+        "overlay-color": "#f1c40f", "overlay-padding": 4, "overlay-opacity": 0.10,
     }},
-    # Pending source in connect-mode (orange glow)
+    # Pending source in connect-mode — orange glow
     {"selector": "node.source-pending", "style": {
-        "border-color": "#f39c12", "border-width": 4,
-        "shadow-color": "#f39c12", "shadow-blur": 32, "shadow-opacity": 0.9,
+        "border-width": 3, "border-color": "#f39c12",
+        "shadow-color": "#f39c12", "shadow-blur": 36, "shadow-opacity": 0.95,
     }},
-    # Edge
+    # Edge — source exits from bottom, enters target at top
     {"selector": "edge", "style": {
-        "curve-style": "unbundled-bezier",
+        "curve-style":        "unbundled-bezier",
+        "source-endpoint":    "50% 100%",   # bottom centre of source node
+        "target-endpoint":    "50% 0%",     # top centre of target node
+        "control-point-distances": "70",
+        "control-point-weights":   "0.5",
         "target-arrow-shape": "triangle",
-        "arrow-scale": 1.5,
+        "arrow-scale": 1.6,
         "line-color": "data(edgeColor)",
         "target-arrow-color": "data(edgeColor)",
         "width": 2.5,
@@ -156,26 +149,145 @@ _STYLESHEET = [
 
 
 # ── Element builders ───────────────────────────────────────────────────────────
+_PORT_COLORS_LIST = ["#1abc9c", "#e74c3c", "#f39c12", "#9b59b6"]
+
+
+def _node_svg(type_label: str, name: str, exp_name: str,
+              color: str, colorL: str, colorD: str, node_type: str) -> str:
+    """Return a SVG data-URL for a flow node with IN-port strip at top and
+    OUT-port dots at bottom.  All colours are drawn in SVG so they survive
+    cytoscape stylesheet resets."""
+    W, H, R = 190, 130, 9
+    STRIP = 22          # px height for IN / OUT strip
+    is_start = node_type == "StartNode"
+    is_end   = node_type == "EndNode"
+
+    def esc(s: str) -> str:
+        return (str(s)
+                .replace("&", "&amp;").replace("<", "&lt;")
+                .replace(">", "&gt;").replace('"', "&quot;"))
+
+    sname = (name[:22] + "\u2026") if len(name) > 22 else name
+    sexp  = (exp_name[:24] + "\u2026") if len(exp_name) > 24 else exp_name
+
+    p: list[str] = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
+        f'style="font-family:Segoe UI,Inter,Arial,sans-serif">',
+        # ── gradients ──────────────────────────────────────────────────────
+        '<defs>',
+        f'<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">',
+        f'  <stop offset="0%"   stop-color="{colorL}"/>',
+        f'  <stop offset="45%"  stop-color="{color}"/>',
+        f'  <stop offset="100%" stop-color="{colorD}"/>',
+        '</linearGradient>',
+        f'<linearGradient id="ts" x1="0" y1="0" x2="0" y2="1">',
+        f'  <stop offset="0%"   stop-color="#000" stop-opacity="0.55"/>',
+        f'  <stop offset="100%" stop-color="#000" stop-opacity="0.18"/>',
+        '</linearGradient>',
+        f'<linearGradient id="bs" x1="0" y1="0" x2="0" y2="1">',
+        f'  <stop offset="0%"   stop-color="#000" stop-opacity="0.18"/>',
+        f'  <stop offset="100%" stop-color="#000" stop-opacity="0.60"/>',
+        '</linearGradient>',
+        '</defs>',
+        # ── body ────────────────────────────────────────────────────────────
+        f'<rect x="1" y="1" width="{W-2}" height="{H-2}" rx="{R}" ry="{R}" '
+        f'fill="url(#bg)" stroke="{colorL}" stroke-width="2"/>',
+    ]
+
+    # ── TOP strip: INPUT (all nodes except StartNode) ────────────────────────
+    if not is_start:
+        p += [
+            # rounded-top rect overlay
+            f'<rect x="1" y="1" width="{W-2}" height="{STRIP}" '
+            f'rx="{R}" ry="{R}" fill="url(#ts)"/>',
+            # square-bottom extension to fill below rounded corners
+            f'<rect x="1" y="{1+R}" width="{W-2}" height="{STRIP-R}" fill="url(#ts)"/>',
+            # separator line
+            f'<line x1="18" y1="{STRIP}" x2="{W-18}" y2="{STRIP}" '
+            f'stroke="{colorL}" stroke-opacity="0.35" stroke-width="0.5"/>',
+            # ▲ INPUT label
+            f'<text x="{W//2}" y="{STRIP//2+1}" text-anchor="middle" '
+            f'dominant-baseline="middle" fill="#9ab4c8" font-size="8" '
+            f'font-weight="600" letter-spacing="1.5">\u25b2  INPUT</text>',
+        ]
+
+    # ── content area ─────────────────────────────────────────────────────────
+    top_off = STRIP if not is_start else 4
+    bot_off = STRIP if not is_end   else 4
+    avail_h = H - top_off - bot_off
+
+    rows: list[tuple[str, int, str, str]] = [
+        (esc(type_label), 12, "#ffffff",  "700"),
+        (esc(sname),      10, "#c8d8e8",  "400"),
+    ]
+    if sexp:
+        rows.append((f"[ {esc(sexp)} ]", 8, "#7a9ab0", "300"))
+
+    total_h = sum(sz + 5 for _, sz, _, _ in rows)
+    y_cur   = top_off + (avail_h - total_h) // 2
+
+    for txt, sz, fill, weight in rows:
+        y_cur += sz
+        p.append(
+            f'<text x="{W//2}" y="{y_cur}" text-anchor="middle" '
+            f'fill="{fill}" font-size="{sz}" font-weight="{weight}">'
+            f'{txt}</text>'
+        )
+        y_cur += 5
+
+    # ── BOTTOM strip: OUTPUT ports (all nodes except EndNode) ────────────────
+    if not is_end:
+        ys = H - STRIP
+        p += [
+            f'<line x1="18" y1="{ys}" x2="{W-18}" y2="{ys}" '
+            f'stroke="{colorL}" stroke-opacity="0.35" stroke-width="0.5"/>',
+            # rounded-bottom rect overlay
+            f'<rect x="1" y="{ys}" width="{W-2}" height="{STRIP}" '
+            f'rx="0" ry="0" fill="url(#bs)"/>',
+            f'<rect x="1" y="{H-1-R}" width="{W-2}" height="{R+1}" '
+            f'rx="{R}" ry="{R}" fill="url(#bs)"/>',
+            # ▼ OUT label
+            f'<text x="11" y="{H - STRIP//2}" dominant-baseline="middle" '
+            f'fill="#6a8a9a" font-size="7" font-weight="600" letter-spacing="1">'
+            f'\u25bc OUT</text>',
+        ]
+        # P0 / P1 / P2 / P3 dots
+        dot_start_x = W - 4 * 22 + 3
+        for i, pc in enumerate(_PORT_COLORS_LIST):
+            cx = dot_start_x + i * 22
+            cy = H - STRIP // 2
+            p += [
+                f'<circle cx="{cx}" cy="{cy}" r="7" fill="{pc}" opacity="0.92"/>',
+                f'<text x="{cx}" y="{cy}" text-anchor="middle" '
+                f'dominant-baseline="middle" fill="white" '
+                f'font-size="6.5" font-weight="700">P{i}</text>',
+            ]
+
+    p.append('</svg>')
+    return "data:image/svg+xml," + urllib.parse.quote("\n".join(p), safe="")
+
+
 def _node_elem(node_id, node_type, name, exp_name, x, y, pending=False):
-    info = _TYPE_MAP.get(node_type,
-                         {"label": node_type, "color": "#555", "colorL": "#777", "colorD": "#333"})
-    lines = [name or info["label"]]
-    if exp_name:
-        short = exp_name[:18] + ("\u2026" if len(exp_name) > 18 else "")
-        lines.append(f"[{short}]")
+    info = _TYPE_MAP.get(
+        node_type,
+        {"label": node_type, "color": "#555", "colorL": "#777", "colorD": "#333"},
+    )
+    svg_bg = _node_svg(
+        info["label"], name or node_id, exp_name or "",
+        info["color"], info.get("colorL", info["color"]), info.get("colorD", info["color"]),
+        node_type,
+    )
     return {
         "data": {
-            "id":    node_id,
-            "label": "\n".join(lines),
-            "type":  node_type,
-            "name":  name or node_id,
+            "id":         node_id,
+            "label":      "",          # text is inside the SVG
+            "type":       node_type,
+            "name":       name or node_id,
             "experiment": exp_name or "",
-            "color":  info["color"],
-            "colorD": info.get("colorD", info["color"]),
-            "colorL": info.get("colorL", info["color"]),
-            "grad":   (f"{info.get('colorL', info['color'])} "
-                       f"{info['color']} "
-                       f"{info.get('colorD', info['color'])}"),
+            "color":      info["color"],
+            "colorD":     info.get("colorD", info["color"]),
+            "colorL":     info.get("colorL", info["color"]),
+            "svgBg":      svg_bg,
         },
         "position": {"x": x, "y": y},
         "classes":  "source-pending" if pending else "",
@@ -394,12 +506,22 @@ def _canvas_area():
                                   "padding": "1px 5px", "backgroundColor": "transparent"}),
             ]),
         ]),
+        # Dot-grid canvas wrapper — shows through because cyto background-color is dark
+        html.Div(style={
+            "flex": "1", "position": "relative", "overflow": "hidden",
+            "backgroundImage": (
+                "radial-gradient(circle, rgba(26,188,156,0.12) 1px, transparent 1px)"
+            ),
+            "backgroundSize": "32px 32px",
+            "backgroundColor": "#06080f",
+        }, children=[
         cyto.Cytoscape(
             id="ad-canvas",
             elements=[],
             layout={"name": "preset"},
-            style={"flex": "1", "width": "100%", "minHeight": 0,
-                   "backgroundColor": "#06080f"},
+            style={"position": "absolute", "top": 0, "left": 0,
+                   "width": "100%", "height": "100%",
+                   "backgroundColor": "transparent"},
             stylesheet=_STYLESHEET,
             boxSelectionEnabled=True,
             autoRefreshLayout=False,
@@ -407,7 +529,7 @@ def _canvas_area():
             userZoomingEnabled=True,
             minZoom=0.15, maxZoom=4,
             responsive=True,
-        ),
+        )]),
         html.Div(id="ad-statusbar",
                  style={"backgroundColor": "#08090f",
                         "borderTop": "1px solid rgba(255,255,255,0.04)",
@@ -745,7 +867,7 @@ def manage_canvas(add_c, del_c, del_edge_c, layout_c, load_content,
         nid  = f"NODE_{counter:03d}"
         counter += 1
         n    = len(nodes)
-        x, y = 160 + (n % 4) * 190, 160 + (n // 4) * 150
+        x, y = 160 + (n % 4) * 220, 160 + (n // 4) * 175
         nodes[nid] = {"id": nid, "name": nid, "type": node_type,
                       "x": x, "y": y, "experiment": "", "connections": {}}
         _log(f"Added {_TYPE_MAP.get(node_type, {}).get('label', node_type)}: {nid}")
@@ -1096,8 +1218,8 @@ def _auto_layout(nodes, edges):
             continue
         visited[nid] = lvl
         level_x.setdefault(lvl, 0)
-        nodes[nid]["x"] = 180 + lvl * 210
-        nodes[nid]["y"] = 120 + level_x[lvl] * 160
+        nodes[nid]["x"] = 200 + lvl * 230
+        nodes[nid]["y"] = 130 + level_x[lvl] * 175
         level_x[lvl]   += 1
         for e in edges:
             if e["source"] == nid:
@@ -1106,8 +1228,8 @@ def _auto_layout(nodes, edges):
         if nid not in visited:
             lvl = max(visited.values(), default=0) + 1
             level_x.setdefault(lvl, 0)
-            nodes[nid]["x"] = 180 + lvl * 210
-            nodes[nid]["y"] = 120 + level_x[lvl] * 160
+            nodes[nid]["x"] = 200 + lvl * 230
+            nodes[nid]["y"] = 130 + level_x[lvl] * 175
             level_x[lvl]   += 1
     return nodes
 
