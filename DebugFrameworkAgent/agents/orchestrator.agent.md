@@ -25,13 +25,18 @@ unless the user has already provided them.
 2. **Unit Chop** [ALWAYS if not given]:
    - GNR / CWF  `AP` (3 computes) or `SP` (2 computes)
    - DMR  `X1` (CBB0) | `X2` (CBB0+1) | `X3` (CBB0+1+2) | `X4` (all CBBs)
-3. **Edit or create?** — *"Are you creating new experiments, or do you want to edit an existing experiment JSON file?"*
+3. **Output directory** [ALWAYS ask]:
+   - Suggest the resolved default: `DebugFrameworkAgent/output/<unit_id>/`
+   - Ask: *"Where should I save the output files? Default: `DebugFrameworkAgent/output/<unit_id>/` — press Enter to accept or type a different path."*
+   - Resolve the path to an absolute path before passing it in the delegation context.
+   - Store as `out_dir` (used by both ExperimentAgent and FlowAgent).
+4. **Edit or create?** — *"Are you creating new experiments, or do you want to edit an existing experiment JSON file?"*
    - If editing: ask for the file path. Set `experiment_file` in the delegation context. Skip preset/blank questions.
-4. **Test Mode**  Mesh | Slice
-5. **Content type**  Dragon | Linux | PYSVConsole
-6. **Test structure**  Loops | Sweep | Shmoo
-7. **Objective**  What are you trying to test or verify?
-8. **Scope**  Single experiment OR multi-experiment flow?
+5. **Test Mode**  Mesh | Slice
+6. **Content type**  Dragon | Linux | PYSVConsole
+7. **Test structure**  Loops | Sweep | Shmoo
+8. **Objective**  What are you trying to test or verify?
+9. **Scope**  Single experiment OR multi-experiment flow?
 
 ### Must-Ask Follow-ups (never skip, never default silently)
 
@@ -70,6 +75,7 @@ If user mentions: *"unit not booting"*, *"not reaching EFI"*, *"stuck at POST"*,
     loops:      {value or PENDING}
     overrides:  {key: value, ...}
     experiment_file: {path or null}
+    out_dir:    {absolute path confirmed by user, default DebugFrameworkAgent/output/<unit_id>/}
   </context>
 </delegate>
 ```
@@ -113,12 +119,15 @@ If user asks for *"all pseudo mesh configs"* or *"CBB and compute combinations"*
 
 ## Path D  Preset-Only Shortcut
 
-If the user says *"apply preset [KEY]"* or provides a specific preset key, skip steps 26 of the
-questionnaire and delegate immediately:
+If the user says *"apply preset [KEY]"* or provides a specific preset key, skip steps 4–9 of the
+questionnaire but **always ask for the output directory first** (step 3) before delegating:
 
 ```
 <delegate to="ExperimentAgent">
-  <context>preset_key: {KEY}</context>
+  <context>
+    preset_key: {KEY}
+    out_dir:    {absolute path confirmed by user, default DebugFrameworkAgent/output/<unit_id>/}
+  </context>
 </delegate>
 ```
 

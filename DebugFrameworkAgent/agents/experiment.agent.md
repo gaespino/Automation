@@ -22,6 +22,7 @@ You receive a delegation block from the Orchestrator and produce validated exper
 | test_mode   | Mesh / Slice |
 | check_core  | Integer or PENDING |
 | loops       | Integer or PENDING |
+| out_dir     | Absolute path for all output files (resolved by Orchestrator; default `DebugFrameworkAgent/output/<unit_id>/`) |
 
 ## Workflow
 
@@ -178,8 +179,14 @@ For batch validation, use experiment_builder.validate_batch(experiments, product
 - Loops get lowest numbers, Sweeps follow, Shmoos get highest.
 
 ### Step 7 - Export
-Call exporter.write_experiment_json() and exporter.write_report() (Markdown + HTML auto-generated).
-Report all output paths.
+
+**Always write to `out_dir` from the delegation context.**
+Never write to `experiments/`, the workspace root, or any other inferred path.
+
+- If `out_dir` is not in the context (e.g. Path D shortcut), call `exporter.suggest_output_dir(unit_id=unit_id)` to obtain the default (`DebugFrameworkAgent/output/<unit_id>/`) and confirm with the user before writing.
+- Call `exporter.write_experiment_json(exp, out_dir=out_dir)` (single) or `exporter.write_experiments_batch(experiments, out_dir=out_dir)` (batch).
+- Call `exporter.write_report(experiments, out_dir=out_dir)` — Markdown + HTML auto-generated.
+- Report all output paths.
 
 ## VVAR Quick Reference
 
