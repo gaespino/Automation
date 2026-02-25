@@ -27,3 +27,4 @@ pytest-mock>=3.0.0
 # --- Optional: Excel advanced features (PPV tools) ---
 # xlwings requires Excel installed — not suitable for CaaS headless environment
 # xlwings>=0.24.0   # commented out; use openpyxl for read/write instead
+dash-cytoscape>=1.0.0

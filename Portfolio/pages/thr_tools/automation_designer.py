@@ -1,38 +1,37 @@
 """
-Automation Flow Designer
-=========================
-Build automation flow configurations as ordered node lists with experiment assignment.
-Calls THRTools/gui/AutomationDesigner.py backend (non-GUI methods only).
+Automation Designer
+====================
+Visual interface to build DebugFramework automation flows using a drag-and-drop
+node canvas. Faithfully replicates PPV/gui/AutomationDesigner.AutomationFlowDesigner.
 
-Replicates all functionality from PPV/gui/AutomationDesigner.AutomationFlowDesigner:
-- Node types: StartNode, SingleFail, AllFail, MajorityFail, Adaptive,
-  Characterization, DataCollection, Analysis, EndNode
-- Load experiments from JSON or Excel (from Experiment Builder or files)
-- Assign experiments to flow nodes
-- Export flow: FrameworkAutomationStructure.json, FrameworkAutomationFlows.json,
-  FrameworkAutomationInit.ini, FrameworkAutomationPositions.json
-- Unit configuration overrides (Visual ID, Bucket, COM Port, IP Address, etc.)
-- Save / load flow design (.json)
-- Import flow config
+Features:
+  - Interactive node canvas (dash-cytoscape): add, move, connect, delete nodes
+  - All 9 node types (StartNode, EndNode, SingleFail/AllFail/MajorityFail/Adaptive,
+    Characterization/DataCollection/Analysis)
+  - Load experiments from JSON/.tpl/Excel; assign to nodes
+  - Unit Configuration overrides (Visual ID, Bucket, COM Port, IP, 600W, Check Core)
+  - Export Flow Config as ZIP (FrameworkAutomation*.json + *.ini, matching original)
+  - Save / Load flow design JSON (compatible with original save_flow() format)
+  - Scalable: add new node types via _NODE_TYPES list; new exp fields via ControlPanelConfig
 
-Scalability:
-- Add new node types to _NODE_TYPES list — no other code changes required
-- Experiment fields expand automatically from ControlPanelConfig.json
-
-CaaS notes: Visual canvas drag-and-drop deferred — see CAAS_TODO.md.
+CaaS note: full drag-and-drop canvas requires dash-cytoscape (bundled in requirements.txt).
+  For native drag-and-drop position persistence, save/load flow design preserves coordinates.
 """
 import base64
-import io
 import json
+import io
 import logging
 import os
-import uuid
+import sys
 import zipfile
 import datetime
+import tempfile
+import re
 
 import dash
 from dash import html, dcc, Input, Output, State, callback, no_update, ctx
 import dash_bootstrap_components as dbc
+import dash_cytoscape as cyto
 
 logger = logging.getLogger(__name__)
 
@@ -40,555 +39,899 @@ dash.register_page(
     __name__,
     path='/thr-tools/automation-designer',
     name='Automation Designer',
-    title='Automation Flow Designer'
+    title='Automation Designer'
 )
 
-ACCENT = "#00c9a7"
+ACCENT = "#1abc9c"
+_PRODUCTS = ["GNR", "CWF", "DMR"]
 
-# Node types matching PPV/gui/AutomationDesigner.py exactly
+# Node type definitions — add new types here to make them available in the designer
 _NODE_TYPES = [
-    ("StartNode",                   "Start Node",         "Flow entry point"),
-    ("SingleFailFlowInstance",      "Single Fail",        "Stops on first failure"),
-    ("AllFailFlowInstance",         "All Fail",           "Requires all tests to fail"),
-    ("MajorityFailFlowInstance",    "Majority Fail",      "Routes based on majority"),
-    ("AdaptiveFlowInstance",        "Adaptive",           "Intelligent decision making"),
-    ("CharacterizationFlowInstance","Characterization",   "Uses previous data for experiments"),
-    ("DataCollectionFlowInstance",  "Data Collection",    "Runs complete experiment data collection"),
-    ("AnalysisFlowInstance",        "Analysis",           "Generates summary and experiment proposals"),
-    ("EndNode",                     "End Node",           "Flow exit point"),
+    {"type": "StartNode",                  "label": "Start",            "color": "#1abc9c", "text": "white"},
+    {"type": "EndNode",                    "label": "End",              "color": "#e74c3c", "text": "white"},
+    {"type": "SingleFailFlowInstance",     "label": "SingleFail",       "color": "#3498db", "text": "white"},
+    {"type": "AllFailFlowInstance",        "label": "AllFail",          "color": "#2980b9", "text": "white"},
+    {"type": "MajorityFailFlowInstance",   "label": "MajorityFail",     "color": "#8e44ad", "text": "white"},
+    {"type": "AdaptiveFlowInstance",       "label": "Adaptive",         "color": "#f39c12", "text": "white"},
+    {"type": "CharacterizationFlowInstance","label": "Characterization","color": "#16a085", "text": "white"},
+    {"type": "DataCollectionFlowInstance", "label": "DataCollection",   "color": "#27ae60", "text": "white"},
+    {"type": "AnalysisFlowInstance",       "label": "Analysis",         "color": "#c0392b", "text": "white"},
 ]
+_TYPE_MAP = {n["type"]: n for n in _NODE_TYPES}
+_NODE_TYPE_OPTIONS = [{"label": n["label"], "value": n["type"]} for n in _NODE_TYPES]
 
-_NODE_TYPE_VALUES = [n[0] for n in _NODE_TYPES]
-_NODE_COLORS = {
-    "StartNode":                   "#27ae60",
-    "EndNode":                     "#e74c3c",
-    "SingleFailFlowInstance":      "#e67e22",
-    "AllFailFlowInstance":         "#c0392b",
-    "MajorityFailFlowInstance":    "#8e44ad",
-    "AdaptiveFlowInstance":        "#2980b9",
-    "CharacterizationFlowInstance":"#16a085",
-    "DataCollectionFlowInstance":  "#1abc9c",
-    "AnalysisFlowInstance":        "#f39c12",
+_INPUT_STYLE = {
+    "backgroundColor": "#1a1d26", "color": "#e0e0e0",
+    "border": "1px solid rgba(255,255,255,0.1)", "fontSize": "0.85rem"
 }
-
-_INPUT_STYLE = {"backgroundColor": "#1a1d26", "color": "#e0e0e0",
-                "border": "1px solid rgba(255,255,255,0.1)", "fontSize": "0.85rem"}
 _LABEL_STYLE = {"color": "#a0a0a0", "fontSize": "0.8rem"}
 
+# Cytoscape stylesheet
+_CY_STYLESHEET = [
+    {
+        "selector": "node",
+        "style": {
+            "label": "data(label)",
+            "background-color": "data(color)",
+            "color": "data(textColor)",
+            "text-valign": "center",
+            "text-halign": "center",
+            "font-size": "11px",
+            "font-family": "Inter, Segoe UI, sans-serif",
+            "font-weight": "600",
+            "width": 140,
+            "height": 70,
+            "shape": "roundrectangle",
+            "border-width": 2,
+            "border-color": "data(borderColor)",
+            "text-wrap": "wrap",
+            "text-max-width": 120,
+        }
+    },
+    {
+        "selector": "node:selected",
+        "style": {
+            "border-color": "#f1c40f",
+            "border-width": 3,
+            "overlay-color": "#f1c40f",
+            "overlay-padding": 3,
+            "overlay-opacity": 0.15,
+        }
+    },
+    {
+        "selector": "edge",
+        "style": {
+            "curve-style": "bezier",
+            "target-arrow-shape": "triangle",
+            "arrow-scale": 1.5,
+            "line-color": "#aaa",
+            "target-arrow-color": "#aaa",
+            "label": "data(label)",
+            "font-size": "9px",
+            "color": "#ccc",
+            "text-background-color": "#1a1d26",
+            "text-background-opacity": 0.85,
+            "text-background-padding": "2px",
+        }
+    },
+    {
+        "selector": "edge:selected",
+        "style": {
+            "line-color": "#f1c40f",
+            "target-arrow-color": "#f1c40f",
+        }
+    },
+]
 
-def _unit_field(label: str, html_label_id: str, input_id: str) -> html.Div:
-    return html.Div([
-        html.Label(label, id=html_label_id, style=_LABEL_STYLE),
-        dbc.Input(id=input_id, type="text", className="mb-2",
-                  style={**_INPUT_STYLE, "fontSize": "0.82rem"}),
-    ])
+
+def _make_node_element(node_id, node_type, label, exp_name, x, y):
+    info = _TYPE_MAP.get(node_type, {"color": "#555", "text": "white"})
+    display = label or f"{info.get('label', node_type)}"
+    if exp_name:
+        display += f"\n[{exp_name[:12]}]"
+    return {
+        "data": {
+            "id": node_id,
+            "label": display,
+            "type": node_type,
+            "experiment": exp_name or "",
+            "color": info["color"],
+            "textColor": info["text"],
+            "borderColor": info["color"],
+        },
+        "position": {"x": x, "y": y},
+        "grabbable": True,
+    }
 
 
 layout = dbc.Container(fluid=True, className="pb-5", children=[
     html.Div(id="ad-toast"),
     dcc.Download(id="ad-download"),
-    dcc.Store(id="ad-nodes-store", data=[]),
-    dcc.Store(id="ad-experiments-store", data={}),
+    dcc.Store(id="ad-nodes-store",       data={}),   # node_id -> node_data
+    dcc.Store(id="ad-edges-store",       data=[]),   # list of {source, target, port, label}
+    dcc.Store(id="ad-experiments-store", data={}),   # exp_name -> exp_config
+    dcc.Store(id="ad-counter-store",     data=1),    # node counter
+    dcc.Store(id="ad-result-store",      data=None), # last export bytes (b64)
+    dcc.Store(id="ad-selected-node",     data=None), # currently selected node id
 
     dbc.Row(dbc.Col(html.Div([
         html.H4([
             html.I(className="bi bi-diagram-3 me-2", style={"color": ACCENT}),
-            html.Span("Automation Flow Designer",
+            html.Span("Automation Designer",
                       style={"color": ACCENT, "fontFamily": "Inter, sans-serif"})
         ], className="mb-1"),
         html.P(
-            "Build automation flow configurations as ordered node lists. "
-            "Assign experiments to nodes. Export for system RVP.",
+            "Build DebugFramework automation flows visually. "
+            "Drag nodes, draw connections, assign experiments, then export the flow config ZIP.",
             style={"color": "#a0a0a0", "fontSize": "0.9rem"}
         ),
         html.Hr(style={"borderColor": "rgba(255,255,255,0.08)"})
     ], className="pt-3 pb-1"), width=12)),
 
     dbc.Row([
-        # ── Left: unit config + node editor ──────────────────────────────────
-        dbc.Col(md=4, children=[
+        # ── Left panel: controls ─────────────────────────────────────────────
+        dbc.Col(md=3, children=[
+
+            # Node toolbox
             dbc.Card(dbc.CardBody([
-                html.H6("Unit Configuration", className="mb-3", style={"color": ACCENT}),
-                html.Small("Overrides applied to all experiments on export.",
-                           style={"color": "#606070", "fontSize": "0.77rem"}),
-                html.Hr(style={"borderColor": "rgba(255,255,255,0.08)"}),
-
-                _unit_field("Visual ID",  "ad-vid",      "ad-unit-vid"),
-                _unit_field("Bucket",     "ad-bucket",   "ad-unit-bucket"),
-                _unit_field("COM Port",   "ad-com",      "ad-unit-com"),
-                _unit_field("IP Address", "ad-ip",       "ad-unit-ip"),
-
-                dbc.Row([
-                    dbc.Col([
-                        dbc.Checklist(
-                            id="ad-unit-600w",
-                            options=[{"label": "600W Unit", "value": "600w"}],
-                            value=[],
-                            inputStyle={"marginRight": "6px"},
-                            labelStyle={"color": "#e0e0e0", "fontSize": "0.88rem"}
-                        ),
-                    ], width=6),
-                    dbc.Col([
-                        html.Label("Check Core", style=_LABEL_STYLE),
-                        dbc.Input(id="ad-unit-check-core", type="number", min=0,
-                                  placeholder="core #", style={**_INPUT_STYLE, "fontSize": "0.82rem"}),
-                    ], width=6),
-                ], className="mb-3"),
-            ]), className="card-premium border-0 mb-3"),
-
-            dbc.Card(dbc.CardBody([
-                html.H6("Add Node", className="mb-3", style={"color": ACCENT}),
-
-                html.Label("Node Type", style=_LABEL_STYLE),
+                html.H6("Add Node", className="mb-2", style={"color": ACCENT}),
                 dbc.Select(
-                    id="ad-node-type",
-                    options=[{"label": f"{label} — {desc}", "value": cls}
-                             for cls, label, desc in _NODE_TYPES],
+                    id="ad-node-type-sel",
+                    options=_NODE_TYPE_OPTIONS,
                     value="SingleFailFlowInstance",
                     className="mb-2",
                     style=_INPUT_STYLE
                 ),
-
-                html.Label("Node Name (label)", style=_LABEL_STYLE),
-                dbc.Input(id="ad-node-label", placeholder="Descriptive name",
-                          className="mb-2", style=_INPUT_STYLE),
-
-                html.Label("Assign Experiment (optional)", style=_LABEL_STYLE),
-                dcc.Dropdown(
-                    id="ad-node-experiment",
-                    options=[], value=None, clearable=True,
-                    placeholder="Select loaded experiment...",
-                    className="mb-3"
-                ),
-
-                dbc.Button([html.I(className="bi bi-plus-circle me-2"), "Add Node"],
-                           id="ad-add-btn", outline=True, className="w-100 mb-2",
+                dbc.Button([html.I(className="bi bi-plus-circle me-1"), "Add Node"],
+                           id="ad-add-node-btn", outline=True, className="w-100 mb-1",
                            style={"borderColor": ACCENT, "color": ACCENT}),
+                dbc.Button([html.I(className="bi bi-arrow-left-right me-1"), "Auto Layout"],
+                           id="ad-layout-btn", color="secondary", outline=True,
+                           className="w-100 mb-1", size="sm"),
+                dbc.Button([html.I(className="bi bi-trash me-1"), "Delete Selected"],
+                           id="ad-del-node-btn", color="danger", outline=True,
+                           className="w-100", size="sm"),
+            ]), className="card-premium border-0 mb-3"),
 
-                html.Hr(style={"borderColor": "rgba(255,255,255,0.08)"}),
-
-                html.Label("Import Flow JSON", style=_LABEL_STYLE),
+            # Load experiments
+            dbc.Card(dbc.CardBody([
+                html.H6("Load Experiments", className="mb-2", style={"color": ACCENT}),
+                html.Label("Product", style=_LABEL_STYLE),
+                dbc.Select(id="ad-product", options=[{"label": p, "value": p} for p in _PRODUCTS],
+                           value="GNR", className="mb-2", style=_INPUT_STYLE),
                 dcc.Upload(
-                    id="ad-import-flow",
+                    id="ad-exp-upload",
                     children=html.Div([html.A("Browse", style={"color": ACCENT}),
-                                       " or drop flow .json"]),
-                    multiple=False, className="mt-1 mb-2",
+                                       " .json / .tpl / .xlsx"]),
+                    multiple=False,
                     style={"border": f"1px dashed {ACCENT}", "borderRadius": "6px",
                            "padding": "8px", "textAlign": "center",
-                           "color": "#a0a0a0", "fontSize": "0.82rem",
-                           "backgroundColor": f"rgba(0,201,167,0.03)", "cursor": "pointer"}
+                           "color": "#a0a0a0", "fontSize": "0.8rem",
+                           "backgroundColor": "rgba(26,188,156,0.03)", "cursor": "pointer"}
                 ),
+                html.Div(id="ad-exp-label",
+                         style={"color": "#a0a0a0", "fontSize": "0.75rem", "marginTop": "4px"}),
+            ]), className="card-premium border-0 mb-3"),
 
-                html.Label("Load Experiments (JSON / .tpl / .xlsx)", style=_LABEL_STYLE),
-                dcc.Upload(
-                    id="ad-import-experiments",
-                    children=html.Div([html.A("Browse", style={"color": "#a070ff"}),
-                                       " or drop experiments file"]),
-                    multiple=False, className="mt-1 mb-3",
-                    style={"border": "1px dashed #a070ff", "borderRadius": "6px",
-                           "padding": "8px", "textAlign": "center",
-                           "color": "#a0a0a0", "fontSize": "0.82rem",
-                           "backgroundColor": "rgba(160,112,255,0.03)", "cursor": "pointer"}
+            # Node editor (shown when node is selected)
+            dbc.Card(dbc.CardBody([
+                html.H6("Node Editor", className="mb-2", style={"color": ACCENT}),
+                html.Div(id="ad-node-editor", children=[
+                    html.P("Select a node on the canvas to edit it.",
+                           style={"color": "#a0a0a0", "fontSize": "0.82rem"})
+                ]),
+            ]), className="card-premium border-0 mb-3"),
+
+            # Unit configuration
+            dbc.Card(dbc.CardBody([
+                html.H6("Unit Configuration", className="mb-2", style={"color": ACCENT}),
+                html.Label("Visual ID", style=_LABEL_STYLE),
+                dbc.Input(id="ad-vid", type="text", placeholder="75EH348100130",
+                          className="mb-1", style=_INPUT_STYLE),
+                html.Label("Bucket", style=_LABEL_STYLE),
+                dbc.Input(id="ad-bucket", type="text", placeholder="N/A",
+                          className="mb-1", style=_INPUT_STYLE),
+                html.Label("COM Port", style=_LABEL_STYLE),
+                dbc.Input(id="ad-com", type="text", placeholder="COM3",
+                          className="mb-1", style=_INPUT_STYLE),
+                html.Label("IP Address", style=_LABEL_STYLE),
+                dbc.Input(id="ad-ip", type="text", placeholder="192.168.1.100",
+                          className="mb-1", style=_INPUT_STYLE),
+                dbc.Checklist(
+                    id="ad-unit-flags",
+                    options=[{"label": "600W Unit", "value": "600w"},
+                             {"label": "Check Core",  "value": "check_core"}],
+                    value=[],
+                    inputStyle={"marginRight": "6px"},
+                    labelStyle={"color": "#e0e0e0", "fontSize": "0.85rem"},
+                    className="mt-2"
                 ),
+            ]), className="card-premium border-0 mb-3"),
 
-                dbc.Alert([
-                    html.I(className="bi bi-info-circle me-2"),
-                    "Visual canvas is deferred to CaaS migration. See ",
-                    html.Code("CAAS_TODO.md"), "."
-                ], color="secondary", className="card-premium border-0 text-white",
-                   style={"fontSize": "0.78rem"}),
-
+            # Connection builder
+            dbc.Card(dbc.CardBody([
+                html.H6("Add Connection", className="mb-2", style={"color": ACCENT}),
+                dbc.Row([
+                    dbc.Col([html.Label("From", style=_LABEL_STYLE),
+                             dbc.Input(id="ad-conn-from", placeholder="NODE_001",
+                                       type="text", style=_INPUT_STYLE)], width=6),
+                    dbc.Col([html.Label("To",   style=_LABEL_STYLE),
+                             dbc.Input(id="ad-conn-to", placeholder="NODE_002",
+                                       type="text", style=_INPUT_STYLE)], width=6),
+                ], className="mb-1 g-1"),
+                dbc.Row([
+                    dbc.Col([html.Label("Port", style=_LABEL_STYLE),
+                             dbc.Select(id="ad-conn-port",
+                                        options=[{"label": f"Port {i} ({l})", "value": str(i)}
+                                                 for i, l in enumerate(["Success","Fail","Alt","Err"])],
+                                        value="0", style=_INPUT_STYLE)], width=12),
+                ], className="mb-2 g-1"),
+                dbc.Button([html.I(className="bi bi-arrow-right me-1"), "Connect"],
+                           id="ad-conn-btn", outline=True, className="w-100",
+                           style={"borderColor": ACCENT, "color": ACCENT}, size="sm"),
+                dbc.Button([html.I(className="bi bi-x me-1"), "Remove Edge"],
+                           id="ad-del-edge-btn", color="danger", outline=True,
+                           className="w-100 mt-1", size="sm"),
             ]), className="card-premium border-0"),
         ]),
 
-        # ── Right: flow nodes list + export ───────────────────────────────────
-        dbc.Col(md=8, children=[
+        # ── Centre: canvas ───────────────────────────────────────────────────
+        dbc.Col(md=6, children=[
             dbc.Card(dbc.CardBody([
                 dbc.Row([
-                    dbc.Col(html.H6("Flow Nodes", style={"color": ACCENT}), width=8),
+                    dbc.Col(html.H6("Flow Canvas", style={"color": ACCENT}), width=6),
                     dbc.Col([
-                        dbc.Button([html.I(className="bi bi-trash me-1"), "Clear"],
-                                   id="ad-clear-btn", color="danger", outline=True, size="sm",
-                                   className="me-1"),
-                        dbc.Button([html.I(className="bi bi-eye me-1"), "Preview"],
-                                   id="ad-preview-btn", outline=True, size="sm",
-                                   style={"borderColor": "#a0a0a0", "color": "#a0a0a0"}),
-                    ], width=4, className="text-end"),
-                ], className="mb-3"),
+                        dbc.ButtonGroup([
+                            dbc.Button(html.I(className="bi bi-zoom-in"),  id="ad-zoom-in",  size="sm",
+                                       outline=True, style={"borderColor": ACCENT, "color": ACCENT}),
+                            dbc.Button(html.I(className="bi bi-zoom-out"), id="ad-zoom-out", size="sm",
+                                       outline=True, style={"borderColor": ACCENT, "color": ACCENT}),
+                            dbc.Button(html.I(className="bi bi-fullscreen"), id="ad-fit-btn", size="sm",
+                                       outline=True, style={"borderColor": ACCENT, "color": ACCENT}),
+                        ], className="float-end"),
+                    ], width=6),
+                ], className="mb-2 align-items-center"),
 
-                html.Div(id="ad-node-list", children=[
-                    dbc.Alert("No nodes yet. Add nodes using the editor.",
-                              color="secondary", className="card-premium border-0 text-white")
-                ], style={"maxHeight": "380px", "overflowY": "auto"}),
+                cyto.Cytoscape(
+                    id="ad-canvas",
+                    elements=[],
+                    layout={"name": "preset"},
+                    style={"width": "100%", "height": "540px",
+                           "backgroundColor": "#0d0f17",
+                           "border": "1px solid rgba(26,188,156,0.2)",
+                           "borderRadius": "6px"},
+                    stylesheet=_CY_STYLESHEET,
+                    boxSelectionEnabled=True,
+                    autoRefreshLayout=False,
+                    userPanningEnabled=True,
+                    userZoomingEnabled=True,
+                    minZoom=0.2,
+                    maxZoom=3,
+                    responsive=True,
+                ),
 
+                html.Small(
+                    "Click node to select. Drag to move. Use Add Connection to wire nodes.",
+                    style={"color": "#666", "fontSize": "0.75rem", "marginTop": "4px",
+                           "display": "block"}
+                ),
+            ]), className="card-premium border-0"),
+        ]),
+
+        # ── Right: flow list + I/O ───────────────────────────────────────────
+        dbc.Col(md=3, children=[
+            dbc.Card(dbc.CardBody([
+                html.H6("Flow Nodes", className="mb-2", style={"color": ACCENT}),
+                html.Div(id="ad-node-list", style={"maxHeight": "300px", "overflowY": "auto"},
+                         children=[html.P("No nodes yet.", style={"color": "#a0a0a0",
+                                                                   "fontSize": "0.82rem"})]),
             ]), className="card-premium border-0 mb-3"),
 
             dbc.Card(dbc.CardBody([
-                html.H6("Export & Save", style={"color": ACCENT}, className="mb-3"),
+                html.H6("Loaded Experiments", className="mb-2", style={"color": ACCENT}),
+                html.Div(id="ad-exp-list", style={"maxHeight": "150px", "overflowY": "auto"},
+                         children=[html.P("No experiments loaded.",
+                                          style={"color": "#a0a0a0", "fontSize": "0.82rem"})]),
+            ]), className="card-premium border-0 mb-3"),
 
-                dbc.Row([
-                    dbc.Col([
-                        html.Label("Export Config (ZIP)", style=_LABEL_STYLE),
-                        html.Small(" — structure, flows, INI, positions",
-                                   style={"color": "#606070", "fontSize": "0.75rem"}),
-                        dbc.Input(id="ad-export-name", placeholder="flow_export",
-                                  type="text", className="mb-2", style=_INPUT_STYLE),
-                        dbc.Button([html.I(className="bi bi-file-zip me-2"), "Export Flow Config"],
-                                   id="ad-export-btn", outline=True, className="w-100",
-                                   style={"borderColor": ACCENT, "color": ACCENT}),
-                    ], width=6),
-                    dbc.Col([
-                        html.Label("Save Flow Design (.json)", style=_LABEL_STYLE),
-                        dbc.Input(id="ad-save-name", placeholder="my_flow.json",
-                                  type="text", className="mb-2", style=_INPUT_STYLE),
-                        dbc.Button([html.I(className="bi bi-download me-2"), "Save Flow"],
-                                   id="ad-save-btn", outline=True, className="w-100",
-                                   style={"borderColor": "#a070ff", "color": "#a070ff"}),
-                    ], width=6),
-                ]),
+            dbc.Card(dbc.CardBody([
+                html.H6("Save / Load / Export", className="mb-2", style={"color": ACCENT}),
 
-                html.Div(id="ad-export-status", className="mt-3"),
+                dbc.Input(id="ad-save-name", placeholder="flow_design.json", type="text",
+                          className="mb-2", style=_INPUT_STYLE),
+                dbc.Button([html.I(className="bi bi-save me-1"), "Save Flow Design"],
+                           id="ad-save-btn", outline=True, className="w-100 mb-1",
+                           style={"borderColor": ACCENT, "color": ACCENT}),
+
+                html.Hr(style={"borderColor": "rgba(255,255,255,0.08)"}),
+                html.Label("Load Flow Design (.json)", style=_LABEL_STYLE),
+                dcc.Upload(
+                    id="ad-load-upload",
+                    children=html.Div([html.A("Browse", style={"color": ACCENT}),
+                                       " or drop .json"]),
+                    multiple=False, className="mt-1 mb-2",
+                    style={"border": f"1px dashed {ACCENT}", "borderRadius": "6px",
+                           "padding": "6px", "textAlign": "center",
+                           "color": "#a0a0a0", "fontSize": "0.78rem", "cursor": "pointer"}
+                ),
+
+                html.Hr(style={"borderColor": "rgba(255,255,255,0.08)"}),
+                dbc.Button([html.I(className="bi bi-check-circle me-1"), "Validate Flow"],
+                           id="ad-validate-btn", color="secondary", outline=True,
+                           className="w-100 mb-1", size="sm"),
+                dbc.Button([html.I(className="bi bi-file-zip me-1"), "Export Flow Config ZIP"],
+                           id="ad-export-btn", outline=True, className="w-100",
+                           style={"borderColor": "#f39c12", "color": "#f39c12"}),
+
+                html.Div(id="ad-export-status", className="mt-2",
+                         style={"color": "#a0a0a0", "fontSize": "0.78rem"}),
+            ]), className="card-premium border-0 mb-3"),
+
+            # Log
+            dbc.Card(dbc.CardBody([
+                html.H6("Log", className="mb-2", style={"color": ACCENT}),
+                dbc.Textarea(
+                    id="ad-log",
+                    value="Automation Designer ready.\n",
+                    readOnly=True,
+                    style={
+                        "backgroundColor": "#0d0f17", "color": "#c0d0c0",
+                        "fontFamily": "Courier New, monospace", "fontSize": "0.75rem",
+                        "border": "1px solid rgba(255,255,255,0.08)",
+                        "height": "140px", "resize": "vertical"
+                    }
+                ),
             ]), className="card-premium border-0"),
         ]),
     ]),
 ])
 
 
-# ── Callbacks ──────────────────────────────────────────────────────────────────
+# ── Helper: rebuild cytoscape elements from stores ─────────────────────────────
+def _build_elements(nodes_store: dict, edges_store: list) -> list:
+    elements = []
+    for node_id, nd in nodes_store.items():
+        elements.append(_make_node_element(
+            node_id,
+            nd["type"],
+            nd.get("name", ""),
+            nd.get("experiment", ""),
+            nd.get("x", 300),
+            nd.get("y", 200),
+        ))
+    for edge in edges_store:
+        port = edge.get("port", 0)
+        port_labels = {0: "OK", 1: "Fail", 2: "Alt", 3: "Err"}
+        elements.append({
+            "data": {
+                "source": edge["source"],
+                "target": edge["target"],
+                "label": f"P{port} {port_labels.get(port,'')}",
+                "port": port,
+            }
+        })
+    return elements
+
+
+# ── Load experiments ──────────────────────────────────────────────────────────
+
+@callback(
+    Output("ad-experiments-store", "data"),
+    Output("ad-exp-label", "children"),
+    Output("ad-exp-list", "children"),
+    Output("ad-toast", "children"),
+    Input("ad-exp-upload", "contents"),
+    State("ad-exp-upload", "filename"),
+    prevent_initial_call=True
+)
+def load_experiments(content, fname):
+    if not content:
+        return no_update, no_update, no_update, no_update
+    try:
+        _, data = content.split(',')
+        raw = base64.b64decode(data)
+
+        experiments = {}
+        if fname and fname.endswith('.xlsx'):
+            import openpyxl
+            wb = openpyxl.load_workbook(io.BytesIO(raw), data_only=True)
+            for ws in wb.worksheets:
+                for table in ws.tables.values():
+                    rng = ws[table.ref]
+                    headers = [c.value for c in rng[0]]
+                    if headers:
+                        for row in rng[1:]:
+                            entry = {str(headers[i]): (r.value or "") for i, r in enumerate(row)}
+                            exp_name = entry.get("Experiment", entry.get("Test Name",
+                                       entry.get("Name", f"Exp_{len(experiments)+1}")))
+                            experiments[str(exp_name)] = entry
+        else:
+            loaded = json.loads(raw.decode('utf-8'))
+            if isinstance(loaded, list):
+                for e in loaded:
+                    n = e.get("Experiment", e.get("Test Name", e.get("Name",
+                              f"Exp_{len(experiments)+1}")))
+                    experiments[str(n)] = e
+            elif isinstance(loaded, dict):
+                # Could be {exp_name: data} or a flow_design file
+                if "nodes" in loaded:
+                    return no_update, "Use Load Flow Design to load a flow JSON.", no_update, \
+                           _toast("That looks like a flow design, not experiments. Use Load Flow Design.", "warning")
+                for k, v in loaded.items():
+                    if isinstance(v, dict):
+                        experiments[k] = v
+                    else:
+                        experiments[k] = {"value": v}
+
+        if not experiments:
+            return no_update, "No experiments found.", no_update, _toast("No experiments found.", "warning")
+
+        items = [
+            html.Div(f"• {name}", style={"color": "#e0e0e0", "fontSize": "0.8rem", "marginBottom": "2px"})
+            for name in list(experiments.keys())[:30]
+        ]
+        if len(experiments) > 30:
+            items.append(html.Div(f"...and {len(experiments)-30} more",
+                                  style={"color": "#a0a0a0", "fontSize": "0.78rem"}))
+
+        return experiments, f"✓ {fname} ({len(experiments)} experiments)", items, \
+               _toast(f"Loaded {len(experiments)} experiments.", "success", 2500)
+
+    except Exception as e:
+        logger.exception("Exp load error")
+        return no_update, f"Error: {e}", no_update, _toast(f"Error: {e}", "danger")
+
+
+# ── Add node ──────────────────────────────────────────────────────────────────
 
 @callback(
     Output("ad-nodes-store", "data"),
-    Output("ad-experiments-store", "data"),
-    Output("ad-node-experiment", "options"),
-    Output("ad-toast", "children"),
-    Input("ad-add-btn", "n_clicks"),
-    Input("ad-clear-btn", "n_clicks"),
-    Input("ad-import-flow", "contents"),
-    Input("ad-import-experiments", "contents"),
-    Input("ad-import-experiments", "filename"),
+    Output("ad-counter-store", "data"),
+    Output("ad-canvas", "elements"),
+    Output("ad-node-list", "children"),
+    Output("ad-log", "value"),
+    Output("ad-toast", "children", allow_duplicate=True),
+    Input("ad-add-node-btn", "n_clicks"),
+    Input("ad-del-node-btn", "n_clicks"),
+    Input("ad-conn-btn", "n_clicks"),
+    Input("ad-del-edge-btn", "n_clicks"),
+    Input("ad-layout-btn", "n_clicks"),
+    Input("ad-load-upload", "contents"),
+    Input("ad-canvas", "tapNodeData"),
+    Input("ad-canvas", "elements"),  # position updates from drag
+    State("ad-node-type-sel", "value"),
     State("ad-nodes-store", "data"),
-    State("ad-experiments-store", "data"),
-    State("ad-node-type", "value"),
-    State("ad-node-label", "value"),
-    State("ad-node-experiment", "value"),
+    State("ad-edges-store", "data"),
+    State("ad-counter-store", "data"),
+    State("ad-canvas", "selectedNodeData"),
+    State("ad-conn-from", "value"),
+    State("ad-conn-to", "value"),
+    State("ad-conn-port", "value"),
+    State("ad-load-upload", "filename"),
+    State("ad-log", "value"),
     prevent_initial_call=True
 )
-def manage_nodes(add_c, clear_c, import_flow_content, import_exp_content, import_exp_fname,
-                 nodes, experiments,
-                 node_type, node_label, node_experiment):
+def manage_canvas(add_c, del_c, conn_c, del_edge_c, layout_c, load_content,
+                  tap_node, canvas_elements,
+                  node_type, nodes_store, edges_store, counter,
+                  selected_nodes, conn_from, conn_to, conn_port,
+                  load_fname, log_val):
     trigger = ctx.triggered_id
-    nodes = list(nodes or [])
-    experiments = dict(experiments or {})
+    log = log_val or ""
 
-    if trigger == "ad-clear-btn":
-        return [], {}, [], _toast("Flow cleared.", "info", 2000)
+    def _log(msg):
+        nonlocal log
+        ts = datetime.datetime.now().strftime("%H:%M:%S")
+        log = f"[{ts}] {msg}\n" + log  # prepend newest
 
-    if trigger == "ad-import-flow" and import_flow_content:
-        try:
-            _, data = import_flow_content.split(',')
-            flow = json.loads(base64.b64decode(data).decode('utf-8'))
-            loaded_nodes = []
-            loaded_exps = {}
-            if isinstance(flow, dict):
-                raw_nodes = flow.get("nodes", {})
-                loaded_exps = flow.get("experiments", {})
-                if isinstance(raw_nodes, dict):
-                    loaded_nodes = list(raw_nodes.values())
-                elif isinstance(raw_nodes, list):
-                    loaded_nodes = raw_nodes
-            elif isinstance(flow, list):
-                loaded_nodes = flow
-            opts = [{"label": k, "value": k} for k in loaded_exps]
-            return loaded_nodes, loaded_exps, opts, _toast(
-                f"Loaded {len(loaded_nodes)} nodes, {len(loaded_exps)} experiments.", "success")
-        except Exception as e:
-            return no_update, no_update, no_update, _toast(f"Import error: {e}", "danger")
+    # Update positions from canvas drag
+    if trigger == "ad-canvas" and canvas_elements:
+        for el in canvas_elements:
+            if "position" in el and "data" in el:
+                nid = el["data"].get("id")
+                if nid and nid in nodes_store:
+                    nodes_store[nid]["x"] = el["position"]["x"]
+                    nodes_store[nid]["y"] = el["position"]["y"]
+        return (nodes_store, counter,
+                no_update,  # don't rebuild — cytoscape handles it
+                no_update, log, no_update)
 
-    if trigger == "ad-import-experiments" and import_exp_content:
-        try:
-            exps = _load_experiments(import_exp_content, import_exp_fname or "")
-            experiments.update(exps)
-            opts = [{"label": k, "value": k} for k in experiments]
-            return no_update, experiments, opts, _toast(
-                f"Loaded {len(exps)} experiment(s).", "success")
-        except Exception as e:
-            return no_update, no_update, no_update, _toast(f"Experiment load error: {e}", "danger")
-
-    if trigger == "ad-add-btn":
-        ntype = node_type or "SingleFailFlowInstance"
-        label = node_label or _get_display(ntype)
-        node = {
-            "id": str(uuid.uuid4())[:8],
-            "type": ntype,
-            "label": label,
-            "experiment": node_experiment,
-            "connections": {},
-            "x": 100 + len(nodes) * 180,
-            "y": 200,
+    if trigger == "ad-add-node-btn":
+        node_id = f"NODE_{counter:03d}"
+        counter += 1
+        # Stagger position
+        n = len(nodes_store)
+        x = 150 + (n % 4) * 180
+        y = 150 + (n // 4) * 140
+        nodes_store[node_id] = {
+            "id": node_id, "name": node_id,
+            "type": node_type,
+            "x": x, "y": y,
+            "experiment": "",
+            "connections": {}
         }
-        nodes.append(node)
-        exp_opts = [{"label": k, "value": k} for k in experiments]
-        return nodes, experiments, exp_opts, _toast(f"Added {label} node.", "success", 2000)
+        _log(f"Added {node_type}: {node_id}")
+        elements = _build_elements(nodes_store, edges_store)
+        return nodes_store, counter, elements, _node_list(nodes_store), log, \
+               _toast(f"Added {node_type}: {node_id}", "success", 1500)
 
-    return no_update, no_update, no_update, no_update
+    if trigger == "ad-del-node-btn":
+        if not selected_nodes:
+            return no_update, no_update, no_update, no_update, log, _toast("Select a node first.", "warning")
+        for nd in selected_nodes:
+            nid = nd.get("id")
+            if nid in nodes_store:
+                del nodes_store[nid]
+                edges_store = [e for e in edges_store
+                               if e.get("source") != nid and e.get("target") != nid]
+                _log(f"Deleted node: {nid}")
+        elements = _build_elements(nodes_store, edges_store)
+        return nodes_store, counter, elements, _node_list(nodes_store), log, \
+               _toast("Node(s) deleted.", "info", 1500)
+
+    if trigger == "ad-conn-btn":
+        if not conn_from or not conn_to:
+            return no_update, no_update, no_update, no_update, log, _toast("Enter From and To node IDs.", "warning")
+        if conn_from not in nodes_store:
+            return no_update, no_update, no_update, no_update, log, _toast(f"Node '{conn_from}' not found.", "warning")
+        if conn_to not in nodes_store:
+            return no_update, no_update, no_update, no_update, log, _toast(f"Node '{conn_to}' not found.", "warning")
+        edge = {"source": conn_from, "target": conn_to, "port": int(conn_port or 0)}
+        # Remove duplicate
+        edges_store = [e for e in edges_store
+                       if not (e["source"] == conn_from and e["target"] == conn_to
+                               and e["port"] == edge["port"])]
+        edges_store.append(edge)
+        nodes_store[conn_from].setdefault("connections", {})[str(conn_port)] = conn_to
+        _log(f"Connected {conn_from} → {conn_to} port {conn_port}")
+        elements = _build_elements(nodes_store, edges_store)
+        return nodes_store, counter, elements, _node_list(nodes_store), log, \
+               _toast(f"Connected {conn_from} → {conn_to}.", "success", 1500)
+
+    if trigger == "ad-del-edge-btn":
+        if not selected_nodes:
+            return no_update, no_update, no_update, no_update, log, _toast("Select source node first.", "warning")
+        nid = selected_nodes[0].get("id")
+        edges_store = [e for e in edges_store if e.get("source") != nid]
+        if nid in nodes_store:
+            nodes_store[nid]["connections"] = {}
+        _log(f"Removed all edges from {nid}")
+        elements = _build_elements(nodes_store, edges_store)
+        return nodes_store, counter, elements, _node_list(nodes_store), log, \
+               _toast(f"Removed edges from {nid}.", "info", 1500)
+
+    if trigger == "ad-layout-btn":
+        # Simple hierarchical layout
+        nodes_store = _auto_layout(nodes_store, edges_store)
+        _log("Applied auto layout")
+        elements = _build_elements(nodes_store, edges_store)
+        return nodes_store, counter, elements, _node_list(nodes_store), log, no_update
+
+    if trigger == "ad-load-upload" and load_content:
+        try:
+            _, data = load_content.split(',')
+            design = json.loads(base64.b64decode(data).decode('utf-8'))
+            new_nodes = {}
+            new_edges = []
+            new_counter = 1
+            for nid, nd in design.get("nodes", {}).items():
+                new_nodes[nid] = nd
+                m = re.search(r'(\d+)', nid)
+                if m:
+                    new_counter = max(new_counter, int(m.group(1)) + 1)
+                for port, tgt in nd.get("connections", {}).items():
+                    new_edges.append({"source": nid, "target": tgt, "port": int(port)})
+            elements = _build_elements(new_nodes, new_edges)
+            _log(f"Loaded flow design: {load_fname} ({len(new_nodes)} nodes)")
+            return new_nodes, new_counter, elements, _node_list(new_nodes), log, \
+                   _toast(f"Flow loaded: {load_fname}", "success")
+        except Exception as e:
+            _log(f"Load error: {e}")
+            return no_update, no_update, no_update, no_update, log, _toast(f"Load error: {e}", "danger")
+
+    return no_update, no_update, no_update, no_update, log, no_update
 
 
-def _load_experiments(content: str, fname: str) -> dict:
-    """Load experiments from JSON, .tpl, or Excel content."""
-    _, data = content.split(',')
-    raw = base64.b64decode(data)
-    if fname.endswith(".xlsx"):
-        import openpyxl
-        wb = openpyxl.load_workbook(io.BytesIO(raw), data_only=True)
-        all_exps = {}
-        for sname in wb.sheetnames:
-            ws = wb[sname]
-            for table in ws.tables.values():
-                rng = ws[table.ref]
-                headers = [cell.value for cell in rng[0]]
-                if "Field" in headers and "Value" in headers:
-                    fi, vi = headers.index("Field"), headers.index("Value")
-                    exp = {}
-                    for row in rng[1:]:
-                        f, v = row[fi].value, row[vi].value
-                        if f:
-                            exp[str(f)] = str(v) if v is not None else ""
-                    if exp:
-                        name = exp.get("Test Name", exp.get("Experiment", sname))
-                        all_exps[str(name)] = exp
-        return all_exps
-    else:
-        imported = json.loads(raw.decode("utf-8"))
-        if isinstance(imported, list):
-            return {
-                str(e.get("Test Name", e.get("Experiment", f"Exp_{i+1}"))): e
-                for i, e in enumerate(imported)
-            }
-        elif isinstance(imported, dict):
-            # Could be {name: data} or a single experiment
-            if all(isinstance(v, dict) for v in imported.values()):
-                return imported
-            return {"Experiment": imported}
-    return {}
-
-
-def _get_display(cls: str) -> str:
-    for c, label, _ in _NODE_TYPES:
-        if c == cls:
-            return label
-    return cls
-
+# ── Update edges store in a separate store (needed since manage_canvas doesn't output it) ──
 
 @callback(
-    Output("ad-node-list", "children"),
-    Input("ad-nodes-store", "data"),
-    State("ad-experiments-store", "data"),
+    Output("ad-edges-store", "data"),
+    Input("ad-conn-btn", "n_clicks"),
+    Input("ad-del-edge-btn", "n_clicks"),
+    Input("ad-load-upload", "contents"),
+    State("ad-nodes-store", "data"),
+    State("ad-edges-store", "data"),
+    State("ad-conn-from", "value"),
+    State("ad-conn-to", "value"),
+    State("ad-conn-port", "value"),
+    State("ad-canvas", "selectedNodeData"),
+    prevent_initial_call=True
 )
-def render_nodes(nodes, experiments):
-    if not nodes:
-        return dbc.Alert("No nodes yet. Add nodes using the editor.",
-                         color="secondary", className="card-premium border-0 text-white")
-    rows = []
-    for i, node in enumerate(nodes):
-        ntype = node.get("type", "")
-        color = _NODE_COLORS.get(ntype, "#607080")
-        exp_name = node.get("experiment", "")
-        exp_preview = ""
-        if exp_name and experiments and exp_name in experiments:
-            exp_data = experiments[exp_name]
-            exp_preview = f" | {exp_data.get('Test Type','?')} / {exp_data.get('Content','?')}"
-        rows.append(dbc.Card(dbc.CardBody([
-            dbc.Row([
-                dbc.Col([
-                    html.Span(f"#{i+1} ", style={"color": "#606070", "fontSize": "0.78rem"}),
-                    html.Span(node.get("label", ntype),
-                              style={"color": color, "fontWeight": "600", "fontSize": "0.88rem"}),
-                    html.Span(f"  [{_get_display(ntype)}]",
-                              style={"color": "#a0a0a0", "fontSize": "0.78rem"}),
-                ], width=8),
-                dbc.Col([
-                    dbc.Button(html.I(className="bi bi-arrow-up"),
-                               id={"type": "ad-move-up", "index": i},
-                               size="sm", outline=True, className="me-1",
-                               style={"borderColor": "#a0a0a0", "color": "#a0a0a0", "padding": "1px 5px"}),
-                    dbc.Button(html.I(className="bi bi-arrow-down"),
-                               id={"type": "ad-move-down", "index": i},
-                               size="sm", outline=True, className="me-1",
-                               style={"borderColor": "#a0a0a0", "color": "#a0a0a0", "padding": "1px 5px"}),
-                    dbc.Button(html.I(className="bi bi-trash"),
-                               id={"type": "ad-del-node", "index": i},
-                               size="sm", color="danger", outline=True,
-                               style={"padding": "1px 5px"}),
-                ], width=4, className="text-end"),
-            ], className="mb-1"),
-            html.Div([
-                html.Span(f"Experiment: {exp_name or '(none)'}{exp_preview}",
-                          style={"color": "#a0a0a0", "fontSize": "0.78rem"})
-            ])
-        ]), className="card-premium border-0 mb-1",
-            style={"borderLeft": f"3px solid {color}"}))
-    return rows
+def update_edges_store(conn_c, del_edge_c, load_content,
+                       nodes_store, edges_store, conn_from, conn_to, conn_port,
+                       selected_nodes):
+    trigger = ctx.triggered_id
+    if trigger == "ad-conn-btn":
+        if conn_from and conn_to and conn_from in nodes_store and conn_to in nodes_store:
+            edge = {"source": conn_from, "target": conn_to, "port": int(conn_port or 0)}
+            edges_store = [e for e in edges_store
+                           if not (e["source"] == conn_from and e["target"] == conn_to
+                                   and e["port"] == edge["port"])]
+            edges_store.append(edge)
+            return edges_store
+    if trigger == "ad-del-edge-btn":
+        if selected_nodes:
+            nid = selected_nodes[0].get("id")
+            return [e for e in edges_store if e.get("source") != nid]
+    if trigger == "ad-load-upload" and load_content:
+        try:
+            _, data = load_content.split(',')
+            design = json.loads(base64.b64decode(data).decode('utf-8'))
+            new_edges = []
+            for nid, nd in design.get("nodes", {}).items():
+                for port, tgt in nd.get("connections", {}).items():
+                    new_edges.append({"source": nid, "target": tgt, "port": int(port)})
+            return new_edges
+        except:
+            pass
+    return no_update
+
+
+# ── Node editor (when node selected) ──────────────────────────────────────────
+
+@callback(
+    Output("ad-node-editor", "children"),
+    Output("ad-selected-node", "data"),
+    Input("ad-canvas", "tapNodeData"),
+    State("ad-nodes-store", "data"),
+    State("ad-experiments-store", "data"),
+    prevent_initial_call=True
+)
+def show_node_editor(tap_data, nodes_store, experiments):
+    if not tap_data:
+        return no_update, no_update
+    nid = tap_data.get("id")
+    nd = nodes_store.get(nid)
+    if not nd:
+        return no_update, no_update
+    exp_options = [{"label": "— none —", "value": ""}] + \
+                  [{"label": k, "value": k} for k in experiments.keys()]
+    editor = html.Div([
+        html.P(f"Node: {nid}", style={"color": ACCENT, "fontWeight": "600", "marginBottom": "6px"}),
+        html.Label("Name", style=_LABEL_STYLE),
+        dbc.Input(id="ad-editor-name", value=nd.get("name", ""), type="text",
+                  className="mb-1", style=_INPUT_STYLE),
+        html.Label("Experiment", style=_LABEL_STYLE),
+        dbc.Select(id="ad-editor-exp",
+                   options=exp_options,
+                   value=nd.get("experiment", ""),
+                   className="mb-2", style=_INPUT_STYLE),
+        dbc.Button([html.I(className="bi bi-check me-1"), "Apply"],
+                   id="ad-editor-apply", outline=True, className="w-100",
+                   style={"borderColor": ACCENT, "color": ACCENT}, size="sm"),
+    ])
+    return editor, nid
 
 
 @callback(
     Output("ad-nodes-store", "data", allow_duplicate=True),
+    Output("ad-canvas", "elements", allow_duplicate=True),
+    Output("ad-node-list", "children", allow_duplicate=True),
     Output("ad-toast", "children", allow_duplicate=True),
-    Input({"type": "ad-del-node", "index": dash.ALL}, "n_clicks"),
-    Input({"type": "ad-move-up", "index": dash.ALL}, "n_clicks"),
-    Input({"type": "ad-move-down", "index": dash.ALL}, "n_clicks"),
+    Input("ad-editor-apply", "n_clicks"),
+    State("ad-selected-node", "data"),
+    State("ad-editor-name", "value"),
+    State("ad-editor-exp", "value"),
     State("ad-nodes-store", "data"),
+    State("ad-edges-store", "data"),
     prevent_initial_call=True
 )
-def mutate_nodes(del_c, up_c, down_c, nodes):
-    if not ctx.triggered_id:
-        return no_update, no_update
-    tid = ctx.triggered_id
-    action = tid.get("type", "")
-    idx = tid.get("index", 0)
-    nodes = list(nodes or [])
+def apply_node_edit(n_clicks, node_id, name, exp, nodes_store, edges_store):
+    if not node_id or node_id not in nodes_store:
+        return no_update, no_update, no_update, _toast("No node selected.", "warning")
+    nodes_store[node_id]["name"] = name or node_id
+    nodes_store[node_id]["experiment"] = exp or ""
+    elements = _build_elements(nodes_store, edges_store)
+    return nodes_store, elements, _node_list(nodes_store), _toast(f"Node {node_id} updated.", "success", 1500)
 
-    if action == "ad-del-node":
-        nodes = [n for i, n in enumerate(nodes) if i != idx]
-        return nodes, _toast(f"Node #{idx+1} deleted.", "info", 2000)
-    if action == "ad-move-up" and idx > 0:
-        nodes[idx - 1], nodes[idx] = nodes[idx], nodes[idx - 1]
-        return nodes, no_update
-    if action == "ad-move-down" and idx < len(nodes) - 1:
-        nodes[idx + 1], nodes[idx] = nodes[idx], nodes[idx + 1]
-        return nodes, no_update
-    return no_update, no_update
 
+# ── Save / Validate / Export ───────────────────────────────────────────────────
 
 @callback(
     Output("ad-download", "data"),
     Output("ad-export-status", "children"),
     Output("ad-toast", "children", allow_duplicate=True),
-    Input("ad-export-btn", "n_clicks"),
+    Output("ad-result-store", "data"),
     Input("ad-save-btn", "n_clicks"),
+    Input("ad-export-btn", "n_clicks"),
+    Input("ad-validate-btn", "n_clicks"),
     State("ad-nodes-store", "data"),
+    State("ad-edges-store", "data"),
     State("ad-experiments-store", "data"),
-    State("ad-export-name", "value"),
+    State("ad-vid", "value"),
+    State("ad-bucket", "value"),
+    State("ad-com", "value"),
+    State("ad-ip", "value"),
+    State("ad-unit-flags", "value"),
     State("ad-save-name", "value"),
-    State("ad-unit-vid", "value"),
-    State("ad-unit-bucket", "value"),
-    State("ad-unit-com", "value"),
-    State("ad-unit-ip", "value"),
-    State("ad-unit-600w", "value"),
-    State("ad-unit-check-core", "value"),
     prevent_initial_call=True
 )
-def export_or_save(export_c, save_c, nodes, experiments,
-                   export_name, save_name,
-                   vid, bucket, com, ip, w600, check_core):
+def save_or_export(save_c, export_c, validate_c,
+                   nodes_store, edges_store, experiments,
+                   vid, bucket, com_port, ip_addr, unit_flags, save_name):
     trigger = ctx.triggered_id
-    nodes = nodes or []
-    experiments = experiments or {}
 
-    if not nodes:
-        return no_update, no_update, _toast("No nodes to export.", "warning")
-
-    # Build unit_config overrides
-    unit_config = {
-        "Visual ID": vid or "",
-        "Bucket": bucket or "",
-        "COM Port": com or "",
-        "IP Address": ip or "",
-        "600W Unit": bool(w600),
-        "Check Core": check_core,
-    }
+    if trigger == "ad-validate-btn":
+        errors, warnings = _validate(nodes_store, edges_store, experiments)
+        if errors:
+            return no_update, html.Div([
+                html.P("❌ Errors:", style={"color": "#e74c3c", "fontSize": "0.82rem", "marginBottom": "4px"}),
+                *[html.P(f"• {e}", style={"color": "#e74c3c", "fontSize": "0.8rem"}) for e in errors]
+            ]), _toast(f"{len(errors)} validation error(s).", "danger"), no_update
+        else:
+            return no_update, html.P("✓ Flow valid!", style={"color": "#1abc9c"}), \
+                   _toast("Flow is valid.", "success", 2000), no_update
 
     if trigger == "ad-save-btn":
+        if not nodes_store:
+            return no_update, no_update, _toast("Nothing to save.", "warning"), no_update
+        design = {
+            "nodes": nodes_store,
+            "edges": edges_store,
+            "unit_config": {
+                "Visual ID": vid or "",
+                "Bucket": bucket or "",
+                "COM Port": com_port or "",
+                "IP Address": ip_addr or "",
+                "600W Unit": "600w" in (unit_flags or []),
+                "Check Core": "check_core" in (unit_flags or []),
+            }
+        }
         fname = save_name or "flow_design.json"
         if not fname.endswith(".json"):
             fname += ".json"
-        flow = {
-            "nodes": {n["id"]: n for n in nodes},
-            "experiments": experiments,
-            "unit_config": unit_config,
-            "metadata": {
-                "created": datetime.datetime.now().isoformat(),
-                "version": "2.0",
-            }
-        }
-        return (dcc.send_string(json.dumps(flow, indent=2), fname),
-                html.P(f"✓ Flow saved as {fname}", style={"color": "#00ff9d"}),
-                _toast(f"Flow saved as {fname}.", "success"))
+        return dcc.send_string(json.dumps(design, indent=2), fname), \
+               f"✓ Saved: {fname}", _toast(f"Flow saved: {fname}", "success"), no_update
 
     if trigger == "ad-export-btn":
-        export_base = export_name or "flow_export"
-        zip_name = f"{export_base}.zip"
+        errors, _ = _validate(nodes_store, edges_store, experiments)
+        if errors:
+            return no_update, no_update, \
+                   _toast(f"Validation errors: {'; '.join(errors[:2])}", "danger"), no_update
 
-        # Build export files (matching PPV original format)
-        structure_data = {}
-        for i, node in enumerate(nodes):
-            nid = node["id"]
-            # Connections: next node in ordered list (simple chain)
-            output_map = {}
-            if i < len(nodes) - 1:
-                output_map["0"] = nodes[i + 1]["id"]
-
-            structure_data[nid] = {
-                "name": node.get("label", node.get("type")),
-                "instanceType": node["type"],
-                "flow": node.get("experiment", "default"),
-                "outputNodeMap": output_map,
-            }
-
-        flows_data = {}
-        for node in nodes:
-            exp_name = node.get("experiment")
+        # Apply unit config overrides to experiments
+        unit_config = {
+            "Visual ID": vid or "",
+            "Bucket": bucket or "",
+            "COM Port": com_port or "",
+            "IP Address": ip_addr or "",
+            "600W Unit": "600w" in (unit_flags or []),
+            "Check Core": "check_core" in (unit_flags or []),
+        }
+        enriched_exps = {}
+        for node_id, nd in nodes_store.items():
+            exp_name = nd.get("experiment")
             if exp_name and exp_name in experiments:
-                exp = dict(experiments[exp_name])
-                # Apply unit config overrides
-                for key, val in unit_config.items():
-                    if val:
-                        exp[key] = val
-                flows_data[exp_name] = exp
+                entry = dict(experiments[exp_name])
+                entry.update({k: v for k, v in unit_config.items() if v not in ("", False, None)})
+                enriched_exps[exp_name] = entry
 
-        ini_lines = [
-            "[DEFAULT]",
-            "# Automation Flow Configuration",
-            f"# Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-            "",
-        ]
-        for exp_name in flows_data:
-            ini_lines.append(f"[{exp_name}]")
-            ini_lines.append("# experiment-specific overrides here")
-            ini_lines.append("")
+        zip_bytes = _build_export_zip(nodes_store, edges_store, enriched_exps, unit_config)
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        zip_fname = f"FrameworkAutomation_{ts}.zip"
+        b64_zip = base64.b64encode(zip_bytes).decode()
+        return (dcc.send_bytes(zip_bytes, zip_fname),
+                f"✓ Exported: {zip_fname}",
+                _toast(f"Exported {zip_fname}", "success"),
+                b64_zip)
 
-        positions_data = {n["id"]: {"x": n.get("x", 0), "y": n.get("y", 0)} for n in nodes}
-
-        # Pack into ZIP
-        buf = io.BytesIO()
-        with zipfile.ZipFile(buf, "w") as zf:
-            zf.writestr("FrameworkAutomationStructure.json",
-                        json.dumps(structure_data, indent=2))
-            zf.writestr("FrameworkAutomationFlows.json",
-                        json.dumps(flows_data, indent=2))
-            zf.writestr("FrameworkAutomationInit.ini", "\n".join(ini_lines))
-            zf.writestr("FrameworkAutomationPositions.json",
-                        json.dumps(positions_data, indent=2))
-        buf.seek(0)
-
-        status = html.Div([
-            html.P(f"✓ Exported {len(nodes)} nodes, {len(flows_data)} experiments",
-                   style={"color": "#00ff9d"}),
-            html.Small("Files in ZIP: Structure, Flows, Init INI, Positions",
-                       style={"color": "#a0a0a0"}),
-        ])
-        return (dcc.send_bytes(buf.read(), zip_name),
-                status,
-                _toast(f"Exported {zip_name}.", "success"))
-
-    return no_update, no_update, no_update
+    return no_update, no_update, no_update, no_update
 
 
-@callback(
-    Output("ad-preview-btn", "disabled"),
-    Input("ad-nodes-store", "data"),
-)
-def update_preview_btn(nodes):
-    return not bool(nodes)
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _node_list(nodes_store):
+    if not nodes_store:
+        return html.P("No nodes.", style={"color": "#a0a0a0", "fontSize": "0.82rem"})
+    rows = []
+    for nid, nd in nodes_store.items():
+        info = _TYPE_MAP.get(nd["type"], {"label": nd["type"], "color": "#555"})
+        exp_tag = f" [{nd.get('experiment', '')[:10]}]" if nd.get("experiment") else ""
+        rows.append(html.Div([
+            html.Span("● ", style={"color": info["color"], "fontSize": "0.9rem"}),
+            html.Span(f"{nid}: {info['label']}{exp_tag}",
+                      style={"color": "#e0e0e0", "fontSize": "0.8rem"})
+        ], style={"marginBottom": "3px"}))
+    return rows
+
+
+def _validate(nodes_store, edges_store, experiments):
+    errors, warnings = [], []
+    start_nodes = [n for n in nodes_store.values() if n["type"] == "StartNode"]
+    end_nodes   = [n for n in nodes_store.values() if n["type"] == "EndNode"]
+    if not start_nodes:
+        errors.append("Flow must have a StartNode")
+    if not end_nodes:
+        warnings.append("Flow has no EndNode")
+    no_exp = [nid for nid, nd in nodes_store.items()
+              if nd["type"] not in ("StartNode", "EndNode") and not nd.get("experiment")]
+    if no_exp:
+        warnings.append(f"Nodes without experiments: {', '.join(no_exp[:3])}")
+    return errors, warnings
+
+
+def _auto_layout(nodes_store, edges_store):
+    """Simple top-down hierarchical layout."""
+    if not nodes_store:
+        return nodes_store
+    # Find root (StartNode or first node)
+    roots = [nid for nid, nd in nodes_store.items() if nd["type"] == "StartNode"]
+    if not roots:
+        roots = [next(iter(nodes_store))]
+    # BFS
+    visited = {}
+    queue = [(roots[0], 0, 0)]
+    level_x = {}
+    while queue:
+        nid, level, idx = queue.pop(0)
+        if nid in visited:
+            continue
+        visited[nid] = level
+        level_x.setdefault(level, 0)
+        nodes_store[nid]["x"] = 200 + level * 220
+        nodes_store[nid]["y"] = 150 + level_x[level] * 160
+        level_x[level] += 1
+        for edge in edges_store:
+            if edge["source"] == nid:
+                queue.append((edge["target"], level + 1, level_x.get(level + 1, 0)))
+    return nodes_store
+
+
+def _build_export_zip(nodes_store, edges_store, experiments, unit_config):
+    """Build the 4-file ZIP matching original export_flow() format."""
+    # Structure file
+    structure_data = {}
+    for nid, nd in nodes_store.items():
+        output_map = {}
+        for port, tgt in nd.get("connections", {}).items():
+            output_map[str(port)] = tgt
+        structure_data[nid] = {
+            "name": nd["name"],
+            "instanceType": nd["type"],
+            "flow": nd.get("experiment", "default"),
+            "outputNodeMap": output_map,
+        }
+
+    # Flows file
+    flows_data = {n: d for n, d in experiments.items()}
+
+    # INI file
+    ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    ini_lines = [
+        "[DEFAULT]",
+        "# Automation Flow Configuration",
+        f"# Generated on {ts}",
+        f"# Visual ID: {unit_config.get('Visual ID', '')}",
+        f"# Product: {unit_config.get('Product', 'GNR')}",
+        "",
+    ]
+    for exp_name in flows_data:
+        ini_lines.append(f"[{exp_name}]")
+        ini_lines.append("# Experiment-specific configuration")
+        ini_lines.append("")
+    ini_content = "\n".join(ini_lines)
+
+    # Positions file
+    positions_data = {nid: {"x": nd["x"], "y": nd["y"]}
+                      for nid, nd in nodes_store.items()}
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("FrameworkAutomationStructure.json", json.dumps(structure_data, indent=2))
+        zf.writestr("FrameworkAutomationFlows.json",    json.dumps(flows_data, indent=2))
+        zf.writestr("FrameworkAutomationInit.ini",       ini_content)
+        zf.writestr("FrameworkAutomationPositions.json", json.dumps(positions_data, indent=2))
+    return buf.getvalue()
 
 
 def _toast(msg, icon, duration=4000):
