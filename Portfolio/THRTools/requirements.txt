@@ -1,0 +1,22 @@
+# PPV Tools - Required Python Packages
+# Installation file for all dependencies needed to run PPV Tools
+
+# Core Data Processing
+pandas>=1.3.0
+numpy>=1.20.0
+
+# Excel File Handling
+openpyxl>=3.0.0
+xlwings>=0.24.0
+
+# GUI Framework (included with Python but listed for clarity)
+# tkinter - comes with Python standard library
+
+# Terminal Colors and Formatting
+colorama>=0.4.4
+tabulate>=0.8.9
+
+# Standard library packages (no installation needed, listed for reference)
+# json, os, sys, re, zipfile, datetime, shutil, subprocess
+# http.client, getpass, collections, string, pathlib
+# typing, uuid, argparse, csv, statistics, turtle

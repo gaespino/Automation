@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}UTP Setpoints Comparison{% endblock %}
+{% block content %}
+
+<div class="section-header d-flex justify-content-between align-items-center">
+  <h5><i class="bi bi-table me-2"></i>UTP Setpoints Comparison</h5>
+  <button class="btn btn-sm btn-primary" onclick="applySelected('utp')">
+    <i class="bi bi-check2-all me-1"></i>Apply Selected
+  </button>
+</div>
+
+{% if result.ref_error %}
+<div class="alert alert-danger"><b>Ref Error:</b> {{ result.ref_error }}</div>
+{% endif %}
+{% if result.new_error %}
+<div class="alert alert-warning"><b>New Error:</b> {{ result.new_error }}</div>
+{% endif %}
+
+<!-- Consistency issues -->
+{% if result.consistency_issues %}
+<div class="alert alert-danger">
+  <b><i class="bi bi-exclamation-triangle me-1"></i>Consistency Issues ({{ result.consistency_issues|length }}):</b>
+  <table class="table table-sm table-dark mt-2 mb-0">
+    <thead><tr><th>UTP Name</th><th>Configuration</th><th>ElementName</th><th>Issue</th></tr></thead>
+    <tbody>
+    {% for issue in result.consistency_issues %}
+    <tr>
+      <td class="font-mono small">{{ issue.utp_name }}</td>
+      <td class="font-mono small">{{ issue.configuration }}</td>
+      <td class="font-mono small">{{ issue.element_name }}</td>
+      <td class="text-warning small">{{ issue.issue }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="alert alert-success small py-2">
+  <i class="bi bi-check-circle me-1"></i>No patmod consistency issues found in New UTP setpoints.
+</div>
+{% endif %}
+
+<div class="mb-3 d-flex gap-2">
+  <span class="badge bg-danger">{{ result.only_in_ref|length }} only in Ref</span>
+  <span class="badge bg-success">{{ result.only_in_new|length }} only in New</span>
+  <span class="badge bg-warning text-dark">{{ result.different|length }} different</span>
+  <span class="badge bg-secondary">{{ result.identical|length }} identical</span>
+</div>
+
+<!-- Debug info -->
+{% set dbg = result._debug %}
+<details class="mb-3">
+  <summary class="text-muted small"><i class="bi bi-bug me-1"></i>Debug info</summary>
+  <div class="card card-body p-2 mt-1 small font-mono bg-dark text-light">
+    <div><b>REF path:</b> {{ dbg.ref_path }}</div>
+    <div><b>NEW path:</b> {{ dbg.new_path }}</div>
+    <div><b>REF entries parsed:</b> {{ dbg.ref_total }}</div>
+    <div><b>NEW entries parsed:</b> {{ dbg.new_total }}</div>
+  </div>
+</details>
+
+<div class="diff-header row g-0 px-2 py-1">
+  <div class="col-1 text-center"><input type="checkbox" onchange="toggleAll('utp',this.checked)"/></div>
+  <div class="col-5 fw-bold ref-label">REF</div>
+  <div class="col-5 fw-bold new-label">NEW</div>
+  <div class="col-1"></div>
+</div>
+
+{% for item in result.only_in_ref %}
+<div class="diff-row diff-ref-only row g-0 align-items-start py-2 px-2">
+  <div class="col-1 text-center pt-1">
+    <input type="checkbox" class="utp-check"
+           data-action='{"type":"add_utp_entry","entry_name":"{{ item.name | e }}"}' />
+  </div>
+  <div class="col-5">
+    <div class="font-mono small fw-bold">{{ item.name }}</div>
+    <pre class="diff-json-block ref-block">{{ item.entry | tojson(indent=2) }}</pre>
+  </div>
+  <div class="col-5 text-muted fst-italic small p-2">— missing in new —</div>
+  <div class="col-1"></div>
+</div>
+{% endfor %}
+
+{% for item in result.only_in_new %}
+<div class="diff-row diff-new-only row g-0 align-items-start py-2 px-2">
+  <div class="col-1"></div>
+  <div class="col-5 text-muted fst-italic small p-2">— missing in ref —</div>
+  <div class="col-5">
+    <div class="font-mono small fw-bold">{{ item.name }}</div>
+    <pre class="diff-json-block new-block">{{ item.entry | tojson(indent=2) }}</pre>
+  </div>
+  <div class="col-1"></div>
+</div>
+{% endfor %}
+
+{% for diff in result.different %}
+<div class="diff-row diff-changed row g-0 align-items-start py-2 px-2">
+  <div class="col-1 text-center pt-1">
+    <input type="checkbox" class="utp-check"
+           data-action='{"type":"add_utp_entry","entry_name":"{{ diff.name | e }}"}' />
+  </div>
+  <div class="col-5">
+    <div class="font-mono small fw-bold text-warning">{{ diff.name }}</div>
+    <pre class="diff-json-block ref-block">{{ diff.ref_entry | tojson(indent=2) }}</pre>
+  </div>
+  <div class="col-5">
+    <div class="font-mono small fw-bold text-warning">{{ diff.name }}</div>
+    <pre class="diff-json-block new-block">{{ diff.new_entry | tojson(indent=2) }}</pre>
+  </div>
+  <div class="col-1"></div>
+</div>
+{% endfor %}
+
+{% if result.identical %}
+<details class="mt-2">
+  <summary class="text-muted small">{{ result.identical|length }} identical entries</summary>
+  {% for name in result.identical %}
+  <div class="diff-row diff-identical row g-0 px-2 py-1">
+    <div class="col-1"></div>
+    <div class="col-10 font-mono small text-muted">{{ name }}</div>
+  </div>
+  {% endfor %}
+</details>
+{% endif %}
+
+{% endblock %}

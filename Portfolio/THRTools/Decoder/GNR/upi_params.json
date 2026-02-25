@@ -1,0 +1,274 @@
+{
+  "t_kti_mc_s0": {
+    "0": "REQ",
+    "1": "SNP",
+    "2": "RSP2",
+    "4": "RSP4",
+    "5": "WB",
+    "6": "NCB",
+    "7": "NCS"
+  },
+  "t_kti_op_s0": {
+    "REQ": {
+      "0": "RdCur",
+      "0": "RdCode",
+      "0": "RdData",
+      "0": "RdDataMig",
+      "0": "RdInvOwn",
+      "0": "InvXtoI",
+      "0": "InvItoE",
+      "0": "RdInv",
+      "0": "InvItoM",
+      "0": "RemMemSpecRd",
+      "0": "TREQ"
+    },
+    "SNP": {
+      "0": "SnpCur",
+      "0": "SnpCode",
+      "0": "SnpData",
+      "0": "SnpDataMig",
+      "0": "SnpInvOwn",
+      "0": "SnpInv",
+      "0": "SnpFCur",
+      "0": "SnpFCode",
+      "0": "SnpFData",
+      "0": "SnpFDataMig",
+      "0": "SnpFInvOwn",
+      "0": "SnpFInv",
+      "0": "Slot_NULL",
+      "0": "TSNP"
+    },
+    "RSP2": {
+      "0": "CmpU",
+      "1": "P2PCmpU",
+      "2": "RspI",
+      "3": "RspS",
+      "4": "RspFwd",
+      "5": "RspFwdI",
+      "6": "RspFwdS",
+      "10": "RspCnflt",
+      "12": "CmpO",
+      "13": "FwdCnfltO",
+      "7": "Slot_2_CRD",
+      "14": "TRSP"
+    },
+    "RSP4": {
+      "0": "Data_M",
+      "1": "Data_E",
+      "2": "Data_SI",
+      "3": "Data_F",
+      "4": "Data_M_CmpO",
+      "5": "Data_E_CmpO",
+      "6": "Data_SI_CmpO",
+      "7": "Data_F_CmpO",
+      "10": "RspFwdIWb",
+      "11": "RspFwdSWb",
+      "12": "RspIWb",
+      "13": "RspSWb",
+      "15": "DebugData",
+      "14": "TRSPD"
+    },
+    "WB": {
+      "0": "WbMtoI",
+      "1": "WbMtoS",
+      "2": "WbMtoE",
+      "3": "NonSnpWr",
+      "4": "WbMtoIPtl",
+      "6": "WbMtoEPtl",
+      "7": "NonSnpWrPtl",
+      "8": "WbPushMtoI",
+      "11": "WbFlush",
+      "12": "EvctCln",
+      "13": "NonSnpRd",
+      "15": "Slot_0_LLCTRL",
+      "14": "TWB"
+    },
+    "NCB": {
+      "0": "NcWr",
+      "1": "WcWr",
+      "8": "NcMsgB",
+      "9": "IntLogical",
+      "10": "IntPhysical",
+      "11": "IntPrioUpd",
+      "12": "NcWrPtl",
+      "13": "WcWrPtl",
+      "15": "NcP2PB",
+      "14": "TNCB"
+    },
+    "NCS": {
+      "0": "NcRd",
+      "1": "IntAck",
+      "4": "NcRdPtl",
+      "5": "NcCfgRd",
+      "6": "NcLTRd",
+      "7": "NcIORd",
+      "8": "NcMsgS",
+      "9": "NcCfgWr",
+      "10": "NcLTWr",
+      "11": "NcIOWr",
+      "12": "NcENQ",
+      "15": "NcP2PS",
+      "13": "RSVD13",
+      "14": "TNCS"
+    }
+  },
+  "t_kti_mc_s1": {
+    "0": "REQ",
+    "1": "SNP"
+  },
+  "t_kti_op_s2": {
+    "RSP2": {
+      "0": "CmpU",
+      "1": "P2PCmpU",
+      "2": "RspI",
+      "3": "RspS",
+      "4": "RspFwd",
+      "5": "RspFwdI",
+      "6": "RspFwdS",
+      "7": "Slot_2_CRD"
+    }
+  },
+  "UPI_MSCOD": {
+    "49": "COR LL Rx detected CRC error: successful LLR with Phy reinit",
+    "48": "COR LL Rx detected CRC error: successful LLR without Phy Reinit",
+    "37": "COR Phy L0p exit error triggering Phy Reset",
+    "36": "COR Phy L0c error triggering Phy Reset",
+    "35": "COR Phy L0c error corrected without Phy reset",
+    "34": "COR Phy Lane failure recovery in x8 width",
+    "33": "COR Phy Reset",
+    "32": "COR Phy Initialization Abort",
+    "31": "LL Detected Control Error from UFI2UPI Correctable (COR) ",
+    "24": "FLE Failure",
+    "23": "Rx SDC Parity Error",
+    "22": "Tx SDC Parity Error",
+    "21": "SGX FAILURE",
+    "20": "LL_TDX_FAILURE",
+    "19": "LL_RX_PARAM_EXCEP",
+    "18": "LL_PHY_CTRL",
+    "17": "LL Rx Unsupported/Undefined packet",
+    "16": "LL Rx detected CRC error: unsuccessful LLR (entered Abort state)",
+    "2": "Phy Detected Latency Buffer Rollover",
+    "1": "PHY_DRIFT",
+    "0": "UC NumInit"
+  },
+  "LL_PHY_CTRL_ERRS": {
+    "ctrl_phy_ctrl_err": "Physical Layer Control Error",
+    "ctrl_unexp_retryack": "Unexpected RETRY.ACK",
+    "ctrl_unexp_retryreq": "Unexpected RETRY.REQ",
+    "ctrl_rf_parity_err": "Register File parity error",
+    "ctrl_unexp_txprot": "Unexpected Tx Protocol",
+    "ctrl_bgf": "BGF control error",
+    "ctrl_llrst_phyl0": "Link Layer Reset still in progress when Phy enters L0",
+    "ctrl_llrst_prot": "Link Layer Reset initiated while protocol traffic not idle",
+    "ctrl_txparerr": "Link Layer Transmit Parity Error"
+  },
+  "LL_PHY_CTRL_TX_PARITY_ERRS": {
+    "0": "Slot0 Tx Address Parity Error",
+    "1": "Slot1 Tx Address Parity Error"
+  },
+  "LL_PHY_CTRL_TX_PROTOCOL_ERRS": {
+    "0": "Unexpected M3UPI Tx Protocol Header flit",
+    "1": "Unexpected M3UPI Tx Protocol Data flit",
+    "2": "Unexpected M3UPI Tx Protocol EOP bit value"
+  },
+  "LL_PHY_CTRL_BGF_ERRS": {
+    "0": "RxCrdBgf credit overflow",
+    "1": "RxCrdBgf credit underflow",
+    "2": "RxHdrBgf credit overflow",
+    "3": "RxHdrBgf credit underflow",
+    "4": "Writing to RxHdr/DataBgf but BGF not ready"
+  },
+  "LL_PHY_CTRL_OVERUNDERFLOW_ERRS": {
+    "7": "VN0/1 released credit overflow",
+    "4": "VNA released credit overflow",
+    "1": "Eseq Number in received LLR Req exceeds max",
+    "0": "NumFreeBuf exceeded the maximum possible"
+  },
+  "LL_PARAM_EXCEP_ERRS": {
+    "0": "Received LLCTRL-INIT.Param with SKU Type Check Failure",
+    "1": "Received LLCTRL-INIT.Param with Intel UPI Version Check Failure",
+    "2": "Unexpected LLCTRL-INIT.Param flit"
+  },
+  "LL_RXUUU_ERRS": {
+    "0": "Unsupported MsgClass/Opcode/VN/RSVD/1/0",
+    "1": "Undefined Droute encoding",
+    "2": "Unexpected Header Flit",
+    "3": "Unexpected Data Flit",
+    "4": "Unexpected LLCTRL-POISON",
+    "5": "Unexpected Viral (in RETRY.ACK)",
+    "6": "Unexpected Retriable flit (prior to INIT.PARAM)",
+    "7": "Unexpected LLCTRL or Protocol Header Fixed Field Error",
+    "8": "Uninitialized UCE"
+  },
+  "LL_TXUUU_ERRS": {
+    "0": "Illegal VN1 received"
+  },
+  "RF_PAR_ERRS": {
+    "KTIPARERRLOG": {
+      "pelset0": "LLRB Flit0",
+      "pelset1": "LLRB Flit1",
+      "pelset2": "shadow RxQ Flit0 Slot0",
+      "pelset3": "Shadow RxQ Flit0 Slot1"
+    },
+    "KTIPARERRLOG0": {
+      "pelset0": "shadow RxQ Flit0 Slot2",
+      "pelset1": "Shadow RxQ Flit1 Slot0",
+      "pelset2": "Shadow RxQ Flit1 Slot1",
+      "pelset3": "Shadow RxQ Flit1 Slot2"
+    }
+  },
+  "MC_MISC_PHY_STATE": {
+    "0": "20 lane flit mux phase 0",
+    "1": "20 lane flit mux phase 1",
+    "2": "20 lane flit mux phase 2",
+    "3": "20 lane flit mux phase 3",
+    "4": "20 lane flit mux phase 4",
+    "5": "Lower 8 logical lanes active in L0 (failover)",
+    "6": "Upper 8 logical lanes active in L0 (failover)",
+    "7": "Lower 8 logical lane active in L0p"
+  },
+  "_ltssmDict": {
+    "0":"RESET_P",
+    "1":"RESET_S",
+    "2":"RESET_C",
+    "3":"RX_DETECT",
+    "4":"TX_DETECT",
+    "5":"TX_CALIB",
+    "6":"POLLING",
+    "7":"UNKNOWN",
+    "8":"CFG_LINKWIDTH",
+    "9":"CFG_FLITLOCK",
+    "10":"L1",
+    "11":"UNKNOWN",
+    "12":"L0PE",
+    "13":"L0P",
+    "14":"L0C",
+    "15":"L0",
+    "16":"LB_PATTERN_MSTR",
+    "17":"LB_PATTERN_SLV",
+    "18":"LB_MARKER_MSTR",
+    "19":"LB_MARKER_SLV",
+    "31":"COMP" 
+  },
+  "_opSpeedDict": {
+    "0":"2.5",
+    "1":"12.8",
+    "2":"14.4",
+    "3":"16",
+    "4":"32",
+    "8":"20",
+    "9":"24"	
+  },
+  "_crcModeDict": {
+    "0":"16b",
+    "1":"16b",
+    "2":"16b",
+    "3":"32b"
+  },
+  "_initStateDict": {
+    "0":"NOT_RDY_FOR_INIT",
+    "1":"PARAM_EX",
+    "2":"CRD_RETURN_STALL",
+    "3":"INIT_DONE"
+  }
+}

@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}PList Comparison{% endblock %}
+{% block content %}
+
+<div class="section-header d-flex justify-content-between align-items-center">
+  <h5><i class="bi bi-list-ul me-2"></i>Supersede PList Comparison</h5>
+  <button class="btn btn-sm btn-primary" onclick="applySelected('plists')">
+    <i class="bi bi-check2-all me-1"></i>Apply Selected
+  </button>
+</div>
+
+{% if result.ref_error %}
+<div class="alert alert-danger"><b>Ref Error:</b> {{ result.ref_error }}</div>
+{% endif %}
+{% if result.new_error %}
+<div class="alert alert-warning"><b>New Error:</b> {{ result.new_error }}</div>
+{% endif %}
+
+<!-- Duplicate check -->
+{% if duplicates %}
+<div class="alert alert-danger">
+  <b><i class="bi bi-exclamation-triangle me-1"></i>Duplicate GlobalPList names detected within the same file (New TP):</b>
+  <ul class="mb-0 mt-1">
+    {% for filename, names in duplicates.items() %}
+    <li class="font-mono small"><b>{{ filename }}</b>: {{ names | join(', ') }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% else %}
+<div class="alert alert-success small py-2">
+  <i class="bi bi-check-circle me-1"></i>No duplicate GlobalPList names within any file in New TP.
+</div>
+{% endif %}
+
+<!-- XML PList link -->
+<div class="mb-3">
+  <a href="/compare/xmlplist" class="btn btn-outline-info btn-sm">
+    <i class="bi bi-filetype-xml me-1"></i>Compare UCCAP.all.plist.xml
+  </a>
+</div>
+
+<!-- Files only in ref -->
+{% if result.files_only_in_ref %}
+<div class="card mb-3">
+  <div class="card-header diff-ref-only">Files only in Ref ({{ result.files_only_in_ref|length }})</div>
+  <div class="card-body p-2">
+    {% for f in result.files_only_in_ref %}
+    <span class="badge bg-secondary me-1 font-mono">{{ f }}</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Files only in new -->
+{% if result.files_only_in_new %}
+<div class="card mb-3">
+  <div class="card-header diff-new-only">Files only in New ({{ result.files_only_in_new|length }})</div>
+  <div class="card-body p-2">
+    {% for f in result.files_only_in_new %}
+    <span class="badge bg-secondary me-1 font-mono">{{ f }}</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Per-file diffs -->
+{% for file_diff in result.files_in_both %}
+{% if file_diff.only_in_ref or file_diff.only_in_new or file_diff.in_both_different %}
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between">
+    <span class="font-mono fw-bold">{{ file_diff.filename }}</span>
+    <span class="small text-muted">
+      <span class="text-danger me-2">{{ file_diff.only_in_ref|length }} only in ref</span>
+      <span class="text-success me-2">{{ file_diff.only_in_new|length }} only in new</span>
+      <span class="text-warning">{{ file_diff.in_both_different|length }} different</span>
+    </span>
+  </div>
+  <div class="card-body p-0">
+
+    <!-- Diff header -->
+    <div class="diff-header row g-0 px-2 py-1">
+      <div class="col-1"></div>
+      <div class="col-5 fw-bold ref-label small">REF</div>
+      <div class="col-5 fw-bold new-label small">NEW</div>
+      <div class="col-1"></div>
+    </div>
+
+    <!-- Only in ref -->
+    {% for pname in file_diff.only_in_ref %}
+    <div class="diff-row diff-ref-only row g-0 align-items-center px-2">
+      <div class="col-1 text-center">
+        <input type="checkbox" class="plists-check"
+               data-action='{"type":"copy_plist_entry","ref_plist_fp":"{{ file_diff.ref_path | e }}","new_plist_fp":"{{ file_diff.new_path | e }}","plist_name":"{{ pname | e }}"}' />
+      </div>
+      <div class="col-5 font-mono small">{{ pname }}</div>
+      <div class="col-5 text-muted fst-italic small">— missing —</div>
+      <div class="col-1"></div>
+    </div>
+    {% endfor %}
+
+    <!-- Only in new -->
+    {% for pname in file_diff.only_in_new %}
+    <div class="diff-row diff-new-only row g-0 align-items-center px-2">
+      <div class="col-1"></div>
+      <div class="col-5 text-muted fst-italic small">— missing —</div>
+      <div class="col-5 font-mono small">{{ pname }}</div>
+      <div class="col-1"></div>
+    </div>
+    {% endfor %}
+
+    <!-- Differences -->
+    {% for diff in file_diff.in_both_different %}
+    <div class="diff-row diff-changed row g-0 align-items-start px-2 py-1">
+      <div class="col-1 text-center pt-1">
+        <input type="checkbox" class="plists-check"
+               data-action='{"type":"copy_plist_entry","ref_plist_fp":"{{ file_diff.ref_path | e }}","new_plist_fp":"{{ file_diff.new_path | e }}","plist_name":"{{ diff.name | e }}"}' />
+      </div>
+      <div class="col-5 font-mono small diff-block-ref">{{ diff.ref_block }}</div>
+      <div class="col-5 font-mono small diff-block-new">{{ diff.new_block }}</div>
+      <div class="col-1"></div>
+    </div>
+    {% endfor %}
+
+    <!-- Identical (collapsed) -->
+    {% if file_diff.in_both_identical %}
+    <details class="px-2 py-1">
+      <summary class="text-muted small">{{ file_diff.in_both_identical|length }} identical plists</summary>
+      {% for pname in file_diff.in_both_identical %}
+      <div class="diff-row diff-identical row g-0 px-2">
+        <div class="col-1"></div>
+        <div class="col-5 font-mono small text-muted">{{ pname }}</div>
+        <div class="col-5 font-mono small text-muted">{{ pname }}</div>
+        <div class="col-1"></div>
+      </div>
+      {% endfor %}
+    </details>
+    {% endif %}
+
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+
+{% endblock %}

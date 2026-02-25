@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+
+# Environments
+venv/
+env/
+.env
+.venv
+
+# VS Code
+.vscode/
+
+# Project Specific
+.Code_Backup*
+console_test_.txt

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Change Log{% endblock %}
+{% block content %}
+
+<div class="section-header">
+  <h5><i class="bi bi-clock-history me-2"></i>Migration Change Log</h5>
+</div>
+
+{% if not entries %}
+<div class="alert alert-secondary">No changes recorded yet.</div>
+{% else %}
+<table class="table table-sm table-hover">
+  <thead class="table-dark">
+    <tr>
+      <th>Timestamp</th>
+      <th>Session</th>
+      <th>Action</th>
+      <th>Description</th>
+      <th>Affected Files</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for entry in entries %}
+  <tr>
+    <td class="font-mono small">{{ entry.timestamp }}</td>
+    <td class="font-mono small text-muted">{{ entry.session }}</td>
+    <td><span class="badge bg-primary">{{ entry.action }}</span></td>
+    <td class="small">{{ entry.description }}</td>
+    <td class="font-mono small text-muted">
+      {% for f in entry.affected_files %}
+      <div>{{ f }}</div>
+      {% endfor %}
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% endblock %}

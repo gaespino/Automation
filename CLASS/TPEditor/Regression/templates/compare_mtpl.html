@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}MTPL Comparison{% endblock %}
+{% block content %}
+
+<div class="section-header d-flex justify-content-between align-items-center">
+  <h5><i class="bi bi-file-code me-2"></i>MTPL Instance Comparison</h5>
+  <button class="btn btn-sm btn-primary" onclick="applySelected('mtpl')">
+    <i class="bi bi-check2-all me-1"></i>Apply Selected
+  </button>
+</div>
+
+{% if result.ref_error %}
+<div class="alert alert-danger"><b>Ref Error:</b> {{ result.ref_error }}</div>
+{% endif %}
+{% if result.new_error %}
+<div class="alert alert-warning"><b>New Error:</b> {{ result.new_error }}</div>
+{% endif %}
+
+<div class="mb-3 d-flex gap-2 flex-wrap align-items-center">
+  <span class="badge bg-danger">{{ result.only_in_ref|length }} only in Ref</span>
+  <span class="badge bg-success">{{ result.only_in_new|length }} only in New</span>
+  <span class="badge bg-warning text-dark">{{ result.differences|length }} different</span>
+  <span class="badge bg-secondary">{{ result.identical|length }} identical</span>
+  <span class="text-muted small align-self-center">{{ result.resolved_names|length }} total resolved</span>
+  <div class="ms-auto d-flex gap-2 align-items-center">
+    <!-- Global select -->
+    <button class="btn btn-sm btn-outline-primary"
+            onclick="toggleAll('mtpl', true)">
+      <i class="bi bi-check2-square"></i> All
+    </button>
+    <button class="btn btn-sm btn-outline-secondary"
+            onclick="toggleAll('mtpl', false)">
+      <i class="bi bi-square"></i> None
+    </button>
+    <span class="text-muted">|</span>
+    <!-- Global expand/collapse (Bootstrap Collapse API) -->
+    <button class="btn btn-sm btn-outline-secondary"
+            onclick="document.querySelectorAll('.mtpl-instance-collapse').forEach(el => bootstrap.Collapse.getOrCreateInstance(el).show())">
+      <i class="bi bi-arrows-expand"></i> All
+    </button>
+    <button class="btn btn-sm btn-outline-secondary"
+            onclick="document.querySelectorAll('.mtpl-instance-collapse').forEach(el => bootstrap.Collapse.getOrCreateInstance(el).hide())">
+      <i class="bi bi-arrows-collapse"></i> All
+    </button>
+  </div>
+</div>
+
+<!-- Key filter -->
+<div class="mb-3 input-group input-group-sm" style="max-width:460px">
+  <span class="input-group-text"><i class="bi bi-funnel"></i></span>
+  <input type="text" id="mtplKeyFilter" class="form-control font-mono"
+         placeholder="Filter keys… (comma-separated, e.g. Limits,Socket)"
+         oninput="filterMtplKeys()"/>
+  <button class="btn btn-outline-secondary" type="button"
+          onclick="document.getElementById('mtplKeyFilter').value='';filterMtplKeys();">
+    <i class="bi bi-x"></i>
+  </button>
+</div>
+
+<!-- Only in Ref -->
+{% if result.only_in_ref %}
+<div class="card mb-3">
+  <div class="card-header diff-ref-only">Instances only in Ref ({{ result.only_in_ref|length }})</div>
+  <div class="card-body p-2">
+    {% for name in result.only_in_ref %}
+    <div class="font-mono small text-danger">{{ name }}</div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Only in New -->
+{% if result.only_in_new %}
+<div class="card mb-3">
+  <div class="card-header diff-new-only">Instances only in New ({{ result.only_in_new|length }})</div>
+  <div class="card-body p-2">
+    {% for name in result.only_in_new %}
+    <div class="font-mono small text-success">{{ name }}</div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Differences -->
+{% for diff in result.differences %}
+{% set diff_idx = loop.index %}
+{% set card_id = "mtpl_card_" ~ diff_idx %}
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center"
+       style="cursor:pointer" onclick="bootstrap.Collapse.getOrCreateInstance(document.getElementById('{{ card_id }}')).toggle()">
+    <span>
+      <i class="bi bi-chevron-down me-1 collapse-icon"></i>
+      <span class="font-mono fw-bold">{{ diff.name }}</span>
+      <span class="badge bg-secondary ms-1">{{ diff.type }}</span>
+      <span class="badge bg-warning text-dark ms-1">{{ diff.diff_keys|length }} diff</span>
+    </span>
+    <span class="d-flex gap-2" onclick="event.stopPropagation()">
+      <button class="btn btn-xs btn-outline-primary py-0 px-2 small"
+              onclick="toggleAll('mtpl_inst_{{ diff_idx }}', true)">All</button>
+      <button class="btn btn-xs btn-outline-secondary py-0 px-2 small"
+              onclick="toggleAll('mtpl_inst_{{ diff_idx }}', false)">None</button>
+    </span>
+  </div>
+  <div class="collapse show mtpl-instance-collapse" id="{{ card_id }}">
+    <div class="card-body p-0">
+      <div class="diff-header row g-0 px-2 py-1">
+        <div class="col-1"></div>
+        <div class="col-3 fw-bold ref-label small">Key</div>
+        <div class="col-4 fw-bold ref-label small">REF value</div>
+        <div class="col-4 fw-bold new-label small">NEW value</div>
+      </div>
+      {% for key in diff.all_keys %}
+      {% set ref_val = diff.ref_kv.get(key, '') %}
+      {% set new_val = diff.new_kv.get(key, '') %}
+      {% set is_diff = key in diff.diff_keys %}
+      <div class="diff-row mtpl-diff-row {% if is_diff %}diff-changed{% else %}diff-identical{% endif %} row g-0 align-items-start px-2 py-1">
+        <div class="col-1 text-center">
+          {% if is_diff %}
+          <input type="checkbox" class="mtpl-check mtpl_inst_{{ diff_idx }}-check"
+                 data-action='{"type":"update_mtpl_key","instance_name":"{{ diff.name | e }}","key":"{{ key | e }}","ref_value":"{{ ref_val | e }}"}' />
+          {% endif %}
+        </div>
+        <div class="col-3 font-mono small fw-bold mtpl-key-cell {% if is_diff %}text-warning{% else %}text-muted{% endif %}">{{ key }}</div>
+        <div class="col-4 font-mono small {% if is_diff %}diff-value-ref{% endif %}">{{ ref_val or '—' }}</div>
+        <div class="col-4 font-mono small {% if is_diff %}diff-value-new{% endif %}">{{ new_val or '—' }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Identical (collapsed) -->
+{% if result.identical %}
+<details>
+  <summary class="text-muted small">{{ result.identical|length }} identical instances</summary>
+  {% for name in result.identical %}
+  <span class="badge bg-secondary me-1 font-mono small">{{ name }}</span>
+  {% endfor %}
+</details>
+{% endif %}
+
+{% endblock %}

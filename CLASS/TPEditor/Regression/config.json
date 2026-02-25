@@ -1,0 +1,51 @@
+{
+  "ref_tp_path": "S:\\GNR\\TP\\TP_WW22P4_Short_Uncore_DPM_Reg",
+  "new_tp_path": "S:\\GNR\\TP\\TP_WW07P4_PSEUDO_SLICE_DPM_SHORT",
+  "product": "GNR",
+  "chop": "UCCAP",
+  "module": "FUN_UNCORE_COMP",
+  "sub_paths": {
+    "env_file": {
+      "ref": "ENG_TP\\TP_WW21P5_FUN_MV_NEW\\EnvironmentFile_UCCAP.env",
+      "new": "ENG_TP\\TP_WW07P4_SLICE_PSEUDO_DPM\\EnvironmentFile_UCCAP.env"
+    },
+    "plist_xml": {
+      "ref": "ENG_TP\\TP_WW21P5_FUN_MV_NEW\\UCCAP.all.plist.xml",
+      "new": "ENG_TP\\TP_WW07P4_SLICE_PSEUDO_DPM\\UCCAP.all.plist.xml"
+    },
+    "supersede_plist": "Shared\\Common\\Supersede\\plist",
+    "mtpl_file": "Modules\\FUN_UNCORE_COMP\\FUN_UNCORE_COMP.mtpl",
+    "input_files": "Modules\\FUN_UNCORE_COMP\\InputFiles",
+    "shmoo_config": "Modules\\FUN_UNCORE_COMP\\InputFiles\\UncoreFC_shmoo_config.json",
+    "patmod_file": "Modules\\FUN_UNCORE_COMP\\InputFiles\\FUN_UCC.patmod.json",
+    "utp_setpoints": "Modules\\FUN_UNCORE_COMP\\InputFiles\\FUN_UTP_setpoints.json"
+  },
+  "mtpl_instances": [
+    "UNCORE_CFC_VMIN_K_CHKCFCHDCF1_STF_CFCHDC_VMIN_F1_MESHTWPARALLEL",
+    "UNCORE_CFC_VMIN_K_CHKCFCHDCF1_STF_CFCHDC_VMIN_F1_MESHTW",
+    "UNCORE_HDC_VMIN_K_CHKCFCHDCF1_STF_HDC_VMIN_F1_MESHTW",
+    "UNCORE_CFC_VMIN_K_CHKCFCHDCF1_STF_CFCHDC_VMIN_F1_MESHDRGCD0",
+    "UNCORE_CFC_VMIN_K_CHKCFCHDCF1_STF_CFCHDC_VMIN_F1_MESHDRGCD1",
+    "UNCORE_CFC_VMIN_K_CHKCFCHDCF1_STF_CFCHDC_VMIN_F1_MESHDRGCD2",
+    "UNCORE_CFC_VMIN_K_CHKCFCHDCF1_STF_CFCHDC_VMIN_F1_MESHTWK",
+    "UNCORE_CFC_VMIN_K_CHKCFCHDCF2_STF_CFCHDC_VMIN_F2_MESHTWPARALLEL",
+    "UNCORE_CFC_VMIN_K_CHKCFCHDCF2_STF_CFCHDC_VMIN_F2_MESHTW",
+    "UNCORE_HDC_VMIN_K_CHKCFCHDCF2_STF_HDC_VMIN_F2_MESHTW"
+  ],
+  "mtpl_instance_patterns": [
+    "UNCORE_CFC_VMIN_K_CHKCFCHDCF2_STF_CFCHDC_VMIN_F2_MESHDRGCD{X}",
+    "UNCORE_CFC_VMIN_K_CHKCFCHDCF4_STF_CFCHDC_VMIN_F4_MESHDRGCD{X}",
+    "UNCORE_CFC_VMIN_K_CHKCFCHDCF4_STF_CFCHDC_VMIN_F4_DRGPSEUDOSBFT{X}",
+    "UNCORE_CFC_VMIN_K_CHKCFCHDCF4_STF_CFCHDC_VMIN_F4_ROWDRGPSEUDOSBFT{X}",
+    "UNCORE_CFC_VMIN_K_CHKCFCHDCF4_STF_CFCHDC_VMIN_F4_ROWPSEUDODPM{X}"
+  ],
+  "patmod_patterns": [
+    "*DPM*",
+    "*PSEUDO*",
+    "*DRAGON*",
+    "*VVAR*",
+    "*BL_RING_STRESS*",
+    "*MESH_STRESS*",
+    "*LOOPS_MESH*"
+  ]
+}

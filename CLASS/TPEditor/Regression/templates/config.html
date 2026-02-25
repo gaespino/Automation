@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block title %}Configuration{% endblock %}
+{% block content %}
+
+<div class="section-header">
+  <h5><i class="bi bi-gear me-2"></i>Project Configuration</h5>
+</div>
+
+<form id="configForm">
+
+  <!-- TP Paths (2-column) -->
+  <div class="card mb-3">
+    <div class="card-header">TP Root Paths</div>
+    <div class="card-body row g-3">
+      <div class="col-md-6">
+        <label class="form-label fw-bold text-danger-emphasis">Reference TP Path</label>
+        <div class="input-group">
+          <span class="input-group-text bg-danger-subtle text-danger-emphasis"><i class="bi bi-folder"></i></span>
+          <input type="text" class="form-control font-mono" id="ref_tp_path"
+                 value="{{ cfg.ref_tp_path }}"/>
+          <button class="btn btn-outline-secondary" type="button"
+                  onclick="browse('ref_tp_path','folder')">
+            <i class="bi bi-folder2-open"></i>
+          </button>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-bold text-success-emphasis">New TP Path</label>
+        <div class="input-group">
+          <span class="input-group-text bg-success-subtle text-success-emphasis"><i class="bi bi-folder"></i></span>
+          <input type="text" class="form-control font-mono" id="new_tp_path"
+                 value="{{ cfg.new_tp_path }}"/>
+          <button class="btn btn-outline-secondary" type="button"
+                  onclick="browse('new_tp_path','folder')">
+            <i class="bi bi-folder2-open"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product info -->
+  <div class="card mb-3">
+    <div class="card-header">Product & Module</div>
+    <div class="card-body row g-3">
+      <div class="col-md-3">
+        <label class="form-label">Product</label>
+        <input type="text" class="form-control" id="product" value="{{ cfg.product }}"/>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Chop</label>
+        <input type="text" class="form-control" id="chop" value="{{ cfg.chop }}"/>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Module</label>
+        <input type="text" class="form-control" id="module" value="{{ cfg.module }}"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sub-paths -->
+  <div class="card mb-3">
+    <div class="card-header">Content Sub-Paths (relative to TP root)</div>
+    <div class="card-body">
+
+      <!-- Header row -->
+      <div class="row g-2 mb-1">
+        <div class="col-3 small text-muted">Section</div>
+        <div class="col-4 small fw-bold text-danger-emphasis">Reference sub-path</div>
+        <div class="col-4 small fw-bold text-success-emphasis">New sub-path</div>
+        <div class="col-1"></div>
+      </div>
+
+      <!-- Env File (ref and new differ) -->
+      <div class="row g-2 align-items-center mb-2">
+        <div class="col-3 small fw-semibold">Env File</div>
+        <div class="col-4">
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control font-mono" id="sub_env_ref"
+                   value="{{ cfg.sub_paths.env_file.ref }}"/>
+            <button class="btn btn-outline-secondary btn-sm" type="button"
+                    onclick="browse('sub_env_ref','file')"><i class="bi bi-folder2-open"></i></button>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control font-mono" id="sub_env_new"
+                   value="{{ cfg.sub_paths.env_file.new }}"/>
+            <button class="btn btn-outline-secondary btn-sm" type="button"
+                    onclick="browse('sub_env_new','file')"><i class="bi bi-folder2-open"></i></button>
+          </div>
+        </div>
+        <div class="col-1 small text-muted">file</div>
+      </div>
+
+      <!-- PList XML (ref and new differ) -->
+      <div class="row g-2 align-items-center mb-2">
+        <div class="col-3 small fw-semibold">PList XML</div>
+        <div class="col-4">
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control font-mono" id="sub_plist_xml_ref"
+                   value="{{ cfg.sub_paths.plist_xml.ref if cfg.sub_paths.plist_xml is defined else '' }}"/>
+            <button class="btn btn-outline-secondary btn-sm" type="button"
+                    onclick="browse('sub_plist_xml_ref','file')"><i class="bi bi-folder2-open"></i></button>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control font-mono" id="sub_plist_xml_new"
+                   value="{{ cfg.sub_paths.plist_xml.new if cfg.sub_paths.plist_xml is defined else '' }}"/>
+            <button class="btn btn-outline-secondary btn-sm" type="button"
+                    onclick="browse('sub_plist_xml_new','file')"><i class="bi bi-folder2-open"></i></button>
+          </div>
+        </div>
+        <div class="col-1 small text-muted">file</div>
+      </div>
+
+      <!-- Shared sub-paths -->
+      {% set simple_keys = [
+        ("supersede_plist", "Supersede PList", "folder"),
+        ("mtpl_file",       "MTPL File",        "file"),
+        ("input_files",     "Input Files Dir",  "folder"),
+        ("shmoo_config",    "Shmoo Config",     "file"),
+        ("patmod_file",     "Patmod JSON",      "file"),
+        ("utp_setpoints",   "UTP Setpoints",    "file")
+      ] %}
+      {% for key, label, btype in simple_keys %}
+      <div class="row g-2 align-items-center mb-2">
+        <div class="col-3 small fw-semibold">{{ label }}</div>
+        <div class="col-8">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text text-muted" title="Same sub-path for both ref &amp; new">
+              <i class="bi bi-subtract"></i>
+            </span>
+            <input type="text" class="form-control font-mono" id="sub_{{ key }}"
+                   value="{{ cfg.sub_paths[key] }}"/>
+            <button class="btn btn-outline-secondary btn-sm" type="button"
+                    onclick="browse('sub_{{ key }}','{{ btype }}')"><i class="bi bi-folder2-open"></i></button>
+          </div>
+        </div>
+        <div class="col-1 small text-muted">{{ btype }}</div>
+      </div>
+      {% endfor %}
+
+    </div>
+  </div>
+
+  <!-- MTPL instances -->
+  <div class="card mb-3">
+    <div class="card-header">MTPL Instance Names
+      <span class="text-muted small ms-2">(one per line)</span>
+    </div>
+    <div class="card-body row g-3">
+      <div class="col-md-6">
+        <label class="form-label fw-bold">Exact Instance Names</label>
+        <textarea class="form-control font-mono" id="mtpl_instances" rows="12">{{ cfg.mtpl_instances | join('\n') }}</textarea>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-bold">Pattern Names (use {X} for numeric suffix wildcard)</label>
+        <textarea class="form-control font-mono" id="mtpl_instance_patterns" rows="12">{{ cfg.mtpl_instance_patterns | join('\n') }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Patmod patterns -->
+  <div class="card mb-3">
+    <div class="card-header">Patmod Filter Patterns (one per line, prefix ^ for anchored)</div>
+    <div class="card-body">
+      <textarea class="form-control font-mono" id="patmod_patterns" rows="8">{{ cfg.patmod_patterns | join('\n') }}</textarea>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 mb-4">
+    <button type="button" class="btn btn-primary" onclick="saveConfig()">
+      <i class="bi bi-save me-1"></i>Save Configuration
+    </button>
+    <button type="button" class="btn btn-outline-secondary" onclick="validatePaths()">
+      <i class="bi bi-check-circle me-1"></i>Validate Paths
+    </button>
+  </div>
+
+</form>
+
+<!-- Path validation results -->
+<div id="pathResults" class="mt-2" style="display:none">
+  <div class="card">
+    <div class="card-header">Path Validation</div>
+    <div class="card-body p-0">
+      <table class="table table-sm mb-0" id="pathTable">
+        <thead><tr><th>Key</th><th>Path</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+function saveConfig() {
+  const cfg = {
+    ref_tp_path: val('ref_tp_path'),
+    new_tp_path: val('new_tp_path'),
+    product:     val('product'),
+    chop:        val('chop'),
+    module:      val('module'),
+    sub_paths: {
+      env_file: {
+        ref: val('sub_env_ref'),
+        new: val('sub_env_new'),
+      },
+      plist_xml: {
+        ref: val('sub_plist_xml_ref'),
+        new: val('sub_plist_xml_new'),
+      },
+      supersede_plist: val('sub_supersede_plist'),
+      mtpl_file:       val('sub_mtpl_file'),
+      input_files:     val('sub_input_files'),
+      shmoo_config:    val('sub_shmoo_config'),
+      patmod_file:     val('sub_patmod_file'),
+      utp_setpoints:   val('sub_utp_setpoints'),
+    },
+    mtpl_instances:         val('mtpl_instances').split('\n').map(s=>s.trim()).filter(Boolean),
+    mtpl_instance_patterns: val('mtpl_instance_patterns').split('\n').map(s=>s.trim()).filter(Boolean),
+    patmod_patterns:        val('patmod_patterns').split('\n').map(s=>s.trim()).filter(Boolean),
+  };
+  fetch('/save_config', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(cfg)
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    showToast(d.message, d.success ? 'success':'danger');
+    if (d.path_status) renderPathTable(d.path_status);
+  });
+}
+
+function validatePaths() {
+  fetch('/validate_paths').then(r=>r.json()).then(d=>{
+    if (d.path_status) renderPathTable(d.path_status);
+  });
+}
+
+function renderPathTable(ps) {
+  const tbody = document.querySelector('#pathTable tbody');
+  tbody.innerHTML = '';
+  for (const [k, v] of Object.entries(ps)) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="small font-mono text-muted">${k}</td>
+      <td class="small font-mono">${v.path||'–'}</td>
+      <td>${v.exists
+        ? '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Found</span>'
+        : '<span class="badge bg-danger"><i class="bi bi-x-circle"></i> Not found</span>'}</td>`;
+    tbody.appendChild(tr);
+  }
+  document.getElementById('pathResults').style.display='block';
+}
+</script>
+{% endblock %}

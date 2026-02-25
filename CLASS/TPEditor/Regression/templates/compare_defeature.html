@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Defeature Tracking Comparison{% endblock %}
+{% block content %}
+
+<!-- Backup path banner (shown by app.js after apply) -->
+<div id="backupBanner" class="alert alert-info alert-dismissible fade show d-flex align-items-center mb-3"
+     style="display:none!important">
+  <i class="bi bi-archive me-2"></i>
+  <span id="backupBannerText">Backup saved.</span>
+  <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+</div>
+
+<div class="section-header d-flex justify-content-between align-items-center">
+  <h5><i class="bi bi-shield-check me-2"></i>Defeature Tracking File Comparison</h5>
+  <button class="btn btn-sm btn-primary" onclick="applySelected('defeature')">
+    <i class="bi bi-check2-all me-1"></i>Apply Selected
+  </button>
+</div>
+
+{% if result.ref_error %}
+<div class="alert alert-danger"><b>Ref Error:</b> {{ result.ref_error }}</div>
+{% endif %}
+{% if result.new_error %}
+<div class="alert alert-warning"><b>New Error:</b> {{ result.new_error }}</div>
+{% endif %}
+
+<div class="mb-3 d-flex gap-2">
+  <span class="badge bg-danger">{{ result.files_only_in_ref|length }} only in Ref</span>
+  <span class="badge bg-success">{{ result.files_only_in_new|length }} only in New</span>
+  <span class="badge bg-secondary">{{ result.files_in_both|length }} in both</span>
+</div>
+
+<!-- Files only in ref -->
+{% if result.files_only_in_ref %}
+<div class="card mb-3">
+  <div class="card-header diff-ref-only">Files only in Ref (copy to new?)</div>
+  <div class="card-body p-0">
+    {% for fname in result.files_only_in_ref %}
+    {% set ref_fp = result.ref_dir ~ '\\' ~ fname %}
+    <div class="diff-row diff-ref-only row g-0 align-items-center px-2 py-1">
+      <div class="col-1 text-center">
+        <input type="checkbox" class="defeature-check"
+               data-action='{"type":"copy_defeature_file","ref_fp":"{{ ref_fp | e }}"}' />
+      </div>
+      <div class="col-9 font-mono small">{{ fname }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Files only in new -->
+{% if result.files_only_in_new %}
+<div class="card mb-3">
+  <div class="card-header diff-new-only">Files only in New</div>
+  <div class="card-body p-2">
+    {% for fname in result.files_only_in_new %}
+    <span class="badge bg-secondary me-1 font-mono">{{ fname }}</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Files in both – summary list with checkboxes + "View Diff" buttons -->
+{% set diff_files = result.files_in_both | rejectattr('identical') | list %}
+{% if diff_files %}
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between">
+    <span>Files in Both with Differences ({{ diff_files|length }})</span>
+    <span class="small text-muted">Select to overwrite New with Ref content</span>
+  </div>
+  <div class="card-body p-0">
+    {% for fdata in diff_files %}
+    {% set modal_id = "modal_" ~ loop.index %}
+    {% set ref_fp = result.ref_dir ~ '\\' ~ fdata.filename %}
+    <div class="diff-row {% if fdata.error is defined and fdata.error %}diff-ref-only{% else %}diff-changed{% endif %} row g-0 align-items-center px-2 py-1">
+      <div class="col-1 text-center">
+        {% if not (fdata.error is defined and fdata.error) %}
+        <input type="checkbox" class="defeature-check"
+               data-action='{"type":"copy_defeature_file","ref_fp":"{{ ref_fp | e }}"}' />
+        {% endif %}
+      </div>
+      <div class="col-7 font-mono small">{{ fdata.filename }}</div>
+      <div class="col-2 text-center">
+        {% if fdata.error is defined and fdata.error %}
+        <span class="badge bg-danger">Parse Error</span>
+        {% elif fdata.diff is defined %}
+        <span class="badge bg-warning text-dark">{{ fdata.diff|length }} diff</span>
+        {% endif %}
+      </div>
+      <div class="col-2 text-end pe-1">
+        <button class="btn btn-xs btn-outline-secondary py-0 px-2 small"
+                data-bs-toggle="modal" data-bs-target="#{{ modal_id }}">
+          <i class="bi bi-eye"></i> View
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Identical files (collapsed) -->
+{% set identical_files = result.files_in_both | selectattr('identical') | list %}
+{% if identical_files %}
+<details>
+  <summary class="text-muted small">{{ identical_files|length }} identical files</summary>
+  {% for fdata in identical_files %}
+  <div class="diff-row diff-identical row g-0 px-2 py-1">
+    <div class="col-12 font-mono small text-muted">{{ fdata.filename }}</div>
+  </div>
+  {% endfor %}
+</details>
+{% endif %}
+
+<!-- ── Modals (one per diff file) ─────────────────────────────────── -->
+{% set diff_files2 = result.files_in_both | rejectattr('identical') | list %}
+{% for fdata in diff_files2 %}
+{% set modal_id = "modal_" ~ loop.index %}
+<div class="modal fade" id="{{ modal_id }}" tabindex="-1"
+     aria-labelledby="{{ modal_id }}_label" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title font-mono" id="{{ modal_id }}_label">{{ fdata.filename }}</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        {% if fdata.error is defined and fdata.error %}
+        <div class="alert alert-danger m-3">{{ fdata.error }}</div>
+        {% elif fdata.diff is defined and fdata.diff %}
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-dark">
+            <tr><th>Path</th><th>Status</th><th>Ref Value</th><th>New Value</th></tr>
+          </thead>
+          <tbody>
+          {% for d in fdata.diff %}
+          <tr class="{% if d.status == 'added' %}table-success{% elif d.status == 'removed' %}table-danger{% else %}table-warning{% endif %}">
+            <td class="font-mono small">{{ d.path }}</td>
+            <td><span class="badge bg-secondary">{{ d.status }}</span></td>
+            <td class="font-mono small">{{ d.get('ref_value', '—') | tojson }}</td>
+            <td class="font-mono small">{{ d.get('new_value', '—') | tojson }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="p-3 text-muted">No diff data available.</div>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+{% block extra_js %}
+<script>
+// Update the backup banner with the folder path after apply
+document.addEventListener('DOMContentLoaded', () => {
+  const origApply = window.applySelected;
+  // Patch: app.js already handles #backupBanner; just make the banner visible
+  const banner = document.getElementById('backupBanner');
+  const bannerText = document.getElementById('backupBannerText');
+  // Override show logic: app.js sets banner.textContent — we also need display:flex
+  if (banner) {
+    const observer = new MutationObserver(() => {
+      if (banner.textContent.trim()) {
+        banner.style.removeProperty('display');
+        bannerText.textContent = banner.textContent.trim();
+      }
+    });
+    observer.observe(banner, { childList: true, characterData: true, subtree: true });
+  }
+});
+</script>
+{% endblock %}

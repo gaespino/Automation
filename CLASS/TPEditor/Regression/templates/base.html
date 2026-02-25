@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TP Migration Tool – {% block title %}{% endblock %}</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+<!-- Header bar -->
+<div class="header-bar">
+  <span class="header-title">
+    <i class="bi bi-arrow-left-right me-2"></i>TP Migration Tool
+  </span>
+  <span class="header-sub">
+    {{ cfg.product }} &nbsp;·&nbsp; {{ cfg.chop }} &nbsp;·&nbsp; {{ cfg.module }}
+  </span>
+</div>
+
+<!-- Navigation tabs -->
+<nav class="main-nav">
+  <a href="/config"       class="nav-item {% if request.path == '/config' %}active{% endif %}">
+    <i class="bi bi-gear"></i> Config
+  </a>
+  <a href="/compare/env"       class="nav-item {% if '/compare/env' in request.path %}active{% endif %}">
+    <i class="bi bi-file-earmark-text"></i> Env File
+  </a>
+  <a href="/compare/plists"    class="nav-item {% if '/compare/plists' in request.path %}active{% endif %}">
+    <i class="bi bi-list-ul"></i> PLists
+  </a>
+  <a href="/compare/xmlplist"  class="nav-item {% if '/compare/xmlplist' in request.path %}active{% endif %}">
+    <i class="bi bi-filetype-xml"></i> PList XML
+  </a>
+  <a href="/compare/mtpl"      class="nav-item {% if '/compare/mtpl' in request.path %}active{% endif %}">
+    <i class="bi bi-file-code"></i> MTPL
+  </a>
+  <a href="/compare/shmoo"     class="nav-item {% if '/compare/shmoo' in request.path %}active{% endif %}">
+    <i class="bi bi-sliders"></i> Shmoo
+  </a>
+  <a href="/compare/patmod"    class="nav-item {% if '/compare/patmod' in request.path %}active{% endif %}">
+    <i class="bi bi-puzzle"></i> Patmod
+  </a>
+  <a href="/compare/utp"       class="nav-item {% if '/compare/utp' in request.path %}active{% endif %}">
+    <i class="bi bi-table"></i> UTP
+  </a>
+  <a href="/compare/defeature" class="nav-item {% if '/compare/defeature' in request.path %}active{% endif %}">
+    <i class="bi bi-shield-check"></i> Defeature
+  </a>
+  <a href="/changelog"         class="nav-item {% if '/changelog' in request.path %}active{% endif %}">
+    <i class="bi bi-clock-history"></i> Changelog
+  </a>
+</nav>
+
+<!-- Toast container -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="applyToast" class="toast align-items-center" role="alert">
+    <div class="d-flex">
+      <div class="toast-body" id="toastMsg">Action applied.</div>
+      <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Page content -->
+<div class="page-content">
+  {% block content %}{% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/app.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

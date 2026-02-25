@@ -1,0 +1,209 @@
+:root {
+    /* Color Palette - Premium Dark */
+    --bg-body: #0a0b10;
+    --bg-card: #15171e;
+    --bg-card-hover: #1e212b;
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+
+    /* Accents */
+    --accent-primary: #00d4ff;
+    /* Cyan */
+    --accent-secondary: #7000ff;
+    /* Purple */
+    --accent-success: #00ff9d;
+    --accent-danger: #ff4d4d;
+    --accent-warning: #ffbd2e;
+
+    /* Glassmorphism */
+    --glass-bg: rgba(21, 23, 30, 0.7);
+    --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+body {
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    overflow-x: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-body);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Animations */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Premium Card */
+.card-premium {
+    background: var(--bg-card);
+    border: var(--glass-border);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.card-premium:hover {
+    background: var(--bg-card-hover);
+    box-shadow: 0 8px 30px rgba(0, 212, 255, 0.05);
+    /* Cyan glow hint */
+    transform: translateY(-2px);
+}
+
+.card-header {
+    background: transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--accent-primary);
+}
+
+/* Stats Card Specifics */
+.stat-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(45deg, var(--text-primary), #fff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.stat-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: var(--accent-primary);
+}
+
+/* Unit Selector (Dropdown High Contrast Fixes - Robust for React-Select v5) */
+.dash-dropdown .Select-control,
+.dash-dropdown .Select-menu-outer,
+.dash-dropdown .Select-value-label,
+.dash-dropdown .Select-input>input,
+/* Newer React-Select Classes */
+.dash-dropdown div[class*="-control"],
+.dash-dropdown div[class*="-menu"],
+.dash-dropdown div[class*="-MenuList"] {
+    background-color: #1a1d26 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+}
+
+/* Force Text Color */
+.dash-dropdown div[class*="-singleValue"],
+.dash-dropdown div[class*="-placeholder"],
+.dash-dropdown div[class*="-Input"],
+.dash-dropdown input {
+    color: white !important;
+}
+
+/* Options */
+.dash-dropdown div[class*="-option"] {
+    background-color: #1a1d26 !important;
+    color: white !important;
+    cursor: pointer;
+}
+
+.dash-dropdown div[class*="-option"]:hover,
+.dash-dropdown div[class*="-option"][class*="-isFocused"],
+.dash-dropdown div[class*="-option"][class*="-isSelected"] {
+    background-color: rgba(0, 212, 255, 0.2) !important;
+    color: white !important;
+}
+
+/* Accordion Custom */
+.accordion-custom .accordion-item {
+    background-color: transparent;
+    border: none;
+}
+
+.accordion-custom .accordion-button {
+    background-color: rgba(255, 255, 255, 0.03);
+    color: var(--text-primary);
+    box-shadow: none;
+    border-radius: 8px;
+}
+
+.accordion-custom .accordion-button:not(.collapsed) {
+    background-color: rgba(0, 212, 255, 0.1);
+    color: var(--accent-primary);
+}
+
+.accordion-custom .accordion-body {
+    color: var(--text-secondary);
+    padding: 1rem 0;
+}
+
+/* Buttons */
+.btn-primary-custom {
+    background: linear-gradient(45deg, #00d4ff, #007bff);
+    border: none;
+    color: white;
+}
+
+.btn-primary-custom:hover {
+    background: linear-gradient(45deg, #00b8dd, #006adb);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+}
+
+.btn-outline-custom {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-secondary);
+    background: transparent;
+}
+
+.btn-outline-custom:hover {
+    border-color: var(--text-primary);
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Toast */
+.toast-custom {
+    background: rgba(20, 20, 30, 0.95) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+}

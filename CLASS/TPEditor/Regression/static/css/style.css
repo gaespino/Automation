@@ -1,0 +1,188 @@
+/* TP Migration Tool – style.css */
+
+:root {
+  --color-primary: #2c3e50;
+  --color-accent: #3498db;
+  --color-green: #1abc9c;
+  --color-header-bar: #1abc9c;
+  --color-ref: #c0392b;
+  --color-new: #27ae60;
+  --color-changed: #e67e22;
+  --color-identical: #7f8c8d;
+  --color-bg: #f5f6fa;
+  --color-surface: #ffffff;
+  --color-border: #dee2e6;
+}
+
+body {
+  background-color: var(--color-bg);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Header */
+.header-bar {
+  background: var(--color-primary);
+  color: white;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  border-bottom: 3px solid var(--color-header-bar);
+}
+.header-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+.header-sub {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin-left: auto;
+}
+
+/* Nav */
+.main-nav {
+  background: var(--color-primary);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 0 0.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.main-nav .nav-item {
+  color: rgba(255,255,255,0.7);
+  text-decoration: none;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.82rem;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+.main-nav .nav-item:hover,
+.main-nav .nav-item.active {
+  color: white;
+  border-bottom-color: var(--color-accent);
+}
+
+/* Page */
+.page-content {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 1.25rem 1.5rem 3rem;
+}
+
+.section-header {
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--color-accent);
+}
+.section-header h5 {
+  margin: 0;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* Diff rows */
+.diff-header {
+  background: var(--color-primary);
+  color: white;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 4px 4px 0 0;
+}
+.ref-label { color: #f1756b; }
+.new-label { color: #74d7b0; }
+
+.diff-row {
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.3rem 0;
+  transition: background 0.1s;
+}
+.diff-row:hover { background: rgba(0,0,0,0.025); }
+
+.diff-ref-only { background: rgba(192, 57, 43, 0.08); }
+.diff-ref-only:hover { background: rgba(192, 57, 43, 0.14); }
+.diff-new-only  { background: rgba(39, 174, 96, 0.08); }
+.diff-new-only:hover  { background: rgba(39, 174, 96, 0.14); }
+.diff-changed   { background: rgba(230, 126, 34, 0.08); }
+.diff-changed:hover   { background: rgba(230, 126, 34, 0.14); }
+.diff-identical { background: transparent; }
+
+.diff-value     { word-break: break-all; }
+.diff-value-ref { color: var(--color-ref); word-break: break-all; }
+.diff-value-new { color: var(--color-new); word-break: break-all; }
+
+.diff-block-ref {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.72rem;
+  background: rgba(192,57,43,0.07);
+  border-left: 3px solid var(--color-ref);
+  padding: 4px 6px;
+  border-radius: 2px;
+}
+.diff-block-new {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.72rem;
+  background: rgba(39,174,96,0.07);
+  border-left: 3px solid var(--color-new);
+  padding: 4px 6px;
+  border-radius: 2px;
+}
+
+.diff-json-block {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.72rem;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  max-height: 300px;
+  overflow-y: auto;
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-top: 4px;
+}
+.ref-block {
+  background: rgba(192,57,43,0.07);
+  border-left: 3px solid var(--color-ref);
+}
+.new-block {
+  background: rgba(39,174,96,0.07);
+  border-left: 3px solid var(--color-new);
+}
+
+/* Type badges */
+.type-badge        { font-size: 0.65rem; }
+.type-badge.internal    { background: #3498db; }
+.type-badge.external_unc { background: #e74c3c; }
+.type-badge.local       { background: #f39c12; }
+.type-badge.var         { background: #9b59b6; }
+.type-badge.other       { background: #7f8c8d; }
+
+/* Card tweaks */
+.card { border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+.card-header {
+  font-size: 0.85rem;
+  background: rgba(0,0,0,0.04);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.5rem 0.75rem;
+}
+
+/* Font mono helper */
+.font-mono { font-family: "Cascadia Code", "Consolas", "Lucida Console", monospace; }
+
+/* Comment labels in patmod */
+.comment-label { color: #17a2b8; font-style: italic; }
+
+/* Summary badges */
+.cursor-pointer { cursor: pointer; }
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f0f0f0; }
+::-webkit-scrollbar-thumb { background: #bbb; border-radius: 3px; }

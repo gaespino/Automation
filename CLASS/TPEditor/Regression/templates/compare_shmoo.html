@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Shmoo Config Comparison{% endblock %}
+{% block content %}
+
+<div class="section-header d-flex justify-content-between align-items-center">
+  <h5><i class="bi bi-sliders me-2"></i>Shmoo Config Comparison</h5>
+  <button class="btn btn-sm btn-primary" onclick="applySelected('shmoo')">
+    <i class="bi bi-check2-all me-1"></i>Apply Selected
+  </button>
+</div>
+
+{% if result.ref_error %}
+<div class="alert alert-danger"><b>Ref Error:</b> {{ result.ref_error }}</div>
+{% endif %}
+{% if result.new_error %}
+<div class="alert alert-warning"><b>New Error:</b> {{ result.new_error }}</div>
+{% endif %}
+
+<div class="mb-3 d-flex gap-2">
+  <span class="badge bg-danger">{{ result.only_in_ref|length }} only in Ref</span>
+  <span class="badge bg-success">{{ result.only_in_new|length }} only in New</span>
+  <span class="badge bg-warning text-dark">{{ result.different|length }} different</span>
+  <span class="badge bg-secondary">{{ result.identical|length }} identical</span>
+</div>
+
+<div class="diff-header row g-0">
+  <div class="col-1 text-center"><input type="checkbox" onchange="toggleAll('shmoo',this.checked)"/></div>
+  <div class="col-3 fw-bold ref-label px-2">Key</div>
+  <div class="col-4 fw-bold ref-label px-2">REF</div>
+  <div class="col-4 fw-bold new-label px-2">NEW</div>
+</div>
+
+{% for item in result.only_in_ref %}
+<div class="diff-row diff-ref-only row g-0 align-items-start py-1">
+  <div class="col-1 text-center">
+    <input type="checkbox" class="shmoo-check"
+           data-action='{"type":"apply_shmoo_key","key":{{ item.key | tojson }},"ref_value":{{ item.ref_value | tojson }}}' />
+  </div>
+  <div class="col-3 font-mono small px-2 fw-bold">{{ item.key }}</div>
+  <div class="col-4 font-mono small px-2">{{ item.ref_value | tojson(indent=2) }}</div>
+  <div class="col-4 text-muted fst-italic small px-2">— missing —</div>
+</div>
+{% endfor %}
+
+{% for item in result.only_in_new %}
+<div class="diff-row diff-new-only row g-0 align-items-start py-1">
+  <div class="col-1"></div>
+  <div class="col-3 font-mono small px-2 fw-bold">{{ item.key }}</div>
+  <div class="col-4 text-muted fst-italic small px-2">— missing —</div>
+  <div class="col-4 font-mono small px-2">{{ item.new_value | tojson(indent=2) }}</div>
+</div>
+{% endfor %}
+
+{% for item in result.different %}
+<div class="diff-row diff-changed row g-0 align-items-start py-1">
+  <div class="col-1 text-center">
+    <input type="checkbox" class="shmoo-check"
+           data-action='{"type":"apply_shmoo_key","key":{{ item.key | tojson }},"ref_value":{{ item.ref_value | tojson }}}' />
+  </div>
+  <div class="col-3 font-mono small px-2 fw-bold">{{ item.key }}</div>
+  <div class="col-4 font-mono small px-2 diff-value-ref">{{ item.ref_value | tojson(indent=2) }}</div>
+  <div class="col-4 font-mono small px-2 diff-value-new">{{ item.new_value | tojson(indent=2) }}</div>
+</div>
+{% endfor %}
+
+{% if result.identical %}
+<details class="mt-2">
+  <summary class="text-muted small">{{ result.identical|length }} identical keys</summary>
+  {% for k in result.identical %}
+  <div class="diff-row diff-identical row g-0 py-1">
+    <div class="col-1"></div>
+    <div class="col-3 font-mono small px-2 text-muted">{{ k }}</div>
+    <div class="col-8 text-muted small px-2 fst-italic">identical</div>
+  </div>
+  {% endfor %}
+</details>
+{% endif %}
+
+{% endblock %}

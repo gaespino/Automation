@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Patmod Comparison{% endblock %}
+{% block content %}
+
+<div class="section-header d-flex justify-content-between align-items-center">
+  <h5><i class="bi bi-puzzle me-2"></i>Patmod Comparison</h5>
+  <button class="btn btn-sm btn-primary" onclick="applySelected('patmod')">
+    <i class="bi bi-check2-all me-1"></i>Apply Selected
+  </button>
+</div>
+
+{% if result.ref_error %}
+<div class="alert alert-danger"><b>Ref Error:</b> {{ result.ref_error }}</div>
+{% endif %}
+{% if result.new_error %}
+<div class="alert alert-warning"><b>New Error:</b> {{ result.new_error }}</div>
+{% endif %}
+
+<div class="mb-3 d-flex gap-2">
+  <span class="badge bg-danger">{{ result.only_in_ref|length }} only in Ref</span>
+  <span class="badge bg-success">{{ result.only_in_new|length }} only in New</span>
+  <span class="badge bg-warning text-dark">{{ result.different|length }} different</span>
+  <span class="badge bg-secondary">{{ result.identical|length }} identical</span>
+</div>
+
+<!-- Debug info -->
+{% set dbg = result._debug %}
+<details class="mb-3">
+  <summary class="text-muted small"><i class="bi bi-bug me-1"></i>Debug info</summary>
+  <div class="card card-body p-2 mt-1 small font-mono bg-dark text-light">
+    <div><b>REF path:</b> {{ dbg.ref_path }}</div>
+    <div><b>NEW path:</b> {{ dbg.new_path }}</div>
+    <div><b>REF entries parsed:</b> {{ dbg.ref_total }}</div>
+    <div><b>NEW entries parsed:</b> {{ dbg.new_total }}</div>
+    <div><b>REF after filter:</b> {{ dbg.ref_filtered }}</div>
+    <div><b>NEW after filter:</b> {{ dbg.new_filtered }}</div>
+    <div><b>Patterns ({{ dbg.patterns|length }}):</b>
+      {% if dbg.patterns %}
+      {% for p in dbg.patterns %}<span class="badge bg-info text-dark me-1">{{ p }}</span>{% endfor %}
+      {% else %}<span class="text-warning">(none — showing all entries)</span>{% endif %}
+    </div>
+  </div>
+</details>
+
+<div class="diff-header row g-0 px-2 py-1">
+  <div class="col-1 text-center"><input type="checkbox" onchange="toggleAll('patmod',this.checked)"/></div>
+  <div class="col-5 fw-bold ref-label">REF</div>
+  <div class="col-5 fw-bold new-label">NEW</div>
+  <div class="col-1"></div>
+</div>
+
+<!-- Only in Ref -->
+{% for entry in result.only_in_ref %}
+<div class="diff-row diff-ref-only row g-0 align-items-start py-2 px-2">
+  <div class="col-1 text-center pt-1">
+    <input type="checkbox" class="patmod-check"
+           data-action='{"type":"add_patmod_entry","entry_name":"{{ entry.name | e }}"}' />
+  </div>
+  <div class="col-5">
+    {% for c in entry.preceding_comments %}
+    <div class="font-mono small text-info comment-label">// {{ c }}</div>
+    {% endfor %}
+    <div class="font-mono small fw-bold">{{ entry.name }}</div>
+    <pre class="diff-json-block ref-block">{{ entry.entry | tojson(indent=2) }}</pre>
+  </div>
+  <div class="col-5 text-muted fst-italic small p-2">— missing in new —</div>
+  <div class="col-1"></div>
+</div>
+{% endfor %}
+
+<!-- Only in New -->
+{% for entry in result.only_in_new %}
+<div class="diff-row diff-new-only row g-0 align-items-start py-2 px-2">
+  <div class="col-1"></div>
+  <div class="col-5 text-muted fst-italic small p-2">— missing in ref —</div>
+  <div class="col-5">
+    <div class="font-mono small fw-bold">{{ entry.name }}</div>
+    <pre class="diff-json-block new-block">{{ entry.entry | tojson(indent=2) }}</pre>
+  </div>
+  <div class="col-1"></div>
+</div>
+{% endfor %}
+
+<!-- Different -->
+{% for diff in result.different %}
+<div class="diff-row diff-changed row g-0 align-items-start py-2 px-2">
+  <div class="col-1 text-center pt-1">
+    <input type="checkbox" class="patmod-check"
+           data-action='{"type":"add_patmod_entry","entry_name":"{{ diff.name | e }}"}' />
+  </div>
+  <div class="col-5">
+    <div class="font-mono small fw-bold text-warning">{{ diff.name }}</div>
+    <pre class="diff-json-block ref-block">{{ diff.ref_entry.entry | tojson(indent=2) }}</pre>
+  </div>
+  <div class="col-5">
+    <div class="font-mono small fw-bold text-warning">{{ diff.name }}</div>
+    <pre class="diff-json-block new-block">{{ diff.new_entry.entry | tojson(indent=2) }}</pre>
+  </div>
+  <div class="col-1"></div>
+</div>
+{% endfor %}
+
+<!-- Identical -->
+{% if result.identical %}
+<details class="mt-2">
+  <summary class="text-muted small">{{ result.identical|length }} identical entries</summary>
+  {% for name in result.identical %}
+  <div class="diff-row diff-identical row g-0 px-2 py-1">
+    <div class="col-1"></div>
+    <div class="col-10 font-mono small text-muted">{{ name }}</div>
+  </div>
+  {% endfor %}
+</details>
+{% endif %}
+
+{% endblock %}

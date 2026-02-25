@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}PList XML Comparison{% endblock %}
+{% block content %}
+
+<div class="section-header d-flex justify-content-between align-items-center">
+  <h5><i class="bi bi-filetype-xml me-2"></i>UCCAP.all.plist.xml Comparison</h5>
+  <a href="/compare/plists" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-list-ul me-1"></i>Back to PList Folder
+  </a>
+</div>
+
+{% if result.ref_error %}
+<div class="alert alert-danger"><b>Ref Error:</b> {{ result.ref_error }}</div>
+{% endif %}
+{% if result.new_error %}
+<div class="alert alert-warning"><b>New Error:</b> {{ result.new_error }}</div>
+{% endif %}
+
+<!-- Path info -->
+<div class="mb-3 d-flex gap-4 small text-muted">
+  <span><b class="text-danger-emphasis">REF XML:</b>
+    <span class="font-mono" title="{{ result.ref_xml }}">
+      {{ result.ref_xml | replace(cfg.ref_tp_path, '…') }}
+    </span>
+  </span>
+  <span><b class="text-success-emphasis">NEW XML:</b>
+    <span class="font-mono" title="{{ result.new_xml }}">
+      {{ result.new_xml | replace(cfg.new_tp_path, '…') }}
+    </span>
+  </span>
+</div>
+
+<!-- Summary badges -->
+<div class="mb-3 d-flex gap-2 flex-wrap">
+  <span class="badge bg-danger">{{ result.only_in_ref|length }} only in Ref</span>
+  <span class="badge bg-success">{{ result.only_in_new|length }} only in New</span>
+  <span class="badge bg-secondary">{{ result.in_both|length }} in both</span>
+  {% if result.missing_from_new_dir %}
+  <span class="badge bg-danger border border-dark">
+    <i class="bi bi-exclamation-triangle me-1"></i>{{ result.missing_from_new_dir|length }} referenced but no .plist file
+  </span>
+  {% endif %}
+  {% if result.unreferenced_in_new %}
+  <span class="badge bg-warning text-dark">
+    {{ result.unreferenced_in_new|length }} .plist files not in XML
+  </span>
+  {% endif %}
+</div>
+
+<!-- Critical: referenced in XML but no .plist file exists -->
+{% if result.missing_from_new_dir %}
+<div class="alert alert-danger">
+  <b><i class="bi bi-exclamation-triangle me-1"></i>
+    Referenced in New XML but no matching .plist file found in New supersede folder:
+  </b>
+  <ul class="mb-0 mt-1 font-mono small">
+    {% for name in result.missing_from_new_dir %}
+    <li>{{ name }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<!-- Warning: .plist files not referenced in the XML -->
+{% if result.unreferenced_in_new %}
+<div class="alert alert-warning">
+  <b><i class="bi bi-info-circle me-1"></i>
+    .plist files in New supersede folder NOT referenced in New XML:
+  </b>
+  <ul class="mb-0 mt-1 font-mono small">
+    {% for name in result.unreferenced_in_new %}
+    <li>{{ name }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<!-- Two-column diff view -->
+{% if result.only_in_ref or result.only_in_new %}
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between">
+    <span>PList Name Differences</span>
+    <span class="text-muted small">Names present in one XML but not the other</span>
+  </div>
+
+  <!-- Diff header -->
+  <div class="diff-header row g-0 px-2 py-1">
+    <div class="col-6 fw-bold ref-label small">REF only ({{ result.only_in_ref|length }})</div>
+    <div class="col-6 fw-bold new-label small">NEW only ({{ result.only_in_new|length }})</div>
+  </div>
+
+  <!-- Interleaved view: side by side up to max length -->
+  {% set max_len = [result.only_in_ref|length, result.only_in_new|length] | max %}
+  {% for i in range(max_len) %}
+  <div class="diff-row row g-0 px-2 py-0">
+    <div class="col-6 font-mono small {% if i < result.only_in_ref|length %}diff-ref-only text-danger{% else %}text-muted{% endif %} py-1">
+      {{ result.only_in_ref[i] if i < result.only_in_ref|length else '' }}
+    </div>
+    <div class="col-6 font-mono small {% if i < result.only_in_new|length %}diff-new-only text-success{% else %}text-muted{% endif %} py-1">
+      {{ result.only_in_new[i] if i < result.only_in_new|length else '' }}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- In both (collapsed) -->
+{% if result.in_both %}
+<details>
+  <summary class="text-muted small">{{ result.in_both|length }} names present in both XMLs</summary>
+  <div class="card mt-2 mb-3">
+    <div class="card-body p-2 d-flex flex-wrap gap-1">
+      {% for name in result.in_both %}
+      <span class="badge bg-secondary font-mono">{{ name }}</span>
+      {% endfor %}
+    </div>
+  </div>
+</details>
+{% endif %}
+
+{% endblock %}
