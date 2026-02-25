@@ -218,6 +218,7 @@ layout = dbc.Container(fluid=True, className="pb-5", children=[
     dcc.Download(id="eb-download"),
     dcc.Store(id="eb-experiments-store", data=[]),
     dcc.Store(id="eb-edit-index-store", data=None),
+    dcc.Store(id="eb-form-data-store", data={}),  # populated when loading/editing
 
     dbc.Row(dbc.Col(html.Div([
         html.H4([
@@ -371,16 +372,18 @@ layout = dbc.Container(fluid=True, className="pb-5", children=[
 @callback(
     Output("eb-form-container", "children"),
     Input("eb-product", "value"),
+    Input("eb-form-data-store", "data"),
     prevent_initial_call=False
 )
-def rebuild_form(product):
-    return _build_form(product or "GNR")
+def rebuild_form(product, form_data):
+    return _build_form(product or "GNR", exp_data=form_data or {})
 
 
 @callback(
     Output("eb-experiments-store", "data"),
     Output("eb-toast", "children"),
     Output("eb-edit-index-store", "data"),
+    Output("eb-form-data-store", "data", allow_duplicate=True),
     Input("eb-add-btn", "n_clicks"),
     Input("eb-update-btn", "n_clicks"),
     Input("eb-clear-all-btn", "n_clicks"),
@@ -401,7 +404,7 @@ def manage_queue(add_c, update_c, clear_c,
 
     # ── Clear all
     if trigger == "eb-clear-all-btn":
-        return [], _toast("Queue cleared.", "info", 2000), None
+        return [], _toast("Queue cleared.", "info", 2000), None, {}
 
     # ── Import JSON / .tpl
     if trigger == "eb-import-json" and import_json_content:
@@ -415,17 +418,20 @@ def manage_queue(add_c, update_c, clear_c,
                 exps = imported
             else:
                 exps = [imported]
-            return exps, _toast(f"Imported {len(exps)} experiment(s).", "success"), None
+            # Auto-populate form with first experiment so user can review it
+            first_form_data = exps[0] if exps else {}
+            return exps, _toast(f"Imported {len(exps)} experiment(s).", "success"), None, first_form_data
         except Exception as e:
-            return no_update, _toast(f"Import error: {e}", "danger"), no_update
+            return no_update, _toast(f"Import error: {e}", "danger"), no_update, no_update
 
     # ── Import Excel
     if trigger == "eb-import-excel" and import_excel_content:
         try:
             exps = _parse_excel_import(import_excel_content)
-            return exps, _toast(f"Imported {len(exps)} experiment(s) from Excel.", "success"), None
+            first_form_data = exps[0] if exps else {}
+            return exps, _toast(f"Imported {len(exps)} experiment(s) from Excel.", "success"), None, first_form_data
         except Exception as e:
-            return no_update, _toast(f"Excel import error: {e}", "danger"), no_update
+            return no_update, _toast(f"Excel import error: {e}", "danger"), no_update, no_update
 
     # ── Collect current form values
     entry = {"product": product or "GNR"}
@@ -441,15 +447,15 @@ def manage_queue(add_c, update_c, clear_c,
 
     if trigger == "eb-add-btn":
         current.append(entry)
-        return current, _toast(f"Experiment #{len(current)} added.", "success", 2000), None
+        return current, _toast(f"Experiment #{len(current)} added.", "success", 2000), None, no_update
 
     if trigger == "eb-update-btn":
         if edit_idx is not None and 0 <= edit_idx < len(current):
             current[edit_idx] = entry
-            return current, _toast(f"Experiment #{edit_idx + 1} updated.", "success", 2000), None
-        return no_update, _toast("Select an experiment to update.", "warning"), no_update
+            return current, _toast(f"Experiment #{edit_idx + 1} updated.", "success", 2000), None, no_update
+        return no_update, _toast("Select an experiment to update.", "warning"), no_update, no_update
 
-    return no_update, no_update, no_update
+    return no_update, no_update, no_update, no_update
 
 
 def _parse_excel_import(content: str) -> list:
@@ -517,19 +523,20 @@ def render_queue(experiments):
 @callback(
     Output("eb-edit-index-store", "data", allow_duplicate=True),
     Output("eb-edit-indicator", "children"),
+    Output("eb-form-data-store", "data"),
     Input({"type": "eb-edit-btn", "index": dash.ALL}, "n_clicks"),
     State("eb-experiments-store", "data"),
     prevent_initial_call=True
 )
 def load_edit(edit_clicks, experiments):
     if not any(c for c in edit_clicks if c):
-        return no_update, no_update
-    # Find which button was clicked
+        return no_update, no_update, no_update
     triggered = ctx.triggered_id
     if triggered and "index" in triggered:
         idx = triggered["index"]
-        return idx, f"✏ Editing experiment #{idx + 1} — click Update to save"
-    return no_update, no_update
+        exp_data = experiments[idx] if experiments and idx < len(experiments) else {}
+        return idx, f"✏ Editing experiment #{idx + 1} — click Update to save", exp_data
+    return no_update, no_update, no_update
 
 
 @callback(
