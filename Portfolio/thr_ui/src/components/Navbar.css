@@ -1,24 +1,82 @@
 .navbar {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 8px;
   background: #1e1e1e;
   border-bottom: 1px solid #3e3e42;
   height: 36px;
   padding: 0 10px;
-  overflow-x: auto;
-  white-space: nowrap;
   flex-shrink: 0;
+  position: relative;
+  z-index: 100;
 }
 .navbar-brand {
   color: #4ec9b0;
   font-weight: 700;
   font-size: 13px;
-  margin-right: 16px;
+  margin-right: 8px;
   text-decoration: none;
   flex-shrink: 0;
+  white-space: nowrap;
 }
-.navbar-links { display: flex; gap: 2px; }
+.navbar-brand:hover { color: #6de0c7; }
+
+/* Dropdown */
+.nav-dropdown {
+  position: relative;
+}
+.nav-dropdown-btn {
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: #858585;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color .15s, background .15s, border-color .15s;
+  white-space: nowrap;
+}
+.nav-dropdown-btn:hover,
+.nav-dropdown.open .nav-dropdown-btn {
+  color: #d4d4d4;
+  background: #2a2d2e;
+  border-color: #3e3e42;
+}
+.nav-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  background: #252526;
+  border: 1px solid #3e3e42;
+  border-radius: 4px;
+  min-width: 200px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+  z-index: 200;
+}
+.nav-dropdown.open .nav-dropdown-menu {
+  display: flex;
+  flex-direction: column;
+}
+.nav-dropdown-item {
+  padding: 6px 12px;
+  color: #858585;
+  font-size: 12px;
+  text-decoration: none;
+  transition: color .12s, background .12s;
+  white-space: nowrap;
+}
+.nav-dropdown-item:hover { color: #d4d4d4; background: #2a2d2e; }
+.nav-dropdown-item.active { color: #d4d4d4; background: #37373d; border-left: 2px solid #007acc; }
+
+/* Right section */
+.navbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
 .nav-item {
   padding: 4px 8px;
   color: #858585;
@@ -26,6 +84,7 @@
   text-decoration: none;
   border-radius: 3px;
   transition: color .15s, background .15s;
+  white-space: nowrap;
 }
 .nav-item:hover { color: #d4d4d4; background: #2a2d2e; }
 .nav-item.active { color: #d4d4d4; background: #37373d; border-bottom: 2px solid #007acc; }

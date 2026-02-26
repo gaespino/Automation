@@ -1,2 +1,13 @@
-.tool-page { padding: 20px; }
-.page-title { font-size: 16px; color: #4ec9b0; margin-bottom: 12px; }
+.tool-page { padding: 16px 20px; }
+.page-title { font-size: 15px; color: #4ec9b0; margin-bottom: 14px; }
+.decoder-layout { display: grid; grid-template-columns: 360px 1fr; gap: 12px; }
+@media (max-width: 760px) { .decoder-layout { grid-template-columns: 1fr; } }
+.form-grid { display: grid; grid-template-columns: 100px 1fr; gap: 6px 10px; align-items: center; }
+.action-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.result-panel { overflow: auto; }
+.result-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.result-table th { text-align: left; padding: 5px 8px; background: #1e1e1e; color: #858585; border-bottom: 1px solid #3e3e42; }
+.result-table td { padding: 4px 8px; border-bottom: 1px solid #2d2d2d; vertical-align: top; }
+.field-key { color: #9cdcfe; font-weight: 600; white-space: nowrap; }
+.field-val { color: #ce9178; word-break: break-all; }
+.error-msg { color: #f44747; font-size: 12px; padding: 6px; background: #2d1414; border: 1px solid #5a1a1a; border-radius: 3px; margin-bottom: 8px; }

@@ -1,2 +1,19 @@
-.tool-page { padding: 20px; }
-.page-title { font-size: 16px; color: #4ec9b0; margin-bottom: 12px; }
+.tool-page { padding: 16px 20px; }
+.page-title { font-size: 15px; color: #4ec9b0; margin-bottom: 14px; }
+.lp-layout { display: grid; grid-template-columns: 300px 1fr; gap: 12px; }
+@media (max-width: 700px) { .lp-layout { grid-template-columns: 1fr; } }
+.form-grid { display: grid; grid-template-columns: 110px 1fr; gap: 6px 10px; align-items: center; }
+.check-label { display: flex; align-items: center; gap: 6px; color: #d4d4d4; font-size: 12px; cursor: pointer; }
+.check-label input { width: 14px; height: 14px; accent-color: #007acc; }
+.drop-zone {
+  border: 2px dashed #3e3e42; border-radius: 6px; padding: 20px 16px;
+  text-align: center; cursor: pointer;
+  transition: border-color .15s, background .15s; background: #1e1e1e;
+}
+.drop-zone:hover, .drop-zone.drag-over { border-color: #007acc; background: #1a2733; }
+.drop-icon { font-size: 26px; margin-bottom: 6px; }
+.drop-hint { font-size: 11px; color: #858585; }
+.file-list { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; }
+.file-item { display: flex; align-items: center; justify-content: space-between; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 3px; padding: 3px 8px; }
+.file-name { font-size: 11px; color: #d4d4d4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.action-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }

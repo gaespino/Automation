@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import './theme.css';
 import Navbar from './components/Navbar';
+import Home from './pages/Home';
 import AutomationDesigner from './pages/AutomationDesigner';
 import MCAReport from './pages/MCAReport';
 import MCADecoder from './pages/MCADecoder';
@@ -18,7 +19,7 @@ export default function App() {
       <Toaster />
       <Navbar />
       <Routes>
-        <Route path="/"             element={<Navigate to="/automation" replace />} />
+        <Route path="/"             element={<Home />} />
         <Route path="/automation"   element={<AutomationDesigner />} />
         <Route path="/mca-report"   element={<MCAReport />} />
         <Route path="/mca-decoder"  element={<MCADecoder />} />
@@ -27,7 +28,7 @@ export default function App() {
         <Route path="/framework"    element={<FrameworkReport />} />
         <Route path="/fuses"        element={<FuseGenerator />} />
         <Route path="/experiment"   element={<ExperimentBuilder />} />
-        <Route path="*"             element={<Navigate to="/automation" replace />} />
+        <Route path="*"             element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
