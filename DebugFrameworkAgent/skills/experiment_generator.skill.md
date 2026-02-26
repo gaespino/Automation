@@ -13,11 +13,21 @@ Presets are stored in `DebugFrameworkAgent/defaults/presets/` as per-product fil
 - `ask_user` — the minimal set of fields to prompt; all other fields use preset defaults
 - `experiment` — the complete pre-filled field dict
 
-### Preset workflow (Path C)
-1. Load `DebugFrameworkAgent/defaults/presets/` using `preset_loader.load_all()` (auto-merges all product files).
-2. Filter presets by selected product (show only those whose `products` list includes the product).
-3. Display numbered menu with `label` and `description`.
-4. On selection, copy the preset's `experiment` dict as the working data.
+### ⚠️ Preset file priority — critical rule
+
+| File | Purpose | Use for field defaults? |
+|------|---------|------------------------|
+| `GNR.json` / `CWF.json` / `DMR.json` | Product-specific presets with real values (VVAR0-3, paths, TTL folders, etc.) | **YES — always load this first** |
+| `common.json` | Schema template — VVAR fields and paths are intentionally blank (`""`) | **NO — never use as field value source** |
+
+**Product must be confirmed before loading any preset.** If product is unknown, ask before proceeding.
+When a field is non-empty in the product file → use it. When blank → it is intentionally unset; do NOT backfill from `common.json`.
+
+### Preset workflow
+1. **Confirm product** (GNR / CWF / DMR) before doing anything else.
+2. Load the product-specific file: `../defaults/presets/{PRODUCT}.json`.
+3. Filter and display presets by `test_mode` and `content` match (show `label` + `description`).
+4. On selection, copy the preset's `experiment` dict as the working data — all non-empty fields are live values.
 5. Prompt **only** the `ask_user` fields, showing the preset value as the current default.
 6. Offer an "anything else?" free-form override step.
 7. Proceed to validation and export like any other path.
