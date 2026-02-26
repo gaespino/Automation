@@ -1,6 +1,7 @@
 """
 test_stage0_caas_config.py
-Stage 0: CaaS foundations — env-var config, /health endpoint, server instance
+Stage 0: CaaS foundations — env-var config, /health endpoint, server instance.
+Tests both the Dash Flask health endpoint and the FastAPI health endpoint.
 """
 import os
 import sys
@@ -48,7 +49,8 @@ class TestEnvVarConfig:
         assert hasattr(config, "THRTOOLS_DIR")
 
 
-class TestHealthEndpoint:
+class TestDashHealthEndpoint:
+    """Dash Flask app still has a /health route (mounted at /dashboard/ in production)."""
     def test_health_returns_200(self, app_client):
         resp = app_client.get("/health")
         assert resp.status_code == 200
@@ -56,6 +58,28 @@ class TestHealthEndpoint:
     def test_health_returns_ok_body(self, app_client):
         resp = app_client.get("/health")
         assert b"OK" in resp.data or b"ok" in resp.data.lower()
+
+
+
+class TestFastAPIHealthEndpoint:
+    """FastAPI app has its own /health JSON endpoint."""
+    def test_fastapi_health_returns_200(self):
+        from fastapi.testclient import TestClient
+        import importlib
+        mod = importlib.import_module("api.main")
+        client = TestClient(mod.app)
+        resp = client.get("/health")
+        assert resp.status_code == 200
+
+    def test_fastapi_health_json_ok(self):
+        from fastapi.testclient import TestClient
+        import importlib
+        mod = importlib.import_module("api.main")
+        client = TestClient(mod.app)
+        resp = client.get("/health")
+        data = resp.json()
+        assert data.get("status") == "ok"
+
 
 
 class TestServerInstance:
@@ -67,3 +91,8 @@ class TestServerInstance:
     def test_dash_app_has_server(self):
         import app as app_module
         assert app_module.server is app_module.app.server
+
+    def test_fastapi_app_exists(self):
+        import importlib
+        mod = importlib.import_module("api.main")
+        assert hasattr(mod, "app")

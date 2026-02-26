@@ -1,0 +1,60 @@
+.flow-node {
+  width: 190px;
+  border: 2px solid var(--node-color, #555);
+  border-radius: 6px;
+  background: #252526;
+  font-family: 'Consolas', monospace;
+  font-size: 11px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.5);
+  transition: box-shadow .15s;
+}
+.flow-node.selected {
+  box-shadow: 0 0 0 2px #007acc, 0 2px 12px rgba(0,122,204,.4);
+}
+
+/* Header */
+.fn-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 4px 4px 0 0;
+  font-size: 10px;
+  font-weight: 600;
+}
+.fn-symbol { font-size: 13px; }
+.fn-type   { flex: 1; color: rgba(255,255,255,.85); }
+.fn-in-label { font-size: 9px; color: rgba(255,255,255,.55); margin-left: auto; }
+
+/* Body */
+.fn-body { padding: 6px 8px; }
+.fn-name { font-size: 12px; font-weight: 700; color: #d4d4d4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fn-exp  { font-size: 10px; font-style: italic; color: #4ec9b0; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Output strip */
+.fn-out-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: rgba(0,0,0,.3);
+  border-top: 1px solid rgba(255,255,255,.08);
+  border-radius: 0 0 4px 4px;
+}
+.fn-out-label { font-size: 9px; color: rgba(255,255,255,.4); }
+.fn-ports { display: flex; gap: 4px; margin-left: auto; }
+.fn-port-dot {
+  width: 18px; height: 14px;
+  border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 700; color: #000;
+  cursor: default;
+}
+
+/* Handles */
+.handle-in, .handle-out {
+  width: 10px !important; height: 10px !important;
+  border: 2px solid #1e1e1e !important;
+}
+.handle-in  { background: #858585 !important; }
+.handle-out { background: #4ec9b0 !important; }

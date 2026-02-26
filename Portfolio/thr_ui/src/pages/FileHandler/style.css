@@ -1,0 +1,26 @@
+.tool-page { padding: 16px 20px; }
+.page-title { font-size: 15px; color: #4ec9b0; margin-bottom: 10px; }
+.tab-bar { display: flex; gap: 2px; margin-bottom: 12px; border-bottom: 1px solid #3e3e42; }
+.tab-btn {
+  padding: 6px 16px; background: transparent; border: none; border-bottom: 2px solid transparent;
+  color: #858585; font-size: 12px; font-family: inherit; cursor: pointer; transition: color .15s;
+}
+.tab-btn:hover { color: #d4d4d4; }
+.tab-btn.active { color: #d4d4d4; border-bottom-color: #007acc; }
+.tab-content {}
+.fh-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 700px) { .fh-layout { grid-template-columns: 1fr; } }
+.form-grid { display: grid; grid-template-columns: 110px 1fr; gap: 6px 10px; align-items: center; }
+.drop-zone {
+  border: 2px dashed #3e3e42; border-radius: 6px; padding: 20px 16px;
+  text-align: center; cursor: pointer;
+  transition: border-color .15s, background .15s; background: #1e1e1e;
+}
+.drop-zone:hover, .drop-zone.drag-over { border-color: #007acc; background: #1a2733; }
+.drop-icon { font-size: 24px; margin-bottom: 4px; }
+.drop-hint { font-size: 11px; color: #858585; }
+.file-list { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; }
+.file-item { display: flex; align-items: center; justify-content: space-between; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 3px; padding: 3px 8px; }
+.file-name { font-size: 11px; color: #d4d4d4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.selected-file { margin-top: 8px; font-size: 12px; color: #d4d4d4; display: flex; align-items: center; gap: 8px; }
+.action-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }

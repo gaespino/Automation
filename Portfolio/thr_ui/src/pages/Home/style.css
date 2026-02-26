@@ -1,0 +1,147 @@
+/* ── Home Page ─────────────────────────────────── */
+.home-page {
+  padding: 40px 28px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* Hero */
+.home-hero {
+  text-align: center;
+  margin-bottom: 36px;
+}
+.home-title {
+  font-size: 40px;
+  font-weight: 700;
+  color: #4ec9b0;
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+}
+.home-subtitle {
+  color: #858585;
+  font-size: 15px;
+}
+
+/* Dashboard section */
+.home-dashboard-section {
+  display: flex;
+  text-decoration: none;
+  background: #252526;
+  border: 1px solid #007acc;
+  border-radius: 8px;
+  padding: 22px 28px;
+  margin-bottom: 28px;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  box-shadow: 0 0 0 1px transparent;
+}
+.home-dashboard-section:hover {
+  background: #2a2d2e;
+  border-color: #1a9fff;
+  box-shadow: 0 0 16px rgba(0,122,204,0.25);
+}
+.home-dashboard-inner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+.home-dashboard-icon {
+  font-size: 36px;
+  flex-shrink: 0;
+}
+.home-dashboard-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.home-dashboard-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+}
+.home-dashboard-desc {
+  font-size: 13px;
+  color: #858585;
+}
+.home-dashboard-arrow {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #007acc;
+  border: 1px solid #007acc;
+  border-radius: 4px;
+  padding: 6px 14px;
+  white-space: nowrap;
+}
+.home-dashboard-section:hover .home-dashboard-arrow {
+  background: #007acc;
+  color: #fff;
+}
+
+/* THR Tools section */
+.home-tools-section {
+  background: #252526;
+  border: 1px solid #3e3e42;
+  border-radius: 8px;
+  padding: 24px 24px 28px;
+}
+.home-tools-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #3e3e42;
+}
+.home-tools-header-icon {
+  font-size: 22px;
+}
+.home-tools-header-label {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+}
+.home-tools-header-sub {
+  font-size: 12px;
+  color: #858585;
+  margin-left: auto;
+}
+
+/* Tool tiles grid */
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.tool-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #1e1e1e;
+  border: 1px solid #3e3e42;
+  border-radius: 6px;
+  padding: 14px 16px;
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.tool-tile:hover {
+  border-color: #007acc;
+  background: #2a2d2e;
+  box-shadow: 0 0 8px rgba(0,122,204,0.2);
+}
+.tool-tile-icon {
+  font-size: 20px;
+  margin-bottom: 2px;
+}
+.tool-tile-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #d4d4d4;
+}
+.tool-tile-desc {
+  font-size: 11px;
+  color: #858585;
+  line-height: 1.4;
+}
+

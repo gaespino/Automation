@@ -31,12 +31,11 @@ class TestMCADecoder:
             obj = mcadata_class()
         assert obj is not None
 
-    def test_mcadata_has_decode_method(self, mcadata_class):
-        try:
-            obj = mcadata_class(product="GNR")
-        except TypeError:
-            obj = mcadata_class()
-        assert hasattr(obj, "decode") or hasattr(obj, "run") or hasattr(obj, "parse")
+    def test_mcadata_has_decode_method(self):
+        # mcadata is a data-loader; the actual decoding class is `decoder`
+        # which wraps mcadata and provides cha(), llc(), core(), mem(), io() decode methods.
+        from THRTools.Decoder.decoder import decoder
+        assert hasattr(decoder, "cha") or hasattr(decoder, "llc") or hasattr(decoder, "core")
 
 
 # ── PTC Loop Parser ───────────────────────────────────────────────────────────

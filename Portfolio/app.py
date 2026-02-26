@@ -1,8 +1,14 @@
 """
-Portfolio Unified App
-=====================
-Single Dash server hosting Unit Portfolio and all THR Tools.
-Entrypoint for both local dev and CaaS (gunicorn app:server).
+Portfolio Dashboard — Dash app
+===============================
+Serves the Unit Portfolio / Dashboard pages.
+Mounted at /dashboard/ by FastAPI (api/main.py).
+
+Entry points:
+  Development:  uvicorn api.main:app --reload --port 8000
+  CaaS:         uvicorn api.main:app --host 0.0.0.0 --port 8000
+
+THR Tools are served separately at /thr/ (React SPA) with a REST backend at /api/.
 """
 import logging
 import sys
@@ -11,8 +17,9 @@ from dash import html, dcc
 import dash_bootstrap_components as dbc
 
 from config import PORT, DEBUG, HOST, LOG_LEVEL
+from components.navbar import build_navbar
 
-# --- Logging (stdout — CaaS log aggregators capture stdout/stderr) ---
+# --- Logging ---
 logging.basicConfig(
     stream=sys.stdout,
     level=getattr(logging, LOG_LEVEL, logging.INFO),
@@ -22,11 +29,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --- App Initialization ---
+# When mounted via FastAPI WSGIMiddleware at /dashboard/, Dash must know its
+# prefix so that all generated URLs (scripts, API calls, links) are correct.
 app = dash.Dash(
     __name__,
     use_pages=True,
     pages_folder='pages',
     assets_folder='assets',
+    requests_pathname_prefix="/dashboard/",
+    routes_pathname_prefix="/",
     external_stylesheets=[
         dbc.themes.BOOTSTRAP,
         dbc.icons.BOOTSTRAP,
@@ -37,28 +48,15 @@ app = dash.Dash(
     suppress_callback_exceptions=True
 )
 
-# Expose Flask server — gunicorn targets this: gunicorn app:server
+# Expose Flask server — FastAPI mounts this via starlette.middleware.wsgi
 server = app.server
 
-# --- Health check endpoint (CaaS liveness/readiness probe) ---
+# --- Health check endpoint ---
 @server.route('/health')
 def health():
     return 'OK', 200
 
 # --- App Layout ---
-app.layout = html.Div([
-    dcc.Location(id='url', refresh=False),
-    html.Div(id='navbar-container'),
-
-    # Import navbar component here to avoid circular issues at module load
-    html.Div(id='app-shell', children=[
-        dash.page_container
-    ])
-], style={'backgroundColor': 'var(--bg-body, #0a0b10)', 'minHeight': '100vh'})
-
-# Inject navbar via clientside or server callback — we use a layout wrapper instead
-from components.navbar import build_navbar  # noqa: E402
-
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     build_navbar(),

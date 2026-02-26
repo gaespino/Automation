@@ -1,0 +1,22 @@
+.tool-page { padding: 16px 20px; }
+.page-title { font-size: 15px; color: #4ec9b0; margin-bottom: 14px; }
+.fr-upload-row { display: flex; gap: 10px; align-items: center; }
+.drop-zone-inline {
+  flex: 1; border: 1px dashed #3e3e42; border-radius: 4px; padding: 8px 14px;
+  cursor: pointer; font-size: 12px; color: #858585; background: #1e1e1e;
+  transition: border-color .15s, background .15s;
+}
+.drop-zone-inline:hover, .drop-zone-inline.drag-over { border-color: #007acc; background: #1a2733; }
+.drop-zone-inline.has-file { border-color: #4ec9b0; color: #d4d4d4; }
+.section-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.action-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.exp-table-wrap { overflow-x: auto; }
+.exp-table { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+.exp-table th { text-align: left; padding: 5px 8px; background: #1e1e1e; color: #858585; border-bottom: 1px solid #3e3e42; }
+.exp-table td { padding: 3px 6px; border-bottom: 1px solid #2d2d2d; }
+.exp-table select, .exp-table input { font-size: 11px; padding: 2px 4px; }
+.exp-row-off { opacity: 0.4; }
+.exp-name { color: #9cdcfe; font-size: 11px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+.opts-grid { display: grid; grid-template-columns: 220px 1fr; gap: 8px 12px; align-items: center; }
+.check-label { display: flex; align-items: center; gap: 6px; color: #d4d4d4; font-size: 12px; cursor: pointer; }
+.check-label input[type=checkbox] { width: 14px; height: 14px; accent-color: #007acc; }

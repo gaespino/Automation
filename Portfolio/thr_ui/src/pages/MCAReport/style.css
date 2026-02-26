@@ -1,0 +1,24 @@
+.tool-page { padding: 16px 20px; }
+.page-title { font-size: 15px; color: #4ec9b0; margin-bottom: 14px; }
+.dim { color: #858585; font-size: 12px; }
+.mca-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 700px) { .mca-layout { grid-template-columns: 1fr; } }
+.form-grid { display: grid; grid-template-columns: 100px 1fr; gap: 6px 10px; align-items: center; }
+.checkbox-group { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.check-label { display: flex; align-items: center; gap: 6px; color: #d4d4d4; font-size: 12px; cursor: pointer; }
+.check-label input { width: 14px; height: 14px; accent-color: #007acc; }
+.drop-zone {
+  border: 2px dashed #3e3e42;
+  border-radius: 6px;
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  background: #1e1e1e;
+}
+.drop-zone:hover, .drop-zone.drag-over { border-color: #007acc; background: #1a2733; }
+.drop-zone.has-file { border-color: #4ec9b0; }
+.drop-icon { font-size: 28px; margin-bottom: 6px; }
+.drop-hint { font-size: 11px; color: #858585; }
+.drop-filename { font-size: 12px; color: #d4d4d4; margin-bottom: 4px; word-break: break-all; }
+.action-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }

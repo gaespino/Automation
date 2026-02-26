@@ -205,9 +205,6 @@ class DataHandler:
         data["experiments"].extend(new_exps)
         return DataHandler.save_unit_data(product, bucket, unit, data, platform)
 
-            
-        return DataHandler.save_unit_data(product, bucket, unit, data, platform)
-
     @staticmethod
     def get_script_configs():
         os.makedirs(SETTINGS_DIR, exist_ok=True)

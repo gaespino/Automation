@@ -5,7 +5,7 @@ from openpyxl import load_workbook
 from openpyxl.worksheet.table import Table, TableStyleInfo
 import shutil
 #import win32com.client as win32
-import xlwings as xw
+# xlwings removed — not compatible with CaaS headless environments; use openpyxl instead
 import sys
 import os
 #import json
@@ -495,10 +495,7 @@ class ppv_report():
 		target_workbook.save(target_file)
 
 	def copy_table_data(self, source_wb, target_wb, option = 'MESH'):
-
-		# Variables Init
-		#source_wb = self.data_file
-		#target_wb = self.mca_file
+		"""Copy named-table data from source workbook to target workbook (openpyxl implementation)."""
 
 		## Selects which table to update
 		if option == 'MESH':
@@ -517,18 +514,44 @@ class ppv_report():
 			print('No valid option selected, use: MESH or CORE')
 			sys.exit()
 
-		# Get the source and target tables
-		source_table = source_wb.sheets[sheet_name].tables[table_name]
-		target_table = target_wb.sheets[sheet_name].tables[table_name]
+		# openpyxl: worksheets accessed by name via wb[sheet_name]
+		src_ws = source_wb[sheet_name]
+		tgt_ws = target_wb[sheet_name]
 
-		# Get the range of the source table
-		source_range = source_table.data_body_range
+		# Locate the named table in each worksheet
+		src_table = src_ws.tables.get(table_name)
+		tgt_table = tgt_ws.tables.get(table_name)
 
-		# Clear the target table data
-		target_table.data_body_range.clear_contents()
+		if src_table is None:
+			print(f"Table '{table_name}' not found in source sheet '{sheet_name}'.")
+			return
+		if tgt_table is None:
+			print(f"Table '{table_name}' not found in target sheet '{sheet_name}'.")
+			return
 
-		# Copy the data from the source table to the target table
-		target_table.data_body_range.value = source_range.value
+		# Parse the table reference (e.g. "A1:Z100") to determine data body range
+		# openpyxl table.ref covers header + data; header is the first row
+		from openpyxl.utils import range_boundaries
+		min_col, min_row, max_col, max_row = range_boundaries(src_table.ref)
+		# Data body starts one row after header
+		src_data_rows = list(src_ws.iter_rows(min_row=min_row + 1, max_row=max_row,
+		                                       min_col=min_col, max_col=max_col,
+		                                       values_only=True))
+
+		tgt_min_col, tgt_min_row, tgt_max_col, tgt_max_row = range_boundaries(tgt_table.ref)
+		# Clear target data body rows
+		for row in tgt_ws.iter_rows(min_row=tgt_min_row + 1, max_row=tgt_max_row,
+		                             min_col=tgt_min_col, max_col=tgt_max_col):
+			for cell in row:
+				cell.value = None
+
+		# Write source data into target (row by row)
+		for row_idx, row_data in enumerate(src_data_rows):
+			tgt_row = tgt_min_row + 1 + row_idx
+			if tgt_row > tgt_max_row:
+				break
+			for col_idx, value in enumerate(row_data):
+				tgt_ws.cell(row=tgt_row, column=tgt_min_col + col_idx, value=value)
 
 		print(f"Data copied successfully from source to target workbook {sheet_name} table {table_name}.")
 
@@ -606,14 +629,8 @@ class ppv_report():
 
 # File manipulation scripts
 def file_open(file):
-	# Variables Init
-	#source_file = self.data_file
-	#target_file = self.mca_file
-
-	# Open the source and target workbooks
-	wb = xw.Book(file)
-	#target_wb = xw.Book(target_file)
-
+	# Open workbook using openpyxl (replaces xlwings which requires a local Excel install)
+	wb = load_workbook(file)
 	return wb
 
 def file_close(file, save = True): #source_wb, target_wb):

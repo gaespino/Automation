@@ -1,0 +1,99 @@
+.navbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1e1e1e;
+  border-bottom: 1px solid #3e3e42;
+  height: 44px;
+  padding: 0 14px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 100;
+}
+.navbar-brand {
+  color: #4ec9b0;
+  font-weight: 700;
+  font-size: 16px;
+  margin-right: 10px;
+  text-decoration: none;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.navbar-brand:hover { color: #6de0c7; }
+
+/* Dropdown */
+.nav-dropdown {
+  position: relative;
+}
+.nav-dropdown-btn {
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #a0a0a0;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color .15s, background .15s, border-color .15s;
+  white-space: nowrap;
+}
+.nav-dropdown-btn:hover,
+.nav-dropdown.open .nav-dropdown-btn {
+  color: #d4d4d4;
+  background: #2a2d2e;
+  border-color: #3e3e42;
+}
+.nav-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  background: #252526;
+  border: 1px solid #3e3e42;
+  border-radius: 4px;
+  min-width: 210px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+  z-index: 200;
+}
+.nav-dropdown.open .nav-dropdown-menu {
+  display: flex;
+  flex-direction: column;
+}
+.nav-dropdown-item {
+  padding: 7px 14px;
+  color: #a0a0a0;
+  font-size: 13px;
+  text-decoration: none;
+  transition: color .12s, background .12s;
+  white-space: nowrap;
+}
+.nav-dropdown-item:hover { color: #d4d4d4; background: #2a2d2e; }
+.nav-dropdown-item.active { color: #d4d4d4; background: #37373d; border-left: 2px solid #007acc; }
+
+/* Right section */
+.navbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.nav-item {
+  padding: 5px 10px;
+  color: #a0a0a0;
+  font-size: 13px;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: color .15s, background .15s;
+  white-space: nowrap;
+}
+.nav-item:hover { color: #d4d4d4; background: #2a2d2e; }
+.nav-item.active { color: #d4d4d4; background: #37373d; border-bottom: 2px solid #007acc; }
+.nav-item.dashboard-link {
+  color: #6e9fd8;
+  border: 1px solid #3e3e42;
+}
+.nav-item.dashboard-link:hover {
+  background: #2a2d2e;
+  border-color: #007acc;
+  color: #88b9e8;
+}

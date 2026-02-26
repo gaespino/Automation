@@ -18,6 +18,9 @@ eggs/
 .eggs/
 lib/
 lib64/
+# React build output — committed so users don't need Node.js to run the app
+!Portfolio/thr_ui/dist/
+!Portfolio/thr_ui/dist/**
 parts/
 sdist/
 var/
@@ -261,3 +264,6 @@ logs/
 
 # SIMULATIONS folder (test mocks and simulations)
 S2T/SIMULATIONS/
+
+# React UI dependencies
+Portfolio/thr_ui/node_modules/

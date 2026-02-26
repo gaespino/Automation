@@ -1,40 +1,20 @@
 """
-PPV (Pre-Production Validation) Tools Package
+THR Tools Backend Package
 
-A comprehensive suite of tools for PPV data analysis and management.
+Web-based backend modules for the Portfolio THR Tools Dash application.
+All tkinter/desktop GUI code has been removed — the Dash pages in
+Portfolio/pages/thr_tools/ are the new UI layer.
 
 Package Structure:
-- gui: Graphical user interface modules
 - parsers: Data parsing and analysis modules
 - utils: Utility functions and helper modules
 - api: API integration modules
 - Decoder: MCA decoder modules
-- MCChecker: MCA checker tools
+- configs: Product-specific configuration JSON files
 - DebugScripts: Debugging and utility scripts
-
-Main Entry Point:
-    Run 'python run.py' to start the PPV Tools Hub
 """
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 __author__ = "Gaespino"
 
-# Import main components for easy access
-from .gui import (
-    Tools,
-    PTCReportGUI,
-    PPVReportGUI,
-    FileHandlerGUI,
-    FrameworkReportBuilder
-)
-
-from .api import dpmbGUI
-
-__all__ = [
-    'Tools',
-    'PTCReportGUI',
-    'PPVReportGUI',
-    'FileHandlerGUI',
-    'FrameworkReportBuilder',
-    'dpmbGUI'
-]
+__all__ = []
