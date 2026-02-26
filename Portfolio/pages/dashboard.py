@@ -4,7 +4,6 @@ import dash_bootstrap_components as dbc
 import time
 import json
 import datetime
-import numpy as np
 
 dash.register_page(__name__, path='/portfolio', name='Unit Portfolio', title='Unit Portfolio')
 
@@ -471,8 +470,8 @@ def map_script_to_path(template_name):
 )
 def handle_script_manager(n_open, n_cancel, n_save, name, path):
     trigger = ctx.triggered_id
-    if trigger == 'btn-open-script-modal': return True, ""
-    if trigger == 'btn-cancel-script': return False, ""
+    if trigger == 'btn-open-script-modal': return True, "", no_update
+    if trigger == 'btn-cancel-script': return False, "", no_update
     if trigger == 'btn-save-script':
         if not name or not path: return True, "Missing name or path", no_update
         success, msg = DataHandler.save_script_config(name, path)
