@@ -116,8 +116,9 @@ _STYLESHEET = [
         "label": "",                           # all text is inside the SVG
         "background-image": "data(svgBg)",
         "background-fit":   "cover",
-        "background-color": "transparent",
-        "background-opacity": 0,
+        "background-color": "data(color)",     # solid fallback if SVG fails to load
+        "background-opacity": 1,
+        "background-image-opacity": 1,
         "width": 190, "height": 130,
         "shape": "roundrectangle",
         "border-width": 0,                     # border is drawn inside the SVG
@@ -137,11 +138,9 @@ _STYLESHEET = [
         "border-width": 3, "border-color": "#f39c12",
         "shadow-color": "#f39c12", "shadow-blur": 36, "shadow-opacity": 0.95,
     }},
-    # Edge — source exits from bottom, enters target at top
+    # Edge — bezier curves, no forced endpoints (auto-route from nearest node edge)
     {"selector": "edge", "style": {
         "curve-style":        "bezier",
-        "source-endpoint":    "50% 100%",   # bottom centre of source node
-        "target-endpoint":    "50% 0%",     # top centre of target node
         "target-arrow-shape": "triangle",
         "arrow-scale": 1.6,
         "line-color": "data(edgeColor)",
@@ -169,7 +168,8 @@ _PORT_COLORS_LIST = ["#1abc9c", "#e74c3c", "#f39c12", "#9b59b6"]
 def _node_svg(type_label: str, name: str, exp_name: str,
               color: str, colorL: str, colorD: str, node_type: str,
               ports: "list[int] | None" = None,
-              symbol: str = "\u25c9", sym_bg: str = "#1a2a3a") -> str:
+              symbol: str = "\u25c9", sym_bg: str = "#1a2a3a",
+              uid: str = "n") -> str:
     """SVG background for a cytoscape node.
 
     Layout (top → bottom):
@@ -177,12 +177,17 @@ def _node_svg(type_label: str, name: str, exp_name: str,
       NAME   (large, bold, white)        ← most prominent
       [exp]  (small, italic teal — only when assigned)
       ▼ OUT strip with coloured port dots (hidden on EndNode)
+
+    *uid* is used to make linearGradient IDs unique per node so that different
+    browsers don't share gradient definitions across multiple SVG data-URIs.
     """
     W, H, R = 190, 130, 9
     STRIP = 24
     if ports is None:
         ports = _NODE_PORTS.get(node_type, [0, 1, 2, 3])
     is_start = node_type == "StartNode"
+    # Unique IDs to avoid cross-SVG gradient pollution in some browsers
+    gid = re.sub(r"[^a-z0-9]", "", uid.lower())[:8] or "n"
 
     def esc(s: str) -> str:
         return (str(s)
@@ -196,26 +201,26 @@ def _node_svg(type_label: str, name: str, exp_name: str,
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
         f'style="font-family:Segoe UI,Inter,Arial,sans-serif">',
         '<defs>',
-        f'<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">',
+        f'<linearGradient id="bg{gid}" x1="0" y1="0" x2="0" y2="1">',
         f'  <stop offset="0%"   stop-color="{colorL}"/>',
         f'  <stop offset="45%"  stop-color="{color}"/>',
         f'  <stop offset="100%" stop-color="{colorD}"/>',
         '</linearGradient>',
-        f'<linearGradient id="ts" x1="0" y1="0" x2="0" y2="1">',
+        f'<linearGradient id="ts{gid}" x1="0" y1="0" x2="0" y2="1">',
         f'  <stop offset="0%"   stop-color="#000" stop-opacity="0.55"/>',
         f'  <stop offset="100%" stop-color="#000" stop-opacity="0.18"/>',
         '</linearGradient>',
-        f'<linearGradient id="bs" x1="0" y1="0" x2="0" y2="1">',
+        f'<linearGradient id="bs{gid}" x1="0" y1="0" x2="0" y2="1">',
         f'  <stop offset="0%"   stop-color="#000" stop-opacity="0.18"/>',
         f'  <stop offset="100%" stop-color="#000" stop-opacity="0.60"/>',
         '</linearGradient>',
         '</defs>',
         f'<rect x="1" y="1" width="{W-2}" height="{H-2}" rx="{R}" ry="{R}" '
-        f'fill="url(#bg)" stroke="{colorL}" stroke-width="2"/>',
+        f'fill="url(#bg{gid})" stroke="{colorL}" stroke-width="2"/>',
         # Header strip (always visible)
         f'<rect x="1" y="1" width="{W-2}" height="{STRIP}" '
-        f'rx="{R}" ry="{R}" fill="url(#ts)"/>',
-        f'<rect x="1" y="{1+R}" width="{W-2}" height="{STRIP-R}" fill="url(#ts)"/>',
+        f'rx="{R}" ry="{R}" fill="url(#ts{gid})"/>',
+        f'<rect x="1" y="{1+R}" width="{W-2}" height="{STRIP-R}" fill="url(#ts{gid})"/>',
         f'<line x1="1" y1="{STRIP+1}" x2="{W-1}" y2="{STRIP+1}" '
         f'stroke="{colorL}" stroke-opacity="0.35" stroke-width="0.5"/>',
         # Symbol badge (left)
@@ -266,9 +271,9 @@ def _node_svg(type_label: str, name: str, exp_name: str,
             f'<line x1="1" y1="{ys}" x2="{W-1}" y2="{ys}" '
             f'stroke="{colorL}" stroke-opacity="0.35" stroke-width="0.5"/>',
             f'<rect x="1" y="{ys}" width="{W-2}" height="{STRIP}" '
-            f'rx="0" ry="0" fill="url(#bs)"/>',
+            f'rx="0" ry="0" fill="url(#bs{gid})"/>',
             f'<rect x="1" y="{H-1-R}" width="{W-2}" height="{R+1}" '
-            f'rx="{R}" ry="{R}" fill="url(#bs)"/>',
+            f'rx="{R}" ry="{R}" fill="url(#bs{gid})"/>',
             f'<text x="11" y="{H - STRIP//2}" dominant-baseline="middle" '
             f'fill="#6a8a9a" font-size="7" font-weight="600" letter-spacing="1">'
             f'\u25bc OUT</text>',
@@ -304,6 +309,7 @@ def _node_elem(node_id, node_type, name, exp_name, x, y, pending=False):
         node_type, ports,
         symbol=info.get("symbol", "\u25c9"),
         sym_bg=info.get("sym_bg", "#1a2a3a"),
+        uid=node_id,
     )
     return {
         "data": {
@@ -461,10 +467,10 @@ def _toolbar():
 
 def _left_sidebar():
     """Fixed-width left sidebar (no Offcanvas overlay — part of the flex layout)."""
-    def _fld(lbl, fid, ph):
+    def _fld(lbl, fid, ph, t="text"):
         return html.Div([
             html.Label(lbl, style=_LS),
-            dbc.Input(id=fid, type="text", placeholder=ph, className="mb-2",
+            dbc.Input(id=fid, type=t, placeholder=ph, className="mb-2",
                       style={**_IS, "height": "28px"}),
         ])
     return html.Div(
@@ -477,25 +483,52 @@ def _left_sidebar():
             "borderRight": "1px solid rgba(26,188,156,0.2)",
         },
         children=[
-            html.Div(style={"padding": "8px 12px", "borderBottom": "1px solid rgba(255,255,255,0.07)"}, children=[
+            # ── Product selector — most visible, at the very top ──────────────
+            html.Div(style={"padding": "8px 12px",
+                            "borderBottom": "1px solid rgba(26,188,156,0.2)",
+                            "backgroundColor": "rgba(26,188,156,0.06)"}, children=[
+                html.Div([
+                    html.I(className="bi bi-cpu-fill me-2", style={"color": ACCENT}),
+                    html.Span("Product",
+                              style={"color": ACCENT, "fontWeight": "700",
+                                     "fontSize": "0.88rem"}),
+                ], style={"marginBottom": "5px"}),
+                dbc.Select(id="ad-product",
+                           options=[{"label": p, "value": p} for p in _PRODUCTS],
+                           value="GNR",
+                           style={**_IS, "height": "30px", "fontWeight": "600",
+                                  "fontSize": "0.84rem"}),
+            ]),
+            # ── Unit Configuration ────────────────────────────────────────────
+            html.Div(style={"padding": "8px 12px",
+                            "borderBottom": "1px solid rgba(255,255,255,0.07)"}, children=[
                 html.Div([
                     html.I(className="bi bi-cpu me-2", style={"color": ACCENT}),
                     html.Span("Unit Configuration",
-                              style={"color": ACCENT, "fontWeight": "700", "fontSize": "0.84rem"}),
+                              style={"color": ACCENT, "fontWeight": "700",
+                                     "fontSize": "0.84rem"}),
                 ], style={"marginBottom": "8px"}),
                 _fld("Visual ID",  "ad-vid",    "75EH348100130"),
                 _fld("Bucket",     "ad-bucket", "N/A"),
                 _fld("COM Port",   "ad-com",    "COM3"),
                 _fld("IP Address", "ad-ip",     "192.168.1.100"),
-                dbc.Checklist(
-                    id="ad-unit-flags",
-                    options=[{"label": "600W Unit",  "value": "600w"},
-                             {"label": "Check Core", "value": "check_core"}],
-                    value=[],
-                    inputStyle={"marginRight": "6px"},
-                    labelStyle={"color": "#dde4ee", "fontSize": "0.82rem"},
-                ),
+                html.Div([
+                    dbc.Checklist(
+                        id="ad-unit-flags",
+                        options=[{"label": "600W Unit", "value": "600w"}],
+                        value=[],
+                        inputStyle={"marginRight": "6px"},
+                        labelStyle={"color": "#dde4ee", "fontSize": "0.82rem"},
+                    ),
+                ], className="mb-1"),
+                html.Div([
+                    html.Label("Check Core (int)", style=_LS),
+                    dbc.Input(id="ad-check-core", type="number", placeholder="e.g. 7",
+                              min=0, step=1,
+                              style={**_IS, "height": "26px", "fontSize": "0.8rem"}),
+                ]),
             ]),
+            # ── Load Experiments ──────────────────────────────────────────────
             html.Div(style={"padding": "8px 12px"}, children=[
                 html.Div([
                     html.I(className="bi bi-collection me-2", style={"color": ACCENT}),
@@ -503,11 +536,6 @@ def _left_sidebar():
                               style={"color": ACCENT, "fontWeight": "700",
                                      "fontSize": "0.84rem", "marginBottom": "8px"}),
                 ], style={"marginBottom": "8px"}),
-                html.Label("Product", style=_LS),
-                dbc.Select(id="ad-product",
-                           options=[{"label": p, "value": p} for p in _PRODUCTS],
-                           value="GNR", className="mb-2",
-                           style={**_IS, "height": "28px"}),
                 dcc.Upload(
                     id="ad-exp-upload", multiple=False,
                     children=html.Div([
@@ -613,7 +641,40 @@ def _right_panel_content():
                      children=body_children),
         ], style={"borderBottom": "1px solid rgba(255,255,255,0.08)"})
 
+    # Node Palette — colored buttons, one per type, clicking adds that node
+    palette_btns = []
+    for nt in _NODE_TYPES:
+        palette_btns.append(
+            dbc.Button(
+                [html.Span(nt["symbol"], style={"marginRight": "4px"}), nt["label"]],
+                id={"type": "ad-palette-btn", "index": nt["type"]},
+                n_clicks=0, size="sm",
+                style={
+                    "backgroundColor": nt["colorD"],
+                    "borderColor": nt["colorL"],
+                    "color": "#fff",
+                    "fontSize": "0.72rem",
+                    "padding": "2px 6px",
+                    "height": "24px",
+                    "width": "100%",
+                    "textAlign": "left",
+                    "marginBottom": "2px",
+                    "overflow": "hidden", "textOverflow": "ellipsis",
+                    "whiteSpace": "nowrap",
+                },
+            )
+        )
+
     return [
+        # ── Node Palette — add nodes by clicking type buttons ─────────────────
+        html.Div([
+            html.Div("Node Palette", style={
+                "color": ACCENT, "fontSize": "0.77rem", "fontWeight": "700",
+                "padding": "6px 10px 4px",
+                "borderBottom": "1px solid rgba(255,255,255,0.07)",
+            }),
+            html.Div(palette_btns, style={"padding": "6px 10px"}),
+        ], style={"borderBottom": "1px solid rgba(255,255,255,0.08)"}),
         # ── Node Editor FIRST — most important panel ──────────────────────────
         _card("Node Editor", "ad-node-editor",
               [html.Span("Click a node or press Edit ✏ in the list below.",
@@ -782,6 +843,8 @@ def layout():
         _toolbar(),
         _edit_modal(),
         _exp_editor_modal(),
+        # Validation banner — shown below toolbar after Validate is clicked
+        html.Div(id="ad-validate-banner", style={"padding": "0", "flexShrink": 0}),
 
         html.Div(style={"display": "flex", "flex": "1",
                         "overflow": "hidden", "minHeight": 0}, children=[
@@ -976,6 +1039,7 @@ def select_edge(edge_data):
     Input("ad-layout-btn",         "n_clicks"),
     Input("ad-load-upload",        "contents"),
     Input("ad-canvas",             "tapNodeData"),
+    Input({"type": "ad-palette-btn", "index": ALL}, "n_clicks"),
     State("ad-node-type-sel",      "value"),
     State("ad-nodes-store",        "data"),
     State("ad-edges-store",        "data"),
@@ -989,7 +1053,7 @@ def select_edge(edge_data):
     prevent_initial_call=True,
 )
 def manage_canvas(add_c, del_c, del_edge_c, layout_c, load_content,
-                  tap_node,
+                  tap_node, palette_clicks,
                   node_type, nodes, edges, counter,
                   selected_nodes, connect_mode, sel_edge,
                   load_fname, log_val,
@@ -1017,7 +1081,7 @@ def manage_canvas(add_c, del_c, del_edge_c, layout_c, load_content,
                 cmode, hint, no_update, log, status, no_update,
                 no_update, no_update)
 
-    # ── Add node ──────────────────────────────────────────────────────────────
+    # ── Add node (toolbar button) ─────────────────────────────────────────────
     if trigger == "ad-add-node-btn":
         nid  = f"NODE_{counter:03d}"
         counter += 1
@@ -1026,6 +1090,24 @@ def manage_canvas(add_c, del_c, del_edge_c, layout_c, load_content,
         nodes[nid] = {"id": nid, "name": nid, "type": node_type,
                       "x": x, "y": y, "experiment": "", "connections": {}}
         _log(f"Added {_TYPE_MAP.get(node_type, {}).get('label', node_type)}: {nid}")
+        elems = _build_elements(nodes, edges, cmode.get("pending"), cpos)
+        return (nodes, edges, counter, elems, _node_list_html(nodes),
+                cmode, hint, _stats(), log, f"Added {nid}.",
+                _toast(f"Added {nid}", "success", 1500),
+                no_update, no_update)
+
+    # ── Add node via palette button ───────────────────────────────────────────
+    if isinstance(trigger, dict) and trigger.get("type") == "ad-palette-btn":
+        if not any((c or 0) > 0 for c in (palette_clicks or [])):
+            return _no_change()
+        ptype = trigger["index"]
+        nid   = f"NODE_{counter:03d}"
+        counter += 1
+        n     = len(nodes)
+        x, y  = 160 + (n % 4) * 220, 160 + (n // 4) * 175
+        nodes[nid] = {"id": nid, "name": nid, "type": ptype,
+                      "x": x, "y": y, "experiment": "", "connections": {}}
+        _log(f"Added {_TYPE_MAP.get(ptype, {}).get('label', ptype)}: {nid}")
         elems = _build_elements(nodes, edges, cmode.get("pending"), cpos)
         return (nodes, edges, counter, elems, _node_list_html(nodes),
                 cmode, hint, _stats(), log, f"Added {nid}.",
@@ -1176,7 +1258,21 @@ def manage_canvas(add_c, del_c, del_edge_c, layout_c, load_content,
             return (nodes, edges, counter, elems, no_update,
                     new_cmode, hint, _stats(), log, "Cancelled (same node).",
                     no_update, no_update, no_update)
-        # Deduplicate then add
+        # Port uniqueness: each (source, port) can only connect to ONE target
+        existing = [e for e in edges
+                    if e["source"] == src_id and int(e.get("port", -1)) == port_num]
+        if existing and existing[0]["target"] != nid:
+            existing_tgt = existing[0]["target"]
+            new_cmode = {**cmode, "pending": None}
+            hint      = "Click source node \u2192"
+            elems     = _build_elements(nodes, edges, canvas_pos=cpos)
+            _log(f"Port P{port_num} of {src_id} already connected to {existing_tgt}")
+            return (nodes, edges, counter, elems, no_update,
+                    new_cmode, hint, _stats(), log,
+                    f"P{port_num} of {src_id} already wired to {existing_tgt}. Remove it first.",
+                    _toast(f"Port P{port_num} already used on {src_id}.", "warning"),
+                    no_update, no_update)
+        # Remove any exact duplicate then add
         edges = [e for e in edges
                  if not (e["source"] == src_id and e["target"] == nid
                          and int(e.get("port", -1)) == port_num)]
@@ -1275,28 +1371,30 @@ def apply_edit(n, node_id, name, exp, nodes, edges, cmode, cur_elements):
 
 
 @callback(
-    Output("ad-download",      "data"),
-    Output("ad-export-status", "children"),
-    Output("ad-toast",         "children", allow_duplicate=True),
-    Output("ad-result-store",  "data"),
-    Input("ad-save-btn",       "n_clicks"),
-    Input("ad-export-btn",     "n_clicks"),
-    Input("ad-validate-btn",   "n_clicks"),
-    State("ad-nodes-store",    "data"),
-    State("ad-edges-store",    "data"),
+    Output("ad-download",        "data"),
+    Output("ad-export-status",   "children"),
+    Output("ad-toast",           "children", allow_duplicate=True),
+    Output("ad-result-store",    "data"),
+    Output("ad-validate-banner", "children"),
+    Input("ad-save-btn",         "n_clicks"),
+    Input("ad-export-btn",       "n_clicks"),
+    Input("ad-validate-btn",     "n_clicks"),
+    State("ad-nodes-store",      "data"),
+    State("ad-edges-store",      "data"),
     State("ad-experiments-store","data"),
-    State("ad-vid",            "value"),
-    State("ad-bucket",         "value"),
-    State("ad-com",            "value"),
-    State("ad-ip",             "value"),
-    State("ad-unit-flags",     "value"),
-    State("ad-save-name",      "value"),
-    State("ad-canvas",         "elements"),
+    State("ad-vid",              "value"),
+    State("ad-bucket",           "value"),
+    State("ad-com",              "value"),
+    State("ad-ip",               "value"),
+    State("ad-unit-flags",       "value"),
+    State("ad-check-core",       "value"),
+    State("ad-save-name",        "value"),
+    State("ad-canvas",           "elements"),
     prevent_initial_call=True,
 )
 def save_or_export(save_c, export_c, validate_c,
                    nodes, edges, experiments,
-                   vid, bucket, com, ip, flags, save_name,
+                   vid, bucket, com, ip, flags, check_core, save_name,
                    cur_elements):
     trigger = ctx.triggered_id
     nodes   = nodes   or {}
@@ -1310,54 +1408,63 @@ def save_or_export(save_c, export_c, validate_c,
                                "x": cp["x"] if cp else nd.get("x", 200),
                                "y": cp["y"] if cp else nd.get("y", 200)}
 
+    def _unit_cfg():
+        return {
+            "Visual ID":  vid or "",
+            "Bucket":     bucket or "",
+            "COM Port":   com or "",
+            "IP Address": ip or "",
+            "600W Unit":  "600w" in (flags or []),
+            "Check Core": int(check_core) if check_core not in (None, "", " ") else 0,
+        }
+
     if trigger == "ad-validate-btn":
-        errs, _ = _validate(nodes, edges, experiments or {})
+        errs, warns = _validate(nodes, edges, experiments or {})
         if errs:
-            msg = html.Div([html.P(f"\u274c {e}",
-                                   style={"color": "#e74c3c",
-                                          "fontSize": "0.74rem", "margin": "1px 0"})
-                            for e in errs])
-            return no_update, msg, _toast(f"{len(errs)} error(s).", "danger"), no_update
-        return (no_update,
-                html.P("\u2713 Flow is valid!", style={"color": ACCENT, "fontSize": "0.74rem"}),
-                _toast("Flow valid.", "success", 2000), no_update)
+            banner = dbc.Alert(
+                [html.Strong("Validation Errors: "), html.Br()] +
+                [html.Span(["\u274c ", e, html.Br()], style={"fontSize": "0.8rem"})
+                 for e in errs] +
+                ([html.Span(["\u26a0 ", w, html.Br()],
+                             style={"fontSize": "0.8rem", "color": "#f39c12"})
+                  for w in warns] if warns else []),
+                color="danger", dismissable=True, is_open=True,
+                style={"margin": "4px 8px", "padding": "6px 12px"},
+            )
+            return no_update, no_update, _toast(f"{len(errs)} error(s).", "danger"), no_update, banner
+        banner = dbc.Alert(
+            ["\u2713 Flow is valid!"] + (
+                [html.Span([html.Br(), "\u26a0 " + w]) for w in warns]
+                if warns else []
+            ),
+            color="success", dismissable=True, is_open=True,
+            style={"margin": "4px 8px", "padding": "6px 12px"},
+        )
+        return (no_update, no_update, _toast("Flow valid.", "success", 2000),
+                no_update, banner)
 
     if trigger == "ad-save-btn":
         if not nodes:
-            return no_update, no_update, _toast("Nothing to save.", "warning"), no_update
+            return no_update, no_update, _toast("Nothing to save.", "warning"), no_update, no_update
         design = {
             "_format": "web",
             "nodes": nodes_with_pos, "edges": edges,
             "experiments": experiments or {},
-            "unit_config": {
-                "Visual ID":  vid or "",
-                "Bucket":     bucket or "",
-                "COM Port":   com or "",
-                "IP Address": ip or "",
-                "600W Unit":  "600w"       in (flags or []),
-                "Check Core": "check_core" in (flags or []),
-            },
+            "unit_config": _unit_cfg(),
         }
         fname = (save_name or "flow_design.json")
         if not fname.endswith(".json"):
             fname += ".json"
         return (dcc.send_string(json.dumps(design, indent=2), fname),
                 f"\u2713 Saved: {fname}",
-                _toast(f"Saved: {fname}", "success"), None)
+                _toast(f"Saved: {fname}", "success"), None, no_update)
 
     if trigger == "ad-export-btn":
         errs, _ = _validate(nodes_with_pos, edges, experiments or {})
         if errs:
             return (no_update, no_update,
-                    _toast("Fix validation errors first.", "danger"), no_update)
-        unit_cfg = {
-            "Visual ID":  vid or "",
-            "Bucket":     bucket or "",
-            "COM Port":   com or "",
-            "IP Address": ip or "",
-            "600W Unit":  "600w"       in (flags or []),
-            "Check Core": "check_core" in (flags or []),
-        }
+                    _toast("Fix validation errors first.", "danger"), no_update, no_update)
+        unit_cfg = _unit_cfg()
         enriched = {}
         for nid, nd in nodes_with_pos.items():
             en = nd.get("experiment")
@@ -1372,9 +1479,9 @@ def save_or_export(save_c, export_c, validate_c,
         b64 = base64.b64encode(zb).decode()
         return (dcc.send_bytes(zb, fn),
                 f"\u2713 Exported: {fn}",
-                _toast(f"Exported {fn}", "success"), b64)
+                _toast(f"Exported {fn}", "success"), b64, no_update)
 
-    return no_update, no_update, no_update, no_update
+    return no_update, no_update, no_update, no_update, no_update
 
 
 # ══════════════════════════════════════════════════════════════════════════════
