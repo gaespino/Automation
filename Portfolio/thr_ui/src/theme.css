@@ -1,0 +1,109 @@
+/* VSCode Dark+ theme CSS variables */
+:root {
+  --bg:          #1e1e1e;
+  --bg-panel:    #252526;
+  --bg-input:    #3c3c3c;
+  --bg-hover:    #2a2d2e;
+  --border:      #3e3e42;
+  --accent:      #007acc;
+  --accent-h:    #1a9dd9;
+  --success:     #4ec9b0;
+  --warn:        #ce9178;
+  --error:       #f44747;
+  --text:        #d4d4d4;
+  --text-dim:    #858585;
+  --text-bright: #ffffff;
+  /* node type palette */
+  --node-start:  #16825d;
+  --node-end:    #c72e2e;
+  --node-fail1:  #1e5799;
+  --node-fail2:  #103d6e;
+  --node-fail3:  #5c2d91;
+  --node-adapt:  #c07c00;
+  --node-char:   #127d8b;
+  --node-data:   #1a7236;
+  --node-anal:   #6e2f24;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Consolas', 'Menlo', monospace;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-h); }
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* Buttons */
+.btn {
+  padding: 4px 10px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  transition: background .15s;
+}
+.btn:hover   { background: var(--bg-hover); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { background: var(--accent-h); }
+.btn.danger  { background: var(--error); border-color: var(--error); color: #fff; }
+.btn.success { background: var(--success); border-color: var(--success); color: #000; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Form controls */
+input, select, textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text);
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+label { color: var(--text-dim); font-size: 12px; }
+
+/* Panel card */
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px;
+}
+
+/* Section heading */
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Log area */
+.log-area {
+  background: #0d0d0d;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-family: 'Consolas', monospace;
+  color: #a8c023;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

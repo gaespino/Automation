@@ -193,3 +193,45 @@ inside the `Portfolio/` folder (PPV Tkinter GUIs that have been fully replaced b
 - `Portfolio/THRTools/MCAparser_bkup.py`
 
 **Prerequisite:** All web tool pages must be fully verified before removing desktop GUIs.
+
+---
+
+## N. Architecture Migration: Dash → React + FastAPI (IN PROGRESS)
+
+**Status:** Foundation complete. React build committed. FastAPI serving React + Dash.
+
+### What changed
+- **FastAPI** (`api/main.py`) is now the main entry point — replaces `gunicorn app:server`
+- **CaaS entry point**: `uvicorn api.main:app --host 0.0.0.0 --port 8000`
+- **Dash** app remains intact at `/dashboard/` (WSGI-mounted via `starlette.middleware.wsgi`)
+- **React + React Flow** SPA at `/thr/` (built from `thr_ui/`, served as static files)
+- **REST API** at `/api/` for all 7 THR Tools (MCA, Loops, Files, Framework, Fuses, Experiments, Flow)
+
+### Dev workflow
+```bash
+# Terminal 1 — FastAPI backend
+cd Portfolio && uvicorn api.main:app --reload --port 8000
+
+# Terminal 2 — React dev server (HMR)
+cd Portfolio/thr_ui && npm run dev   # proxies /api/* to :8000
+```
+
+### Build for production
+```bash
+cd Portfolio/thr_ui && npm run build   # outputs to thr_ui/dist/
+uvicorn api.main:app                   # serves both API and React SPA
+```
+
+### Remaining TODO
+- [ ] Implement full React form UI for ExperimentBuilder (dynamic ControlPanelConfig.json form)
+- [ ] Implement full React UI for MCA Report (SSE progress log stream from FastAPI)
+- [ ] Implement full React UI for MCA Decoder
+- [ ] Implement full React UI for Loop Parser
+- [ ] Implement full React UI for File Handler
+- [ ] Implement full React UI for Framework Report
+- [ ] Implement full React UI for Fuse Generator
+- [ ] Replace `starlette.middleware.wsgi` (deprecated) with `a2wsgi` package
+- [ ] Add OpenAPI schema validation for all request/response models
+- [ ] Add JWT/API-key auth middleware for CaaS multi-user deployment
+- [ ] SSE streaming for long-running operations (MCA report, Framework generate)
+- [ ] Containerise: single Dockerfile builds React + installs Python deps + runs uvicorn

@@ -261,3 +261,6 @@ logs/
 
 # SIMULATIONS folder (test mocks and simulations)
 S2T/SIMULATIONS/
+
+# React UI dependencies
+Portfolio/thr_ui/node_modules/
