@@ -331,6 +331,18 @@ def _node_elem(node_id, node_type, name, exp_name, x, y, pending=False):
     }
 
 
+def _canvas_pos_map(canvas_elements):
+    """Build a {node_id: {x, y}} map from the current Cytoscape elements list.
+    This preserves user-dragged positions when we rebuild elements."""
+    pos = {}
+    for el in (canvas_elements or []):
+        if "position" in el and "data" in el and "source" not in el.get("data", {}):
+            nid = el["data"].get("id")
+            if nid:
+                pos[nid] = el["position"]
+    return pos
+
+
 def _source_ep(source_id: str, port_num: int, nodes_store: dict) -> str:
     """Compute the 'N% M%' cytoscape source-endpoint for this port on source_id.
 
@@ -856,8 +868,9 @@ def _ctx_menu_modal():
     )
 
 
-
+def _cyto_fallback():
     return dbc.Container(fluid=True, className="pb-4", children=[
+        dcc.Download(id="ad-download"),
         dbc.Alert([
             html.Strong("dash-cytoscape is not installed. "),
             "Run: ", html.Code("pip install dash-cytoscape"), " then restart.",
