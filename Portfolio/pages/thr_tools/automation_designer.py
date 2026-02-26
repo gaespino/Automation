@@ -42,7 +42,7 @@ import re
 import urllib.parse
 
 import dash
-from dash import html, dcc, Input, Output, State, callback, no_update, ctx
+from dash import html, dcc, Input, Output, State, callback, no_update, ctx, ALL
 import dash_bootstrap_components as dbc
 
 try:
@@ -70,15 +70,15 @@ _PORT_OPTIONS = [{"label": f"P{i}:{l}", "value": str(i)} for i, l in _PORT_LABEL
 
 # Node type registry — add new types here to expose them in the designer
 _NODE_TYPES = [
-    {"type": "StartNode",                    "label": "Start",           "color": "#1abc9c", "colorL": "#4ecdc4", "colorD": "#0a7a65"},
-    {"type": "EndNode",                      "label": "End",             "color": "#e74c3c", "colorL": "#ff7675", "colorD": "#922b21"},
-    {"type": "SingleFailFlowInstance",       "label": "SingleFail",      "color": "#3498db", "colorL": "#74b9ff", "colorD": "#1a6fa8"},
-    {"type": "AllFailFlowInstance",          "label": "AllFail",         "color": "#2471a3", "colorL": "#5dade2", "colorD": "#1a4a75"},
-    {"type": "MajorityFailFlowInstance",     "label": "MajorityFail",    "color": "#8e44ad", "colorL": "#bb8fce", "colorD": "#5b2c6f"},
-    {"type": "AdaptiveFlowInstance",         "label": "Adaptive",        "color": "#e67e22", "colorL": "#f0a500", "colorD": "#9c5e0a"},
-    {"type": "CharacterizationFlowInstance", "label": "Characterization","color": "#16a085", "colorL": "#48c9b0", "colorD": "#0a5d4d"},
-    {"type": "DataCollectionFlowInstance",   "label": "DataCollection",  "color": "#27ae60", "colorL": "#6bcf7f", "colorD": "#1a6e38"},
-    {"type": "AnalysisFlowInstance",         "label": "Analysis",        "color": "#c0392b", "colorL": "#ec7063", "colorD": "#7b241c"},
+    {"type": "StartNode",                    "label": "Start",           "color": "#1abc9c", "colorL": "#4ecdc4", "colorD": "#0a7a65", "symbol": "\u25b6", "sym_bg": "#0a5c50"},
+    {"type": "EndNode",                      "label": "End",             "color": "#e74c3c", "colorL": "#ff7675", "colorD": "#922b21", "symbol": "\u25a0", "sym_bg": "#7b2410"},
+    {"type": "SingleFailFlowInstance",       "label": "SingleFail",      "color": "#3498db", "colorL": "#74b9ff", "colorD": "#1a6fa8", "symbol": "\u2717",  "sym_bg": "#1a4a6f"},
+    {"type": "AllFailFlowInstance",          "label": "AllFail",         "color": "#2471a3", "colorL": "#5dade2", "colorD": "#1a4a75", "symbol": "\u2756",  "sym_bg": "#12304e"},
+    {"type": "MajorityFailFlowInstance",     "label": "MajorityFail",    "color": "#8e44ad", "colorL": "#bb8fce", "colorD": "#5b2c6f", "symbol": "\u00bd",  "sym_bg": "#3d1a5a"},
+    {"type": "AdaptiveFlowInstance",         "label": "Adaptive",        "color": "#e67e22", "colorL": "#f0a500", "colorD": "#9c5e0a", "symbol": "\u25c6",  "sym_bg": "#7a4000"},
+    {"type": "CharacterizationFlowInstance", "label": "Characterization","color": "#16a085", "colorL": "#48c9b0", "colorD": "#0a5d4d", "symbol": "\u25ce",  "sym_bg": "#073d33"},
+    {"type": "DataCollectionFlowInstance",   "label": "DataCollection",  "color": "#27ae60", "colorL": "#6bcf7f", "colorD": "#1a6e38", "symbol": "\u2295",  "sym_bg": "#0e4a20"},
+    {"type": "AnalysisFlowInstance",         "label": "Analysis",        "color": "#c0392b", "colorL": "#ec7063", "colorD": "#7b241c", "symbol": "\u2299",  "sym_bg": "#5a1610"},
 ]
 _TYPE_MAP = {n["type"]: n for n in _NODE_TYPES}
 _NODE_TYPE_OPTIONS = [{"label": n["label"], "value": n["type"]} for n in _NODE_TYPES]
@@ -140,11 +140,9 @@ _STYLESHEET = [
     }},
     # Edge — source exits from bottom, enters target at top
     {"selector": "edge", "style": {
-        "curve-style":        "unbundled-bezier",
+        "curve-style":        "bezier",
         "source-endpoint":    "50% 100%",   # bottom centre of source node
         "target-endpoint":    "50% 0%",     # top centre of target node
-        "control-point-distances": "70",
-        "control-point-weights":   "0.5",
         "target-arrow-shape": "triangle",
         "arrow-scale": 1.6,
         "line-color": "data(edgeColor)",
@@ -171,22 +169,21 @@ _PORT_COLORS_LIST = ["#1abc9c", "#e74c3c", "#f39c12", "#9b59b6"]
 
 def _node_svg(type_label: str, name: str, exp_name: str,
               color: str, colorL: str, colorD: str, node_type: str,
-              ports: "list[int] | None" = None) -> str:
+              ports: "list[int] | None" = None,
+              symbol: str = "\u25c9", sym_bg: str = "#1a2a3a") -> str:
     """SVG background for a cytoscape node.
 
     Layout (top → bottom):
-      ▲ INPUT strip  (hidden on StartNode)
+      HEADER strip: [symbol badge left] [type label center] [▲IN right on non-Start]
       NAME   (large, bold, white)        ← most prominent
-      Type   (medium, light-grey)
       [exp]  (small, italic teal — only when assigned)
       ▼ OUT strip with coloured port dots (hidden on EndNode)
     """
     W, H, R = 190, 130, 9
-    STRIP = 22
+    STRIP = 24
     if ports is None:
         ports = _NODE_PORTS.get(node_type, [0, 1, 2, 3])
     is_start = node_type == "StartNode"
-    is_end   = (len(ports) == 0)
 
     def esc(s: str) -> str:
         return (str(s)
@@ -216,36 +213,43 @@ def _node_svg(type_label: str, name: str, exp_name: str,
         '</defs>',
         f'<rect x="1" y="1" width="{W-2}" height="{H-2}" rx="{R}" ry="{R}" '
         f'fill="url(#bg)" stroke="{colorL}" stroke-width="2"/>',
+        # Header strip (always visible)
+        f'<rect x="1" y="1" width="{W-2}" height="{STRIP}" '
+        f'rx="{R}" ry="{R}" fill="url(#ts)"/>',
+        f'<rect x="1" y="{1+R}" width="{W-2}" height="{STRIP-R}" fill="url(#ts)"/>',
+        f'<line x1="1" y1="{STRIP+1}" x2="{W-1}" y2="{STRIP+1}" '
+        f'stroke="{colorL}" stroke-opacity="0.35" stroke-width="0.5"/>',
+        # Symbol badge (left)
+        f'<circle cx="15" cy="{STRIP//2+1}" r="9" fill="{sym_bg}" opacity="0.92"/>',
+        f'<text x="15" y="{STRIP//2+1}" text-anchor="middle" '
+        f'dominant-baseline="middle" fill="white" font-size="10" '
+        f'font-weight="700">{esc(symbol)}</text>',
+        # Type label (centre)
+        f'<text x="{W//2}" y="{STRIP//2+1}" text-anchor="middle" '
+        f'dominant-baseline="middle" fill="#d0e8f8" font-size="9" '
+        f'font-weight="600" letter-spacing="0.5">{esc(type_label)}</text>',
     ]
-
-    # ── TOP strip: INPUT (hidden on StartNode) ────────────────────────────────
+    # ▲IN on non-Start nodes (right side of header)
     if not is_start:
-        p += [
-            f'<rect x="1" y="1" width="{W-2}" height="{STRIP}" '
-            f'rx="{R}" ry="{R}" fill="url(#ts)"/>',
-            f'<rect x="1" y="{1+R}" width="{W-2}" height="{STRIP-R}" fill="url(#ts)"/>',
-            f'<line x1="18" y1="{STRIP}" x2="{W-18}" y2="{STRIP}" '
-            f'stroke="{colorL}" stroke-opacity="0.35" stroke-width="0.5"/>',
-            f'<text x="{W//2}" y="{STRIP//2+1}" text-anchor="middle" '
+        p.append(
+            f'<text x="{W-6}" y="{STRIP//2+1}" text-anchor="end" '
             f'dominant-baseline="middle" fill="#9ab4c8" font-size="8" '
-            f'font-weight="600" letter-spacing="1.5">\u25b2  INPUT</text>',
-        ]
+            f'font-weight="600">\u25b2IN</text>'
+        )
 
     # ── content area ─────────────────────────────────────────────────────────
-    top_off = STRIP if not is_start else 4
-    bot_off = STRIP if ports else 4     # EndNode has no OUT strip → use 4px bottom margin
+    top_off = STRIP + 2
+    bot_off = STRIP if ports else 4
     avail_h = H - top_off - bot_off
 
-    # Name FIRST (most visible), then type label, then experiment
     rows: list[tuple[str, int, str, str]] = [
-        (esc(sname),      13, "#ffffff",  "700"),   # node name — big + bold
-        (esc(type_label),  9, "#b0c8d8",  "400"),   # type — smaller, lighter
+        (esc(sname), 13, "#ffffff", "700"),   # node name — big + bold
     ]
     if sexp:
-        rows.append((f"[ {esc(sexp)} ]", 8, "#1abc9c", "300"))  # experiment — teal italic
+        rows.append((f"[ {esc(sexp)} ]", 8, "#1abc9c", "300"))  # experiment — teal
 
     total_h = sum(sz + 5 for _, sz, _, _ in rows)
-    y_cur   = top_off + (avail_h - total_h) // 2
+    y_cur   = top_off + max(0, (avail_h - total_h) // 2)
 
     for txt, sz, fill, weight in rows:
         y_cur += sz
@@ -256,11 +260,11 @@ def _node_svg(type_label: str, name: str, exp_name: str,
         )
         y_cur += 5
 
-    # ── BOTTOM strip: OUTPUT ports (only for nodes that have output ports) ────
+    # ── BOTTOM strip: OUTPUT ports ────────────────────────────────────────────
     if ports:
         ys = H - STRIP
         p += [
-            f'<line x1="18" y1="{ys}" x2="{W-18}" y2="{ys}" '
+            f'<line x1="1" y1="{ys}" x2="{W-1}" y2="{ys}" '
             f'stroke="{colorL}" stroke-opacity="0.35" stroke-width="0.5"/>',
             f'<rect x="1" y="{ys}" width="{W-2}" height="{STRIP}" '
             f'rx="0" ry="0" fill="url(#bs)"/>',
@@ -270,7 +274,6 @@ def _node_svg(type_label: str, name: str, exp_name: str,
             f'fill="#6a8a9a" font-size="7" font-weight="600" letter-spacing="1">'
             f'\u25bc OUT</text>',
         ]
-        # Draw only the port dots valid for this node type
         n_p = len(ports)
         dot_start_x = W - n_p * 22 - 4
         for i, pi in enumerate(sorted(ports)):
@@ -291,13 +294,16 @@ def _node_svg(type_label: str, name: str, exp_name: str,
 def _node_elem(node_id, node_type, name, exp_name, x, y, pending=False):
     info = _TYPE_MAP.get(
         node_type,
-        {"label": node_type, "color": "#555", "colorL": "#777", "colorD": "#333"},
+        {"label": node_type, "color": "#555", "colorL": "#777", "colorD": "#333",
+         "symbol": "\u25c9", "sym_bg": "#1a2a3a"},
     )
     ports = _NODE_PORTS.get(node_type, [0, 1, 2, 3])
     svg_bg = _node_svg(
         info["label"], name or node_id, exp_name or "",
         info["color"], info.get("colorL", info["color"]), info.get("colorD", info["color"]),
         node_type, ports,
+        symbol=info.get("symbol", "\u25c9"),
+        sym_bg=info.get("sym_bg", "#1a2a3a"),
     )
     return {
         "data": {
@@ -453,24 +459,30 @@ def _toolbar():
     ])
 
 
-def _left_offcanvas():
+def _left_sidebar():
+    """Fixed-width left sidebar (no Offcanvas overlay — part of the flex layout)."""
     def _fld(lbl, fid, ph):
         return html.Div([
             html.Label(lbl, style=_LS),
             dbc.Input(id=fid, type="text", placeholder=ph, className="mb-2",
                       style={**_IS, "height": "28px"}),
         ])
-    return dbc.Offcanvas(
-        id="ad-left-offcanvas",
-        title=html.Span([
-            html.I(className="bi bi-cpu me-2", style={"color": ACCENT}),
-            "Unit Configuration",
-        ], style={"color": ACCENT, "fontWeight": "700"}),
-        is_open=True, placement="start", backdrop=False, scrollable=True,
-        style={"backgroundColor": "#10131c", "color": "#dde4ee",
-               "width": "270px", "borderRight": "1px solid rgba(26,188,156,0.2)"},
+    return html.Div(
+        id="ad-left-panel",
+        style={
+            "width": "265px", "minWidth": "265px",
+            "display": "flex", "flexDirection": "column",
+            "overflowY": "auto", "overflowX": "hidden",
+            "backgroundColor": "#10131c",
+            "borderRight": "1px solid rgba(26,188,156,0.2)",
+        },
         children=[
-            html.Div(style={"padding": "8px 12px"}, children=[
+            html.Div(style={"padding": "8px 12px", "borderBottom": "1px solid rgba(255,255,255,0.07)"}, children=[
+                html.Div([
+                    html.I(className="bi bi-cpu me-2", style={"color": ACCENT}),
+                    html.Span("Unit Configuration",
+                              style={"color": ACCENT, "fontWeight": "700", "fontSize": "0.84rem"}),
+                ], style={"marginBottom": "8px"}),
                 _fld("Visual ID",  "ad-vid",    "75EH348100130"),
                 _fld("Bucket",     "ad-bucket", "N/A"),
                 _fld("COM Port",   "ad-com",    "COM3"),
@@ -484,11 +496,13 @@ def _left_offcanvas():
                     labelStyle={"color": "#dde4ee", "fontSize": "0.82rem"},
                 ),
             ]),
-            html.Hr(style={"borderColor": "rgba(255,255,255,0.1)", "margin": "4px 0"}),
-            html.Div(style={"padding": "4px 12px 12px"}, children=[
-                html.Div("Load Experiments",
-                         style={"color": ACCENT, "fontWeight": "700",
-                                "fontSize": "0.84rem", "marginBottom": "8px"}),
+            html.Div(style={"padding": "8px 12px"}, children=[
+                html.Div([
+                    html.I(className="bi bi-collection me-2", style={"color": ACCENT}),
+                    html.Span("Load Experiments",
+                              style={"color": ACCENT, "fontWeight": "700",
+                                     "fontSize": "0.84rem", "marginBottom": "8px"}),
+                ], style={"marginBottom": "8px"}),
                 html.Label("Product", style=_LS),
                 dbc.Select(id="ad-product",
                            options=[{"label": p, "value": p} for p in _PRODUCTS],
@@ -600,17 +614,20 @@ def _right_panel_content():
         ], style={"borderBottom": "1px solid rgba(255,255,255,0.08)"})
 
     return [
+        # ── Node Editor FIRST — most important panel ──────────────────────────
+        _card("Node Editor", "ad-node-editor",
+              [html.Span("Click a node or press Edit ✏ in the list below.",
+                         style={"color": "#3a4a5a", "fontSize": "0.74rem"})]),
+        # ── Experiments ───────────────────────────────────────────────────────
         _card("Experiments", "ad-exp-list",
               [html.Span("No experiments loaded.",
                          style={"color": "#3a4a5a", "fontSize": "0.74rem"})],
-              max_h="90px"),
+              max_h="85px"),
+        # ── Flow Nodes (with Edit buttons) ────────────────────────────────────
         _card("Flow Nodes", "ad-node-list",
               [html.Span("No nodes.",
                          style={"color": "#3a4a5a", "fontSize": "0.74rem"})],
-              max_h="210px"),
-        _card("Node Editor", "ad-node-editor",
-              [html.Span("Select a node on the canvas.",
-                         style={"color": "#3a4a5a", "fontSize": "0.74rem"})]),
+              max_h="220px"),
         # Flow file
         html.Div(style={"padding": "6px 10px",
                         "borderBottom": "1px solid rgba(255,255,255,0.08)"}, children=[
@@ -636,6 +653,51 @@ def _right_panel_content():
             ),
         ]),
     ]
+
+
+def _edit_modal():
+    """Floating modal for editing a node — triggered by Edit ✏ button in node list."""
+    exp_placeholder = [{"label": "— none —", "value": ""}]
+    return dbc.Modal(
+        id="ad-edit-modal",
+        is_open=False,
+        size="md",
+        backdrop=True,
+        className="modal-dark",
+        children=[
+            dbc.ModalHeader(
+                html.Span(id="ad-modal-title",
+                          style={"color": ACCENT, "fontWeight": "700"}),
+                close_button=True,
+                style={"backgroundColor": "#10131c",
+                       "borderBottom": "1px solid rgba(255,255,255,0.1)"},
+            ),
+            dbc.ModalBody(style={"backgroundColor": "#10131c"}, children=[
+                html.Label("Name", style=_LS),
+                dbc.Input(id="ad-modal-name", type="text", className="mb-2",
+                          style={**_IS, "height": "28px"}),
+                html.Label("Experiment", style=_LS),
+                dbc.Select(id="ad-modal-exp", options=exp_placeholder, value="",
+                           className="mb-2",
+                           style={**_IS, "height": "28px"}),
+                html.Div(id="ad-modal-connections",
+                         style={"color": "#7a9a88", "fontSize": "0.73rem",
+                                "marginBottom": "4px"}),
+            ]),
+            dbc.ModalFooter(style={"backgroundColor": "#10131c",
+                                   "borderTop": "1px solid rgba(255,255,255,0.1)"}, children=[
+                dbc.Button([html.I(className="bi bi-check me-1"), "Apply"],
+                           id="ad-modal-apply", n_clicks=0,
+                           style={"borderColor": ACCENT, "color": ACCENT,
+                                  "backgroundColor": "transparent",
+                                  "fontSize": "0.8rem"},
+                           outline=True),
+                dbc.Button("Close", id="ad-modal-close", n_clicks=0,
+                           color="secondary", outline=True,
+                           style={"fontSize": "0.8rem", "marginLeft": "6px"}),
+            ]),
+        ],
+    )
 
 
 # ── Main layout ────────────────────────────────────────────────────────────────
@@ -666,16 +728,18 @@ def layout():
         dcc.Store(id="ad-result-store",        data=None),
         dcc.Store(id="ad-selected-node",       data=None),
         dcc.Store(id="ad-selected-edge-store", data=None),
-        # connect-mode dict: {active, pending, port}
         dcc.Store(id="ad-connect-mode",
                   data={"active": False, "pending": None, "port": "0"}),
-        dcc.Store(id="ad-right-open", data=True),
+        dcc.Store(id="ad-right-open",  data=True),
+        dcc.Store(id="ad-left-open",   data=True),
+        dcc.Store(id="ad-modal-node",  data=None),   # node ID currently open in edit modal
 
         _toolbar(),
+        _edit_modal(),
 
         html.Div(style={"display": "flex", "flex": "1",
                         "overflow": "hidden", "minHeight": 0}, children=[
-            _left_offcanvas(),
+            _left_sidebar(),
             _canvas_area(),
             html.Div(id="ad-right-panel",
                      style={"width": "252px", "minWidth": "252px",
@@ -695,13 +759,23 @@ def layout():
 # ══════════════════════════════════════════════════════════════════════════════
 
 @callback(
-    Output("ad-left-offcanvas", "is_open"),
+    Output("ad-left-panel", "style"),
+    Output("ad-left-open",  "data"),
     Input("ad-toggle-left-btn", "n_clicks"),
-    State("ad-left-offcanvas", "is_open"),
+    State("ad-left-open", "data"),
     prevent_initial_call=True,
 )
 def toggle_left(n, is_open):
-    return not is_open
+    now = not (is_open if is_open is not None else True)
+    return ({
+        "width": "265px" if now else "0px",
+        "minWidth": "265px" if now else "0px",
+        "display": "flex" if now else "none",
+        "flexDirection": "column",
+        "overflowY": "auto", "overflowX": "hidden",
+        "backgroundColor": "#10131c",
+        "borderRight": "1px solid rgba(26,188,156,0.2)",
+    }, now)
 
 
 @callback(
@@ -1267,11 +1341,22 @@ def _node_list_html(nodes):
         exp_tag = f" [{nd['experiment'][:12]}]" if nd.get("experiment") else ""
         nc      = len(nd.get("connections", {}))
         rows.append(html.Div([
-            html.Span("\u25cf ", style={"color": info["color"]}),
+            html.Span(info.get("symbol", "\u25cf"),
+                      style={"color": info["color"], "marginRight": "4px",
+                             "fontSize": "0.85rem"}),
             html.Span(f"{nid}: {info['label']}{exp_tag}" +
                       (f" \xb7{nc}" if nc else ""),
-                      style={"color": "#c0d0e0", "fontSize": "0.73rem"}),
-        ], style={"marginBottom": "1px", "lineHeight": "1.3"}))
+                      style={"color": "#c0d0e0", "fontSize": "0.73rem", "flex": "1"}),
+            dbc.Button("\u270f", id={"type": "ad-edit-node-btn", "index": nid},
+                       size="sm", n_clicks=0,
+                       style={"width": "22px", "height": "20px", "padding": "0",
+                              "fontSize": "0.7rem", "lineHeight": "1",
+                              "borderColor": ACCENT, "color": ACCENT,
+                              "backgroundColor": "transparent",
+                              "flexShrink": 0},
+                       outline=True),
+        ], style={"display": "flex", "alignItems": "center", "gap": "2px",
+                  "marginBottom": "2px", "lineHeight": "1.3"}))
     return rows
 
 
@@ -1347,3 +1432,123 @@ def _toast(msg, icon, duration=4000):
         style={"position": "fixed", "top": 20, "right": 20, "zIndex": 9999},
         className="toast-custom",
     )
+
+
+# ── Edit Modal callbacks ───────────────────────────────────────────────────────
+
+@callback(
+    Output("ad-edit-modal",        "is_open"),
+    Output("ad-modal-title",       "children"),
+    Output("ad-modal-name",        "value"),
+    Output("ad-modal-exp",         "options"),
+    Output("ad-modal-exp",         "value"),
+    Output("ad-modal-connections", "children"),
+    Output("ad-modal-node",        "data"),
+    Input({"type": "ad-edit-node-btn", "index": ALL}, "n_clicks"),
+    Input("ad-modal-close",        "n_clicks"),
+    Input("ad-modal-apply",        "n_clicks"),
+    State("ad-nodes-store",        "data"),
+    State("ad-experiments-store",  "data"),
+    prevent_initial_call=True,
+)
+def toggle_edit_modal(edit_clicks, close_n, apply_n,
+                      nodes, experiments):
+    trigger = ctx.triggered_id
+    # Close button or Apply button closes modal
+    if trigger in ("ad-modal-close", "ad-modal-apply"):
+        return False, no_update, no_update, no_update, no_update, no_update, no_update
+    # Pattern-match edit button — guard: ignore if all clicks are 0 (initial render)
+    if isinstance(trigger, dict) and trigger.get("type") == "ad-edit-node-btn":
+        if not any((c or 0) > 0 for c in (edit_clicks or [])):
+            return no_update, no_update, no_update, no_update, no_update, no_update, no_update
+        nid = trigger["index"]
+        nd  = (nodes or {}).get(nid)
+        if not nd:
+            return no_update, no_update, no_update, no_update, no_update, no_update, no_update
+        info     = _TYPE_MAP.get(nd["type"], {"label": nd["type"], "color": ACCENT})
+        exp_opts = [{"label": "\u2014 none \u2014", "value": ""}] + \
+                   [{"label": k, "value": k} for k in (experiments or {}).keys()]
+        conn_rows = []
+        for p, t in nd.get("connections", {}).items():
+            pi = int(p)
+            conn_rows.append(html.Span(
+                f"P{pi}:{_PORT_LABELS.get(pi,'?')} \u2192 {t}  ",
+                style={"color": _PORT_COLORS.get(pi, "#aaa"), "fontSize": "0.72rem",
+                       "marginRight": "4px"},
+            ))
+        conn_info = conn_rows or html.Span("No connections.",
+                                           style={"color": "#3a4a5a", "fontSize": "0.72rem"})
+        title = [
+            html.Span(f"{nid} ", style={"color": info.get("color", ACCENT), "fontWeight": "700"}),
+            html.Span(f"— {info['label']}",
+                      style={"color": "#7a9a88", "fontSize": "0.84rem"}),
+        ]
+        return True, title, nd.get("name", nid), exp_opts, nd.get("experiment", ""), conn_info, nid
+    return no_update, no_update, no_update, no_update, no_update, no_update, no_update
+
+
+@callback(
+    Output("ad-nodes-store",  "data",     allow_duplicate=True),
+    Output("ad-canvas",       "elements", allow_duplicate=True),
+    Output("ad-node-list",    "children", allow_duplicate=True),
+    Output("ad-node-editor",  "children", allow_duplicate=True),
+    Output("ad-toast",        "children", allow_duplicate=True),
+    Input("ad-modal-apply",   "n_clicks"),
+    State("ad-modal-node",    "data"),
+    State("ad-modal-name",    "value"),
+    State("ad-modal-exp",     "value"),
+    State("ad-nodes-store",   "data"),
+    State("ad-edges-store",   "data"),
+    State("ad-connect-mode",  "data"),
+    State("ad-canvas",        "elements"),
+    State("ad-experiments-store", "data"),
+    prevent_initial_call=True,
+)
+def apply_modal_edit(n, node_id, name, exp, nodes, edges, cmode,
+                     cur_elements, experiments):
+    if not n or not node_id or node_id not in (nodes or {}):
+        return no_update, no_update, no_update, no_update, no_update
+    nodes[node_id]["name"]       = name or node_id
+    nodes[node_id]["experiment"] = exp or ""
+    cpos  = _canvas_pos_map(cur_elements)
+    elems = _build_elements(nodes, edges or [], (cmode or {}).get("pending"), cpos)
+    # Refresh inline Node Editor panel too
+    nd   = nodes[node_id]
+    info = _TYPE_MAP.get(nd["type"], {"label": nd["type"], "color": "#555"})
+    exp_opts = [{"label": "\u2014 none \u2014", "value": ""}] + \
+               [{"label": k, "value": k} for k in (experiments or {}).keys()]
+    conn_rows = []
+    for p, t in nd.get("connections", {}).items():
+        pi = int(p)
+        conn_rows.append(html.Span(
+            f"P{pi}:{_PORT_LABELS.get(pi,'?')} \u2192 {t}  ",
+            style={"color": _PORT_COLORS.get(pi, "#aaa"),
+                   "fontSize": "0.7rem", "marginRight": "4px"},
+        ))
+    editor_body = html.Div([
+        html.Span(node_id, style={"color": info.get("color", ACCENT), "fontWeight": "700",
+                                   "fontSize": "0.8rem"}),
+        html.Span(f"  {info['label']}",
+                  style={"color": "#4a5a6a", "fontSize": "0.74rem"}),
+        html.Hr(style={"borderColor": "rgba(255,255,255,0.08)", "margin": "4px 0"}),
+        html.Label("Name", style=_LS),
+        dbc.Input(id="ad-editor-name", value=nd.get("name", ""), type="text",
+                  className="mb-1",
+                  style={**_IS, "height": "26px", "fontSize": "0.78rem"}),
+        html.Label("Experiment", style=_LS),
+        dbc.Select(id="ad-editor-exp", options=exp_opts,
+                   value=nd.get("experiment", ""), className="mb-1",
+                   style={**_IS, "height": "26px", "fontSize": "0.78rem"}),
+        html.Div(conn_rows or [html.Span("No connections.",
+                                          style={"color": "#3a4a5a",
+                                                 "fontSize": "0.7rem"})],
+                 style={"marginBottom": "4px"}),
+        dbc.Button([html.I(className="bi bi-check me-1"), "Apply"],
+                   id="ad-editor-apply", size="sm", outline=True,
+                   style={"borderColor": ACCENT, "color": ACCENT,
+                          "backgroundColor": "transparent",
+                          "width": "100%", "height": "26px",
+                          "fontSize": "0.77rem"}),
+    ])
+    return (nodes, elems, _node_list_html(nodes), editor_body,
+            _toast(f"{node_id} updated.", "success", 1500))
