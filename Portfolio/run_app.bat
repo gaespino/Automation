@@ -78,7 +78,7 @@ echo [INFO]   THR Tools : http://localhost:8000/thr/
 echo [INFO]   API Docs  : http://localhost:8000/docs
 echo.
 
-start /b "" cmd /c "timeout /t 2 >nul && start http://localhost:8000/thr/"
+start /b "" cmd /c "timeout /t 2 >nul && start http://localhost:8000/"
 
 uvicorn api.main:app --host 0.0.0.0 --port 8000
 

@@ -111,4 +111,6 @@ async def health():
 
 @app.get("/", include_in_schema=False)
 async def root():
-    return {"thr_tools": "/thr/", "dashboard": "/dashboard/", "api_docs": "/docs"}
+    """Redirect root to the Dashboard home page (Dash app)."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/dashboard/", status_code=302)

@@ -52,7 +52,7 @@ layout = dbc.Container(
                             html.Hr(style={"borderColor": "rgba(0,212,255,0.2)"}),
                             dbc.Button(
                                 [html.I(className="bi bi-arrow-right-circle me-2"), "Open Portfolio"],
-                                href="/portfolio",
+                                href="/dashboard/portfolio",
                                 color="primary",
                                 outline=True,
                                 className="mt-2 btn-primary-custom",

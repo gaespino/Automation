@@ -31,7 +31,7 @@ def build_navbar() -> dbc.Navbar:
                             dbc.NavItem(
                                 dbc.NavLink(
                                     "Unit Portfolio",
-                                    href="/portfolio",
+                                    href="/dashboard/portfolio",
                                     style={"color": "#a0a0a0"},
                                     active="partial",
                                     className="nav-link-custom"

@@ -29,11 +29,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --- App Initialization ---
+# When mounted via FastAPI WSGIMiddleware at /dashboard/, Dash must know its
+# prefix so that all generated URLs (scripts, API calls, links) are correct.
 app = dash.Dash(
     __name__,
     use_pages=True,
     pages_folder='pages',
     assets_folder='assets',
+    requests_pathname_prefix="/dashboard/",
+    routes_pathname_prefix="/dashboard/",
     external_stylesheets=[
         dbc.themes.BOOTSTRAP,
         dbc.icons.BOOTSTRAP,
