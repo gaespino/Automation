@@ -1,6 +1,7 @@
 """
 test_stage4_home_page.py
-Stage 4: Home landing page — layout structure, tile hrefs
+Stage 4: Home landing page — layout structure, tile hrefs.
+THR Tools tile now links to /thr/ (React SPA).
 """
 import os
 import sys
@@ -22,16 +23,20 @@ class TestHomePage:
     def test_layout_defined(self):
         assert self.home.layout is not None
 
-    def test_layout_is_not_none(self):
-        assert self.home.layout is not None
-
     def test_layout_has_portfolio_href(self):
         layout_str = str(self.home.layout)
         assert "/portfolio" in layout_str
 
-    def test_layout_has_thr_tools_href(self):
+    def test_layout_links_to_thr_react_spa(self):
+        """THR Tools tile must link to /thr/ (React SPA), not old /thr-tools/ Dash pages."""
         layout_str = str(self.home.layout)
-        assert "/thr-tools" in layout_str
+        assert "/thr/" in layout_str
+
+    def test_layout_has_no_old_thr_tools_href(self):
+        """Old /thr-tools Dash hub link must be gone from home page."""
+        layout_str = str(self.home.layout)
+        # Checks that the exact href string "/thr-tools" (the old Dash hub path) is not present.
+        assert '"/thr-tools"' not in layout_str
 
     def test_layout_mentions_unit_portfolio(self):
         layout_str = str(self.home.layout)

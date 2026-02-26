@@ -204,6 +204,13 @@ class TestExperimentsParity:
 # ---------------------------------------------------------------------------
 # 5. React UI build artefact exists
 # ---------------------------------------------------------------------------
+import pytest
+
+
+DIST_EXISTS = os.path.isdir(os.path.join(PORTFOLIO, "thr_ui", "dist"))
+
+
+@pytest.mark.skipif(not DIST_EXISTS, reason="React dist/ not built -- run: cd thr_ui && npm run build")
 class TestReactBuild:
     _DIST = os.path.join(PORTFOLIO, 'thr_ui', 'dist')
 

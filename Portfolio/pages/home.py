@@ -84,7 +84,7 @@ layout = dbc.Container(
                             html.Hr(style={"borderColor": "rgba(112,0,255,0.2)"}),
                             dbc.Button(
                                 [html.I(className="bi bi-arrow-right-circle me-2"), "Open Tools"],
-                                href="/thr-tools",
+                                href="/thr/",
                                 color="primary",
                                 outline=True,
                                 className="mt-2",

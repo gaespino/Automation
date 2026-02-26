@@ -1,5 +1,47 @@
 # Portfolio THR Tools — Changelog
 
+## [2.3.0] — 2026-02-26
+
+### Summary
+Cleanup pass: removed all old Dash THR Tools pages, deleted the legacy Dashboard subfolder,
+updated run_app.bat to use the new FastAPI/uvicorn entry point, and fixed all cross-references.
+The codebase is now in a clean state with a single entry point and no dead code.
+
+### Deleted
+- **`pages/thr_tools/`** — entire folder (10 Dash THR Tools pages).
+  All tools are now served as React pages at `/thr/` via the REST API backend.
+- **`Dashboard/`** — legacy standalone Dash app subfolder (deprecated; superseded by root-level app.py + React SPA).
+
+### Changed
+- **`app.py`** — removed duplicate `app.layout` assignment; updated docstring to reflect that it
+  is a Dash Dashboard-only server mounted at `/dashboard/` by FastAPI.
+- **`components/navbar.py`** — removed 9-item THR Tools dropdown. Navbar now has a single
+  "THR Tools" link pointing to `/thr/` (React SPA). Removed `TOOLS` list constant.
+- **`pages/home.py`** — updated THR Tools tile href from `/thr-tools` → `/thr/`.
+- **`run_app.bat`** — updated from `python app.py` (Dash/Flask on :8050) to
+  `uvicorn api.main:app` (FastAPI/uvicorn on :8000). Added Node.js + React build step.
+  Updated all URLs in echo lines to reflect new :8000 port.
+- **`CAAS_TODO.md`** — rewritten for the React + FastAPI architecture.
+  Added Dockerfile template, SSE streaming, auth, starlette deprecation fix.
+
+### Tests updated
+- `test_stage0_caas_config.py` — added `TestFastAPIHealthEndpoint` (uses `fastapi.testclient.TestClient`).
+- `test_stage2_app_structure.py` — removed thr-tools paths from `EXPECTED_PATHS`.
+  Added `test_no_thr_tools_in_dash_registry`, `test_api_main_exists`, `test_thr_ui_package_json_exists`,
+  `test_requirements_txt_has_fastapi/uvicorn`, `test_run_app_bat_uses_uvicorn`.
+- `test_stage3_navbar.py` — replaced 9-href assertions with `test_navbar_links_to_thr_react_spa`
+  and `test_navbar_has_no_old_thr_tools_links`.
+- `test_stage4_home_page.py` — replaced `/thr-tools` href check with `/thr/` check.
+- `test_stage5_thr_hub.py` — rewritten: `TestReactUIStructure`, `TestRestApiRouters`,
+  `TestOldDashPagesRemoved` (asserts `pages/thr_tools/` is gone).
+- `test_stage6_tool_pages.py` — rewritten: `TestRestRouterSmoke` (7 REST routers),
+  `TestFastAPIApp` (OpenAPI schema has >=7 /api/ paths).
+- `test_parity_rest_api.py` — `TestReactBuild` decorated with `@pytest.mark.skipif`
+  when `thr_ui/dist/` not present (CI without Node.js).
+
+
+---
+
 ## [2.1.0] — 2026-02-25
 
 ### Summary

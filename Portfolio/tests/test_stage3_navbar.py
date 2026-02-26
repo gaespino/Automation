@@ -1,6 +1,7 @@
 """
 test_stage3_navbar.py
-Stage 3: Navbar — brand href, portfolio href, all 9 tool hrefs
+Stage 3: Navbar — brand href, portfolio href, THR Tools link to React SPA.
+The old per-tool dropdown links have been replaced with a single /thr/ link.
 """
 import os
 import sys
@@ -9,18 +10,6 @@ import pytest
 PORTFOLIO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if PORTFOLIO_ROOT not in sys.path:
     sys.path.insert(0, PORTFOLIO_ROOT)
-
-EXPECTED_TOOL_HREFS = [
-    "/thr-tools/mca-decoder",
-    "/thr-tools/mca-report",
-    "/thr-tools/loop-parser",
-    "/thr-tools/dpmb",
-    "/thr-tools/file-handler",
-    "/thr-tools/fuse-generator",
-    "/thr-tools/framework-report",
-    "/thr-tools/experiment-builder",
-    "/thr-tools/automation-designer",
-]
 
 
 class TestNavbarModule:
@@ -34,23 +23,6 @@ class TestNavbarModule:
     def test_build_navbar_callable(self):
         assert callable(self.navbar.build_navbar)
 
-    def test_navbar_tools_list_has_9_entries(self):
-        assert len(self.navbar.TOOLS) == 9
-
-    def test_all_tool_hrefs_present(self):
-        hrefs = [t["href"] for t in self.navbar.TOOLS]
-        for expected in EXPECTED_TOOL_HREFS:
-            assert expected in hrefs, f"Missing href: {expected}"
-
-    def test_tool_names_unique(self):
-        names = [t["name"] for t in self.navbar.TOOLS]
-        assert len(names) == len(set(names))
-
-    def test_brand_links_to_home(self):
-        """Verify the TOOLS list doesn't include root — navigation brand points to /."""
-        hrefs = [t["href"] for t in self.navbar.TOOLS]
-        assert "/" not in hrefs  # / is handled by brand, not tool list
-
     def test_navbar_returns_component(self):
         nav = self.navbar.build_navbar()
         assert nav is not None
@@ -59,6 +31,16 @@ class TestNavbarModule:
         layout_str = str(self.navbar.build_navbar())
         assert "/portfolio" in layout_str
 
-    def test_navbar_has_thr_tools_brand(self):
+    def test_navbar_links_to_thr_react_spa(self):
+        """Navbar must link to /thr/ (React SPA), not the old /thr-tools/ Dash pages."""
         layout_str = str(self.navbar.build_navbar())
-        assert "THR" in layout_str or "thr" in layout_str.lower()
+        assert "/thr/" in layout_str
+
+    def test_navbar_has_no_old_thr_tools_links(self):
+        """Individual /thr-tools/* Dash links must not appear in the navbar."""
+        layout_str = str(self.navbar.build_navbar())
+        assert "/thr-tools/" not in layout_str
+
+    def test_navbar_has_brand(self):
+        layout_str = str(self.navbar.build_navbar())
+        assert "Portfolio" in layout_str or "THR" in layout_str
