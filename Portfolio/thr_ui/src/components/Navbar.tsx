@@ -51,8 +51,8 @@ export default function Navbar() {
         >
           ⊞ Home
         </NavLink>
-        <a className="nav-item ext" href="/dashboard/" target="_blank" rel="noreferrer">
-          📊 Dashboard ↗
+        <a className="nav-item dashboard-link" href="/dashboard/">
+          📊 Dashboard
         </a>
       </div>
     </nav>

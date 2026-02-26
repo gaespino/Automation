@@ -3,15 +3,15 @@ import { Link } from 'react-router-dom';
 import './style.css';
 
 const TOOLS = [
-  { path: '/mca-report',   label: '📋 MCA Report',           desc: 'Generate MCA analysis reports' },
-  { path: '/mca-decoder',  label: '🔍 MCA Decoder',           desc: 'Decode MCA register values' },
-  { path: '/loop-parser',  label: '🔄 Loop Parser',           desc: 'Parse loop log files' },
-  { path: '/file-handler', label: '📁 File Handler',          desc: 'Merge and append Excel files' },
-  { path: '/framework',    label: '📊 Framework Report',      desc: 'Generate framework reports' },
-  { path: '/automation',   label: '⚙️ Automation Designer',   desc: 'Visual automation flow designer' },
-  { path: '/experiment',   label: '🧪 Experiment Builder',    desc: 'Build experiment templates' },
-  { path: '/fuses',        label: '🔌 Fuse Generator',        desc: 'Generate fuse config files' },
-  { path: '/dpmb',         label: '📡 DPMB Requests',         desc: 'Submit DPMB bucketer requests' },
+  { path: '/mca-report',   icon: '📋', label: 'MCA Report',           desc: 'Generate MCA analysis reports from Bucketer or S2T Logger files' },
+  { path: '/mca-decoder',  icon: '🔍', label: 'MCA Decoder',           desc: 'Decode MCA register values for CHA, Core, Memory and IO banks' },
+  { path: '/loop-parser',  icon: '🔄', label: 'PTC Loop Parser',       desc: 'Parse and process PTC loop log files' },
+  { path: '/file-handler', icon: '📁', label: 'File Handler',          desc: 'Merge and append Excel files and tables' },
+  { path: '/framework',    icon: '📊', label: 'Framework Report',      desc: 'Generate framework reports from experiment folder trees' },
+  { path: '/automation',   icon: '⚙️', label: 'Automation Designer',   desc: 'Visual flow designer for PPV automation sequences' },
+  { path: '/experiment',   icon: '🧪', label: 'Experiment Builder',    desc: 'Build and save experiment configuration templates' },
+  { path: '/fuses',        icon: '🔌', label: 'Fuse Generator',        desc: 'Search, select and generate product fuse config files' },
+  { path: '/dpmb',         icon: '📡', label: 'DPMB Requests',         desc: 'Submit and track DPMB bucketer job requests' },
 ];
 
 export default function Home() {
@@ -19,32 +19,36 @@ export default function Home() {
     <div className="home-page">
       <div className="home-hero">
         <h1 className="home-title">◆ THR Tools</h1>
-        <p className="home-subtitle">Thermal &amp; Hardware Reliability Toolset</p>
+        <p className="home-subtitle">Thermal &amp; Hardware Reliability Toolset — GNR · CWF · DMR</p>
       </div>
 
-      <div className="home-cards">
-        <a className="home-card dashboard-card" href="/dashboard/" target="_blank" rel="noreferrer">
-          <div className="card-icon">📊</div>
-          <div className="card-content">
-            <div className="card-title">Dashboard</div>
-            <div className="card-desc">View THR metrics, charts and live results</div>
+      {/* Dashboard section — top, prominent, full-width */}
+      <a className="home-dashboard-section" href="/dashboard/">
+        <div className="home-dashboard-inner">
+          <span className="home-dashboard-icon">📊</span>
+          <div className="home-dashboard-text">
+            <span className="home-dashboard-title">Unit Portfolio Dashboard</span>
+            <span className="home-dashboard-desc">View THR metrics, experiment results, charts and live unit data</span>
           </div>
-          <span className="card-ext">↗</span>
-        </a>
+          <span className="home-dashboard-arrow">Open Dashboard →</span>
+        </div>
+      </a>
 
-        <div className="home-card">
-          <div className="card-icon">🔧</div>
-          <div className="card-content">
-            <div className="card-title">THR Tools</div>
-            <div className="tools-grid">
-              {TOOLS.map(t => (
-                <Link key={t.path} to={t.path} className="tool-link">
-                  <span className="tool-link-name">{t.label}</span>
-                  <span className="tool-link-desc">{t.desc}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
+      {/* THR Tools section — labelled enclosure */}
+      <div className="home-tools-section">
+        <div className="home-tools-header">
+          <span className="home-tools-header-icon">🔧</span>
+          <span className="home-tools-header-label">THR Tools</span>
+          <span className="home-tools-header-sub">Select a tool to get started</span>
+        </div>
+        <div className="tools-grid">
+          {TOOLS.map(t => (
+            <Link key={t.path} to={t.path} className="tool-tile">
+              <span className="tool-tile-icon">{t.icon}</span>
+              <span className="tool-tile-name">{t.label}</span>
+              <span className="tool-tile-desc">{t.desc}</span>
+            </Link>
+          ))}
         </div>
       </div>
     </div>
