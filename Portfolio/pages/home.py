@@ -85,6 +85,7 @@ layout = dbc.Container(
                             dbc.Button(
                                 [html.I(className="bi bi-arrow-right-circle me-2"), "Open Tools"],
                                 href="/thr/",
+                                external_link=True,
                                 color="primary",
                                 outline=True,
                                 className="mt-2",
