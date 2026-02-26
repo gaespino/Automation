@@ -138,7 +138,7 @@ _STYLESHEET = [
         "border-width": 3, "border-color": "#f39c12",
         "shadow-color": "#f39c12", "shadow-blur": 36, "shadow-opacity": 0.95,
     }},
-    # Edge — bezier curves with port-accurate source endpoint
+    # Edge — bezier auto-routed from nearest node boundaries (no forced endpoints)
     {"selector": "edge", "style": {
         "curve-style":        "bezier",
         "target-arrow-shape": "triangle",
@@ -151,8 +151,6 @@ _STYLESHEET = [
         "text-background-color": "#06080f", "text-background-opacity": 0.88,
         "text-background-padding": "3px", "text-background-shape": "roundrectangle",
         "edge-text-rotation": "autorotate",
-        "source-endpoint": "data(sourceEp)",   # port-dot x%, bottom-strip y%
-        "target-endpoint": "50% 9%",           # ▲IN strip top-centre
     }},
     # Selected edge — gold highlight
     {"selector": "edge:selected", "style": {
@@ -343,39 +341,7 @@ def _canvas_pos_map(canvas_elements):
     return pos
 
 
-def _source_ep(source_id: str, port_num: int, nodes_store: dict) -> str:
-    """Compute the 'N% M%' cytoscape source-endpoint for this port on source_id.
 
-    This positions the edge tail exactly at the coloured port dot in the OUT strip,
-    matching the visual indicator drawn by _node_svg.
-    """
-    W    = 190          # node width
-    node_type = (nodes_store or {}).get(source_id, {}).get("type", "")
-    ports = sorted(_NODE_PORTS.get(node_type, [0, 1, 2, 3]))
-    n_p   = len(ports)
-    if n_p == 0:
-        return "50% 100%"
-    try:
-        idx = ports.index(port_num)
-    except ValueError:
-        idx = 0
-    # Mirror the dot_start_x formula from _node_svg
-    dot_start_x = W - n_p * 22 - 4
-    cx = dot_start_x + idx * 22 + 11
-    x_pct = round(cx / W * 100, 1)
-    return f"{x_pct}% 91%"   # 91% ≈ centre of OUT strip (H-STRIP//2 = 118/130)
-
-
-
-    """Build a {node_id: {x, y}} map from the current Cytoscape elements list.
-    This preserves user-dragged positions when we rebuild elements."""
-    pos = {}
-    for el in (canvas_elements or []):
-        if "position" in el and "data" in el and "source" not in el.get("data", {}):
-            nid = el["data"].get("id")
-            if nid:
-                pos[nid] = el["position"]
-    return pos
 
 
 def _build_elements(nodes_store, edges_store, pending_source=None, canvas_pos=None):
@@ -406,7 +372,6 @@ def _build_elements(nodes_store, edges_store, pending_source=None, canvas_pos=No
             "port":      port,
             "portLabel": f"P{port}:{_PORT_LABELS.get(port, '')}",
             "edgeColor": _PORT_COLORS.get(port, "#aaa"),
-            "sourceEp":  _source_ep(edge["source"], port, nodes_store),
         }})
     return elems
 
@@ -903,7 +868,7 @@ def layout():
         dcc.Store(id="ad-modal-node",  data=None),   # node ID currently open in edit modal
         dcc.Store(id="ad-exp-editor-orig-name", data=None),  # original exp name being edited
         dcc.Store(id="ad-ctx-node-store", data=None),        # right-clicked node id
-        dcc.Interval(id="ad-ctx-poll", interval=200, max_intervals=-1),
+        dcc.Interval(id="ad-ctx-poll", interval=2000, max_intervals=-1),
 
         _toolbar(),
         _edit_modal(),
