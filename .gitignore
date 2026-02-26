@@ -256,6 +256,7 @@ local/
 # Output/Results directories (customize based on your needs)
 results/
 output/
+experiments/
 logs/
 
 # SIMULATIONS folder (test mocks and simulations)
