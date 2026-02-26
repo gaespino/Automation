@@ -12,6 +12,7 @@ import FileHandler from './pages/FileHandler';
 import FrameworkReport from './pages/FrameworkReport';
 import FuseGenerator from './pages/FuseGenerator';
 import ExperimentBuilder from './pages/ExperimentBuilder';
+import DPMBRequests from './pages/DPMBRequests';
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/framework"    element={<FrameworkReport />} />
         <Route path="/fuses"        element={<FuseGenerator />} />
         <Route path="/experiment"   element={<ExperimentBuilder />} />
+        <Route path="/dpmb"         element={<DPMBRequests />} />
         <Route path="*"             element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

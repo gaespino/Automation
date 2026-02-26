@@ -11,6 +11,7 @@ const TOOLS = [
   { path: '/automation',   label: '⚙️ Automation Designer' },
   { path: '/experiment',   label: '🧪 Experiment Builder' },
   { path: '/fuses',        label: '🔌 Fuse Generator' },
+  { path: '/dpmb',         label: '📡 DPMB Requests' },
 ];
 
 export default function Navbar() {

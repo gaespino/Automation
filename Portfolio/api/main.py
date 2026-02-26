@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 
-from api.routers import mca, loops, files, framework, fuses, experiments, flow
+from api.routers import mca, loops, files, framework, fuses, experiments, flow, dpmb
 
 logging.basicConfig(
     stream=sys.stdout,
@@ -56,6 +56,7 @@ app.include_router(framework.router,    prefix="/api/framework",    tags=["Frame
 app.include_router(fuses.router,        prefix="/api/fuses",        tags=["Fuses"])
 app.include_router(experiments.router,  prefix="/api/experiments",  tags=["Experiments"])
 app.include_router(flow.router,         prefix="/api/flow",         tags=["Flow"])
+app.include_router(dpmb.router,         prefix="/api/dpmb",         tags=["DPMB"])
 
 # ---------------------------------------------------------------------------
 # Mount Dash dashboard (WSGI → ASGI wrapper)

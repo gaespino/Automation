@@ -11,6 +11,7 @@ const TOOLS = [
   { path: '/automation',   label: '⚙️ Automation Designer',   desc: 'Visual automation flow designer' },
   { path: '/experiment',   label: '🧪 Experiment Builder',    desc: 'Build experiment templates' },
   { path: '/fuses',        label: '🔌 Fuse Generator',        desc: 'Generate fuse config files' },
+  { path: '/dpmb',         label: '📡 DPMB Requests',         desc: 'Submit DPMB bucketer requests' },
 ];
 
 export default function Home() {
