@@ -1,0 +1,288 @@
+/* THRHUB Global Styles — Dark Premium Theme (matching Portfolio design system) */
+
+:root {
+  --bg-body:          #0a0b10;
+  --bg-card:          #15171e;
+  --bg-card-hover:    #1e212b;
+  --bg-input:         #1a1d26;
+  --text-primary:     #e0e0e0;
+  --text-secondary:   #a0a0a0;
+  --text-muted:       #555;
+
+  /* Accents */
+  --accent-primary:   #00d4ff;   /* Cyan */
+  --accent-secondary: #7000ff;   /* Purple */
+  --accent-success:   #00ff9d;
+  --accent-danger:    #ff4d4d;
+  --accent-warning:   #ffbd2e;
+
+  /* Borders & Shadows */
+  --border:           1px solid rgba(255,255,255,0.08);
+  --shadow:           0 4px 20px rgba(0,0,0,0.3);
+  --shadow-hover:     0 8px 32px rgba(0,0,0,0.4);
+
+  /* Fonts */
+  --font-ui:    'Inter', system-ui, sans-serif;
+  --font-mono:  'JetBrains Mono', 'Courier New', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  background-color: var(--bg-body);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  overflow-x: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-body); }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
+
+/* ── Card ─────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+  padding: 1.25rem;
+}
+.card:hover {
+  background: var(--bg-card-hover);
+  box-shadow: var(--shadow-hover);
+}
+.card-accent-left {
+  border-left: 3px solid var(--accent-primary);
+}
+
+/* ── Inputs ───────────────────────────────────────────────────────────── */
+input, select, textarea {
+  background: var(--bg-input);
+  border: var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+  padding: 0.45rem 0.75rem;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent-primary);
+}
+input:disabled, select:disabled, textarea:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+textarea {
+  font-family: var(--font-mono);
+  resize: vertical;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-primary {
+  background: var(--accent-primary);
+  color: #000;
+  border-color: var(--accent-primary);
+}
+.btn-primary:hover { filter: brightness(1.15); }
+.btn-outline {
+  background: transparent;
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+.btn-outline:hover {
+  background: rgba(0,212,255,0.08);
+}
+.btn-danger {
+  background: transparent;
+  color: var(--accent-danger);
+  border-color: var(--accent-danger);
+}
+.btn-danger:hover { background: rgba(255,77,77,0.1); }
+.btn-sm { padding: 0.3rem 0.7rem; font-size: 0.78rem; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Labels ───────────────────────────────────────────────────────────── */
+label {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+/* ── Badges ───────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.badge-success { background: rgba(0,255,157,0.15); color: var(--accent-success); }
+.badge-danger  { background: rgba(255,77,77,0.15);  color: var(--accent-danger);  }
+.badge-warning { background: rgba(255,189,46,0.15); color: var(--accent-warning); }
+.badge-info    { background: rgba(0,212,255,0.15);  color: var(--accent-primary); }
+.badge-muted   { background: rgba(160,160,160,0.15); color: var(--text-secondary); }
+
+/* ── Utility ──────────────────────────────────────────────────────────── */
+.text-accent  { color: var(--accent-primary); }
+.text-muted   { color: var(--text-secondary); }
+.text-danger  { color: var(--accent-danger); }
+.text-success { color: var(--accent-success); }
+.text-warning { color: var(--accent-warning); }
+.font-mono    { font-family: var(--font-mono); }
+
+.divider {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  margin: 1rem 0;
+}
+
+/* Grid helpers */
+.grid { display: grid; }
+.grid-2 { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+.grid-3 { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.flex   { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 0.5rem; }
+.gap-4 { gap: 1rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-4 { margin-top: 1rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.w-full { width: 100%; }
+
+/* ── Toast ────────────────────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  top: 1.2rem;
+  right: 1.2rem;
+  z-index: 9999;
+  padding: 0.7rem 1.2rem;
+  border-radius: 8px;
+  border: var(--border);
+  font-size: 0.85rem;
+  animation: slideIn 0.25s ease;
+  max-width: 340px;
+}
+.toast-success { background: rgba(0,255,157,0.12); color: var(--accent-success); }
+.toast-error   { background: rgba(255,77,77,0.12);  color: var(--accent-danger);  }
+.toast-info    { background: rgba(0,212,255,0.12);  color: var(--accent-primary); }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── React Flow customisation ─────────────────────────────────────────── */
+.react-flow__background { background: var(--bg-body); }
+.react-flow__node {
+  border-radius: 8px;
+  font-family: var(--font-ui);
+}
+.react-flow__controls button {
+  background: var(--bg-card);
+  border: var(--border);
+  color: var(--text-primary);
+}
+.react-flow__controls button:hover {
+  background: var(--bg-card-hover);
+}
+.react-flow__minimap {
+  background: var(--bg-card);
+  border: var(--border);
+}
+
+/* ── AG Grid dark theme override ─────────────────────────────────────── */
+.ag-theme-alpine-dark {
+  --ag-background-color: var(--bg-card);
+  --ag-odd-row-background-color: rgba(255,255,255,0.02);
+  --ag-header-background-color: #1a1d26;
+  --ag-border-color: rgba(255,255,255,0.08);
+  --ag-row-hover-color: rgba(0,212,255,0.05);
+  --ag-selected-row-background-color: rgba(0,212,255,0.1);
+  font-family: var(--font-ui);
+}
+
+/* ── Page layout ──────────────────────────────────────────────────────── */
+.page-container {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.page-header {
+  margin-bottom: 1.5rem;
+}
+.page-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  font-family: var(--font-ui);
+  margin-bottom: 0.3rem;
+}
+.page-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+/* ── Upload zone ──────────────────────────────────────────────────────── */
+.upload-zone {
+  border: 1px dashed var(--accent-primary);
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  background: rgba(0,212,255,0.02);
+  transition: background 0.15s;
+}
+.upload-zone:hover { background: rgba(0,212,255,0.05); }
+
+/* ── Stat card ────────────────────────────────────────────────────────── */
+.stat-card {
+  background: var(--bg-card);
+  border: var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+.stat-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+}
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.stat-sub {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-top: 0.3rem;
+}
