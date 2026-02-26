@@ -37,7 +37,7 @@ app = dash.Dash(
     pages_folder='pages',
     assets_folder='assets',
     requests_pathname_prefix="/dashboard/",
-    routes_pathname_prefix="/dashboard/",
+    routes_pathname_prefix="/",
     external_stylesheets=[
         dbc.themes.BOOTSTRAP,
         dbc.icons.BOOTSTRAP,
