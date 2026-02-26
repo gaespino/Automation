@@ -39,7 +39,6 @@ import logging
 import zipfile
 import datetime
 import re
-import urllib.parse
 
 import dash
 from dash import html, dcc, Input, Output, State, callback, no_update, ctx, ALL
@@ -288,7 +287,8 @@ def _node_svg(type_label: str, name: str, exp_name: str,
             ]
 
     p.append('</svg>')
-    return "data:image/svg+xml," + urllib.parse.quote("\n".join(p), safe="")
+    svg_bytes = "\n".join(p).encode("utf-8")
+    return "data:image/svg+xml;base64," + base64.b64encode(svg_bytes).decode("ascii")
 
 
 def _node_elem(node_id, node_type, name, exp_name, x, y, pending=False):
@@ -618,16 +618,16 @@ def _right_panel_content():
         _card("Node Editor", "ad-node-editor",
               [html.Span("Click a node or press Edit ✏ in the list below.",
                          style={"color": "#3a4a5a", "fontSize": "0.74rem"})]),
-        # ── Experiments ───────────────────────────────────────────────────────
+        # ── Experiments (with Edit ✏ per entry) ──────────────────────────────
         _card("Experiments", "ad-exp-list",
               [html.Span("No experiments loaded.",
                          style={"color": "#3a4a5a", "fontSize": "0.74rem"})],
-              max_h="85px"),
+              max_h="120px"),
         # ── Flow Nodes (with Edit buttons) ────────────────────────────────────
         _card("Flow Nodes", "ad-node-list",
               [html.Span("No nodes.",
                          style={"color": "#3a4a5a", "fontSize": "0.74rem"})],
-              max_h="220px"),
+              max_h="260px"),
         # Flow file
         html.Div(style={"padding": "6px 10px",
                         "borderBottom": "1px solid rgba(255,255,255,0.08)"}, children=[
@@ -640,16 +640,15 @@ def _right_panel_content():
                      style={"color": "#5a6a7a", "fontSize": "0.7rem", "marginTop": "2px"}),
         ]),
         # Log
-        html.Div(style={"display": "flex", "flexDirection": "column", "flex": "1"}, children=[
+        html.Div(style={"padding": "6px 10px 6px", "flex": "1"}, children=[
             html.Div("Log", style={"color": ACCENT, "fontSize": "0.77rem",
-                                   "fontWeight": "700", "padding": "6px 10px 4px",
-                                   "borderBottom": "1px solid rgba(255,255,255,0.07)"}),
+                                   "fontWeight": "700", "marginBottom": "4px"}),
             dbc.Textarea(
                 id="ad-log", value="Automation Designer ready.\n", readOnly=True,
                 style={"backgroundColor": "#04050a", "color": "#7a9a88",
                        "fontFamily": "Consolas, 'Courier New', monospace",
                        "fontSize": "0.69rem", "border": "none", "resize": "none",
-                       "flex": "1", "padding": "6px 10px", "minHeight": "100px"},
+                       "width": "100%", "minHeight": "120px", "padding": "6px 10px"},
             ),
         ]),
     ]
@@ -700,6 +699,51 @@ def _edit_modal():
     )
 
 
+def _exp_editor_modal():
+    """Full experiment editor modal — opened via Edit ✏ on an experiment in the list."""
+    return dbc.Modal(
+        id="ad-exp-editor-modal",
+        is_open=False,
+        size="lg",
+        scrollable=True,
+        backdrop=True,
+        className="modal-dark",
+        children=[
+            dbc.ModalHeader(
+                html.Span(id="ad-exp-editor-title",
+                          style={"color": ACCENT, "fontWeight": "700"}),
+                close_button=True,
+                style={"backgroundColor": "#10131c",
+                       "borderBottom": "1px solid rgba(255,255,255,0.1)"},
+            ),
+            dbc.ModalBody(style={"backgroundColor": "#10131c"}, children=[
+                html.Label("Experiment Name", style=_LS),
+                dbc.Input(id="ad-exp-editor-name", type="text", className="mb-3",
+                          style={**_IS, "height": "30px"}),
+                html.Div(id="ad-exp-editor-fields",
+                         style={"maxHeight": "60vh", "overflowY": "auto"}),
+            ]),
+            dbc.ModalFooter(style={"backgroundColor": "#10131c",
+                                   "borderTop": "1px solid rgba(255,255,255,0.1)"}, children=[
+                dbc.Button([html.I(className="bi bi-floppy me-1"), "Save (overwrite)"],
+                           id="ad-exp-editor-save", n_clicks=0,
+                           style={"borderColor": ACCENT, "color": ACCENT,
+                                  "backgroundColor": "transparent", "fontSize": "0.8rem"},
+                           outline=True),
+                dbc.Button([html.I(className="bi bi-plus me-1"), "Save as New"],
+                           id="ad-exp-editor-save-new", n_clicks=0,
+                           style={"borderColor": "#7a9a88", "color": "#7a9a88",
+                                  "backgroundColor": "transparent", "fontSize": "0.8rem",
+                                  "marginLeft": "6px"},
+                           outline=True),
+                dbc.Button("Close", id="ad-exp-editor-close", n_clicks=0,
+                           color="secondary", outline=True,
+                           style={"fontSize": "0.8rem", "marginLeft": "6px"}),
+            ]),
+        ],
+    )
+
+
 # ── Main layout ────────────────────────────────────────────────────────────────
 def _cyto_fallback():
     return dbc.Container(fluid=True, className="pb-4", children=[
@@ -733,18 +777,20 @@ def layout():
         dcc.Store(id="ad-right-open",  data=True),
         dcc.Store(id="ad-left-open",   data=True),
         dcc.Store(id="ad-modal-node",  data=None),   # node ID currently open in edit modal
+        dcc.Store(id="ad-exp-editor-orig-name", data=None),  # original exp name being edited
 
         _toolbar(),
         _edit_modal(),
+        _exp_editor_modal(),
 
         html.Div(style={"display": "flex", "flex": "1",
                         "overflow": "hidden", "minHeight": 0}, children=[
             _left_sidebar(),
             _canvas_area(),
             html.Div(id="ad-right-panel",
-                     style={"width": "252px", "minWidth": "252px",
+                     style={"width": "260px", "minWidth": "260px",
                             "display": "flex", "flexDirection": "column",
-                            "overflow": "hidden",
+                            "overflowY": "auto",
                             "backgroundColor": "#0c0f18",
                             "borderLeft": "1px solid rgba(26,188,156,0.15)"},
                      children=_right_panel_content()),
@@ -885,18 +931,9 @@ def load_experiments(content, fname):
         if not experiments:
             return (no_update, "No experiments found.", no_update,
                     _toast("No experiments found.", "warning"))
-        items = [
-            html.Div(f"\u2022 {n}",
-                     style={"color": "#c0d0e0", "fontSize": "0.74rem",
-                            "marginBottom": "1px"})
-            for n in list(experiments.keys())[:40]
-        ]
-        if len(experiments) > 40:
-            items.append(html.Div(f"\u2026{len(experiments)-40} more",
-                                  style={"color": "#4a5a6a", "fontSize": "0.7rem"}))
         return (experiments,
                 f"\u2713 {fname} ({len(experiments)} experiments)",
-                items,
+                _exp_list_html(experiments),
                 _toast(f"Loaded {len(experiments)} experiments.", "success", 2000))
     except Exception as exc:
         logger.exception("Exp load error")
@@ -1058,31 +1095,42 @@ def manage_canvas(add_c, del_c, del_edge_c, layout_c, load_content,
             _, data  = load_content.split(",", 1)
             design   = json.loads(base64.b64decode(data).decode("utf-8"))
             new_nodes, new_edges, new_ctr = {}, [], 1
+            # Detect PPV format (no "_format" key) — PPV saves x,y as tkinter
+            # top-left (150×100 node).  Cytoscape needs center → add half-node offset.
+            _PPV_OFFSET_X, _PPV_OFFSET_Y = 75, 50
+            is_ppv_format = "_format" not in design
             for nid, nd in design.get("nodes", {}).items():
+                nd = dict(nd)
+                if is_ppv_format:
+                    nd["x"] = nd.get("x", 200) + _PPV_OFFSET_X
+                    nd["y"] = nd.get("y", 200) + _PPV_OFFSET_Y
                 new_nodes[nid] = nd
                 m = re.search(r"(\d+)", nid)
                 if m:
                     new_ctr = max(new_ctr, int(m.group(1)) + 1)
                 for prt, tgt in nd.get("connections", {}).items():
                     new_edges.append({"source": nid, "target": tgt, "port": int(prt)})
-            # Also restore experiments embedded in the flow file
+            # Restore edges list if present (web format)
+            if not is_ppv_format:
+                for e in design.get("edges", []):
+                    src, tgt, prt = e.get("source"), e.get("target"), int(e.get("port", 0))
+                    if src and tgt:
+                        new_edges.append({"source": src, "target": tgt, "port": prt})
+                # Deduplicate
+                seen = set()
+                deduped = []
+                for e in new_edges:
+                    k = (e["source"], e["target"], e["port"])
+                    if k not in seen:
+                        seen.add(k); deduped.append(e)
+                new_edges = deduped
+            # Restore experiments embedded in the flow file
             loaded_exps = design.get("experiments", {})
-            exp_items = [
-                html.Div(f"\u2022 {n}",
-                         style={"color": "#c0d0e0", "fontSize": "0.74rem",
-                                "marginBottom": "1px"})
-                for n in list(loaded_exps.keys())[:40]
-            ]
-            if len(loaded_exps) > 40:
-                exp_items.append(html.Div(
-                    f"\u2026{len(loaded_exps)-40} more",
-                    style={"color": "#4a5a6a", "fontSize": "0.7rem"}))
-            if not exp_items:
-                exp_items = [html.Span("No experiments in this file.",
-                                       style={"color": "#3a4a5a", "fontSize": "0.74rem"})]
+            exp_items = _exp_list_html(loaded_exps)
             elems = _build_elements(new_nodes, new_edges)
+            ppv_note = " [PPV format — positions converted]" if is_ppv_format else ""
             _log(f"Loaded: {load_fname} ({len(new_nodes)} nodes, "
-                 f"{len(loaded_exps)} experiments)")
+                 f"{len(loaded_exps)} experiments){ppv_note}")
             return (new_nodes, new_edges, new_ctr, elems, _node_list_html(new_nodes),
                     cmode, hint,
                     f"{len(new_nodes)} nodes \xb7 {len(new_edges)} edges",
@@ -1278,6 +1326,7 @@ def save_or_export(save_c, export_c, validate_c,
         if not nodes:
             return no_update, no_update, _toast("Nothing to save.", "warning"), no_update
         design = {
+            "_format": "web",
             "nodes": nodes_with_pos, "edges": edges,
             "experiments": experiments or {},
             "unit_config": {
@@ -1360,6 +1409,35 @@ def _node_list_html(nodes):
     return rows
 
 
+def _exp_list_html(experiments):
+    """Build the Experiments panel content — bullet list with Edit ✏ button per entry."""
+    if not experiments:
+        return [html.Span("No experiments loaded.",
+                          style={"color": "#3a4a5a", "fontSize": "0.74rem"})]
+    rows = []
+    for name in list(experiments.keys())[:50]:
+        rows.append(html.Div([
+            html.Span("\u2022", style={"color": ACCENT, "marginRight": "4px",
+                                       "fontSize": "0.8rem"}),
+            html.Span(name, style={"color": "#c0d0e0", "fontSize": "0.73rem", "flex": "1",
+                                   "overflow": "hidden", "textOverflow": "ellipsis",
+                                   "whiteSpace": "nowrap"}),
+            dbc.Button("\u270f",
+                       id={"type": "ad-edit-exp-btn", "index": name},
+                       size="sm", n_clicks=0,
+                       style={"width": "22px", "height": "20px", "padding": "0",
+                              "fontSize": "0.7rem", "lineHeight": "1",
+                              "borderColor": "#7a9a88", "color": "#7a9a88",
+                              "backgroundColor": "transparent", "flexShrink": 0},
+                       outline=True),
+        ], style={"display": "flex", "alignItems": "center", "gap": "2px",
+                  "marginBottom": "2px", "lineHeight": "1.3"}))
+    if len(experiments) > 50:
+        rows.append(html.Div(f"\u2026{len(experiments)-50} more",
+                             style={"color": "#4a5a6a", "fontSize": "0.7rem"}))
+    return rows
+
+
 def _validate(nodes, edges, experiments):
     errs, warns = [], []
     if not any(n["type"] == "StartNode" for n in nodes.values()):
@@ -1413,7 +1491,9 @@ def _build_export_zip(nodes, edges, experiments, unit_config):
     ini = ["[DEFAULT]", f"# FrameworkAutomation generated {ts}",
            f"# Visual ID: {unit_config.get('Visual ID', '')}", ""]
     ini += [f"[{n}]\n" for n in experiments]
-    pos = {nid: {"x": nd["x"], "y": nd["y"]} for nid, nd in nodes.items()}
+    # Save positions in PPV-compatible format (top-left, 150×100 node size)
+    # cytoscape center → ppv top-left: subtract half of original PPV node size
+    pos = {nid: {"x": nd["x"] - 75, "y": nd["y"] - 50} for nid, nd in nodes.items()}
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("FrameworkAutomationStructure.json",
@@ -1552,3 +1632,99 @@ def apply_modal_edit(n, node_id, name, exp, nodes, edges, cmode,
     ])
     return (nodes, elems, _node_list_html(nodes), editor_body,
             _toast(f"{node_id} updated.", "success", 1500))
+
+
+# ── Experiment Editor Modal callbacks ─────────────────────────────────────────
+
+@callback(
+    Output("ad-exp-editor-modal",     "is_open"),
+    Output("ad-exp-editor-title",     "children"),
+    Output("ad-exp-editor-name",      "value"),
+    Output("ad-exp-editor-fields",    "children"),
+    Output("ad-exp-editor-orig-name", "data"),
+    Input({"type": "ad-edit-exp-btn", "index": ALL}, "n_clicks"),
+    Input("ad-exp-editor-close",      "n_clicks"),
+    Input("ad-exp-editor-save",       "n_clicks"),
+    Input("ad-exp-editor-save-new",   "n_clicks"),
+    State("ad-experiments-store",     "data"),
+    prevent_initial_call=True,
+)
+def toggle_exp_editor(edit_clicks, close_n, save_n, save_new_n, experiments):
+    trigger = ctx.triggered_id
+    if trigger in ("ad-exp-editor-close", "ad-exp-editor-save",
+                   "ad-exp-editor-save-new"):
+        return False, no_update, no_update, no_update, no_update
+    if isinstance(trigger, dict) and trigger.get("type") == "ad-edit-exp-btn":
+        if not any((c or 0) > 0 for c in (edit_clicks or [])):
+            return no_update, no_update, no_update, no_update, no_update
+        exp_name = trigger["index"]
+        exp_data = (experiments or {}).get(exp_name, {})
+        # Build field rows (key-value editable form)
+        rows = []
+        for i, (k, v) in enumerate(exp_data.items()):
+            rows.append(html.Div([
+                html.Label(str(k), style={**_LS, "width": "200px", "minWidth": "200px"}),
+                dbc.Input(
+                    id={"type": "ad-exp-field", "index": str(k)},
+                    value=str(v) if v is not None else "",
+                    type="text", className="mb-1",
+                    style={**_IS, "height": "26px", "fontSize": "0.75rem"},
+                ),
+            ], style={"display": "flex", "alignItems": "center", "gap": "8px",
+                      "marginBottom": "3px"}))
+        if not rows:
+            rows = [html.Span("No fields in this experiment.",
+                              style={"color": "#3a4a5a", "fontSize": "0.74rem"})]
+        title = [
+            html.Span(exp_name, style={"color": ACCENT, "fontWeight": "700"}),
+            html.Span(" — Experiment Editor",
+                      style={"color": "#7a9a88", "fontSize": "0.84rem"}),
+        ]
+        return True, title, exp_name, rows, exp_name
+    return no_update, no_update, no_update, no_update, no_update
+
+
+@callback(
+    Output("ad-experiments-store", "data",     allow_duplicate=True),
+    Output("ad-exp-list",          "children", allow_duplicate=True),
+    Output("ad-toast",             "children", allow_duplicate=True),
+    Output("ad-exp-editor-modal",  "is_open",  allow_duplicate=True),
+    Input("ad-exp-editor-save",     "n_clicks"),
+    Input("ad-exp-editor-save-new", "n_clicks"),
+    State("ad-exp-editor-orig-name",   "data"),
+    State("ad-exp-editor-name",        "value"),
+    State({"type": "ad-exp-field", "index": ALL}, "value"),
+    State({"type": "ad-exp-field", "index": ALL}, "id"),
+    State("ad-experiments-store",      "data"),
+    prevent_initial_call=True,
+)
+def save_exp_edit(save_n, save_new_n, orig_name, new_name, field_values,
+                  field_ids, experiments):
+    trigger = ctx.triggered_id
+    if trigger not in ("ad-exp-editor-save", "ad-exp-editor-save-new"):
+        return no_update, no_update, no_update, no_update
+    if not orig_name:
+        return no_update, no_update, _toast("No experiment selected.", "warning"), False
+    experiments = dict(experiments or {})
+    # Build updated experiment data
+    updated = {}
+    for fid, fval in zip(field_ids or [], field_values or []):
+        updated[fid["index"]] = fval or ""
+    save_name = (new_name or orig_name).strip() or orig_name
+    if trigger == "ad-exp-editor-save":
+        # Overwrite original (possibly with renamed key)
+        if save_name != orig_name and orig_name in experiments:
+            del experiments[orig_name]
+        experiments[save_name] = updated
+        msg = f"Saved experiment: {save_name}"
+    else:
+        # Save as new — generate unique name
+        base = save_name
+        suffix = 1
+        while save_name in experiments:
+            save_name = f"{base}_Copy{suffix}"
+            suffix += 1
+        experiments[save_name] = updated
+        msg = f"Saved new experiment: {save_name}"
+    return (experiments, _exp_list_html(experiments),
+            _toast(msg, "success", 2500), False)
