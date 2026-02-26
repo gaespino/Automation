@@ -138,7 +138,7 @@ _STYLESHEET = [
         "border-width": 3, "border-color": "#f39c12",
         "shadow-color": "#f39c12", "shadow-blur": 36, "shadow-opacity": 0.95,
     }},
-    # Edge — bezier curves, no forced endpoints (auto-route from nearest node edge)
+    # Edge — bezier curves with port-accurate source endpoint
     {"selector": "edge", "style": {
         "curve-style":        "bezier",
         "target-arrow-shape": "triangle",
@@ -151,6 +151,8 @@ _STYLESHEET = [
         "text-background-color": "#06080f", "text-background-opacity": 0.88,
         "text-background-padding": "3px", "text-background-shape": "roundrectangle",
         "edge-text-rotation": "autorotate",
+        "source-endpoint": "data(sourceEp)",   # port-dot x%, bottom-strip y%
+        "target-endpoint": "50% 9%",           # ▲IN strip top-centre
     }},
     # Selected edge — gold highlight
     {"selector": "edge:selected", "style": {
@@ -329,7 +331,30 @@ def _node_elem(node_id, node_type, name, exp_name, x, y, pending=False):
     }
 
 
-def _canvas_pos_map(canvas_elements):
+def _source_ep(source_id: str, port_num: int, nodes_store: dict) -> str:
+    """Compute the 'N% M%' cytoscape source-endpoint for this port on source_id.
+
+    This positions the edge tail exactly at the coloured port dot in the OUT strip,
+    matching the visual indicator drawn by _node_svg.
+    """
+    W    = 190          # node width
+    node_type = (nodes_store or {}).get(source_id, {}).get("type", "")
+    ports = sorted(_NODE_PORTS.get(node_type, [0, 1, 2, 3]))
+    n_p   = len(ports)
+    if n_p == 0:
+        return "50% 100%"
+    try:
+        idx = ports.index(port_num)
+    except ValueError:
+        idx = 0
+    # Mirror the dot_start_x formula from _node_svg
+    dot_start_x = W - n_p * 22 - 4
+    cx = dot_start_x + idx * 22 + 11
+    x_pct = round(cx / W * 100, 1)
+    return f"{x_pct}% 91%"   # 91% ≈ centre of OUT strip (H-STRIP//2 = 118/130)
+
+
+
     """Build a {node_id: {x, y}} map from the current Cytoscape elements list.
     This preserves user-dragged positions when we rebuild elements."""
     pos = {}
@@ -369,6 +394,7 @@ def _build_elements(nodes_store, edges_store, pending_source=None, canvas_pos=No
             "port":      port,
             "portLabel": f"P{port}:{_PORT_LABELS.get(port, '')}",
             "edgeColor": _PORT_COLORS.get(port, "#aaa"),
+            "sourceEp":  _source_ep(edge["source"], port, nodes_store),
         }})
     return elems
 
@@ -593,13 +619,14 @@ def _canvas_area():
                                   "padding": "1px 5px", "backgroundColor": "transparent"}),
             ]),
         ]),
-        # Dot-grid canvas wrapper — shows through because cyto background-color is dark
-        html.Div(style={
+        # 20px grid canvas background (matches original PPV canvas grid spacing)
+        html.Div(id="ad-canvas-wrap", style={
             "flex": "1", "position": "relative", "overflow": "hidden",
             "backgroundImage": (
-                "radial-gradient(circle, rgba(26,188,156,0.12) 1px, transparent 1px)"
+                "linear-gradient(rgba(26,188,156,0.07) 1px, transparent 1px),"
+                "linear-gradient(90deg, rgba(26,188,156,0.07) 1px, transparent 1px)"
             ),
-            "backgroundSize": "32px 32px",
+            "backgroundSize": "20px 20px",
             "backgroundColor": "#06080f",
         }, children=[
         cyto.Cytoscape(
@@ -805,8 +832,31 @@ def _exp_editor_modal():
     )
 
 
-# ── Main layout ────────────────────────────────────────────────────────────────
-def _cyto_fallback():
+def _ctx_menu_modal():
+    """Context menu modal — opens on right-click on a node (via ad-ctx-node-store)."""
+    return dbc.Modal(
+        id="ad-ctx-modal",
+        is_open=False,
+        size="sm",
+        backdrop=True,
+        className="modal-dark",
+        children=[
+            dbc.ModalHeader(
+                html.Span(id="ad-ctx-modal-title",
+                          style={"color": ACCENT, "fontWeight": "700", "fontSize": "0.85rem"}),
+                close_button=True,
+                style={"backgroundColor": "#10131c",
+                       "borderBottom": "1px solid rgba(255,255,255,0.1)"},
+            ),
+            dbc.ModalBody(style={"backgroundColor": "#10131c", "padding": "10px 16px"},
+                          children=[
+                html.Div(id="ad-ctx-modal-body"),
+            ]),
+        ],
+    )
+
+
+
     return dbc.Container(fluid=True, className="pb-4", children=[
         dbc.Alert([
             html.Strong("dash-cytoscape is not installed. "),
@@ -839,10 +889,13 @@ def layout():
         dcc.Store(id="ad-left-open",   data=True),
         dcc.Store(id="ad-modal-node",  data=None),   # node ID currently open in edit modal
         dcc.Store(id="ad-exp-editor-orig-name", data=None),  # original exp name being edited
+        dcc.Store(id="ad-ctx-node-store", data=None),        # right-clicked node id
+        dcc.Interval(id="ad-ctx-poll", interval=200, max_intervals=-1),
 
         _toolbar(),
         _edit_modal(),
         _exp_editor_modal(),
+        _ctx_menu_modal(),
         # Validation banner — shown below toolbar after Validate is clicked
         html.Div(id="ad-validate-banner", style={"padding": "0", "flexShrink": 0}),
 
@@ -866,6 +919,203 @@ def layout():
 # ══════════════════════════════════════════════════════════════════════════════
 #  Callbacks
 # ══════════════════════════════════════════════════════════════════════════════
+
+# ── Clientside: capture right-click on canvas wrapper ─────────────────────────
+# Sets window._adCtxNodeId via mouseoverNodeData tracking, then stores the
+# right-clicked node id via the polling interval.
+dash.get_app().clientside_callback(
+    """
+    function(n) {
+        if (window._adCtxSetup) return window.dash_clientside.no_update;
+        window._adCtxSetup = true;
+        window._adCtxPending = null;
+        window._adCtxHoveredId = null;
+        setTimeout(function() {
+            var wrap = document.getElementById('ad-canvas-wrap');
+            if (!wrap) wrap = document.getElementById('ad-canvas');
+            if (wrap) {
+                wrap.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    window._adCtxPending = {
+                        nodeId: window._adCtxHoveredId,
+                        t: Date.now()
+                    };
+                });
+            }
+        }, 800);
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("ad-ctx-node-store", "data", allow_duplicate=True),
+    Input("ad-canvas", "id"),
+    prevent_initial_call=True,
+)
+
+dash.get_app().clientside_callback(
+    """
+    function(nodeData) {
+        if (nodeData && nodeData.id) window._adCtxHoveredId = nodeData.id;
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("ad-ctx-node-store", "data", allow_duplicate=True),
+    Input("ad-canvas", "mouseoverNodeData"),
+    prevent_initial_call=True,
+)
+
+dash.get_app().clientside_callback(
+    """
+    function(n) {
+        if (!window._adCtxPending) return window.dash_clientside.no_update;
+        var d = window._adCtxPending;
+        window._adCtxPending = null;
+        return d.nodeId || '__canvas__';
+    }
+    """,
+    Output("ad-ctx-node-store", "data"),
+    Input("ad-ctx-poll", "n_intervals"),
+    prevent_initial_call=True,
+)
+
+
+@callback(
+    Output("ad-ctx-modal",       "is_open"),
+    Output("ad-ctx-modal-title", "children"),
+    Output("ad-ctx-modal-body",  "children"),
+    Input("ad-ctx-node-store",   "data"),
+    State("ad-nodes-store",      "data"),
+    State("ad-experiments-store","data"),
+    State("ad-ctx-modal",        "is_open"),
+    prevent_initial_call=True,
+)
+def show_ctx_menu(node_id, nodes, experiments, is_open):
+    """Show the right-click context modal for a node."""
+    if not node_id or node_id == "__canvas__":
+        return False, no_update, no_update
+    nd = (nodes or {}).get(node_id)
+    if not nd:
+        return False, no_update, no_update
+    info      = _TYPE_MAP.get(nd["type"], {"label": nd["type"], "color": "#555"})
+    title     = [
+        html.Span(nd.get("name", node_id),
+                  style={"color": info["color"], "marginRight": "6px"}),
+        html.Span(f"({info['label']})", style={"color": "#5a7a8a", "fontSize": "0.78rem"}),
+    ]
+    # Connections summary
+    conn_rows = []
+    for p, t in nd.get("connections", {}).items():
+        pi = int(p)
+        conn_rows.append(html.Div(
+            f"P{pi}:{_PORT_LABELS.get(pi,'?')} \u2192 {t}",
+            style={"color": _PORT_COLORS.get(pi, "#aaa"), "fontSize": "0.75rem",
+                   "marginBottom": "2px"},
+        ))
+    exp_name = nd.get("experiment") or "—"
+    body = html.Div([
+        html.Div([
+            html.Span("Experiment: ", style={"color": "#5a7a8a", "fontSize": "0.8rem"}),
+            html.Span(exp_name, style={"color": "#1abc9c", "fontSize": "0.8rem"}),
+        ], style={"marginBottom": "8px"}),
+        html.Div(conn_rows, style={"marginBottom": "10px"}) if conn_rows else html.Div(),
+        html.Hr(style={"borderColor": "rgba(255,255,255,0.1)", "margin": "6px 0"}),
+        dbc.Button(
+            [html.I(className="bi bi-pencil me-2"), "Edit Node"],
+            id={"type": "ad-ctx-edit-node-btn", "index": node_id},
+            n_clicks=0, size="sm",
+            style={"width": "100%", "backgroundColor": "transparent",
+                   "borderColor": ACCENT, "color": ACCENT,
+                   "fontSize": "0.8rem", "marginBottom": "6px"},
+            outline=True,
+        ),
+        dbc.Button(
+            [html.I(className="bi bi-trash3 me-2"), "Delete Node"],
+            id={"type": "ad-ctx-del-node-btn", "index": node_id},
+            n_clicks=0, size="sm",
+            style={"width": "100%", "backgroundColor": "transparent",
+                   "borderColor": "#e74c3c", "color": "#e74c3c",
+                   "fontSize": "0.8rem"},
+            outline=True,
+        ),
+    ])
+    return True, title, body
+
+
+@callback(
+    Output("ad-edit-modal",  "is_open", allow_duplicate=True),
+    Output("ad-modal-node",  "data",    allow_duplicate=True),
+    Output("ad-modal-title", "children",allow_duplicate=True),
+    Output("ad-modal-name",  "value",   allow_duplicate=True),
+    Output("ad-modal-exp",   "options", allow_duplicate=True),
+    Output("ad-modal-exp",   "value",   allow_duplicate=True),
+    Output("ad-modal-connections","children",allow_duplicate=True),
+    Output("ad-ctx-modal",   "is_open", allow_duplicate=True),
+    Input({"type": "ad-ctx-edit-node-btn", "index": ALL}, "n_clicks"),
+    State("ad-nodes-store",       "data"),
+    State("ad-experiments-store", "data"),
+    prevent_initial_call=True,
+)
+def ctx_open_edit(clicks, nodes, experiments):
+    if not any((c or 0) > 0 for c in (clicks or [])):
+        return (no_update,) * 8
+    nid = ctx.triggered_id["index"]
+    nd  = (nodes or {}).get(nid)
+    if not nd:
+        return (no_update,) * 8
+    info      = _TYPE_MAP.get(nd["type"], {"label": nd["type"], "color": "#555"})
+    exp_opts  = [{"label": "\u2014 none \u2014", "value": ""}] + \
+                [{"label": k, "value": k} for k in (experiments or {}).keys()]
+    conn_rows = []
+    for p, t in nd.get("connections", {}).items():
+        pi = int(p)
+        conn_rows.append(html.Span(
+            f"P{pi}:{_PORT_LABELS.get(pi,'?')} \u2192 {t}  ",
+            style={"color": _PORT_COLORS.get(pi, "#aaa"), "fontSize": "0.7rem"},
+        ))
+    title = [html.Span(f"Edit: {nid}", style={"color": info["color"]}),
+             html.Span(f" ({info['label']})",
+                       style={"color": "#5a7a8a", "fontSize": "0.8rem"})]
+    return (True, nid, title, nd.get("name", nid), exp_opts,
+            nd.get("experiment") or "", html.Div(conn_rows), False)
+
+
+@callback(
+    Output("ad-nodes-store",     "data",    allow_duplicate=True),
+    Output("ad-edges-store",     "data",    allow_duplicate=True),
+    Output("ad-canvas",          "elements",allow_duplicate=True),
+    Output("ad-node-list",       "children",allow_duplicate=True),
+    Output("ad-ctx-modal",       "is_open", allow_duplicate=True),
+    Output("ad-log",             "value",   allow_duplicate=True),
+    Output("ad-statusbar",       "children",allow_duplicate=True),
+    Output("ad-toast",           "children",allow_duplicate=True),
+    Input({"type": "ad-ctx-del-node-btn", "index": ALL}, "n_clicks"),
+    State("ad-nodes-store",     "data"),
+    State("ad-edges-store",     "data"),
+    State("ad-canvas",          "elements"),
+    State("ad-log",             "value"),
+    prevent_initial_call=True,
+)
+def ctx_delete_node(clicks, nodes, edges, cur_elements, log_val):
+    if not any((c or 0) > 0 for c in (clicks or [])):
+        return (no_update,) * 8
+    nid   = ctx.triggered_id["index"]
+    nodes = dict(nodes or {})
+    edges = list(edges or [])
+    log   = log_val or ""
+    ts    = datetime.datetime.now(datetime.timezone.utc).strftime("%H:%M:%S")
+    if nid not in nodes:
+        return (no_update,) * 8
+    del nodes[nid]
+    edges = [e for e in edges if e["source"] != nid and e["target"] != nid]
+    for nd in nodes.values():
+        nd.get("connections", {}).pop(str(nid), None)
+        nd["connections"] = {p: t for p, t in nd.get("connections", {}).items() if t != nid}
+    cpos  = _canvas_pos_map(cur_elements)
+    elems = _build_elements(nodes, edges, canvas_pos=cpos)
+    log   = f"[{ts}] Deleted node: {nid}\n" + log
+    return (nodes, edges, elems, _node_list_html(nodes), False, log,
+            f"Deleted {nid}.",
+            _toast(f"Deleted {nid}", "warning", 2000))
+
 
 @callback(
     Output("ad-left-panel", "style"),
@@ -1086,7 +1336,9 @@ def manage_canvas(add_c, del_c, del_edge_c, layout_c, load_content,
         nid  = f"NODE_{counter:03d}"
         counter += 1
         n    = len(nodes)
-        x, y = 160 + (n % 4) * 220, 160 + (n // 4) * 175
+        # Snap to 20px grid (matches original PPV canvas grid)
+        x = round((160 + (n % 4) * 220) / 20) * 20
+        y = round((160 + (n // 4) * 180) / 20) * 20
         nodes[nid] = {"id": nid, "name": nid, "type": node_type,
                       "x": x, "y": y, "experiment": "", "connections": {}}
         _log(f"Added {_TYPE_MAP.get(node_type, {}).get('label', node_type)}: {nid}")
@@ -1104,7 +1356,9 @@ def manage_canvas(add_c, del_c, del_edge_c, layout_c, load_content,
         nid   = f"NODE_{counter:03d}"
         counter += 1
         n     = len(nodes)
-        x, y  = 160 + (n % 4) * 220, 160 + (n // 4) * 175
+        # Snap to 20px grid
+        x = round((160 + (n % 4) * 220) / 20) * 20
+        y = round((160 + (n // 4) * 180) / 20) * 20
         nodes[nid] = {"id": nid, "name": nid, "type": ptype,
                       "x": x, "y": y, "experiment": "", "connections": {}}
         _log(f"Added {_TYPE_MAP.get(ptype, {}).get('label', ptype)}: {nid}")
