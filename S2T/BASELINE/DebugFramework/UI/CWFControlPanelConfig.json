@@ -41,6 +41,7 @@
         "Check Core": ["int"],
         "Core Disable List": ["str"],
         "Slice Disable List": ["str"],
+        "Temperature SP": ["float"],
         "Voltage Type": ["str"],
         "Voltage IA": ["float"],
         "Voltage CFC": ["float"],
@@ -93,7 +94,8 @@
         "Disable 2 Cores": "Option to disable 2 cores",
         "Loops":"Number of Loops to run",
         "Core Disable List": "Comma-separated list of physical core numbers to disable (IA only, e.g. '62, 70')",
-        "Slice Disable List": "Comma-separated list of physical core numbers to disable (core and LLC, e.g. '60, 72')"
+        "Slice Disable List": "Comma-separated list of physical core numbers to disable (core and LLC, e.g. '60, 72')",
+        "Temperature SP": "Temperature setpoint (°C) for Intec temperature control"
     },
     "mandatory_fields": [
         "Test Name", "Test Mode", "Test Type", "Visual ID", "Bucket", "COM Port", "IP Address", "Content",
@@ -106,7 +108,7 @@
         "Source Files": ["TTL Folder", "Scripts File"],
         "Markup": ["Pass String", "Fail String", "Boot Breakpoint"],
         "License & Config": ["Core License", "Configuration (Mask)","Disable 2 Cores", "Pseudo Config","Reset", "Reset on PASS", "FastBoot"],
-        "Unit Defeature": ["Check Core", "Core Disable List", "Slice Disable List", "Voltage Type", "Voltage IA", "Voltage CFC", "Frequency IA", "Frequency CFC"],
+        "Unit Defeature": ["Check Core", "Core Disable List", "Slice Disable List", "Temperature SP", "Voltage Type", "Voltage IA", "Voltage CFC", "Frequency IA", "Frequency CFC"],
         "Loops": ["Loops"],
         "Sweep Setup": ["Type", "Domain", "Start", "End", "Steps"],
         "Shmoo Setup": ["ShmooFile", "ShmooLabel"]

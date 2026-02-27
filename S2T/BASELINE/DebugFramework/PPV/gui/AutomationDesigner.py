@@ -398,6 +398,7 @@ class AutomationFlowDesigner:
             "Check Core": 7,
             "Core Disable List": None,
             "Slice Disable List": None,
+            "Temperature SP": None,
             "Voltage Type": "vbump",
             "Voltage IA": None,
             "Voltage CFC": None,
@@ -2397,6 +2398,7 @@ class ExperimentEditor:
             ("Core License", "combo", core_license_options),
             ("Core Disable List", "entry"),
             ("Slice Disable List", "entry"),
+            ("Temperature SP", "entry"),
 
         ]
 

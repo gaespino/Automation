@@ -2701,6 +2701,11 @@ class Framework:
 						config_updates['slicedislist'] = [int(c.strip()) for c in str(value).split(',') if c.strip()]
 					except ValueError:
 						FrameworkUtils.FrameworkPrint(f' Invalid Slice Disable List value: {value}. Expected comma-separated integers.', 2)
+				elif recipe_key == 'Temperature SP' and value is not None:
+					try:
+						config_updates['tempsp'] = float(value)
+					except (ValueError, TypeError):
+						FrameworkUtils.FrameworkPrint(f' Invalid Temperature SP value: {value}. Expected a float.', 2)
 				elif recipe_key == 'Core License' and value:
 					config_updates['corelic'] = int(value.split(":")[0])
 				elif recipe_key == 'Test Mode' and value:
@@ -3140,6 +3145,14 @@ class Framework:
 						if 'Configuration Error' in str(e):
 							raise
 			config_updates['extMask'] = gcm.build_disable_extmask(config_updates['slicedislist'], 'slice')
+
+		if config_updates.get('tempsp') is not None:
+			try:
+				from Tools import TemperatureControl as tc
+				tc.set_temperature_sp(config_updates['tempsp'])
+				FrameworkUtils.FrameworkPrint(f' Temperature SP set to: {config_updates["tempsp"]}')
+			except Exception as e:
+				FrameworkUtils.FrameworkPrint(f' Warning: Could not set Temperature SP: {e}', 2)
 
 		self.update_configuration(**config_updates)
 		self.update_s2t_configuration(config_updates)

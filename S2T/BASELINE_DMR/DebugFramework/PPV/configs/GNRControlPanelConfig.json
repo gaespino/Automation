@@ -270,6 +270,13 @@
             "description": "Comma-separated list of physical core numbers to disable (core and LLC, e.g. '60, 72')",
             "required": false
         },
+        "Temperature SP": {
+            "section": "Test Configuration",
+            "type": "float",
+            "default": null,
+            "description": "Temperature setpoint (°C) for Intec temperature control",
+            "required": false
+        },
         "Voltage Type": {
             "section": "Voltage & Frequency",
             "type": "str",

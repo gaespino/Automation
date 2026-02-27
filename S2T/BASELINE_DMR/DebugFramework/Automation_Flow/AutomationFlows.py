@@ -575,6 +575,7 @@ class FlowInstance(ABC):
 				'check_core': getattr(config, 'check_core', None),
 				'coredislist': getattr(config, 'coredislist', None),
 				'slicedislist': getattr(config, 'slicedislist', None),
+				'tempsp': getattr(config, 'tempsp', None),
 			}
 		return {}
 
@@ -1323,6 +1324,7 @@ class AdaptiveFlowInstance(FlowInstance):
 			'Core License',
 			'Core Disable List',
 			'Slice Disable List',
+			'Temperature SP',
 
 			# All other experiment settings (Linux, Dragon, etc.)
 			'Linux Pre Command', 'Linux Post Command', 'Startup Linux', 'Linux Path',
@@ -1720,6 +1722,7 @@ class CharacterizationFlowInstance(FlowInstance):
 			'Core License',
 			'Core Disable List',
 			'Slice Disable List',
+			'Temperature SP',
 
 			# Linux settings
 			'Linux Pre Command',
@@ -1879,6 +1882,7 @@ class CharacterizationFlowInstance(FlowInstance):
 			'voltage_type': 'Voltage Type',
 			'coredislist': 'Core Disable List',
 			'slicedislist': 'Slice Disable List',
+			'tempsp': 'Temperature SP',
 		}
 
 		for snapshot_key, exp_key in config_mapping.items():
@@ -2078,7 +2082,7 @@ class CharacterizationFlowInstance(FlowInstance):
 
 		# Failure reproduction conditions
 		self.logger("Failure Reproduction Conditions:")
-		repro_params = ['Content', 'Configuration (Mask)', 'Check Core', 'Voltage Type', 'Core Disable List', 'Slice Disable List']
+		repro_params = ['Content', 'Configuration (Mask)', 'Check Core', 'Voltage Type', 'Core Disable List', 'Slice Disable List', 'Temperature SP']
 		for param in repro_params:
 			value = self.Experiment.get(param, 'Not Set')
 			self.logger(f"  {param}: {value}")
@@ -2706,6 +2710,8 @@ class AnalysisFlowInstance(FlowInstance):
 					recovery_experiment['Core Disable List'] = recovery_config['coredislist']
 				if recovery_config.get('slicedislist') is not None:
 					recovery_experiment['Slice Disable List'] = recovery_config['slicedislist']
+				if recovery_config.get('tempsp') is not None:
+					recovery_experiment['Temperature SP'] = recovery_config['tempsp']
 
 				proposals.append({
 					'type': 'recovery_validation',
@@ -2774,6 +2780,7 @@ class AnalysisFlowInstance(FlowInstance):
 			'Check Core': self.Experiment.get('Check Core', 7),
 			'Core Disable List': self.Experiment.get('Core Disable List'),
 			'Slice Disable List': self.Experiment.get('Slice Disable List'),
+			'Temperature SP': self.Experiment.get('Temperature SP'),
 			'Voltage Type': self.Experiment.get('Voltage Type', 'vbump'),
 			'Voltage IA': self.Experiment.get('Voltage IA'),
 			'Voltage CFC': self.Experiment.get('Voltage CFC'),
@@ -2828,6 +2835,7 @@ class AnalysisFlowInstance(FlowInstance):
 			'check_core': 'Check Core',
 			'coredislist': 'Core Disable List',
 			'slicedislist': 'Slice Disable List',
+			'tempsp': 'Temperature SP',
 		}
 
 		for config_key, exp_key in config_mapping.items():
@@ -3107,7 +3115,7 @@ class AnalysisFlowInstance(FlowInstance):
 			config = best_overall['configuration']
 
 			# Show base configuration
-			base_fields = ['mask', 'check_core', 'coredislist', 'slicedislist', 'voltage_type', 'voltage_ia', 'voltage_cfc', 'frequency_ia', 'frequency_cfc']
+			base_fields = ['mask', 'check_core', 'coredislist', 'slicedislist', 'tempsp', 'voltage_type', 'voltage_ia', 'voltage_cfc', 'frequency_ia', 'frequency_cfc']
 			for field in base_fields:
 				if config.get(field) is not None:
 					print(f"       {field}: {config[field]}")
@@ -3152,7 +3160,7 @@ class AnalysisFlowInstance(FlowInstance):
 				print("       Configuration Details:")
 
 				# Base configuration
-				base_fields = ['mask', 'check_core', 'coredislist', 'slicedislist', 'voltage_type', 'voltage_ia', 'voltage_cfc', 'frequency_ia', 'frequency_cfc']
+				base_fields = ['mask', 'check_core', 'coredislist', 'slicedislist', 'tempsp', 'voltage_type', 'voltage_ia', 'voltage_cfc', 'frequency_ia', 'frequency_cfc']
 				for field in base_fields:
 					if config.get(field) is not None:
 						print(f"         {field}: {config[field]}")

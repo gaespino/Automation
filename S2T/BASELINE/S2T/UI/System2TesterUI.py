@@ -313,6 +313,13 @@ class QuickDefeatureTool:
 		self.slice_disable_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
 		row += 1
 
+		# Temperature SP
+		ttk.Label(main_frame, text="Temperature SP (°C):").grid(row=row, column=0, padx=10, pady=5, sticky="w")
+		self.temp_sp_var = tk.StringVar()
+		self.temp_sp_entry = ttk.Entry(main_frame, textvariable=self.temp_sp_var, width=30)
+		self.temp_sp_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+		row += 1
+
 		# External Fuse File
 		ttk.Label(main_frame, text="External Fuse File (.fuse):").grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		fuse_file_frame = ttk.Frame(main_frame)
@@ -532,6 +539,7 @@ class QuickDefeatureTool:
 		self.fuse_file_browse_button.config(state=tk.DISABLED)
 		self.core_disable_entry.config(state=tk.DISABLED)
 		self.slice_disable_entry.config(state=tk.DISABLED)
+		self.temp_sp_entry.config(state=tk.DISABLED)
 
 		self.w600_checkbox.config(state=tk.DISABLED)
 	
@@ -817,6 +825,7 @@ class QuickDefeatureTool:
 			"Registers Min": registers_min_entry,
 			"Core Disable List": self.core_disable_var.get().strip() or None,
 			"Slice Disable List": self.slice_disable_var.get().strip() or None,
+			"Temperature SP": None if self.temp_sp_var.get().strip() == '' else float(self.temp_sp_var.get().strip()),
 		}
 		return options
 
@@ -912,6 +921,14 @@ class QuickDefeatureTool:
 			self.s2t.extMasks = self.s2t.build_disable_extmask(core_dis_str, 'core')
 		elif slice_dis_str:
 			self.s2t.extMasks = self.s2t.build_disable_extmask(slice_dis_str, 'slice')
+
+		temp_sp = options.get("Temperature SP")
+		if temp_sp is not None:
+			try:
+				from Tools import TemperatureControl as tc
+				tc.set_temperature_sp(temp_sp)
+			except Exception as e:
+				print(f"Warning: Could not set Temperature SP: {e}")
 
 		# Run Mesh
 		#s2tTest.setupMeshMode()
