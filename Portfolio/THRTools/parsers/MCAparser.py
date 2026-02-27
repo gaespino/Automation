@@ -321,8 +321,8 @@ class ppv_report():
 
 		# Close the files
 		if mcfile_on or ovw_on: file_close(source_wb, save=False)
-		if mcfile_on: file_close(target_wb)
-		if ovw_on: file_close(ovw_wb)
+		if mcfile_on: file_close(target_wb, filename=mca_file)
+		if ovw_on: file_close(ovw_wb, filename=ovw_file)
 
 
 	def parse_data(self, option = 'MESH'):
@@ -633,14 +633,14 @@ def file_open(file):
 	wb = load_workbook(file)
 	return wb
 
-def file_close(file, save = True): #source_wb, target_wb):
+def file_close(file, save = True, filename = None): #source_wb, target_wb):
 
 	# Variables Init
 	#source_wb = self.source_wb
 	#target_wb = self.target_wb
 
-	# Save and close the workbooks
-	if save: file.save()
+	# Save and close the workbooks (openpyxl Workbook.save() requires a filename)
+	if save: file.save(filename)
 	file.close()
 	#target_wb.close()
 
