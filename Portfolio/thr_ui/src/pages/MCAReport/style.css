@@ -1,6 +1,6 @@
 .tool-page { padding: 16px 20px; }
 .page-title { font-size: 15px; color: #4ec9b0; margin-bottom: 14px; }
-.dim { color: #858585; font-size: 12px; }
+.dim { color: #858585; font-size: 11px; }
 .mca-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 700px) { .mca-layout { grid-template-columns: 1fr; } }
 .form-grid { display: grid; grid-template-columns: 100px 1fr; gap: 6px 10px; align-items: center; }
@@ -22,3 +22,32 @@
 .drop-hint { font-size: 11px; color: #858585; }
 .drop-filename { font-size: 12px; color: #d4d4d4; margin-bottom: 4px; word-break: break-all; }
 .action-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* Output file list */
+.file-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+.file-list-row { justify-content: space-between; }
+.file-entry-name { flex: 1; color: #d4d4d4; word-break: break-all; }
+
+/* Actions: download + save blocks side by side */
+.files-actions {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: start;
+  margin-top: 10px;
+}
+@media (max-width: 700px) {
+  .files-actions { grid-template-columns: 1fr; }
+  .files-action-divider { display: none; }
+}
+.files-action-block { display: flex; flex-direction: column; gap: 6px; }
+.files-action-title { font-size: 12px; font-weight: 600; color: #d4d4d4; }
+.files-action-desc { margin-bottom: 4px; }
+.files-action-divider {
+  width: 1px;
+  background: #3e3e42;
+  align-self: stretch;
+  margin: 0 4px;
+}
+.save-row { display: flex; gap: 6px; align-items: center; }
+.save-path-input { flex: 1; min-width: 0; }
