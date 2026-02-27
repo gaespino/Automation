@@ -40,7 +40,7 @@
     "Dragon Pre Command": null,
     "Dragon Post Command": null,
     "Startup Dragon": "startup_efi.nsh",
-    "Dragon Content Path": "FS1:\\GNR50C_L_MOSBFT_HToff_pseudoSBFT_System",
+    "Dragon Content Path": "FS1:\\content\\Dragon\\7425_0x0F_MO\\GNR50C_L_MOSBFT_HToff_pseudoSBFT_System",
     "Dragon Content Line": null,
     "VVAR0": "0x4C4B40",
     "VVAR1": "80064000",
