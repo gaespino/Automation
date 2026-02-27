@@ -531,7 +531,7 @@ class ppv_report():
 
 		# Parse the table reference (e.g. "A1:Z100") to determine data body range
 		# openpyxl table.ref covers header + data; header is the first row
-		from openpyxl.utils import range_boundaries
+		from openpyxl.utils import range_boundaries, get_column_letter
 		min_col, min_row, max_col, max_row = range_boundaries(src_table.ref)
 		# Data body starts one row after header
 		src_data_rows = list(src_ws.iter_rows(min_row=min_row + 1, max_row=max_row,
@@ -539,19 +539,28 @@ class ppv_report():
 		                                       values_only=True))
 
 		tgt_min_col, tgt_min_row, tgt_max_col, tgt_max_row = range_boundaries(tgt_table.ref)
-		# Clear target data body rows
+		# Clear target data body rows (existing template rows)
 		for row in tgt_ws.iter_rows(min_row=tgt_min_row + 1, max_row=tgt_max_row,
 		                             min_col=tgt_min_col, max_col=tgt_max_col):
 			for cell in row:
 				cell.value = None
 
-		# Write source data into target (row by row)
+		# Write ALL source data rows into target — do not stop at the template's original
+		# tgt_max_row; the table ref is updated below to cover the actual row count.
+		new_last_data_row = tgt_min_row  # will advance as rows are written
 		for row_idx, row_data in enumerate(src_data_rows):
 			tgt_row = tgt_min_row + 1 + row_idx
-			if tgt_row > tgt_max_row:
-				break
+			new_last_data_row = tgt_row
 			for col_idx, value in enumerate(row_data):
 				tgt_ws.cell(row=tgt_row, column=tgt_min_col + col_idx, value=value)
+
+		# Expand (or shrink) the table reference to match the actual number of data rows
+		# so Excel recognises all copied rows as part of the table.
+		actual_last_row = max(new_last_data_row, tgt_min_row + 1)  # keep at least header + 1 row
+		tgt_table.ref = (
+			f"{get_column_letter(tgt_min_col)}{tgt_min_row}"
+			f":{get_column_letter(tgt_max_col)}{actual_last_row}"
+		)
 
 		print(f"Data copied successfully from source to target workbook {sheet_name} table {table_name}.")
 
