@@ -15,15 +15,18 @@ const OPTIONS: CheckboxOption[] = [
   { key: 'reduced',   label: 'Reduced Report' },
   { key: 'decode',    label: 'MCA Decode' },
   { key: 'overview',  label: 'Overview Sheet' },
-  { key: 'checker',   label: 'MCA Checker File' },
+  // MC Checker option has been removed (deprecated)
 ];
 
 export default function MCAReport() {
-  const [mode,      setMode]      = useState('Framework');
+  const [mode,      setMode]      = useState('Bucketer');   // default: Bucketer
   const [product,   setProduct]   = useState('GNR');
   const [workWeek,  setWorkWeek]  = useState('WW9');
   const [label,     setLabel]     = useState('');
-  const [opts,      setOpts]      = useState<Record<string,boolean>>({});
+  // default: all three options enabled
+  const [opts,      setOpts]      = useState<Record<string,boolean>>({
+    reduced: true, decode: true, overview: true,
+  });
   const [file,      setFile]      = useState<File | null>(null);
   const [dragging,  setDragging]  = useState(false);
   const [loading,   setLoading]   = useState(false);
@@ -100,7 +103,7 @@ export default function MCAReport() {
           <div className="form-grid">
             <label>Mode</label>
             <select value={mode} onChange={e => setMode(e.target.value)}>
-              {['Framework','Bucketer','Data'].map(m => <option key={m}>{m}</option>)}
+              {['Bucketer','Framework','Data'].map(m => <option key={m}>{m}</option>)}
             </select>
 
             <label>Product</label>

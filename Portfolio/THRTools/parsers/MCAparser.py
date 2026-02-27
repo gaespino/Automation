@@ -731,6 +731,86 @@ def load_dataframe_to_excel(df, excel_file, sheet_name, table_name):
 	# Save the workbook
 	workbook.save(excel_file)
 
+class PPVMCAReport:
+	"""
+	Web-API-friendly wrapper around ppv_report.
+
+	Maps the REST parameters to ppv_report constructor args and provides
+	run() / get_output_files() helpers used by api/routers/mca.py.
+
+	Constructor kwargs
+	------------------
+	data_file   : path to the uploaded Bucketer / S2T Logger Excel file
+	product     : 'GNR' | 'CWF' | 'DMR'
+	work_week   : e.g. 'WW9'
+	label       : optional run label
+	mode        : 'Bucketer' (default) | 'Framework' | 'Data'
+	output_dir  : directory to write output files into (tmpdir)
+
+	run(options)
+	------------
+	options is a list of strings from the frontend checkboxes:
+	  'REDUCED'   → reduced=True  (sets reduced data mode)
+	  'DECODE'    → decode=True   (run MCA decode tab)
+	  'OVERVIEW'  → overview=True (generate unit overview file)
+	Note: MC Checker option has been removed from the new UI.
+
+	get_output_files()
+	------------------
+	Returns list of paths of files that were actually written.
+	"""
+
+	def __init__(self, data_file, product='GNR', work_week='WW1', label='',
+	             mode='Bucketer', output_dir=None):
+		self.data_file  = data_file
+		self.product    = product.upper()
+		self.work_week  = work_week
+		self.label      = label
+		self.mode       = mode
+		self.output_dir = output_dir or os.path.dirname(data_file)
+		self._report    = None  # ppv_report instance created in run()
+
+	def run(self, options=None):
+		if options is None:
+			options = ['REDUCED', 'DECODE', 'OVERVIEW']
+		opts = [o.upper() for o in options]
+
+		reduced  = 'REDUCED'  in opts
+		decode   = 'DECODE'   in opts
+		overview = 'OVERVIEW' in opts
+		# MC_CHECKER option has been removed from new UI
+
+		# ppv_report.run() takes the data-tab selection ('MESH', 'CORE')
+		# These are always processed; the option flags are constructor params.
+		run_opts = ['MESH', 'CORE']
+
+		self._report = ppv_report(
+			name        = self.product,
+			week        = self.work_week,
+			label       = self.label,
+			source_file = self.data_file,
+			report      = self.output_dir,
+			reduced     = reduced,
+			mcdetail    = False,   # MC Checker removed from new UI
+			overview    = overview,
+			decode      = decode,
+			mode        = self.mode,
+			product     = self.product,
+		)
+		self._report.run(options=run_opts)
+
+	def get_output_files(self):
+		"""Return list of (path, filename) tuples for files that were produced."""
+		if self._report is None:
+			return []
+		results = []
+		for attr in ('data_file', 'mca_file', 'ovw_file'):
+			path = getattr(self._report, attr, None)
+			if path and os.path.isfile(path):
+				results.append((path, os.path.basename(path)))
+		return results
+
+
 #if __name__ == "__main__":
 def test(): ## Comment and run with above line, not setting args for this one, use the UI
 	# Example usage

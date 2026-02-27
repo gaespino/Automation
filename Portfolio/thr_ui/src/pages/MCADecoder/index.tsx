@@ -5,7 +5,8 @@ const BASE = import.meta.env.VITE_API_BASE ?? '/api';
 
 const BANK_INSTANCES: Record<string, string[]> = {
   CHA:     [],
-  CORE:    ['ML2','DCU','IFU','DTLB','L2'],
+  LLC:     [],
+  CORE:    ['ML2','DCU','IFU','DTLB'],
   MEM:     ['B2CMI','MSE','MCCHAN'],
   IO:      ['UBOX','UPI','ULA'],
   PORTIDS: [],

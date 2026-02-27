@@ -36,7 +36,11 @@ async def get_products():
 
 @router.get("/config/{product}")
 async def get_config(product: str):
-    """Return the ControlPanelConfig.json for a product (drives the dynamic form)."""
+    """Return the ControlPanelConfig.json for a product (drives the dynamic form).
+
+    Returns the full config with field_configs for the frontend to render sections,
+    field types, defaults, options, required flags, and descriptions.
+    """
     fname = os.path.join(_CONFIGS_DIR, f"{product.upper()}ControlPanelConfig.json")
     if not os.path.isfile(fname):
         # Fall back to generic
@@ -44,8 +48,11 @@ async def get_config(product: str):
     if not os.path.isfile(fname):
         raise HTTPException(status_code=404, detail=f"Config not found for product '{product}'")
     with open(fname, encoding="utf-8") as f:
-        config = json.load(f)
-    return {"product": product.upper(), "config": config}
+        raw = json.load(f)
+
+    # Support both formats: {"field_configs": {...}} and flat {"key": value}
+    field_configs = raw.get("field_configs", raw)
+    return {"product": product.upper(), "config": raw, "field_configs": field_configs}
 
 
 class ExperimentBuildRequest(BaseModel):

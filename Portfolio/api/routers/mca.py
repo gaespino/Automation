@@ -1,6 +1,6 @@
 """
 MCA REST endpoints.
-  POST /api/mca/report   — generate MCA report from uploaded Excel
+  POST /api/mca/report   — generate MCA report from uploaded Excel (returns ZIP)
   POST /api/mca/decode   — decode raw MCA register values
 """
 from __future__ import annotations
@@ -9,6 +9,7 @@ import os
 import sys
 import tempfile
 import traceback
+import zipfile
 from typing import Optional
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
@@ -21,7 +22,7 @@ router = APIRouter()
 # Helpers
 # ---------------------------------------------------------------------------
 def _backend():
-    """Lazily import MCAparser — avoids import-time errors on CaaS."""
+    """Lazily import PPVMCAReport — avoids import-time errors on CaaS."""
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(0, here)
     from THRTools.parsers.MCAparser import PPVMCAReport  # type: ignore
@@ -45,9 +46,15 @@ async def mca_report(
     product: str = Form("GNR"),
     work_week: str = Form("WW1"),
     label: str = Form(""),
-    options: str = Form(""),   # comma-separated: REDUCED,DECODE,OVERVIEW,MCCHECKER
+    options: str = Form("REDUCED,DECODE,OVERVIEW"),  # default: all three enabled
 ):
-    """Generate MCA report and return the output Excel file."""
+    """Generate MCA report and return a ZIP containing the output file(s).
+
+    Options (comma-separated):
+      REDUCED  — reduced data mode (filters noise rows)
+      DECODE   — MCA decode tab
+      OVERVIEW — unit overview Excel file
+    """
     raw = await file.read()
     options_list = [o.strip().upper() for o in options.split(",") if o.strip()]
 
@@ -56,27 +63,47 @@ async def mca_report(
         with open(src, "wb") as fh:
             fh.write(raw)
 
-        out = os.path.join(tmpdir, "MCAReport.xlsx")
         try:
             PPVMCAReport = _backend()
             report = PPVMCAReport(
-                data_file=src,
-                product=product,
-                work_week=work_week,
-                label=label,
-                mode=mode,
+                data_file   = src,
+                product     = product,
+                work_week   = work_week,
+                label       = label,
+                mode        = mode,
+                output_dir  = tmpdir,
             )
             report.run(options=options_list)
-            with open(out, "rb") as fh:
-                result = fh.read()
-        except Exception as exc:
+            output_files = report.get_output_files()
+        except Exception:
             raise HTTPException(status_code=500, detail=f"Report error: {traceback.format_exc()}")
 
-    return StreamingResponse(
-        io.BytesIO(result),
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="MCAReport_{label or work_week}.xlsx"'},
-    )
+        if not output_files:
+            raise HTTPException(status_code=500, detail="No output files were generated.")
+
+        tag = label or work_week
+        if len(output_files) == 1:
+            # Single file — return directly
+            path, fname = output_files[0]
+            with open(path, "rb") as fh:
+                result = fh.read()
+            return StreamingResponse(
+                io.BytesIO(result),
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+            )
+
+        # Multiple files — pack into ZIP
+        zip_buf = io.BytesIO()
+        with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            for path, fname in output_files:
+                zf.write(path, fname)
+        zip_buf.seek(0)
+        return StreamingResponse(
+            zip_buf,
+            media_type="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="MCAReport_{tag}.zip"'},
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -123,6 +150,15 @@ async def mca_decode(req: DecodeRequest):
                 h = _hex(val)
                 if h is not None:
                     results[field] = dec.cha_decoder(h, "MC DECODE")
+
+        elif bank == "LLC":
+            for field, val in [
+                ("MC_STATUS",  req.mc_status),
+                ("MC_MISC",    req.mc_misc),
+            ]:
+                h = _hex(val)
+                if h is not None:
+                    results[field] = dec.llc_decoder(h, "LLC")
 
         elif bank == "CORE":
             instance = (req.instance or "ML2").upper()
