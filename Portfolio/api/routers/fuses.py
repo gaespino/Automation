@@ -4,6 +4,7 @@ Fuse Generator REST endpoints.
   POST /api/fuses/generate   — generate .fuse file from selected fuses
 """
 from __future__ import annotations
+import csv
 import io
 import os
 import sys
@@ -15,6 +16,12 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 router = APIRouter()
+
+# Set CSV field size limit once at module level
+try:
+    csv.field_size_limit(sys.maxsize)
+except OverflowError:
+    csv.field_size_limit(2 ** 31 - 1)
 
 _FUSE_CACHE: dict = {}
 
@@ -52,11 +59,6 @@ def _load_product_fuses(product: str) -> list:
 
     import csv
     import sys as _sys
-    _sys.setrecursionlimit(10000)
-    try:
-        csv.field_size_limit(_sys.maxsize)
-    except OverflowError:
-        csv.field_size_limit(2 ** 31 - 1)
 
     rows = []
     for fname in sorted(os.listdir(fuse_dir)):

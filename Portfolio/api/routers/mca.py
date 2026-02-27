@@ -32,8 +32,11 @@ def _backend():
 def _decoder(product: str = "GNR"):
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(0, here)
+    import pandas as pd  # type: ignore
     from THRTools.Decoder.decoder import decoder  # type: ignore
-    return decoder(product=product)
+    # decoder requires a data DataFrame — pass a minimal dummy for standalone register decoding
+    dummy_df = pd.DataFrame({'VisualId': [1], 'TestName': ['dummy'], 'TestValue': ['0x0']})
+    return decoder(data=dummy_df, product=product)
 
 
 # ---------------------------------------------------------------------------
@@ -133,32 +136,60 @@ async def mca_decode(req: DecodeRequest):
     bank = (req.bank or "CHA").upper()
 
     def _hex(v):
+        """Normalize to lowercase hex string with 0x prefix, or None if invalid."""
         if not v:
             return None
+        v = v.strip()
         try:
-            return int(v, 16)
+            n = int(v, 16)
+            return hex(n)  # e.g. '0x12345678'
         except ValueError:
             return None
 
     try:
         if bank == "CHA":
-            for field, val in [
-                ("MC_STATUS",  req.mc_status),
-                ("MC_MISC",    req.mc_misc),
-                ("MC_MISC3",   req.mc_misc3),
-            ]:
-                h = _hex(val)
-                if h is not None:
-                    results[field] = dec.cha_decoder(h, "MC DECODE")
+            # MC_STATUS: MSCOD decode
+            h_status = _hex(req.mc_status)
+            if h_status is not None:
+                results["MC_STATUS (MSCOD)"] = dec.cha_decoder(h_status, "MC DECODE")
+
+            # MC_MISC: TOR/cache details
+            h_misc = _hex(req.mc_misc)
+            if h_misc is not None:
+                for subfield, stype in [
+                    ("MC_MISC (Orig Req)", "Orig Req"),
+                    ("MC_MISC (Opcode)",   "Opcode"),
+                    ("MC_MISC (CacheState)", "cachestate"),
+                    ("MC_MISC (TorID)",    "TorID"),
+                    ("MC_MISC (TorFSM)",   "TorFSM"),
+                ]:
+                    results[subfield] = dec.cha_decoder(h_misc, stype)
+
+            # MC_MISC3: routing details
+            h_misc3 = _hex(req.mc_misc3)
+            if h_misc3 is not None:
+                for subfield, stype in [
+                    ("MC_MISC3 (SrcID)",     "SrcID"),
+                    ("MC_MISC3 (ISMQ)",      "ISMQ"),
+                    ("MC_MISC3 (Attribute)", "Attribute"),
+                    ("MC_MISC3 (Result)",    "Result"),
+                    ("MC_MISC3 (Local Port)","Local Port"),
+                ]:
+                    results[subfield] = dec.cha_decoder(h_misc3, stype)
 
         elif bank == "LLC":
-            for field, val in [
-                ("MC_STATUS",  req.mc_status),
-                ("MC_MISC",    req.mc_misc),
-            ]:
-                h = _hex(val)
-                if h is not None:
-                    results[field] = dec.llc_decoder(h, "LLC")
+            h_status = _hex(req.mc_status)
+            if h_status is not None:
+                results["MC_STATUS (MSCOD)"] = dec.llc_decoder(h_status, "MC DECODE")
+
+            h_misc = _hex(req.mc_misc)
+            if h_misc is not None:
+                for subfield, stype in [
+                    ("MC_MISC (RSF)",  "RSF"),
+                    ("MC_MISC (LSF)",  "LSF"),
+                    ("MC_MISC (MiscV)","MiscV"),
+                ]:
+                    results[subfield] = dec.llc_decoder(h_misc, stype)
 
         elif bank == "CORE":
             instance = (req.instance or "ML2").upper()

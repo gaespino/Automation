@@ -264,7 +264,7 @@ def _build_log_dict(all_files: list, experiments: list) -> dict:
             continue
         log_dict[exp_name] = {
             "path": log_path,
-            "test_type": cfg.get("type", "Base"),
+            "test_type": cfg.get("type", "Baseline"),
             "content": cfg.get("content", "Dragon"),
             "comments": cfg.get("comments", ""),
         }
