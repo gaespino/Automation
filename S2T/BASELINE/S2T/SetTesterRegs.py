@@ -2034,6 +2034,21 @@ class S2TFlow():
 			return
 		scm.svStatus()
 
+	def build_disable_extmask(self, core_list_input, mode):
+		'''
+		Interface wrapper: delegate to CoreManipulation.build_disable_extmask().
+		Allows callers (e.g. System2TesterUI) to generate an extMask without importing
+		CoreManipulation directly — using the same scm module already loaded here.
+
+		Input:
+			core_list_input: (str or List[int]) Comma-separated string or list of ints
+			mode:            ('core' or 'slice')
+
+		Output:
+			extmask: (Dict) External mask dict ready to pass as extMasks to the tester
+		'''
+		return scm.build_disable_extmask(core_list_input, mode)
+
 
 #========================================================================================================#
 #=============== HELPER FUNCTIONS ======================================================================#

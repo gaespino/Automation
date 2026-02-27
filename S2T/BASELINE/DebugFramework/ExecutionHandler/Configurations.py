@@ -105,6 +105,7 @@ class ConfigurationMapping:
 			'Bios File': 'biosfile',
 			'Slice Disable List': 'slicedislist',
 			'Core Disable List': 'coredislist',
+			'Temperature SP': 'tempsp',
 		}
 	
 	DRAGON_MAPPING = {
@@ -226,6 +227,7 @@ class TestConfiguration:
 	fusefile: Optional[str] = None
 	coredislist: Optional[Dict] = None
 	slicedislist: Optional[Dict] = None
+	tempsp: Optional[float] = None
 
 @dataclass
 class SystemToTesterConfig:

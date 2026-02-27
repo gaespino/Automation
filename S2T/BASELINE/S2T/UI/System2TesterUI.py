@@ -299,6 +299,27 @@ class QuickDefeatureTool:
 		ttk.Separator(main_frame, orient='horizontal').grid(row=row, column=0, columnspan=2, sticky="ew", pady=5)
 		row += 1
 
+		# Core Disable List
+		ttk.Label(main_frame, text="Core Disable List:").grid(row=row, column=0, padx=10, pady=5, sticky="w")
+		self.core_disable_var = tk.StringVar()
+		self.core_disable_entry = ttk.Entry(main_frame, textvariable=self.core_disable_var, width=30)
+		self.core_disable_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+		row += 1
+
+		# Slice Disable List
+		ttk.Label(main_frame, text="Slice Disable List:").grid(row=row, column=0, padx=10, pady=5, sticky="w")
+		self.slice_disable_var = tk.StringVar()
+		self.slice_disable_entry = ttk.Entry(main_frame, textvariable=self.slice_disable_var, width=30)
+		self.slice_disable_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+		row += 1
+
+		# Temperature SP
+		ttk.Label(main_frame, text="Temperature SP (°C):").grid(row=row, column=0, padx=10, pady=5, sticky="w")
+		self.temp_sp_var = tk.StringVar()
+		self.temp_sp_entry = ttk.Entry(main_frame, textvariable=self.temp_sp_var, width=30)
+		self.temp_sp_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+		row += 1
+
 		# External Fuse File
 		ttk.Label(main_frame, text="External Fuse File (.fuse):").grid(row=row, column=0, padx=10, pady=5, sticky="w")
 		fuse_file_frame = ttk.Frame(main_frame)
@@ -516,6 +537,9 @@ class QuickDefeatureTool:
 		self.dis_1CPM_dropdown.config(state=tk.DISABLED)
 		self.volt_defeature_dropdown.config(state=tk.DISABLED)
 		self.fuse_file_browse_button.config(state=tk.DISABLED)
+		self.core_disable_entry.config(state=tk.DISABLED)
+		self.slice_disable_entry.config(state=tk.DISABLED)
+		self.temp_sp_entry.config(state=tk.DISABLED)
 
 		self.w600_checkbox.config(state=tk.DISABLED)
 	
@@ -551,8 +575,76 @@ class QuickDefeatureTool:
 		if dis_ht: self.ht_disable_checkbox.config(state=tk.DISABLED)
 		if reg_select: self.registers_checkbox.config(state=tk.DISABLED)
 
+	def validate_core_disable_options(self):
+		"""Validate Core/Slice Disable List entries against the current system state.
+
+		Returns True if validation passes (or user accepts warnings), False to block run.
+		"""
+		core_str = self.core_disable_var.get().strip()
+		slice_str = self.slice_disable_var.get().strip()
+
+		if not core_str and not slice_str:
+			return True
+
+		# Parse the lists
+		try:
+			core_disable_list = [int(x.strip()) for x in core_str.split(',') if x.strip()] if core_str else []
+		except ValueError:
+			messagebox.showerror("Input Error", "Core Disable List must be comma-separated integers (e.g. '62, 70')")
+			return False
+
+		try:
+			slice_disable_list = [int(x.strip()) for x in slice_str.split(',') if x.strip()] if slice_str else []
+		except ValueError:
+			messagebox.showerror("Input Error", "Slice Disable List must be comma-separated integers (e.g. '60, 72')")
+			return False
+
+		active_list = slice_disable_list if slice_disable_list else core_disable_list
+		is_slice_disable = bool(slice_disable_list)
+
+		# Slice mode conflict: target core cannot be in the Slice Disable List
+		if self.mode == 'slice' and is_slice_disable:
+			try:
+				target_core = int(self.mesh_config_var.get())
+			except (ValueError, TypeError):
+				target_core = None
+			if target_core is not None and target_core in slice_disable_list:
+				messagebox.showerror(
+					"Configuration Error",
+					f"Core {target_core} is selected as the slice target and is also in the Slice Disable List.\n"
+					"A core cannot be both the test target and disabled. "
+					"Please select a different target or remove it from the list."
+				)
+				return False
+
+		# Check system state using the s2t array (enabled cores = not fuse-disabled)
+		if self.s2t is not None:
+			enabled_cores = []
+			for compute_cores in self.s2t.array['CORES'].values():
+				enabled_cores.extend(compute_cores)
+
+			already_disabled = [c for c in active_list if c not in enabled_cores]
+			report_lines = [f"{'Slice' if is_slice_disable else 'Core'} Disable Validation Report:"]
+			for core in active_list:
+				status = "ENABLED (will be disabled)" if core in enabled_cores else "ALREADY DISABLED in current system"
+				report_lines.append(f"  Core {core}: {status}")
+
+			if already_disabled:
+				report_lines.append(f"\nWarning: {already_disabled} are already fuse-disabled in the current system.")
+				proceed = messagebox.askokcancel(
+					"Validation Warning",
+					"\n".join(report_lines) + "\n\nProceed anyway?"
+				)
+				return proceed
+			else:
+				print("\n".join(report_lines))
+
+		return True
+
 	def run(self):
 		# Run the S2T Quick option
+		if not self.validate_core_disable_options():
+			return
 		options = self.get_options()
 		options_str = "\n".join([f"{key}: {value}" for key, value in options.items()])
 		confirm = messagebox.askokcancel("Confirm Configuration", f"Please confirm the following Test Configuration:\n\n{options_str}")
@@ -729,8 +821,11 @@ class QuickDefeatureTool:
 			"Disable 2C Module": self.dis_2CPM_var.get(),
 			"Disable 1C Module": self.dis_1CPM_var.get(),
 			"Registers Select": 2 if self.registers_var.get() else 1,
-			"Registers Max": registers_max_entry, # 0xFFFF if not self.registers_var.get() else int(self.registers_max_entry.get(),0),
-			"Registers Min": registers_min_entry, # 0xFFFF if not self.registers_var.get() else int(self.registers_min_entry.get(),0),
+			"Registers Max": registers_max_entry,
+			"Registers Min": registers_min_entry,
+			"Core Disable List": self.core_disable_var.get().strip() or None,
+			"Slice Disable List": self.slice_disable_var.get().strip() or None,
+			"Temperature SP": None if self.temp_sp_var.get().strip() == '' else float(self.temp_sp_var.get().strip()),
 		}
 		return options
 
@@ -816,8 +911,24 @@ class QuickDefeatureTool:
 				self.s2t.qvbumps_core = vbump_core
 			if vbump_mesh != None:
 				#self.s2t.voltselect = 2
-				self.s2t.qvbumps_mesh = vbump_mesh		
+				self.s2t.qvbumps_mesh = vbump_mesh
 			self.s2t.targetLogicalCore = int(Mask)
+
+		# Core/Slice Disable List — generate extMask via CoreManipulation and pass through existing extMasks channel
+		core_dis_str = options.get("Core Disable List")
+		slice_dis_str = options.get("Slice Disable List")
+		if core_dis_str:
+			self.s2t.extMasks = self.s2t.build_disable_extmask(core_dis_str, 'core')
+		elif slice_dis_str:
+			self.s2t.extMasks = self.s2t.build_disable_extmask(slice_dis_str, 'slice')
+
+		temp_sp = options.get("Temperature SP")
+		if temp_sp is not None:
+			try:
+				from Tools import TemperatureControl as tc
+				tc.set_temperature_sp(temp_sp)
+			except Exception as e:
+				print(f"Warning: Could not set Temperature SP: {e}")
 
 		# Run Mesh
 		#s2tTest.setupMeshMode()

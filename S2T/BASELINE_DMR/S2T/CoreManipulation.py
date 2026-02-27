@@ -2088,8 +2088,136 @@ def mask_fuse_llc_array(llc_masks = {'cbb0':0x0, 'cbb1':0x0, 'cbb2':0x0, 'cbb3':
 
 	return(ret_array)
 
-## FastBoot Fuse Override
-def fuse_cmd_override_reset(fuse_cmd_array, skip_init=False, boot = True, s2t=False, execution_state=None):
+## Helper: extract integer mask value from hardware register object or hex string
+def _extract_mask_value(val):
+	'''Return integer mask value from a register object, hex string, or integer.'''
+	if hasattr(val, 'value'):
+		return val.value
+	if isinstance(val, str):
+		return int(val, 16)
+	return int(val)
+
+## Helper: apply disable bits into an integer mask for a given CBB unit
+def _apply_disable_bits(mask, unit_index, core_list, unit_size, disable_llc=False, llc_mask=None):
+	'''
+	Set disable bits in an IA (and optionally LLC) mask for all modules in core_list
+	that belong to the given CBB unit.
+
+	Input:
+		mask: (int) Current IA disable mask for this CBB
+		unit_index: (int) CBB index
+		core_list: (List[int]) Global physical module numbers
+		unit_size: (int) Number of physical modules per CBB (config.MODS_PER_CBB)
+		disable_llc: (bool) If True, also apply bits to llc_mask
+		llc_mask: (int) Current LLC disable mask (required if disable_llc is True)
+
+	Output:
+		Tuple (ia_mask, llc_mask) with updated values
+	'''
+	for core in core_list:
+		if core // unit_size == unit_index:
+			bit_pos = core % unit_size
+			mask |= (1 << bit_pos)
+			if disable_llc and llc_mask is not None:
+				llc_mask |= (1 << bit_pos)
+	return mask, llc_mask
+
+## Generates external mask for Core Disable experiment (disables IA only, LLC unchanged)
+def gen_core_disable_mask(core_list, current_masks=None):
+	'''
+	Generate an external mask with the specified modules disabled in the IA domain.
+	The LLC mask is preserved from the current system mask.
+
+	Input:
+		core_list: (List[int]) List of global physical module numbers to disable (e.g. [62, 70])
+		current_masks: (Dict, optional) Current system masks; if None, reads from hardware
+
+	Output:
+		result: (Dict) External mask dict with hex strings for ia_cbbX and llc_cbbX
+	'''
+	if current_masks is None:
+		current_masks = dpm.fuses(rdFuses=True, sktnum=[0], printFuse=False)
+
+	sv = _get_global_sv()
+	result = {}
+
+	for cbb in sv.socket0.cbbs:
+		cbbN = cbb.instance
+		cbb_name = cbb.name
+		ia_mask = _extract_mask_value(current_masks[f'ia_{cbb_name}'])
+		llc_mask = _extract_mask_value(current_masks[f'llc_{cbb_name}'])
+		ia_mask, _ = _apply_disable_bits(ia_mask, cbbN, core_list, config.MODS_PER_CBB)
+		result[f'ia_{cbb_name}'] = hex(ia_mask)
+		result[f'llc_{cbb_name}'] = hex(llc_mask)
+
+	print(Fore.CYAN + f'> Core Disable mask generated for modules: {core_list}' + Fore.WHITE)
+	for key, val in result.items():
+		print(Fore.CYAN + f'  {key}: {val}' + Fore.WHITE)
+
+	return result
+
+## Generates external mask for Slice Disable experiment (disables both IA and LLC)
+def gen_slice_disable_mask(core_list, current_masks=None):
+	'''
+	Generate an external mask with the specified modules and their LLC slices disabled.
+
+	Input:
+		core_list: (List[int]) List of global physical module numbers to disable (e.g. [60, 72])
+		current_masks: (Dict, optional) Current system masks; if None, reads from hardware
+
+	Output:
+		result: (Dict) External mask dict with hex strings for ia_cbbX and llc_cbbX
+	'''
+	if current_masks is None:
+		current_masks = dpm.fuses(rdFuses=True, sktnum=[0], printFuse=False)
+
+	sv = _get_global_sv()
+	result = {}
+
+	for cbb in sv.socket0.cbbs:
+		cbbN = cbb.instance
+		cbb_name = cbb.name
+		ia_mask = _extract_mask_value(current_masks[f'ia_{cbb_name}'])
+		llc_mask = _extract_mask_value(current_masks[f'llc_{cbb_name}'])
+		ia_mask, llc_mask = _apply_disable_bits(ia_mask, cbbN, core_list, config.MODS_PER_CBB, disable_llc=True, llc_mask=llc_mask)
+		result[f'ia_{cbb_name}'] = hex(ia_mask)
+		result[f'llc_{cbb_name}'] = hex(llc_mask)
+
+	print(Fore.CYAN + f'> Slice Disable mask generated for modules: {core_list}' + Fore.WHITE)
+	for key, val in result.items():
+		print(Fore.CYAN + f'  {key}: {val}' + Fore.WHITE)
+
+	return result
+
+## Single interface for generating a core or slice disable external mask
+def build_disable_extmask(core_list_input, mode, current_masks=None):
+	'''
+	Parse a comma-separated string or int list, then generate an external mask.
+	Single entry point used by SystemDebug and System2TesterUI to keep generation logic
+	in one place and avoid duplicating parsing or routing logic in callers.
+
+	Input:
+		core_list_input: (str or List[int]) Comma-separated string (e.g. "62, 70") or list of ints
+		mode:            ('core' or 'slice') 'core' disables IA only; 'slice' disables IA and LLC
+		current_masks:   (Dict, optional) Current system masks; if None, reads from hardware
+
+	Output:
+		extmask: (Dict) External mask dict ready to pass as extMask/extMasks to the tester
+	'''
+	if isinstance(core_list_input, str):
+		try:
+			core_list = [int(x.strip()) for x in core_list_input.split(',') if x.strip()]
+		except ValueError as e:
+			raise ValueError(f'Invalid core disable list "{core_list_input}": expected comma-separated integers') from e
+	else:
+		core_list = list(core_list_input)
+
+	if mode == 'core':
+		return gen_core_disable_mask(core_list, current_masks)
+	elif mode == 'slice':
+		return gen_slice_disable_mask(core_list, current_masks)
+	else:
+		raise ValueError(f'Unknown disable mode "{mode}": expected "core" or "slice"')
 	'''
 	Overrides each fuse given as input array with its specified values.
 	Full fuse names and values are required.

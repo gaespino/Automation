@@ -396,6 +396,9 @@ class AutomationFlowDesigner:
             "Boot Breakpoint": None,
             "Disable 2 Cores": None,
             "Check Core": 7,
+            "Core Disable List": None,
+            "Slice Disable List": None,
+            "Temperature SP": None,
             "Voltage Type": "vbump",
             "Voltage IA": None,
             "Voltage CFC": None,
@@ -2392,7 +2395,10 @@ class ExperimentEditor:
             ("Frequency CFC", "entry"),
             ("Pseudo Config", "check"),
             ("Disable 2 Cores", "entry"),
-            ("Core License", "combo", core_license_options)
+            ("Core License", "combo", core_license_options),
+            ("Core Disable List", "entry"),
+            ("Slice Disable List", "entry"),
+            ("Temperature SP", "entry"),
 
         ]
 

@@ -2691,6 +2691,21 @@ class Framework:
 					config_updates['dis2CPM'] = int(value, 16)
 				elif recipe_key == 'Disable 1 Core' and value:
 					config_updates['dis1CPM'] = int(value, 16)
+				elif recipe_key == 'Core Disable List' and value:
+					try:
+						config_updates['coredislist'] = [int(c.strip()) for c in str(value).split(',') if c.strip()]
+					except ValueError:
+						FrameworkUtils.FrameworkPrint(f' Invalid Core Disable List value: {value}. Expected comma-separated integers.', 2)
+				elif recipe_key == 'Slice Disable List' and value:
+					try:
+						config_updates['slicedislist'] = [int(c.strip()) for c in str(value).split(',') if c.strip()]
+					except ValueError:
+						FrameworkUtils.FrameworkPrint(f' Invalid Slice Disable List value: {value}. Expected comma-separated integers.', 2)
+				elif recipe_key == 'Temperature SP' and value is not None:
+					try:
+						config_updates['tempsp'] = float(value)
+					except (ValueError, TypeError):
+						FrameworkUtils.FrameworkPrint(f' Invalid Temperature SP value: {value}. Expected a float.', 2)
 				elif recipe_key == 'Core License' and value:
 					config_updates['corelic'] = int(value.split(":")[0])
 				elif recipe_key == 'Test Mode' and value:
@@ -3110,6 +3125,34 @@ class Framework:
 		if extmask:
 			FrameworkUtils.FrameworkPrint(f' Updating External Mask to: {extmask}')
 			config_updates['extMask'] = extmask
+		elif config_updates.get('coredislist'):
+			FrameworkUtils.FrameworkPrint(f' Generating Core Disable external mask for modules: {config_updates["coredislist"]}')
+			config_updates['extMask'] = gcm.build_disable_extmask(config_updates['coredislist'], 'core')
+		elif config_updates.get('slicedislist'):
+			FrameworkUtils.FrameworkPrint(f' Generating Slice Disable external mask for modules: {config_updates["slicedislist"]}')
+			# Validate: in slice mode, the target module cannot be in the disable list
+			target_mode = config_updates.get('target', getattr(self.config, 'target', None))
+			if target_mode is not None and str(target_mode).lower() == 'slice':
+				target_mask = config_updates.get('mask', getattr(self.config, 'mask', None))
+				if target_mask is not None:
+					try:
+						if int(target_mask) in config_updates['slicedislist']:
+							raise ValueError(
+								f"Configuration Error: target module {target_mask} is in the Slice Disable List "
+								f"{config_updates['slicedislist']}. A module cannot be both the test target and disabled."
+							)
+					except (TypeError, ValueError) as e:
+						if 'Configuration Error' in str(e):
+							raise
+			config_updates['extMask'] = gcm.build_disable_extmask(config_updates['slicedislist'], 'slice')
+
+		if config_updates.get('tempsp') is not None:
+			try:
+				from Tools import TemperatureControl as tc
+				tc.set_temperature_sp(config_updates['tempsp'])
+				FrameworkUtils.FrameworkPrint(f' Temperature SP set to: {config_updates["tempsp"]}')
+			except Exception as e:
+				FrameworkUtils.FrameworkPrint(f' Warning: Could not set Temperature SP: {e}', 2)
 
 		self.update_configuration(**config_updates)
 		self.update_s2t_configuration(config_updates)
