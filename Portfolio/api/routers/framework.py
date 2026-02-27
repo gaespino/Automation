@@ -26,7 +26,7 @@ DATA_SERVER = r"\\crcv03a-cifs.cr.intel.com\mfg_tlo_001\DebugFramework"
 
 
 def _fpa():
-    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    here = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, here)
     import THRTools.parsers.Frameworkparser as fp  # type: ignore
     return fp

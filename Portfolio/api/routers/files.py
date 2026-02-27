@@ -18,7 +18,7 @@ router = APIRouter()
 
 
 def _merger_module():
-    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    here = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, here)
     import THRTools.utils.PPVReportMerger as pm  # type: ignore
     return pm

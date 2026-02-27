@@ -17,7 +17,7 @@ router = APIRouter()
 
 
 def _backend():
-    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    here = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, here)
     from THRTools.parsers.PPVLoopsParser import LogsPTC  # type: ignore
     return LogsPTC

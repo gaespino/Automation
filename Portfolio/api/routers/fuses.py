@@ -51,7 +51,7 @@ def _load_product_fuses(product: str) -> list:
     if product in _FUSE_CACHE:
         return _FUSE_CACHE[product]
 
-    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    here = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     # Directories are stored lowercase (gnr/, cwf/, dmr/)
     fuse_dir = os.path.join(here, "THRTools", "configs", "fuses", product.lower())
     if not os.path.isdir(fuse_dir):
@@ -102,7 +102,7 @@ class FuseGenerateRequest(BaseModel):
 @router.post("/generate")
 async def generate_fuse_file(req: FuseGenerateRequest):
     """Generate a .fuse file from the selected fuse names."""
-    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    here = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, here)
     try:
         from THRTools.utils.fusefilegenerator import FuseFileGenerator  # type: ignore

@@ -23,14 +23,14 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 def _backend():
     """Lazily import PPVMCAReport — avoids import-time errors on CaaS."""
-    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    here = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, here)
     from THRTools.parsers.MCAparser import PPVMCAReport  # type: ignore
     return PPVMCAReport
 
 
 def _decoder(product: str = "GNR"):
-    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    here = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, here)
     import pandas as pd  # type: ignore
     from THRTools.Decoder.decoder import decoder  # type: ignore
