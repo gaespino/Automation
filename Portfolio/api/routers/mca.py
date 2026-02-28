@@ -305,24 +305,34 @@ async def mca_decode(req: DecodeRequest):
             ]:
                 h = _hex(val)
                 if h is not None:
-                    results[field] = dec.core_decoder(h, instance)
+                    mcacod, mscod = dec.core_decoder(h, instance)
+                    results[f"{field} (MCACOD)"] = mcacod
+                    results[f"{field} (MSCOD)"]  = mscod
 
         elif bank == "MEM":
             instance = (req.instance or "B2CMI").upper()
             h = _hex(req.mc_status)
             if h is not None:
-                results["MC_STATUS"] = dec.mem_decoder(h, instance)
+                results["MC_STATUS (MSCOD)"] = dec.mem_decoder(h, instance)
 
         elif bank == "IO":
             instance = (req.instance or "UBOX").upper()
             h = _hex(req.mc_status)
             if h is not None:
-                results["MC_STATUS"] = dec.io_decoder(h, instance)
+                mcacod, mscod = dec.io_decoder(h, instance)
+                results["MC_STATUS (MCACOD)"] = mcacod
+                results["MC_STATUS (MSCOD)"]  = mscod
 
         elif bank == "PORTIDS":
             h = _hex(req.mc_status)
             if h is not None:
-                results["MC_STATUS"] = dec.portids_decoder(h, [], "FirstError")
+                portid_fields = [
+                    'FirstError - DIEID',     'FirstError - PortID',
+                    'FirstError - Location',  'FirstError - FromCore',
+                    'SecondError - DIEID',    'SecondError - PortID',
+                    'SecondError - Location', 'SecondError - FromCore',
+                ]
+                results.update(dec.portids_decoder(h, portid_fields, "ierr"))
 
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Decode error: {traceback.format_exc()}")
