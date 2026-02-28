@@ -1,5 +1,6 @@
 .flow-node {
   width: 190px;
+  min-height: 72px;  /* uniform minimum height for all node types */
   border: 2px solid var(--node-color, #555);
   border-radius: 6px;
   background: #252526;
@@ -7,6 +8,7 @@
   font-size: 11px;
   box-shadow: 0 2px 8px rgba(0,0,0,.5);
   transition: box-shadow .15s;
+  box-sizing: border-box;
 }
 .flow-node.selected {
   box-shadow: 0 0 0 2px #007acc, 0 2px 12px rgba(0,122,204,.4);
@@ -56,5 +58,7 @@
   width: 10px !important; height: 10px !important;
   border: 2px solid #1e1e1e !important;
 }
-.handle-in  { background: #858585 !important; }
-.handle-out { background: #4ec9b0 !important; }
+/* handle-in stays neutral grey */
+.handle-in { background: #858585 !important; }
+/* handle-out color is set per-port via inline style in FlowNode.tsx — no background override here */
+.handle-out { border-radius: 50% !important; }

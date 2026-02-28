@@ -241,18 +241,8 @@ export default function AutomationDesigner() {
       {/* Toolbar */}
       <div className="ad-toolbar">
         <span className="ad-title">Automation Designer</span>
-        <div className="ad-tool-group">
-          {Object.entries(NODE_TYPES_META).map(([type, meta]) => (
-            <button key={type} className="btn ad-palette-btn"
-              style={{ borderColor: meta.color, color: meta.color }}
-              title={`Add ${meta.label}`}
-              onClick={e => { e.stopPropagation(); addNode(type); }}>
-              {meta.symbol}
-            </button>
-          ))}
-        </div>
         <div className="ad-tool-sep" />
-        <button className="btn danger" onClick={deleteSelected}>✕ Delete</button>
+        <button className="btn danger" onClick={deleteSelected}>✕ Delete Sel.</button>
         <button className="btn" onClick={autoLayout}>⟲ Layout</button>
         <button className="btn" onClick={validate}>✓ Validate</button>
         <div className="ad-tool-sep" />
@@ -387,12 +377,13 @@ export default function AutomationDesigner() {
           </ReactFlow>
         </div>
 
-        {/* Right sidebar — nodes list + log */}
+        {/* Right sidebar — node palette, nodes list, connections + log */}
         <Sidebar
           nodes={nodes}
           edges={edges}
           log={log}
           experiments={experiments}
+          onAddNode={(nodeType) => { addNode(nodeType); }}
           onSelectNode={(id) => {
             setNodes(ns => ns.map(n => ({ ...n, selected: n.id === id })));
           }}
@@ -408,6 +399,10 @@ export default function AutomationDesigner() {
           onAssign={(id, exp) => {
             setNodes(ns => ns.map(n => n.id === id ? { ...n, data: { ...n.data, experiment: exp } } : n));
             addLog(`${id} → experiment: "${exp}"`);
+          }}
+          onDeleteEdge={(edgeId) => {
+            setEdges(es => es.filter(e => e.id !== edgeId));
+            addLog(`Removed connection ${edgeId}.`);
           }}
         />
       </div>
