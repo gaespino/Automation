@@ -4,7 +4,7 @@ import './style.css';
 const BASE = import.meta.env.VITE_API_BASE ?? '/api';
 
 const BANK_INSTANCES: Record<string, string[]> = {
-  CHA:     [],
+  'CHA/CCF': [],
   LLC:     [],
   CORE:    ['ML2','DCU','IFU','DTLB'],
   MEM:     ['B2CMI','MSE','MCCHAN'],
@@ -14,13 +14,25 @@ const BANK_INSTANCES: Record<string, string[]> = {
 
 // Only show registers that the backend actually decodes for each bank
 const BANK_REGS: Record<string, string[]> = {
-  CHA:     ['MC_STATUS', 'MC_MISC', 'MC_MISC3'],
-  LLC:     ['MC_STATUS', 'MC_MISC'],
-  CORE:    ['MC_STATUS', 'MC_MISC'],
-  MEM:     ['MC_STATUS'],
-  IO:      ['MC_STATUS'],
-  PORTIDS: ['MC_STATUS'],
+  'CHA/CCF': ['MC_STATUS', 'MC_MISC', 'MC_MISC3'],
+  LLC:       ['MC_STATUS', 'MC_MISC'],
+  CORE:      ['MC_STATUS', 'MC_MISC'],
+  MEM:       ['MC_STATUS'],
+  IO:        ['MC_STATUS'],
+  PORTIDS:   ['MCERRLOGGINGREG', 'IERRLOGGINGREG'],
 };
+
+// Map display register names to DecodeRequest field names
+const REG_API_FIELD: Record<string, string> = {
+  'MC_STATUS':        'mc_status',
+  'MC_MISC':          'mc_misc',
+  'MC_MISC3':         'mc_misc3',
+  'MCERRLOGGINGREG':  'mc_status',
+  'IERRLOGGINGREG':   'mc_misc',
+};
+
+// Map frontend bank name to API bank value
+const BANK_API_NAME: Record<string, string> = { 'CHA/CCF': 'CHA' };
 
 const BANKS = Object.keys(BANK_INSTANCES);
 
@@ -75,19 +87,19 @@ export default function MCADecoder() {
   const handleDecode = async () => {
     setLoading(true); setError(''); setResult(null);
     try {
+      const apiBank = BANK_API_NAME[bank] ?? bank;
+      const payload: Record<string, string | undefined> = {
+        product, bank: apiBank,
+        instance: instance || undefined,
+      };
+      for (const reg of (BANK_REGS[bank] ?? [])) {
+        const field = REG_API_FIELD[reg] ?? reg.toLowerCase().replace(/ /g, '_');
+        payload[field] = regs[reg] || undefined;
+      }
       const resp = await fetch(`${BASE}/mca/decode`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          product, bank,
-          instance:  instance             || undefined,
-          mc_status: regs['MC_STATUS']    || undefined,
-          mc_addr:   regs['MC_ADDR']      || undefined,
-          mc_misc:   regs['MC_MISC']      || undefined,
-          mc_misc2:  regs['MC_MISC2']     || undefined,
-          mc_misc3:  regs['MC_MISC3']     || undefined,
-          mc_misc4:  regs['MC_MISC4']     || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
       if (!resp.ok) { const t = await resp.text(); setError(`${resp.status}: ${t}`); }
       else { setResult(await resp.json()); }
@@ -159,7 +171,11 @@ export default function MCADecoder() {
             </>}
           </div>
 
-          <div className="section-title" style={{ marginTop: 12 }}>Registers (hex)</div>
+          <div className="section-title" style={{ marginTop: 12 }}>
+            Registers (hex)
+            {bank === 'PORTIDS' && <span className="bank-hint"> — UBox registers (MCERRLOGGINGREG / IERRLOGGINGREG)</span>}
+            {bank === 'CHA/CCF' && <span className="bank-hint"> — CHA (GNR/CWF) / CCF (DMR)</span>}
+          </div>
           <div className="form-grid">
             {visibleRegs.map(reg => (
               <React.Fragment key={reg}>

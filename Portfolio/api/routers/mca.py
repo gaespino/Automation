@@ -239,7 +239,10 @@ async def mca_decode(req: DecodeRequest):
         raise HTTPException(status_code=500, detail=f"Decoder init error: {exc}")
 
     results: dict = {}
+    # Accept both "CHA" and "CCF" (DMR architectural rename of the CHA/LLC IP)
     bank = (req.bank or "CHA").upper()
+    if bank == "CCF":
+        bank = "CHA"
 
     def _hex(v):
         """Normalize to lowercase hex string with 0x prefix, or None if invalid."""
@@ -324,15 +327,25 @@ async def mca_decode(req: DecodeRequest):
                 results["MC_STATUS (MSCOD)"]  = mscod
 
         elif bank == "PORTIDS":
-            h = _hex(req.mc_status)
-            if h is not None:
-                portid_fields = [
-                    'FirstError - DIEID',     'FirstError - PortID',
-                    'FirstError - Location',  'FirstError - FromCore',
-                    'SecondError - DIEID',    'SecondError - PortID',
-                    'SecondError - Location', 'SecondError - FromCore',
-                ]
-                results.update(dec.portids_decoder(h, portid_fields, "ierr"))
+            # PORTIDS uses two UBox registers:
+            # MCERRLOGGINGREG → mc_status (event='mcerr')
+            # IERRLOGGINGREG  → mc_misc   (event='ierr')
+            portid_fields = [
+                'FirstError - DIEID',     'FirstError - PortID',
+                'FirstError - Location',  'FirstError - FromCore',
+                'SecondError - DIEID',    'SecondError - PortID',
+                'SecondError - Location', 'SecondError - FromCore',
+            ]
+            h_mcerr = _hex(req.mc_status)
+            if h_mcerr is not None:
+                decoded = dec.portids_decoder(h_mcerr, portid_fields, "mcerr")
+                for k, v in decoded.items():
+                    results[f"MCERRLOGGINGREG – {k}"] = v
+            h_ierr = _hex(req.mc_misc)
+            if h_ierr is not None:
+                decoded = dec.portids_decoder(h_ierr, portid_fields, "ierr")
+                for k, v in decoded.items():
+                    results[f"IERRLOGGINGREG – {k}"] = v
 
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Decode error: {traceback.format_exc()}")
