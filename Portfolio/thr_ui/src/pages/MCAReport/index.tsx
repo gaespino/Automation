@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import './style.css';
 
 const BASE = import.meta.env.VITE_API_BASE ?? '/api';
@@ -26,7 +26,91 @@ const OPTIONS: CheckboxOption[] = [
 
 interface OutputFile { name: string; size: number; }
 interface ReportResult { token: string; files: OutputFile[]; }
+interface DirEntry { name: string; path: string; is_drive: boolean; }
+interface BrowseResult { path: string; parent: string | null; entries: DirEntry[]; }
 
+// ---------------------------------------------------------------------------
+// DirPicker modal — server-side folder browser
+// ---------------------------------------------------------------------------
+function DirPicker({ onSelect, onClose }: { onSelect: (path: string) => void; onClose: () => void }) {
+  const [browse, setBrowse] = useState<BrowseResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState('');
+
+  const load = useCallback(async (path: string) => {
+    setLoading(true); setError('');
+    try {
+      const resp = await fetch(`${BASE}/mca/browse?path=${encodeURIComponent(path)}`);
+      if (!resp.ok) throw new Error(await resp.text());
+      setBrowse(await resp.json());
+    } catch (e: unknown) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(''); }, [load]);
+
+  return (
+    <div className="picker-overlay" onClick={onClose}>
+      <div className="picker-modal" onClick={e => e.stopPropagation()}>
+        <div className="picker-header">
+          <span>📁 Browse for folder</span>
+          <button className="btn" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="picker-breadcrumb">
+          {browse?.path
+            ? <>
+                <span className="picker-crumb-link" onClick={() => load('')}>⊞ Root</span>
+                <span className="picker-crumb-sep">/</span>
+                <span className="picker-crumb-current" title={browse.path}>{browse.path}</span>
+              </>
+            : <span className="picker-crumb-current">Root</span>
+          }
+        </div>
+
+        <div className="picker-list">
+          {loading && <div className="picker-msg">Loading…</div>}
+          {error   && <div className="picker-msg picker-err">{error}</div>}
+          {!loading && !error && browse && (
+            <>
+              {browse.parent != null && (
+                <div className="picker-entry picker-up" onClick={() => load(browse.parent!)}>
+                  ⬆ ..
+                </div>
+              )}
+              {browse.entries.length === 0
+                ? <div className="picker-msg">No sub-folders</div>
+                : browse.entries.map(e => (
+                    <div key={e.path} className="picker-entry" onClick={() => load(e.path)}>
+                      {e.is_drive ? '💽' : '📁'} {e.name}
+                    </div>
+                  ))
+              }
+            </>
+          )}
+        </div>
+
+        <div className="picker-footer">
+          <span className="dim">{browse?.path || '/'}</span>
+          <button
+            className="btn success"
+            disabled={!browse?.path}
+            onClick={() => { if (browse?.path) { onSelect(browse.path); onClose(); } }}
+          >
+            ✔ Select this folder
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main MCAReport page
+// ---------------------------------------------------------------------------
 export default function MCAReport() {
   const [mode,      setMode]      = useState('Bucketer');
   const [product,   setProduct]   = useState('GNR');
@@ -45,6 +129,7 @@ export default function MCAReport() {
   const [selected,  setSelected]  = useState<Set<string>>(new Set());
   const [savePath,  setSavePath]  = useState('');
   const [actioning, setActioning] = useState(false);
+  const [showBrowse, setShowBrowse] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -284,6 +369,13 @@ export default function MCAReport() {
                   onChange={e => setSavePath(e.target.value)}
                 />
                 <button
+                  className="btn"
+                  title="Browse server filesystem"
+                  onClick={() => setShowBrowse(true)}
+                >
+                  📁 Browse
+                </button>
+                <button
                   className="btn success"
                   onClick={handleSave}
                   disabled={actioning || selected.size === 0 || !savePath.trim()}
@@ -302,6 +394,13 @@ export default function MCAReport() {
           {log || 'Ready.'}
         </div>
       </div>
+
+      {showBrowse && (
+        <DirPicker
+          onSelect={p => setSavePath(p)}
+          onClose={() => setShowBrowse(false)}
+        />
+      )}
     </div>
   );
 }

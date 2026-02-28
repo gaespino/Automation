@@ -171,6 +171,51 @@ async def mca_save(
 
 
 # ---------------------------------------------------------------------------
+# /api/mca/browse  — list subdirectories of a server path (for folder picker)
+# ---------------------------------------------------------------------------
+@router.get("/browse")
+async def mca_browse(path: str = ""):
+    """Return the children (subdirectories + root drives/home) of a server path.
+
+    If path is empty or invalid, returns OS-appropriate root entries.
+    """
+    import platform
+
+    def _drives():
+        """Windows: return available drive roots."""
+        drives = []
+        for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+            d = f"{letter}:\\"
+            if os.path.isdir(d):
+                drives.append({"name": d, "path": d, "is_drive": True})
+        return drives
+
+    # Resolve the requested path
+    if not path or not os.path.isdir(path):
+        if platform.system() == "Windows":
+            return {"path": "", "parent": None, "entries": _drives()}
+        else:
+            home = os.path.expanduser("~")
+            return {"path": home, "parent": os.path.dirname(home), "entries": _list_dir(home)}
+
+    path = os.path.abspath(path)
+    parent = os.path.dirname(path) if path != os.path.dirname(path) else None
+    return {"path": path, "parent": parent, "entries": _list_dir(path)}
+
+
+def _list_dir(path: str) -> list:
+    entries = []
+    try:
+        for name in sorted(os.listdir(path), key=str.lower):
+            full = os.path.join(path, name)
+            if os.path.isdir(full):
+                entries.append({"name": name, "path": full, "is_drive": False})
+    except PermissionError:
+        pass
+    return entries
+
+
+# ---------------------------------------------------------------------------
 # /api/mca/decode
 # ---------------------------------------------------------------------------
 class DecodeRequest(BaseModel):
