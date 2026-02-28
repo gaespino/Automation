@@ -40,11 +40,8 @@ def _normalize_fuse_row(row: dict, ip_origin: str) -> dict:
     default = row.get("default") or row.get("Default") or ""
     group = row.get("Group") or row.get("group") or row.get("Category") or ""
 
-    normalized = {"Name": name, "IP": ip, "Description": desc,
-                  "Bits": bits, "Default": default, "Group": group}
-    # Keep all original columns too so nothing is lost
-    normalized.update(row)
-    return normalized
+    return {"Name": name, "IP": ip, "Description": desc,
+            "Bits": bits, "Default": default, "Group": group}
 
 
 def _load_product_fuses(product: str) -> list:

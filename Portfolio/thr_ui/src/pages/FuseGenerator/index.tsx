@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import './style.css';
 
 const BASE = import.meta.env.VITE_API_BASE ?? '/api';
+const PAGE_SIZE = 200;
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -32,6 +33,7 @@ export default function FuseGenerator() {
   const [loading,   setLoading]   = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error,     setError]     = useState('');
+  const [page,      setPage]      = useState(1);
 
   useEffect(() => {
     setLoading(true); setError(''); setFuses([]); setSelected(new Set());
@@ -46,6 +48,9 @@ export default function FuseGenerator() {
       .finally(() => setLoading(false));
   }, [product]);
 
+  // Reset to page 1 whenever filters change
+  useEffect(() => { setPage(1); }, [search, filterIp, filterGrp, fuses]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return fuses.filter(f =>
@@ -54,6 +59,9 @@ export default function FuseGenerator() {
       (!filterGrp || f.Group === filterGrp)
     );
   }, [fuses, search, filterIp, filterGrp]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const toggle = (name: string) =>
     setSelected(s => { const n = new Set(s); n.has(name) ? n.delete(name) : n.add(name); return n; });
@@ -154,8 +162,12 @@ export default function FuseGenerator() {
             <thead>
               <tr>
                 <th><input type="checkbox"
-                  checked={filtered.length > 0 && filtered.every(f => selected.has(f.Name))}
-                  onChange={e => e.target.checked ? selectFiltered() : clearFiltered()} /></th>
+                  checked={paginated.length > 0 && paginated.every(f => selected.has(f.Name))}
+                  onChange={e => {
+                    const n = new Set(selected);
+                    paginated.forEach(f => e.target.checked ? n.add(f.Name) : n.delete(f.Name));
+                    setSelected(n);
+                  }} /></th>
                 <th>Name</th>
                 <th>IP</th>
                 <th>Description</th>
@@ -165,7 +177,7 @@ export default function FuseGenerator() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(f => (
+              {paginated.map(f => (
                 <tr key={f.Name} className={selected.has(f.Name) ? 'row-selected' : ''}>
                   <td><input type="checkbox" checked={selected.has(f.Name)} onChange={() => toggle(f.Name)} /></td>
                   <td className="fuse-name">{f.Name}</td>
@@ -184,6 +196,15 @@ export default function FuseGenerator() {
             </tbody>
           </table>
         </div>
+        {totalPages > 1 && (
+          <div className="fg-pagination">
+            <button className="btn" onClick={() => setPage(1)} disabled={page === 1}>«</button>
+            <button className="btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>‹</button>
+            <span className="pg-info">Page {page} / {totalPages} &nbsp;·&nbsp; {filtered.length.toLocaleString()} rows</span>
+            <button className="btn" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>›</button>
+            <button className="btn" onClick={() => setPage(totalPages)} disabled={page === totalPages}>»</button>
+          </div>
+        )}
       </div>
     </div>
   );

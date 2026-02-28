@@ -19,3 +19,5 @@
 .fuse-desc { color: #d4d4d4; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fuse-bits, .fuse-def { color: #ce9178; font-family: Consolas, monospace; white-space: nowrap; }
 .fuse-grp  { color: #858585; white-space: nowrap; }
+.fg-pagination { display: flex; align-items: center; gap: 6px; padding: 8px 0 2px; }
+.pg-info { font-size: 12px; color: #858585; flex: 1; text-align: center; }
