@@ -11,41 +11,66 @@ const BANK_INSTANCES: Record<string, string[]> = {
   IO:      ['UBOX','UPI','ULA'],
   PORTIDS: [],
 };
+
+// Only show registers that the backend actually decodes for each bank
+const BANK_REGS: Record<string, string[]> = {
+  CHA:     ['MC_STATUS', 'MC_MISC', 'MC_MISC3'],
+  LLC:     ['MC_STATUS', 'MC_MISC'],
+  CORE:    ['MC_STATUS', 'MC_MISC'],
+  MEM:     ['MC_STATUS'],
+  IO:      ['MC_STATUS'],
+  PORTIDS: ['MC_STATUS'],
+};
+
 const BANKS = Object.keys(BANK_INSTANCES);
 
-interface DecodeResult {
-  [key: string]: unknown;
-}
+interface ApiResponse { product: string; bank: string; results: Record<string, unknown>; }
 
-function downloadText(content: string, filename: string) {
-  const blob = new Blob([content], { type: 'text/plain' });
+function downloadBlob(content: string, filename: string, type: string) {
+  const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
 }
 
+/** Flatten results — arrays expand to indexed sub-rows, nested dicts to sub-keys. */
+function flattenResults(results: Record<string, unknown>): Array<[string, string]> {
+  const rows: Array<[string, string]> = [];
+  for (const [key, val] of Object.entries(results)) {
+    if (Array.isArray(val)) {
+      val.forEach((v, i) => rows.push([`${key} [${i}]`, String(v ?? '')] ));
+    } else if (val !== null && typeof val === 'object') {
+      for (const [subk, subv] of Object.entries(val as Record<string, unknown>)) {
+        rows.push([`${key} – ${subk}`, String(subv ?? '')]);
+      }
+    } else {
+      rows.push([key, String(val ?? '')]);
+    }
+  }
+  return rows;
+}
+
 export default function MCADecoder() {
   const [product,   setProduct]   = useState('GNR');
   const [bank,      setBank]      = useState('CORE');
   const [instance,  setInstance]  = useState('ML2');
-  const [mcStatus,  setMcStatus]  = useState('');
-  const [mcAddr,    setMcAddr]    = useState('');
-  const [mcMisc,    setMcMisc]    = useState('');
-  const [mcMisc2,   setMcMisc2]   = useState('');
-  const [mcMisc3,   setMcMisc3]   = useState('');
-  const [mcMisc4,   setMcMisc4]   = useState('');
-  const [result,    setResult]    = useState<DecodeResult | null>(null);
+  const [regs,      setRegs]      = useState<Record<string, string>>({});
+  const [result,    setResult]    = useState<ApiResponse | null>(null);
   const [error,     setError]     = useState('');
   const [loading,   setLoading]   = useState(false);
 
   const instances = BANK_INSTANCES[bank] ?? [];
+  const visibleRegs = BANK_REGS[bank] ?? Object.keys(BANK_REGS);
 
   const handleBankChange = (b: string) => {
     setBank(b);
     const inst = BANK_INSTANCES[b];
     setInstance(inst.length ? inst[0] : '');
   };
+
+  const setReg = (key: string, val: string) =>
+    setRegs(r => ({ ...r, [key]: val }));
 
   const handleDecode = async () => {
     setLoading(true); setError(''); setResult(null);
@@ -55,13 +80,13 @@ export default function MCADecoder() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           product, bank,
-          instance:  instance  !== '' ? instance  : undefined,
-          mc_status: mcStatus  !== '' ? mcStatus  : undefined,
-          mc_addr:   mcAddr    !== '' ? mcAddr    : undefined,
-          mc_misc:   mcMisc    !== '' ? mcMisc    : undefined,
-          mc_misc2:  mcMisc2   !== '' ? mcMisc2   : undefined,
-          mc_misc3:  mcMisc3   !== '' ? mcMisc3   : undefined,
-          mc_misc4:  mcMisc4   !== '' ? mcMisc4   : undefined,
+          instance:  instance             || undefined,
+          mc_status: regs['MC_STATUS']    || undefined,
+          mc_addr:   regs['MC_ADDR']      || undefined,
+          mc_misc:   regs['MC_MISC']      || undefined,
+          mc_misc2:  regs['MC_MISC2']     || undefined,
+          mc_misc3:  regs['MC_MISC3']     || undefined,
+          mc_misc4:  regs['MC_MISC4']     || undefined,
         }),
       });
       if (!resp.ok) { const t = await resp.text(); setError(`${resp.status}: ${t}`); }
@@ -73,25 +98,34 @@ export default function MCADecoder() {
     }
   };
 
-  const handleExport = () => {
+  const handleExportTxt = () => {
     if (!result) return;
-    const lines = Object.entries(result).map(([k, v]) => `${k}: ${JSON.stringify(v)}`);
-    downloadText(lines.join('\n'), 'mca_decode.txt');
+    const lines = flattenResults(result.results).map(([k, v]) => `${k}: ${v}`);
+    downloadBlob(lines.join('\n'), 'mca_decode.txt', 'text/plain');
+  };
+
+  const handleExportCsv = () => {
+    if (!result) return;
+    const rows = flattenResults(result.results);
+    const csv = ['Field,Value', ...rows.map(([k, v]) => `"${k}","${v.replace(/"/g, '""')}"`)].join('\n');
+    downloadBlob(csv, 'mca_decode.csv', 'text/csv');
   };
 
   const renderResult = () => {
     if (!result) return null;
-    const entries = Object.entries(result);
+    const rows = flattenResults(result.results);
+    if (rows.length === 0)
+      return <div style={{ color: '#858585', fontSize: 12 }}>No decoded data returned.</div>;
     return (
       <table className="result-table">
         <thead>
           <tr><th>Field</th><th>Value</th></tr>
         </thead>
         <tbody>
-          {entries.map(([k, v]) => (
-            <tr key={k}>
+          {rows.map(([k, v], i) => (
+            <tr key={i}>
               <td className="field-key">{k}</td>
-              <td className="field-val">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</td>
+              <td className="field-val">{v}</td>
             </tr>
           ))}
         </tbody>
@@ -127,19 +161,12 @@ export default function MCADecoder() {
 
           <div className="section-title" style={{ marginTop: 12 }}>Registers (hex)</div>
           <div className="form-grid">
-            {[
-              ['MC_STATUS', mcStatus, setMcStatus],
-              ['MC_ADDR',   mcAddr,   setMcAddr],
-              ['MC_MISC',   mcMisc,   setMcMisc],
-              ['MC_MISC2',  mcMisc2,  setMcMisc2],
-              ['MC_MISC3',  mcMisc3,  setMcMisc3],
-              ['MC_MISC4',  mcMisc4,  setMcMisc4],
-            ].map(([lbl, val, setter]) => (
-              <React.Fragment key={lbl as string}>
-                <label>{lbl as string}</label>
+            {visibleRegs.map(reg => (
+              <React.Fragment key={reg}>
+                <label>{reg}</label>
                 <input
-                  value={val as string}
-                  onChange={e => (setter as (v: string) => void)(e.target.value)}
+                  value={regs[reg] ?? ''}
+                  onChange={e => setReg(reg, e.target.value)}
                   placeholder="0x0000000000000000"
                   style={{ fontFamily: 'Consolas, monospace' }}
                 />
@@ -151,9 +178,10 @@ export default function MCADecoder() {
             <button className="btn primary" onClick={handleDecode} disabled={loading}>
               {loading ? '⏳ Decoding…' : '▶ Decode'}
             </button>
-            {result && (
-              <button className="btn success" onClick={handleExport}>⬇ Export .txt</button>
-            )}
+            {result && <>
+              <button className="btn" onClick={handleExportTxt}>⬇ .txt</button>
+              <button className="btn success" onClick={handleExportCsv}>⬇ .csv</button>
+            </>}
           </div>
         </div>
 
