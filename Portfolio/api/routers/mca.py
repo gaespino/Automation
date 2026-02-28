@@ -262,6 +262,10 @@ async def mca_decode(req: DecodeRequest):
             if h_status is not None:
                 results["MC_STATUS (MSCOD)"] = dec.cha_decoder(h_status, "MC DECODE")
 
+            # MC_ADDR: raw pass-through
+            if req.mc_addr:
+                results["MC_ADDR"] = req.mc_addr
+
             # MC_MISC: TOR/cache details
             h_misc = _hex(req.mc_misc)
             if h_misc is not None:
@@ -291,6 +295,10 @@ async def mca_decode(req: DecodeRequest):
             if h_status is not None:
                 results["MC_STATUS (MSCOD)"] = dec.llc_decoder(h_status, "MC DECODE")
 
+            # MC_ADDR: raw pass-through
+            if req.mc_addr:
+                results["MC_ADDR"] = req.mc_addr
+
             h_misc = _hex(req.mc_misc)
             if h_misc is not None:
                 for subfield, stype in [
@@ -302,21 +310,31 @@ async def mca_decode(req: DecodeRequest):
 
         elif bank == "CORE":
             instance = (req.instance or "ML2").upper()
-            for field, val in [
-                ("MC_STATUS",  req.mc_status),
-                ("MC_MISC",    req.mc_misc),
-            ]:
-                h = _hex(val)
-                if h is not None:
-                    mcacod, mscod = dec.core_decoder(h, instance)
-                    results[f"{field} (MCACOD)"] = mcacod
-                    results[f"{field} (MSCOD)"]  = mscod
+            h = _hex(req.mc_status)
+            if h is not None:
+                mcacod, mscod = dec.core_decoder(h, instance)
+                results["MC_STATUS (MCACOD)"] = mcacod
+                results["MC_STATUS (MSCOD)"]  = mscod
+
+            # MC_ADDR: raw pass-through
+            if req.mc_addr:
+                results["MC_ADDR"] = req.mc_addr
+
+            # MC_MISC: raw pass-through (no specific decoder in original)
+            if req.mc_misc:
+                results["MC_MISC"] = req.mc_misc
 
         elif bank == "MEM":
             instance = (req.instance or "B2CMI").upper()
             h = _hex(req.mc_status)
             if h is not None:
                 results["MC_STATUS (MSCOD)"] = dec.mem_decoder(h, instance)
+
+            # MC_ADDR and MC_MISC: raw pass-through
+            if req.mc_addr:
+                results["MC_ADDR"] = req.mc_addr
+            if req.mc_misc:
+                results["MC_MISC"] = req.mc_misc
 
         elif bank == "IO":
             instance = (req.instance or "UBOX").upper()
@@ -325,6 +343,12 @@ async def mca_decode(req: DecodeRequest):
                 mcacod, mscod = dec.io_decoder(h, instance)
                 results["MC_STATUS (MCACOD)"] = mcacod
                 results["MC_STATUS (MSCOD)"]  = mscod
+
+            # MC_ADDR and MC_MISC: raw pass-through
+            if req.mc_addr:
+                results["MC_ADDR"] = req.mc_addr
+            if req.mc_misc:
+                results["MC_MISC"] = req.mc_misc
 
         elif bank == "PORTIDS":
             # PORTIDS uses two UBox registers:

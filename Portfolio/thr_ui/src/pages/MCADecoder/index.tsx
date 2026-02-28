@@ -13,18 +13,20 @@ const BANK_INSTANCES: Record<string, string[]> = {
 };
 
 // Only show registers that the backend actually decodes for each bank
+// (matches original PPV MCADecoder.py register definitions)
 const BANK_REGS: Record<string, string[]> = {
-  'CHA/CCF': ['MC_STATUS', 'MC_MISC', 'MC_MISC3'],
-  LLC:       ['MC_STATUS', 'MC_MISC'],
-  CORE:      ['MC_STATUS', 'MC_MISC'],
-  MEM:       ['MC_STATUS'],
-  IO:        ['MC_STATUS'],
+  'CHA/CCF': ['MC_STATUS', 'MC_ADDR', 'MC_MISC', 'MC_MISC3'],
+  LLC:       ['MC_STATUS', 'MC_ADDR', 'MC_MISC'],
+  CORE:      ['MC_STATUS', 'MC_ADDR', 'MC_MISC'],
+  MEM:       ['MC_STATUS', 'MC_ADDR', 'MC_MISC'],
+  IO:        ['MC_STATUS', 'MC_ADDR', 'MC_MISC'],
   PORTIDS:   ['MCERRLOGGINGREG', 'IERRLOGGINGREG'],
 };
 
 // Map display register names to DecodeRequest field names
 const REG_API_FIELD: Record<string, string> = {
   'MC_STATUS':        'mc_status',
+  'MC_ADDR':          'mc_addr',
   'MC_MISC':          'mc_misc',
   'MC_MISC3':         'mc_misc3',
   'MCERRLOGGINGREG':  'mc_status',
