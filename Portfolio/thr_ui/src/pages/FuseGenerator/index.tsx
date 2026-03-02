@@ -3,8 +3,16 @@ import './style.css';
 
 const BASE = import.meta.env.VITE_API_BASE ?? '/api';
 const PAGE_SIZE = 200;
-const ALL_COLS = ['Name', 'IP', 'Description', 'Bits', 'Default', 'Group'] as const;
+const ALL_COLS = ['IP_Origin', 'ip_name', 'Instance', 'description', 'Default', 'Group', 'Bits'] as const;
 type Col = typeof ALL_COLS[number];
+
+const DEFAULT_VISIBLE: Set<Col> = new Set(['IP_Origin', 'ip_name', 'Instance', 'description']);
+
+const SOCKET_OPTIONS = [
+  { label: 'All Sockets', value: 'sockets' },
+  { label: 'Socket 0',    value: 'socket0' },
+  { label: 'Socket 1',    value: 'socket1' },
+];
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -13,19 +21,29 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-interface Fuse { Name: string; IP: string; Description: string; Bits: string; Default: string; Group: string; }
+interface Fuse {
+  Name: string;         // original_name – unique key, not shown in table
+  IP_Origin: string;    // uppercase filename (COMPUTE, IO, …)
+  ip_name: string;      // ip_name column from CSV
+  Instance: string;     // Instance column from CSV
+  description: string;
+  Default: string;
+  Group: string;
+  Bits: string;
+}
 interface IPTarget { label: string; value: string; }
 
 // ── Generate Modal ────────────────────────────────────────────────────────────
 function GenerateModal({ product, selected, fuses, filename, onClose }: {
   product: string; selected: Set<string>; fuses: Fuse[]; filename: string; onClose: () => void;
 }) {
-  const [targets,     setTargets]     = useState<IPTarget[]>([]);
-  const [checked,     setChecked]     = useState<Set<string>>(new Set());
-  const [values,      setValues]      = useState<Record<string, string>>({});
-  const [outFile,     setOutFile]     = useState(filename);
-  const [generating,  setGenerating]  = useState(false);
-  const [error,       setError]       = useState('');
+  const [targets,    setTargets]    = useState<IPTarget[]>([]);
+  const [checkedIPs, setCheckedIPs] = useState<Set<string>>(new Set());
+  const [checkedSks, setCheckedSks] = useState<Set<string>>(new Set(['sockets']));
+  const [values,     setValues]     = useState<Record<string, string>>({});
+  const [outFile,    setOutFile]    = useState(filename);
+  const [generating, setGenerating] = useState(false);
+  const [error,      setError]      = useState('');
 
   const selectedFuses = useMemo(() => fuses.filter(f => selected.has(f.Name)), [fuses, selected]);
 
@@ -37,11 +55,14 @@ function GenerateModal({ product, selected, fuses, filename, onClose }: {
     setValues(v);
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
-  const toggleTarget = (val: string) =>
-    setChecked(s => { const n = new Set(s); n.has(val) ? n.delete(val) : n.add(val); return n; });
+  const toggleIP = (val: string) =>
+    setCheckedIPs(s => { const n = new Set(s); n.has(val) ? n.delete(val) : n.add(val); return n; });
+  const toggleSk = (val: string) =>
+    setCheckedSks(s => { const n = new Set(s); n.has(val) ? n.delete(val) : n.add(val); return n; });
 
   const handleGenerate = async () => {
-    if (!checked.size) { setError('Select at least one IP target.'); return; }
+    if (!checkedIPs.size) { setError('Select at least one IP target.'); return; }
+    if (!checkedSks.size) { setError('Select at least one socket.'); return; }
     setGenerating(true); setError('');
     try {
       const resp = await fetch(`${BASE}/fuses/generate`, {
@@ -51,7 +72,8 @@ function GenerateModal({ product, selected, fuses, filename, onClose }: {
           product,
           selected_names: [...selected],
           fuse_values: values,
-          ip_targets: [...checked],
+          ip_targets: [...checkedIPs],
+          sockets: [...checkedSks],
           filename: outFile,
         }),
       });
@@ -77,13 +99,25 @@ function GenerateModal({ product, selected, fuses, filename, onClose }: {
         </div>
 
         <div className="modal-section">
-          <div className="modal-section-title">IP Targets <span className="muted">(select sections to write in the .fuse file)</span></div>
+          <div className="modal-section-title">Step 1 — Sockets</div>
+          <div className="ip-target-grid">
+            {SOCKET_OPTIONS.map(s => (
+              <label key={s.value} className="ip-target-item">
+                <input type="checkbox" checked={checkedSks.has(s.value)} onChange={() => toggleSk(s.value)} />
+                {s.label}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="modal-section">
+          <div className="modal-section-title">Step 2 — IP Targets <span className="muted">(sections written in the .fuse file)</span></div>
           {targets.length === 0
             ? <span className="muted">No targets available for {product}.</span>
             : <div className="ip-target-grid">
                 {targets.map(t => (
                   <label key={t.value} className="ip-target-item">
-                    <input type="checkbox" checked={checked.has(t.value)} onChange={() => toggleTarget(t.value)} />
+                    <input type="checkbox" checked={checkedIPs.has(t.value)} onChange={() => toggleIP(t.value)} />
                     {t.label}
                   </label>
                 ))}
@@ -93,13 +127,22 @@ function GenerateModal({ product, selected, fuses, filename, onClose }: {
 
         <div className="modal-section">
           <div className="modal-section-title">
-            Fuse Values <span className="muted">(pre-filled from Default column; edit to override)</span>
+            Fuse Values <span className="muted">(key = ip_name.instance; edit to override default)</span>
           </div>
           <div className="fuse-values-table">
+            <div className="fuse-value-row fuse-value-header">
+              <span>ip_name.Instance</span>
+              <span>Group</span>
+              <span>Bits</span>
+              <span>Default</span>
+              <span>Value</span>
+            </div>
             {selectedFuses.map(f => (
               <div key={f.Name} className="fuse-value-row">
-                <span className="fv-name">{f.Name}</span>
-                <span className="fv-bits">{f.Bits ? `${f.Bits}b` : ''}</span>
+                <span className="fv-name" title={f.Name}>{f.ip_name}.{f.Instance}</span>
+                <span className="fv-group">{f.Group}</span>
+                <span className="fv-bits">{f.Bits ? `${f.Bits}b` : '—'}</span>
+                <span className="fv-default">{f.Default || '—'}</span>
                 <input className="fv-input"
                   value={values[f.Name] ?? f.Default ?? '0'}
                   onChange={e => setValues(v => ({ ...v, [f.Name]: e.target.value }))} />
@@ -117,7 +160,7 @@ function GenerateModal({ product, selected, fuses, filename, onClose }: {
         {error && <div className="error-msg" style={{ margin: '0 0 8px' }}>{error}</div>}
         <div className="modal-footer">
           <button className="btn" onClick={onClose}>Cancel</button>
-          <button className="btn primary" onClick={handleGenerate} disabled={generating || !checked.size}>
+          <button className="btn primary" onClick={handleGenerate} disabled={generating || !checkedIPs.size || !checkedSks.size}>
             {generating ? '⏳ Generating…' : '⬇ Generate & Download'}
           </button>
         </div>
@@ -163,51 +206,53 @@ function ColVisibility({ visible, onChange }: {
   );
 }
 
+// ── Helper: compile a user-typed string as regex (fall back to literal match) ──
+function tryRegex(pattern: string): RegExp | null {
+  if (!pattern) return null;
+  try { return new RegExp(pattern, 'i'); }
+  catch (_e) { return new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'); }
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function FuseGenerator() {
-  const [product,     setProduct]     = useState('GNR');
-  const [fuses,       setFuses]       = useState<Fuse[]>([]);
-  const [ips,         setIps]         = useState<string[]>([]);
-  const [groups,      setGroups]      = useState<string[]>([]);
-  const [search,      setSearch]      = useState('');
-  const [filterIp,    setFilterIp]    = useState('');
-  const [filterGrp,   setFilterGrp]   = useState('');
-  const [filterBits,  setFilterBits]  = useState('');
-  const [selected,    setSelected]    = useState<Set<string>>(new Set());
-  const [filename,    setFilename]    = useState('fuses_output');
-  const [loading,     setLoading]     = useState(false);
-  const [error,       setError]       = useState('');
-  const [page,        setPage]        = useState(1);
-  const [showModal,   setShowModal]   = useState(false);
-  const [visibleCols, setVisibleCols] = useState<Set<Col>>(new Set(ALL_COLS));
+  const [product,    setProduct]    = useState('GNR');
+  const [fuses,      setFuses]      = useState<Fuse[]>([]);
+  const [filterIpOrigin, setFilterIpOrigin] = useState('');
+  const [filterIpName,   setFilterIpName]   = useState('');
+  const [filterInstance, setFilterInstance] = useState('');
+  const [filterDesc,     setFilterDesc]     = useState('');
+  const [selected,   setSelected]   = useState<Set<string>>(new Set());
+  const [filename,   setFilename]   = useState('fuses_output');
+  const [loading,    setLoading]    = useState(false);
+  const [error,      setError]      = useState('');
+  const [page,       setPage]       = useState(1);
+  const [showModal,  setShowModal]  = useState(false);
+  const [visibleCols, setVisibleCols] = useState<Set<Col>>(new Set(DEFAULT_VISIBLE));
 
   useEffect(() => {
     setLoading(true); setError(''); setFuses([]); setSelected(new Set());
-    setFilterIp(''); setFilterGrp(''); setFilterBits(''); setSearch('');
-    Promise.all([
-      fetch(`${BASE}/fuses/${product}`).then(r => { if (!r.ok) throw new Error(`Fuses: ${r.status}`); return r.json(); }),
-      fetch(`${BASE}/fuses/${product}/metadata`).then(r => { if (!r.ok) throw new Error(`Metadata: ${r.status}`); return r.json(); }),
-    ]).then(([fusesData, meta]) => {
-      setFuses(fusesData.fuses ?? []);
-      setIps(meta.ips ?? []);
-      setGroups(meta.groups ?? []);
-    }).catch(e => setError(e.message))
+    setFilterIpOrigin(''); setFilterIpName(''); setFilterInstance(''); setFilterDesc('');
+    fetch(`${BASE}/fuses/${product}`)
+      .then(r => { if (!r.ok) throw new Error(`Fuses: ${r.status}`); return r.json(); })
+      .then(d  => setFuses(d.fuses ?? []))
+      .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [product]);
 
-  useEffect(() => { setPage(1); }, [search, filterIp, filterGrp, filterBits, fuses]);
+  useEffect(() => { setPage(1); }, [filterIpOrigin, filterIpName, filterInstance, filterDesc, fuses]);
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
+    const rOrg  = tryRegex(filterIpOrigin);
+    const rName = tryRegex(filterIpName);
+    const rInst = tryRegex(filterInstance);
+    const rDesc = tryRegex(filterDesc);
     return fuses.filter(f =>
-      (!q || f.Name.toLowerCase().includes(q) || f.Description.toLowerCase().includes(q) ||
-             f.IP.toLowerCase().includes(q)   || f.Group.toLowerCase().includes(q)       ||
-             f.Bits.toLowerCase().includes(q) || f.Default.toLowerCase().includes(q))    &&
-      (!filterIp   || f.IP === filterIp)       &&
-      (!filterGrp  || f.Group === filterGrp)   &&
-      (!filterBits || f.Bits === filterBits)
+      (!rOrg  || rOrg.test(f.IP_Origin))   &&
+      (!rName || rName.test(f.ip_name))     &&
+      (!rInst || rInst.test(f.Instance))    &&
+      (!rDesc || rDesc.test(f.description))
     );
-  }, [fuses, search, filterIp, filterGrp, filterBits]);
+  }, [fuses, filterIpOrigin, filterIpName, filterInstance, filterDesc]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -240,25 +285,21 @@ export default function FuseGenerator() {
               {['GNR', 'CWF', 'DMR'].map(p => <option key={p}>{p}</option>)}
             </select>
 
-            <label>Search</label>
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search all columns…" />
+            <label>IP Origin</label>
+            <input value={filterIpOrigin} onChange={e => setFilterIpOrigin(e.target.value)}
+              placeholder="regex e.g. COMPUTE" />
 
-            <label>IP</label>
-            <select value={filterIp} onChange={e => setFilterIp(e.target.value)}>
-              <option value="">All IPs</option>
-              {ips.map(ip => <option key={ip}>{ip}</option>)}
-            </select>
+            <label>IP Name</label>
+            <input value={filterIpName} onChange={e => setFilterIpName(e.target.value)}
+              placeholder="regex e.g. bgr_c01" />
 
-            <label>Group</label>
-            <select value={filterGrp} onChange={e => setFilterGrp(e.target.value)}>
-              <option value="">All Groups</option>
-              {groups.map(g => <option key={g}>{g}</option>)}
-            </select>
+            <label>Instance</label>
+            <input value={filterInstance} onChange={e => setFilterInstance(e.target.value)}
+              placeholder="regex e.g. trim_en" />
 
-            <label>Bits</label>
-            <input value={filterBits} onChange={e => setFilterBits(e.target.value)}
-              placeholder="e.g. 1  or  8" />
+            <label>Description</label>
+            <input value={filterDesc} onChange={e => setFilterDesc(e.target.value)}
+              placeholder="regex e.g. voltage" />
 
             <label>Output File</label>
             <input value={filename} onChange={e => setFilename(e.target.value)}
@@ -312,24 +353,26 @@ export default function FuseGenerator() {
                       setSelected(n);
                     }} />
                 </th>
-                {visibleCols.has('Name')        && <th>Name</th>}
-                {visibleCols.has('IP')          && <th>IP</th>}
-                {visibleCols.has('Description') && <th>Description</th>}
-                {visibleCols.has('Bits')        && <th>Bits</th>}
+                {visibleCols.has('IP_Origin')   && <th>IP Origin</th>}
+                {visibleCols.has('ip_name')     && <th>IP Name</th>}
+                {visibleCols.has('Instance')    && <th>Instance</th>}
+                {visibleCols.has('description') && <th>Description</th>}
                 {visibleCols.has('Default')     && <th>Default</th>}
                 {visibleCols.has('Group')       && <th>Group</th>}
+                {visibleCols.has('Bits')        && <th>Bits</th>}
               </tr>
             </thead>
             <tbody>
               {paginated.map(f => (
                 <tr key={f.Name} className={selected.has(f.Name) ? 'row-selected' : ''}>
                   <td><input type="checkbox" checked={selected.has(f.Name)} onChange={() => toggle(f.Name)} /></td>
-                  {visibleCols.has('Name')        && <td className="fuse-name">{f.Name}</td>}
-                  {visibleCols.has('IP')          && <td className="fuse-ip">{f.IP}</td>}
-                  {visibleCols.has('Description') && <td className="fuse-desc">{f.Description}</td>}
-                  {visibleCols.has('Bits')        && <td className="fuse-bits">{f.Bits}</td>}
+                  {visibleCols.has('IP_Origin')   && <td className="fuse-ip">{f.IP_Origin}</td>}
+                  {visibleCols.has('ip_name')     && <td className="fuse-ipname">{f.ip_name}</td>}
+                  {visibleCols.has('Instance')    && <td className="fuse-name">{f.Instance}</td>}
+                  {visibleCols.has('description') && <td className="fuse-desc">{f.description}</td>}
                   {visibleCols.has('Default')     && <td className="fuse-def">{f.Default}</td>}
                   {visibleCols.has('Group')       && <td className="fuse-grp">{f.Group}</td>}
+                  {visibleCols.has('Bits')        && <td className="fuse-bits">{f.Bits}</td>}
                 </tr>
               ))}
               {!loading && filtered.length === 0 && (
