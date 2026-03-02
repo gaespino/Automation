@@ -616,3 +616,68 @@ class TestDisabledExperiment:
         exp["Experiment"] = "DISABLED"
         result = experiment_builder.filter_disabled([exp])
         assert result == []
+
+
+# ---------------------------------------------------------------------------
+# Core Disable List / Slice Disable List / Temperature SP — new fields
+# ---------------------------------------------------------------------------
+
+class TestNewBlankExperimentFields:
+    def test_core_disable_list_present_and_none(self):
+        exp = experiment_builder.new_blank("GNR")
+        assert "Core Disable List" in exp
+        assert exp["Core Disable List"] is None
+
+    def test_slice_disable_list_present_and_none(self):
+        exp = experiment_builder.new_blank("GNR")
+        assert "Slice Disable List" in exp
+        assert exp["Slice Disable List"] is None
+
+    def test_temperature_sp_present_and_none(self):
+        exp = experiment_builder.new_blank("GNR")
+        assert "Temperature SP" in exp
+        assert exp["Temperature SP"] is None
+
+    def test_new_fields_present_for_cwf(self):
+        exp = experiment_builder.new_blank("CWF")
+        assert "Core Disable List" in exp
+        assert "Slice Disable List" in exp
+        assert "Temperature SP" in exp
+
+    def test_new_fields_present_for_dmr(self):
+        exp = experiment_builder.new_blank("DMR")
+        assert "Core Disable List" in exp
+        assert "Slice Disable List" in exp
+        assert "Temperature SP" in exp
+
+    def test_new_fields_can_be_set_via_preset_override(self):
+        preset = {
+            "description": "test",
+            "ask_user": [],
+            "experiment": experiment_builder.new_blank("GNR"),
+        }
+        result = experiment_builder.apply_preset(
+            preset,
+            {"Core Disable List": "62, 70", "Slice Disable List": "60, 72", "Temperature SP": 85.0},
+        )
+        assert result["Core Disable List"] == "62, 70"
+        assert result["Slice Disable List"] == "60, 72"
+        assert result["Temperature SP"] == 85.0
+
+    def test_temperature_sp_validation_passes_when_none(self):
+        exp = experiment_builder.new_blank("GNR")
+        exp["Test Name"] = "TempTest"
+        exp["TTL Folder"] = "S:\\GNR\\RVP\\TTLs"
+        exp["Check Core"] = 36
+        valid, errors, warnings = experiment_builder.validate(exp, product="GNR")
+        assert valid, f"Expected valid but got errors: {errors}"
+
+    def test_temperature_sp_validation_passes_when_set(self):
+        exp = experiment_builder.new_blank("GNR")
+        exp["Test Name"] = "TempTest"
+        exp["TTL Folder"] = "S:\\GNR\\RVP\\TTLs"
+        exp["Check Core"] = 36
+        exp["Temperature SP"] = 85.0
+        valid, errors, warnings = experiment_builder.validate(exp, product="GNR")
+        assert valid, f"Expected valid but got errors: {errors}"
+
