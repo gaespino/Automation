@@ -25,7 +25,7 @@ interface QueuedExperiment {
   id: number;
   name: string;
   fields: Record<string, string>;
-  dirty?: boolean;  // has unsaved changes
+  dirty?: boolean;
 }
 
 function buildDefaults(fieldConfigs: FieldConfigs): Record<string, string> {
@@ -81,6 +81,8 @@ function renderField(
 }
 
 let nextId = 1;
+const TPL_LIST_MIN_ROWS = 2;
+const TPL_LIST_MAX_ROWS = 6;
 
 export default function ExperimentBuilder() {
   const [products,     setProducts]     = useState<string[]>([]);
@@ -95,7 +97,26 @@ export default function ExperimentBuilder() {
   const [saving,       setSaving]       = useState(false);
   const [error,        setError]        = useState('');
   const [formDirty,    setFormDirty]    = useState(false);
-  const loadRef = useRef<HTMLInputElement>(null);
+  const loadRef     = useRef<HTMLInputElement>(null);
+  const tplImportRef = useRef<HTMLInputElement>(null);
+
+// Templates – persisted to localStorage
+  const [templates, setTemplates] = useState<Record<string, Record<string, string>>>(() => {
+    try { return JSON.parse(localStorage.getItem('eb_templates') ?? '{}'); }
+    catch (err) { console.warn('Failed to load saved templates from localStorage:', err); return {}; }
+  });
+  const [newTemplateName,  setNewTemplateName]  = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [templatesOpen,    setTemplatesOpen]    = useState(false);
+
+  // Compare / side-by-side view
+  const [compareMode,  setCompareMode]  = useState(false);
+  const [compareExpId, setCompareExpId] = useState<number | null>(null);
+
+  // Sync templates to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('eb_templates', JSON.stringify(templates));
+  }, [templates]);
 
   // Load products on mount
   useEffect(() => {
@@ -141,6 +162,8 @@ export default function ExperimentBuilder() {
     return groups;
   }, [fieldConfigs]);
 
+  // ── Queue operations ──────────────────────────────────────────────────────
+
   const addToQueue = () => {
     const name = expName.trim() || `Experiment_${nextId}`;
     if (editId !== null) {
@@ -162,13 +185,7 @@ export default function ExperimentBuilder() {
   };
 
   const duplicateExp = (exp: QueuedExperiment) => {
-    const newExp: QueuedExperiment = {
-      id: nextId++,
-      name: `${exp.name}_copy`,
-      fields: { ...exp.fields },
-      dirty: false,
-    };
-    setQueue(q => [...q, newExp]);
+    setQueue(q => [...q, { id: nextId++, name: `${exp.name}_copy`, fields: { ...exp.fields }, dirty: false }]);
   };
 
   const cancelEdit = () => {
@@ -178,10 +195,91 @@ export default function ExperimentBuilder() {
     setFormDirty(false);
   };
 
-  const deleteFromQueue = (id: number) =>
+  const deleteFromQueue = (id: number) => {
     setQueue(q => q.filter(e => e.id !== id));
+    if (compareExpId === id) setCompareExpId(null);
+    if (editId === id) cancelEdit();
+  };
 
-  const clearQueue = () => { setQueue([]); setEditId(null); };
+  const clearQueue = () => {
+    setQueue([]);
+    setEditId(null);
+    setCompareExpId(null);
+  };
+
+  // ── Template operations ──────────────────────────────────────────────────
+
+  const saveAsTemplate = () => {
+    const name = newTemplateName.trim() || expName.trim() || `Template_${Date.now()}`;
+    setTemplates(t => ({ ...t, [name]: { ...form } }));
+    setNewTemplateName('');
+  };
+
+  const applyTemplate = () => {
+    if (!selectedTemplate || !templates[selectedTemplate]) return;
+    setForm(f => ({ ...f, ...templates[selectedTemplate] }));
+    setFormDirty(true);
+  };
+
+  const deleteTemplate = () => {
+    if (!selectedTemplate) return;
+    const name = selectedTemplate;
+    setTemplates(t => { const n = { ...t }; delete n[name]; return n; });
+    setSelectedTemplate('');
+  };
+
+  const exportTemplates = () => {
+    const blob = new Blob([JSON.stringify(templates, null, 2)], { type: 'application/json' });
+    downloadBlob(blob, 'eb_templates.json');
+  };
+
+  const importTemplatesFromFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target?.result as string);
+        if (typeof data !== 'object' || Array.isArray(data) || data === null) {
+          setError('Templates file must be a JSON object mapping names to field sets.');
+          return;
+        }
+        // Validate each entry: only accept string-keyed objects with scalar values
+        const validated: Record<string, Record<string, string>> = {};
+        for (const [name, fields] of Object.entries(data)) {
+          if (typeof fields === 'object' && fields !== null && !Array.isArray(fields)) {
+            validated[name] = Object.fromEntries(
+              Object.entries(fields as Record<string, unknown>)
+                .filter(([, v]) => v !== null && v !== undefined)
+                .map(([k, v]) => [k, String(v)])
+            );
+          }
+        }
+        setTemplates(t => ({ ...t, ...validated }));
+      } catch { setError('Invalid templates file.'); }
+    };
+    reader.readAsText(f);
+    e.target.value = '';
+  };
+
+  // ── Compare / side-by-side operations ────────────────────────────────────
+
+  const compareExp = (compareMode && compareExpId != null)
+    ? queue.find(e => e.id === compareExpId) ?? null
+    : null;
+
+  const copyFromCompare = (key: string) => {
+    if (!compareExp) return;
+    setField(key, compareExp.fields[key] ?? '');
+  };
+
+  const copyAllFromCompare = () => {
+    if (!compareExp) return;
+    setForm(f => ({ ...f, ...compareExp.fields }));
+    setFormDirty(true);
+  };
+
+  // ── Export / Import .tpl ─────────────────────────────────────────────────
 
   const handleSave = async () => {
     if (!queue.length) { setError('Queue is empty.'); return; }
@@ -199,7 +297,6 @@ export default function ExperimentBuilder() {
         const match = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
         const fname = match ? match[1].replace(/['"]/g, '') : `${filename}.tpl`;
         downloadBlob(blob, fname);
-        // Mark all as saved
         setQueue(q => q.map(e => ({ ...e, dirty: false })));
       }
     } catch (e: unknown) {
@@ -227,9 +324,11 @@ export default function ExperimentBuilder() {
     <div className="tool-page">
       <h2 className="page-title">🧪 Experiment Builder</h2>
 
-      <div className="eb-layout">
-        {/* ─── Left: Form ─────────────────────────────────────────── */}
+      <div className={`eb-layout${compareMode ? ' eb-compare-mode' : ''}`}>
+
+        {/* ─── Left: Product + Templates + Form ───────────────────── */}
         <div>
+          {/* Product selector */}
           <div className="panel">
             <div className="section-title">Product</div>
             <select value={product} onChange={e => setProduct(e.target.value)} style={{ width: '100%' }}>
@@ -238,6 +337,72 @@ export default function ExperimentBuilder() {
             {loading && <div style={{ color: '#858585', fontSize: 11, marginTop: 6 }}>Loading config…</div>}
           </div>
 
+          {/* Templates panel */}
+          <div className="panel" style={{ marginTop: 12 }}>
+            <div
+              className="section-title-row tpl-header"
+              onClick={() => setTemplatesOpen(o => !o)}
+            >
+              <span className="section-title" style={{ margin: 0, border: 0 }}>
+                📁 Templates ({Object.keys(templates).length})
+              </span>
+              <span style={{ color: '#858585', fontSize: 11 }}>{templatesOpen ? '▲' : '▼'}</span>
+            </div>
+
+            {templatesOpen && (
+              <div style={{ marginTop: 8 }}>
+                <select
+                  value={selectedTemplate}
+                  onChange={e => setSelectedTemplate(e.target.value)}
+                  size={Math.min(Math.max(Object.keys(templates).length, TPL_LIST_MIN_ROWS), TPL_LIST_MAX_ROWS)}
+                  className="tpl-list"
+                >
+                  {Object.keys(templates).sort().map(n => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+
+                <div className="form-grid" style={{ margin: '6px 0' }}>
+                  <label>Name</label>
+                  <input
+                    value={newTemplateName}
+                    onChange={e => setNewTemplateName(e.target.value)}
+                    placeholder={expName || 'Template name'}
+                  />
+                </div>
+
+                <div className="action-row">
+                  <button className="btn primary" onClick={saveAsTemplate}
+                    title="Save current form values as a named template">
+                    💾 Save
+                  </button>
+                  <button className="btn" onClick={applyTemplate}
+                    disabled={!selectedTemplate}
+                    title="Load the selected template into the current form">
+                    ↙ Apply
+                  </button>
+                  <button className="btn danger" onClick={deleteTemplate}
+                    disabled={!selectedTemplate}
+                    title="Delete the selected template">
+                    🗑
+                  </button>
+                  <button className="btn" onClick={exportTemplates}
+                    disabled={!Object.keys(templates).length}
+                    title="Export all templates to a JSON file">
+                    ⬇
+                  </button>
+                  <button className="btn" onClick={() => tplImportRef.current?.click()}
+                    title="Import templates from a JSON file">
+                    📂
+                  </button>
+                  <input ref={tplImportRef} type="file" accept=".json"
+                    style={{ display: 'none' }} onChange={importTemplatesFromFile} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Experiment fields form */}
           {Object.keys(fieldConfigs).length > 0 && (
             <div className="panel" style={{ marginTop: 12 }}>
               <div className="section-title">
@@ -255,7 +420,6 @@ export default function ExperimentBuilder() {
                 />
               </div>
 
-              {/* Render fields grouped by section */}
               {Object.entries(sectionGroups).map(([section, fields]) => (
                 <div key={section} className="eb-section">
                   <div className="eb-section-title">{section}</div>
@@ -292,7 +456,84 @@ export default function ExperimentBuilder() {
           )}
         </div>
 
-        {/* ─── Right: Queue ───────────────────────────────────────── */}
+        {/* ─── Center: Compare Panel (when active) ────────────────── */}
+        {compareMode && (
+          <div>
+            <div className="panel compare-panel">
+              <div className="section-title-row">
+                <span className="section-title" style={{ margin: 0, border: 0 }}>
+                  ⊞ Compare With
+                </span>
+                <button className="btn" style={{ fontSize: 10 }}
+                  onClick={() => { setCompareMode(false); setCompareExpId(null); }}>
+                  ✕ Close
+                </button>
+              </div>
+
+              <select
+                value={compareExpId ?? ''}
+                onChange={e => setCompareExpId(e.target.value ? Number(e.target.value) : null)}
+                style={{ width: '100%', marginTop: 6, marginBottom: 8 }}
+              >
+                <option value="">— select experiment —</option>
+                {queue.map(exp => (
+                  <option key={exp.id} value={exp.id}>{exp.name}</option>
+                ))}
+              </select>
+
+              {compareExp ? (
+                <>
+                  <div className="compare-exp-badge">{compareExp.name}</div>
+                  <div className="action-row" style={{ marginBottom: 8 }}>
+                    <button className="btn primary" onClick={copyAllFromCompare}
+                      title="Copy all fields from this experiment into the current form">
+                      ← Copy All to Form
+                    </button>
+                  </div>
+
+                  {Object.entries(sectionGroups).map(([section, fields]) => (
+                    <div key={section} className="eb-section">
+                      <div className="eb-section-title">{section}</div>
+                      <div className="compare-grid">
+                        {fields.map(([key]) => {
+                          const cmpVal = compareExp.fields[key] ?? '';
+                          const curVal = form[key] ?? '';
+                          const diff = cmpVal !== curVal;
+                          return (
+                            <React.Fragment key={key}>
+                              <label className={diff ? 'cmp-label-diff' : ''}>
+                                {diff && <span className="cmp-dot" title="Differs from current form">●</span>}
+                                {key}
+                              </label>
+                              <div className="compare-cell">
+                                <span className={`compare-val${diff ? ' compare-val-diff' : ''}`}>
+                                  {cmpVal || '—'}
+                                </span>
+                                {diff && (
+                                  <button className="btn cmp-copy-btn" onClick={() => copyFromCompare(key)}
+                                    title={`Copy "${cmpVal}" → form`}>
+                                    ←
+                                  </button>
+                                )}
+                              </div>
+                            </React.Fragment>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <div style={{ color: '#858585', fontSize: 12 }}>
+                  Select an experiment from the queue to compare its fields with the current form.
+                  Differing fields will be highlighted; individual values can be copied to the form.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ─── Right: Queue + Export ──────────────────────────────── */}
         <div>
           <div className="panel">
             <div className="section-title-row">
@@ -301,6 +542,13 @@ export default function ExperimentBuilder() {
                 {queue.some(e => e.dirty) && <span className="dirty-badge"> ●</span>}
               </span>
               <div className="action-row">
+                <button
+                  className={`btn${compareMode ? ' btn-active' : ''}`}
+                  onClick={() => setCompareMode(m => !m)}
+                  title="Toggle side-by-side compare view"
+                >
+                  ⊞ {compareMode ? 'Hide Compare' : 'Compare'}
+                </button>
                 <button className="btn" onClick={clearQueue} disabled={!queue.length}>🗑 Clear</button>
               </div>
             </div>
@@ -317,7 +565,12 @@ export default function ExperimentBuilder() {
                   </thead>
                   <tbody>
                     {queue.map(exp => (
-                      <tr key={exp.id} className={editId === exp.id ? 'row-editing' : ''}>
+                      <tr key={exp.id}
+                        className={[
+                          editId === exp.id ? 'row-editing' : '',
+                          compareExpId === exp.id ? 'row-comparing' : '',
+                        ].filter(Boolean).join(' ')}
+                      >
                         <td className="q-name">
                           {exp.name}
                           {exp.dirty && <span className="dirty-badge" title="Has unsaved edits"> ●</span>}
@@ -333,6 +586,13 @@ export default function ExperimentBuilder() {
                         <td className="q-actions">
                           <button className="btn" title="Edit" onClick={() => startEdit(exp)}>✏</button>
                           <button className="btn" title="Duplicate" onClick={() => duplicateExp(exp)}>⧉</button>
+                          {compareMode && (
+                            <button
+                              className={`btn${compareExpId === exp.id ? ' btn-active' : ''}`}
+                              title="Compare with this experiment"
+                              onClick={() => setCompareExpId(id => id === exp.id ? null : exp.id)}
+                            >⊞</button>
+                          )}
                           <button className="btn danger" title="Delete" onClick={() => deleteFromQueue(exp.id)}>🗑</button>
                         </td>
                       </tr>
@@ -361,6 +621,7 @@ export default function ExperimentBuilder() {
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );
