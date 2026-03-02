@@ -1,8 +1,9 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 
 import './style.css';
 
 const BASE = import.meta.env.VITE_API_BASE ?? '/api';
+const DATA_SERVER = '\\\\crcv03a-cifs.cr.intel.com\\mfg_tlo_001\\DebugFramework';
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -11,8 +12,9 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-const CONTENT_OPTIONS = ['Dragon', 'Linux', 'TSL', 'Python', 'Sandstone'];
-const TYPE_OPTIONS    = ['Base', 'Voltage', 'Frequency', 'Shmoo', 'Others'];
+const CONTENT_OPTIONS = ['Dragon', 'Linux', 'TSL', 'Python', 'Sandstone', 'EFI', 'Pseudo Slice', 'Pseudo Mesh', 'Imunch', 'Other'];
+const TYPE_OPTIONS    = ['Baseline', 'Loops', 'Voltage', 'Frequency', 'Shmoo', 'Others', 'Invalid'];
+const PRODUCTS        = ['GNR', 'CWF', 'DMR'];
 
 interface Experiment {
   name: string;
@@ -37,32 +39,80 @@ interface ReportOptions {
   outputName:   string;
 }
 
+type InputMode = 'path' | 'zip';
+
 export default function FrameworkReport() {
-  const [zipFile,   setZipFile]   = useState<File | null>(null);
-  const [dragging,  setDragging]  = useState(false);
-  const [exps,      setExps]      = useState<Experiment[]>([]);
-  const [parsed,    setParsed]    = useState(false);
-  const [loading,   setLoading]   = useState(false);
+  const [inputMode,  setInputMode]  = useState<InputMode>('path');
+  const [product,    setProduct]    = useState('GNR');
+  const [vids,       setVids]       = useState<string[]>([]);
+  const [vid,        setVid]        = useState('');
+  const [folderPath, setFolderPath] = useState('');
+  const [zipFile,    setZipFile]    = useState<File | null>(null);
+  const [dragging,   setDragging]   = useState(false);
+  const [exps,       setExps]       = useState<Experiment[]>([]);
+  const [parsed,     setParsed]     = useState(false);
+  const [loading,    setLoading]    = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [log,       setLog]       = useState('');
+  const [log,        setLog]        = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const [opts, setOpts] = useState<ReportOptions>({
     merge: false, mergeTag: '', generate: true, reportTag: '',
-    checkLogging: false, skipStrings: '', dragonData: false,
-    coreData: false, summaryTab: true, overview: false, outputName: 'framework_report',
+    checkLogging: false, skipStrings: '', dragonData: true,
+    coreData: true, summaryTab: false, overview: true, outputName: 'framework_report',
   });
 
   const addLog = (m: string) => setLog(l => l + m + '\n');
   const setOpt = <K extends keyof ReportOptions>(k: K, v: ReportOptions[K]) =>
     setOpts(o => ({ ...o, [k]: v }));
 
+  // Load VIDs when product changes
+  useEffect(() => {
+    setVids([]); setVid('');
+    fetch(`${BASE}/framework/vids?product=${product}`)
+      .then(r => r.json())
+      .then(d => { setVids(d.vids ?? []); })
+      .catch(() => {});
+  }, [product]);
+
+  // Auto-set folder path when VID is selected
+  useEffect(() => {
+    if (vid) {
+      setFolderPath(`${DATA_SERVER}\\${product}\\${vid}`);
+    }
+  }, [vid, product]);
+
   const handleZipDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault(); setDragging(false);
     const f = e.dataTransfer.files[0];
     if (f) { setZipFile(f); setParsed(false); setExps([]); }
   }, []);
+
+  const handleScan = async () => {
+    const path = folderPath.trim();
+    if (!path) { addLog('[ERROR] No folder path set.'); return; }
+    setLoading(true); setLog(''); setParsed(false);
+    addLog(`[INFO] Scanning ${path}...`);
+    const fd = new FormData();
+    fd.append('folder_path', path);
+    try {
+      const resp = await fetch(`${BASE}/framework/scan`, { method: 'POST', body: fd });
+      if (!resp.ok) { addLog(`[ERROR] ${resp.status}: ${await resp.text()}`); }
+      else {
+        const data = await resp.json();
+        const names: string[] = data.experiments ?? [];
+        setExps(names.map(name => ({
+          name, include: true,
+          content: 'Dragon', type: 'Baseline', otherType: '', comments: '',
+        })));
+        setParsed(true);
+        addLog(`[OK] Found ${names.length} experiment(s).`);
+      }
+    } catch (e: unknown) {
+      addLog(`[ERROR] ${(e as Error).message}`);
+    } finally { setLoading(false); }
+  };
 
   const handleParse = async () => {
     if (!zipFile) { addLog('[ERROR] No ZIP file selected.'); return; }
@@ -78,7 +128,7 @@ export default function FrameworkReport() {
         const names: string[] = data.experiments ?? Object.keys(data);
         setExps(names.map(name => ({
           name, include: true,
-          content: 'Dragon', type: 'Base', otherType: '', comments: '',
+          content: 'Dragon', type: 'Baseline', otherType: '', comments: '',
         })));
         setParsed(true);
         addLog(`[OK] Found ${names.length} experiment(s).`);
@@ -95,29 +145,51 @@ export default function FrameworkReport() {
   const deselectAll = () => setExps(prev => prev.map(e => ({ ...e, include: false })));
 
   const handleGenerate = async () => {
-    if (!zipFile) { addLog('[ERROR] ZIP file missing.'); return; }
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     setGenerating(true);
     addLog('[INFO] Generating report...');
-    const fd = new FormData();
-    fd.append('zip_file', zipFile);
-    fd.append('experiments_json', JSON.stringify(exps));
-    fd.append('merge', String(opts.merge));
-    fd.append('merge_tag', opts.mergeTag);
-    fd.append('generate', String(opts.generate));
-    fd.append('report_tag', opts.reportTag);
-    fd.append('check_logging', String(opts.checkLogging));
-    fd.append('skip_strings', opts.skipStrings);
-    fd.append('dragon_data', String(opts.dragonData));
-    fd.append('core_data', String(opts.coreData));
-    fd.append('summary_tab', String(opts.summaryTab));
-    fd.append('overview', String(opts.overview));
-    fd.append('output_name', opts.outputName);
+
     try {
-      const resp = await fetch(`${BASE}/framework/generate`, {
-        method: 'POST', body: fd, signal: ctrl.signal,
-      });
+      let resp: Response;
+      if (inputMode === 'path') {
+        const fd = new FormData();
+        fd.append('folder_path',      folderPath);
+        fd.append('experiments_json', JSON.stringify(exps));
+        fd.append('merge',            String(opts.merge));
+        fd.append('merge_tag',        opts.mergeTag);
+        fd.append('generate',         String(opts.generate));
+        fd.append('report_tag',       opts.reportTag);
+        fd.append('check_logging',    String(opts.checkLogging));
+        fd.append('skip_strings',     opts.skipStrings);
+        fd.append('dragon_data',      String(opts.dragonData));
+        fd.append('core_data',        String(opts.coreData));
+        fd.append('summary_tab',      String(opts.summaryTab));
+        fd.append('overview',         String(opts.overview));
+        fd.append('output_name',      opts.outputName);
+        resp = await fetch(`${BASE}/framework/generate_from_path`, {
+          method: 'POST', body: fd, signal: ctrl.signal,
+        });
+      } else {
+        if (!zipFile) { addLog('[ERROR] ZIP file missing.'); setGenerating(false); return; }
+        const fd = new FormData();
+        fd.append('zip_file',         zipFile);
+        fd.append('experiments_json', JSON.stringify(exps));
+        fd.append('merge',            String(opts.merge));
+        fd.append('merge_tag',        opts.mergeTag);
+        fd.append('generate',         String(opts.generate));
+        fd.append('report_tag',       opts.reportTag);
+        fd.append('check_logging',    String(opts.checkLogging));
+        fd.append('skip_strings',     opts.skipStrings);
+        fd.append('dragon_data',      String(opts.dragonData));
+        fd.append('core_data',        String(opts.coreData));
+        fd.append('summary_tab',      String(opts.summaryTab));
+        fd.append('overview',         String(opts.overview));
+        fd.append('output_name',      opts.outputName);
+        resp = await fetch(`${BASE}/framework/generate`, {
+          method: 'POST', body: fd, signal: ctrl.signal,
+        });
+      }
       if (!resp.ok) { addLog(`[ERROR] ${resp.status}: ${await resp.text()}`); }
       else {
         const blob = await resp.blob();
@@ -137,30 +209,73 @@ export default function FrameworkReport() {
     <div className="tool-page">
       <h2 className="page-title">📊 Framework Report</h2>
 
-      {/* Step 1: Upload ZIP */}
+      {/* Input mode toggle */}
       <div className="panel" style={{ marginBottom: 12 }}>
-        <div className="section-title">Step 1 — Upload ZIP</div>
-        <div className="fr-upload-row">
-          <div
-            className={`drop-zone drop-zone-inline${dragging ? ' drag-over' : ''}${zipFile ? ' has-file' : ''}`}
-            onClick={() => inputRef.current?.click()}
-            onDragOver={e => { e.preventDefault(); setDragging(true); }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={handleZipDrop}
-          >
-            <input ref={inputRef} type="file" accept=".zip" style={{ display: 'none' }}
-              onChange={e => { const f = e.target.files?.[0]; if (f) { setZipFile(f); setParsed(false); setExps([]); } }} />
-            {zipFile ? <span>📦 {zipFile.name}</span> : <span>📂 Drop .zip here or click to browse</span>}
-          </div>
+        <div className="section-title">Input Mode</div>
+        <div className="action-row">
           <button
-            className="btn primary"
-            onClick={handleParse}
-            disabled={loading || !zipFile}
-            style={{ flexShrink: 0 }}
-          >
-            {loading ? '⏳ Parsing…' : '▶ Parse ZIP'}
-          </button>
+            className={`btn ${inputMode === 'path' ? 'primary' : ''}`}
+            onClick={() => { setInputMode('path'); setParsed(false); setExps([]); }}
+          >🗂 Server / Network Path</button>
+          <button
+            className={`btn ${inputMode === 'zip' ? 'primary' : ''}`}
+            onClick={() => { setInputMode('zip'); setParsed(false); setExps([]); }}
+          >📦 Upload ZIP</button>
         </div>
+      </div>
+
+      {/* Step 1: Data Source */}
+      <div className="panel" style={{ marginBottom: 12 }}>
+        <div className="section-title">Step 1 — Data Source</div>
+
+        {inputMode === 'path' ? (
+          <div>
+            <div className="form-grid">
+              <label>Product</label>
+              <select value={product} onChange={e => setProduct(e.target.value)}>
+                {PRODUCTS.map(p => <option key={p}>{p}</option>)}
+              </select>
+
+              <label>Visual ID (VID)</label>
+              <select value={vid} onChange={e => setVid(e.target.value)}>
+                <option value="">— select VID —</option>
+                {vids.map(v => <option key={v}>{v}</option>)}
+              </select>
+
+              <label>Folder Path</label>
+              <input
+                value={folderPath}
+                onChange={e => setFolderPath(e.target.value)}
+                placeholder={`${DATA_SERVER}\\${product}\\<VID>`}
+                style={{ fontFamily: 'monospace', fontSize: 12 }}
+              />
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <button className="btn primary" onClick={handleScan} disabled={loading || !folderPath}>
+                {loading ? '⏳ Scanning…' : '🔍 Scan Folder'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div className="fr-upload-row">
+              <div
+                className={`drop-zone drop-zone-inline${dragging ? ' drag-over' : ''}${zipFile ? ' has-file' : ''}`}
+                onClick={() => inputRef.current?.click()}
+                onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={handleZipDrop}
+              >
+                <input ref={inputRef} type="file" accept=".zip" style={{ display: 'none' }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) { setZipFile(f); setParsed(false); setExps([]); } }} />
+                {zipFile ? <span>📦 {zipFile.name}</span> : <span>📂 Drop .zip here or click to browse</span>}
+              </div>
+              <button className="btn primary" onClick={handleParse} disabled={loading || !zipFile} style={{ flexShrink: 0 }}>
+                {loading ? '⏳ Parsing…' : '▶ Parse ZIP'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Step 2: Experiment Table */}
@@ -279,7 +394,7 @@ export default function FrameworkReport() {
             <button
               className="btn primary"
               onClick={handleGenerate}
-              disabled={generating || !zipFile}
+              disabled={generating || (inputMode === 'zip' && !zipFile) || (inputMode === 'path' && !folderPath)}
             >
               {generating ? '⏳ Generating…' : '▶ Generate Report'}
             </button>
@@ -297,3 +412,4 @@ export default function FrameworkReport() {
     </div>
   );
 }
+

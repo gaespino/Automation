@@ -11,3 +11,4 @@
 .field-key { color: #9cdcfe; font-weight: 600; white-space: nowrap; }
 .field-val { color: #ce9178; word-break: break-all; }
 .error-msg { color: #f44747; font-size: 12px; padding: 6px; background: #2d1414; border: 1px solid #5a1a1a; border-radius: 3px; margin-bottom: 8px; }
+.bank-hint { font-size: 10px; color: #858585; font-weight: 400; margin-left: 6px; }

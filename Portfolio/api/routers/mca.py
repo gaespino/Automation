@@ -1,7 +1,9 @@
 """
 MCA REST endpoints.
-  POST /api/mca/report   — generate MCA report from uploaded Excel
-  POST /api/mca/decode   — decode raw MCA register values
+  POST /api/mca/report    — generate MCA report; returns JSON with token + file list
+  POST /api/mca/download  — download selected report files as a ZIP
+  POST /api/mca/save      — save selected report files to a server-side path
+  POST /api/mca/decode    — decode raw MCA register values
 """
 from __future__ import annotations
 import io
@@ -9,6 +11,8 @@ import os
 import sys
 import tempfile
 import traceback
+import uuid
+import zipfile
 from typing import Optional
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
@@ -18,21 +22,30 @@ from pydantic import BaseModel
 router = APIRouter()
 
 # ---------------------------------------------------------------------------
+# In-memory report cache: {token: {filename: bytes}}
+# Keeps generated files available for download/save after the temp dir is gone.
+# ---------------------------------------------------------------------------
+_report_cache: dict[str, dict[str, bytes]] = {}
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 def _backend():
-    """Lazily import MCAparser — avoids import-time errors on CaaS."""
-    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    """Lazily import PPVMCAReport — avoids import-time errors on CaaS."""
+    here = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, here)
     from THRTools.parsers.MCAparser import PPVMCAReport  # type: ignore
     return PPVMCAReport
 
 
 def _decoder(product: str = "GNR"):
-    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    here = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, here)
+    import pandas as pd  # type: ignore
     from THRTools.Decoder.decoder import decoder  # type: ignore
-    return decoder(product=product)
+    # decoder requires a data DataFrame — pass a minimal dummy for standalone register decoding
+    dummy_df = pd.DataFrame({'VisualId': [1], 'TestName': ['dummy'], 'TestValue': ['0x0']})
+    return decoder(data=dummy_df, product=product)
 
 
 # ---------------------------------------------------------------------------
@@ -45,9 +58,15 @@ async def mca_report(
     product: str = Form("GNR"),
     work_week: str = Form("WW1"),
     label: str = Form(""),
-    options: str = Form(""),   # comma-separated: REDUCED,DECODE,OVERVIEW,MCCHECKER
+    options: str = Form("REDUCED,DECODE,OVERVIEW"),  # default: all three enabled
 ):
-    """Generate MCA report and return the output Excel file."""
+    """Generate MCA report and return a ZIP containing the output file(s).
+
+    Options (comma-separated):
+      REDUCED  — reduced data mode (filters noise rows)
+      DECODE   — MCA decode tab
+      OVERVIEW — unit overview Excel file
+    """
     raw = await file.read()
     options_list = [o.strip().upper() for o in options.split(",") if o.strip()]
 
@@ -56,27 +75,144 @@ async def mca_report(
         with open(src, "wb") as fh:
             fh.write(raw)
 
-        out = os.path.join(tmpdir, "MCAReport.xlsx")
         try:
             PPVMCAReport = _backend()
             report = PPVMCAReport(
-                data_file=src,
-                product=product,
-                work_week=work_week,
-                label=label,
-                mode=mode,
+                data_file   = src,
+                product     = product,
+                work_week   = work_week,
+                label       = label,
+                mode        = mode,
+                output_dir  = tmpdir,
             )
             report.run(options=options_list)
-            with open(out, "rb") as fh:
-                result = fh.read()
-        except Exception as exc:
+            output_files = report.get_output_files()
+        except Exception:
             raise HTTPException(status_code=500, detail=f"Report error: {traceback.format_exc()}")
 
+        if not output_files:
+            raise HTTPException(status_code=500, detail="No output files were generated.")
+
+        # Cache file bytes in memory so the frontend can download/save after this request
+        token = str(uuid.uuid4())
+        _report_cache[token] = {}
+        for path, fname in output_files:
+            with open(path, "rb") as fh:
+                _report_cache[token][fname] = fh.read()
+
+    return {
+        "token": token,
+        "files": [
+            {"name": fname, "size": len(data)}
+            for fname, data in _report_cache[token].items()
+        ],
+    }
+
+
+# ---------------------------------------------------------------------------
+# /api/mca/download  — download selected files as ZIP
+# ---------------------------------------------------------------------------
+@router.post("/download")
+async def mca_download(
+    token: str = Form(...),
+    filenames: str = Form(""),   # comma-separated; empty = all files
+):
+    """Return a ZIP of the selected report files from a previous /report call."""
+    if token not in _report_cache:
+        raise HTTPException(status_code=404, detail="Report token not found or expired.")
+
+    cache = _report_cache[token]
+    selected = [f.strip() for f in filenames.split(",") if f.strip()] if filenames.strip() else list(cache.keys())
+
+    zip_buf = io.BytesIO()
+    with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for fname in selected:
+            if fname in cache:
+                zf.writestr(fname, cache[fname])
+    zip_buf.seek(0)
+
     return StreamingResponse(
-        io.BytesIO(result),
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="MCAReport_{label or work_week}.xlsx"'},
+        zip_buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="MCAReport.zip"'},
     )
+
+
+# ---------------------------------------------------------------------------
+# /api/mca/save  — save selected files to a server-side path
+# ---------------------------------------------------------------------------
+@router.post("/save")
+async def mca_save(
+    token: str = Form(...),
+    filenames: str = Form(""),   # comma-separated; empty = all files
+    dest_path: str = Form(...),
+):
+    """Save selected report files to dest_path on the server filesystem."""
+    if token not in _report_cache:
+        raise HTTPException(status_code=404, detail="Report token not found or expired.")
+
+    try:
+        os.makedirs(dest_path, exist_ok=True)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Cannot create destination path: {exc}")
+
+    cache = _report_cache[token]
+    selected = [f.strip() for f in filenames.split(",") if f.strip()] if filenames.strip() else list(cache.keys())
+
+    saved: list[str] = []
+    for fname in selected:
+        if fname in cache:
+            out = os.path.join(dest_path, fname)
+            with open(out, "wb") as fh:
+                fh.write(cache[fname])
+            saved.append(fname)
+
+    return {"saved": saved, "dest_path": dest_path}
+
+
+# ---------------------------------------------------------------------------
+# /api/mca/browse  — list subdirectories of a server path (for folder picker)
+# ---------------------------------------------------------------------------
+@router.get("/browse")
+async def mca_browse(path: str = ""):
+    """Return the children (subdirectories + root drives/home) of a server path.
+
+    If path is empty or invalid, returns OS-appropriate root entries.
+    """
+    import platform
+
+    def _drives():
+        """Windows: return available drive roots."""
+        drives = []
+        for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+            d = f"{letter}:\\"
+            if os.path.isdir(d):
+                drives.append({"name": d, "path": d, "is_drive": True})
+        return drives
+
+    # Resolve the requested path
+    if not path or not os.path.isdir(path):
+        if platform.system() == "Windows":
+            return {"path": "", "parent": None, "entries": _drives()}
+        else:
+            home = os.path.expanduser("~")
+            return {"path": home, "parent": os.path.dirname(home), "entries": _list_dir(home)}
+
+    path = os.path.abspath(path)
+    parent = os.path.dirname(path) if path != os.path.dirname(path) else None
+    return {"path": path, "parent": parent, "entries": _list_dir(path)}
+
+
+def _list_dir(path: str) -> list:
+    entries = []
+    try:
+        for name in sorted(os.listdir(path), key=str.lower):
+            full = os.path.join(path, name)
+            if os.path.isdir(full):
+                entries.append({"name": name, "path": full, "is_drive": False})
+    except PermissionError:
+        pass
+    return entries
 
 
 # ---------------------------------------------------------------------------
@@ -103,53 +239,137 @@ async def mca_decode(req: DecodeRequest):
         raise HTTPException(status_code=500, detail=f"Decoder init error: {exc}")
 
     results: dict = {}
+    # Accept both "CHA" and "CCF" (DMR architectural rename of the CHA/LLC IP)
     bank = (req.bank or "CHA").upper()
+    if bank == "CCF":
+        bank = "CHA"
 
     def _hex(v):
+        """Normalize to lowercase hex string with 0x prefix, or None if invalid."""
         if not v:
             return None
+        v = v.strip()
         try:
-            return int(v, 16)
+            n = int(v, 16)
+            return hex(n)  # e.g. '0x12345678'
         except ValueError:
             return None
 
     try:
         if bank == "CHA":
-            for field, val in [
-                ("MC_STATUS",  req.mc_status),
-                ("MC_MISC",    req.mc_misc),
-                ("MC_MISC3",   req.mc_misc3),
-            ]:
-                h = _hex(val)
-                if h is not None:
-                    results[field] = dec.cha_decoder(h, "MC DECODE")
+            # MC_STATUS: MSCOD decode
+            h_status = _hex(req.mc_status)
+            if h_status is not None:
+                results["MC_STATUS (MSCOD)"] = dec.cha_decoder(h_status, "MC DECODE")
+
+            # MC_ADDR: raw pass-through
+            if req.mc_addr:
+                results["MC_ADDR"] = req.mc_addr
+
+            # MC_MISC: TOR/cache details
+            h_misc = _hex(req.mc_misc)
+            if h_misc is not None:
+                for subfield, stype in [
+                    ("MC_MISC (Orig Req)", "Orig Req"),
+                    ("MC_MISC (Opcode)",   "Opcode"),
+                    ("MC_MISC (CacheState)", "cachestate"),
+                    ("MC_MISC (TorID)",    "TorID"),
+                    ("MC_MISC (TorFSM)",   "TorFSM"),
+                ]:
+                    results[subfield] = dec.cha_decoder(h_misc, stype)
+
+            # MC_MISC3: routing details
+            h_misc3 = _hex(req.mc_misc3)
+            if h_misc3 is not None:
+                for subfield, stype in [
+                    ("MC_MISC3 (SrcID)",     "SrcID"),
+                    ("MC_MISC3 (ISMQ)",      "ISMQ"),
+                    ("MC_MISC3 (Attribute)", "Attribute"),
+                    ("MC_MISC3 (Result)",    "Result"),
+                    ("MC_MISC3 (Local Port)","Local Port"),
+                ]:
+                    results[subfield] = dec.cha_decoder(h_misc3, stype)
+
+        elif bank == "LLC":
+            h_status = _hex(req.mc_status)
+            if h_status is not None:
+                results["MC_STATUS (MSCOD)"] = dec.llc_decoder(h_status, "MC DECODE")
+
+            # MC_ADDR: raw pass-through
+            if req.mc_addr:
+                results["MC_ADDR"] = req.mc_addr
+
+            h_misc = _hex(req.mc_misc)
+            if h_misc is not None:
+                for subfield, stype in [
+                    ("MC_MISC (RSF)",  "RSF"),
+                    ("MC_MISC (LSF)",  "LSF"),
+                    ("MC_MISC (MiscV)","MiscV"),
+                ]:
+                    results[subfield] = dec.llc_decoder(h_misc, stype)
 
         elif bank == "CORE":
             instance = (req.instance or "ML2").upper()
-            for field, val in [
-                ("MC_STATUS",  req.mc_status),
-                ("MC_MISC",    req.mc_misc),
-            ]:
-                h = _hex(val)
-                if h is not None:
-                    results[field] = dec.core_decoder(h, instance)
+            h = _hex(req.mc_status)
+            if h is not None:
+                mcacod, mscod = dec.core_decoder(h, instance)
+                results["MC_STATUS (MCACOD)"] = mcacod
+                results["MC_STATUS (MSCOD)"]  = mscod
+
+            # MC_ADDR: raw pass-through
+            if req.mc_addr:
+                results["MC_ADDR"] = req.mc_addr
+
+            # MC_MISC: raw pass-through (no specific decoder in original)
+            if req.mc_misc:
+                results["MC_MISC"] = req.mc_misc
 
         elif bank == "MEM":
             instance = (req.instance or "B2CMI").upper()
             h = _hex(req.mc_status)
             if h is not None:
-                results["MC_STATUS"] = dec.mem_decoder(h, instance)
+                results["MC_STATUS (MSCOD)"] = dec.mem_decoder(h, instance)
+
+            # MC_ADDR and MC_MISC: raw pass-through
+            if req.mc_addr:
+                results["MC_ADDR"] = req.mc_addr
+            if req.mc_misc:
+                results["MC_MISC"] = req.mc_misc
 
         elif bank == "IO":
             instance = (req.instance or "UBOX").upper()
             h = _hex(req.mc_status)
             if h is not None:
-                results["MC_STATUS"] = dec.io_decoder(h, instance)
+                mcacod, mscod = dec.io_decoder(h, instance)
+                results["MC_STATUS (MCACOD)"] = mcacod
+                results["MC_STATUS (MSCOD)"]  = mscod
+
+            # MC_ADDR and MC_MISC: raw pass-through
+            if req.mc_addr:
+                results["MC_ADDR"] = req.mc_addr
+            if req.mc_misc:
+                results["MC_MISC"] = req.mc_misc
 
         elif bank == "PORTIDS":
-            h = _hex(req.mc_status)
-            if h is not None:
-                results["MC_STATUS"] = dec.portids_decoder(h, [], "FirstError")
+            # PORTIDS uses two UBox registers:
+            # MCERRLOGGINGREG → mc_status (event='mcerr')
+            # IERRLOGGINGREG  → mc_misc   (event='ierr')
+            portid_fields = [
+                'FirstError - DIEID',     'FirstError - PortID',
+                'FirstError - Location',  'FirstError - FromCore',
+                'SecondError - DIEID',    'SecondError - PortID',
+                'SecondError - Location', 'SecondError - FromCore',
+            ]
+            h_mcerr = _hex(req.mc_status)
+            if h_mcerr is not None:
+                decoded = dec.portids_decoder(h_mcerr, portid_fields, "mcerr")
+                for k, v in decoded.items():
+                    results[f"MCERRLOGGINGREG – {k}"] = v
+            h_ierr = _hex(req.mc_misc)
+            if h_ierr is not None:
+                decoded = dec.portids_decoder(h_ierr, portid_fields, "ierr")
+                for k, v in decoded.items():
+                    results[f"IERRLOGGINGREG – {k}"] = v
 
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Decode error: {traceback.format_exc()}")

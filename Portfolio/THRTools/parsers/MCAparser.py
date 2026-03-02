@@ -321,8 +321,8 @@ class ppv_report():
 
 		# Close the files
 		if mcfile_on or ovw_on: file_close(source_wb, save=False)
-		if mcfile_on: file_close(target_wb)
-		if ovw_on: file_close(ovw_wb)
+		if mcfile_on: file_close(target_wb, filename=mca_file)
+		if ovw_on: file_close(ovw_wb, filename=ovw_file)
 
 
 	def parse_data(self, option = 'MESH'):
@@ -531,7 +531,7 @@ class ppv_report():
 
 		# Parse the table reference (e.g. "A1:Z100") to determine data body range
 		# openpyxl table.ref covers header + data; header is the first row
-		from openpyxl.utils import range_boundaries
+		from openpyxl.utils import range_boundaries, get_column_letter
 		min_col, min_row, max_col, max_row = range_boundaries(src_table.ref)
 		# Data body starts one row after header
 		src_data_rows = list(src_ws.iter_rows(min_row=min_row + 1, max_row=max_row,
@@ -539,19 +539,28 @@ class ppv_report():
 		                                       values_only=True))
 
 		tgt_min_col, tgt_min_row, tgt_max_col, tgt_max_row = range_boundaries(tgt_table.ref)
-		# Clear target data body rows
+		# Clear target data body rows (existing template rows)
 		for row in tgt_ws.iter_rows(min_row=tgt_min_row + 1, max_row=tgt_max_row,
 		                             min_col=tgt_min_col, max_col=tgt_max_col):
 			for cell in row:
 				cell.value = None
 
-		# Write source data into target (row by row)
+		# Write ALL source data rows into target — do not stop at the template's original
+		# tgt_max_row; the table ref is updated below to cover the actual row count.
+		new_last_data_row = tgt_min_row  # will advance as rows are written
 		for row_idx, row_data in enumerate(src_data_rows):
 			tgt_row = tgt_min_row + 1 + row_idx
-			if tgt_row > tgt_max_row:
-				break
+			new_last_data_row = tgt_row
 			for col_idx, value in enumerate(row_data):
 				tgt_ws.cell(row=tgt_row, column=tgt_min_col + col_idx, value=value)
+
+		# Expand (or shrink) the table reference to match the actual number of data rows
+		# so Excel recognises all copied rows as part of the table.
+		actual_last_row = max(new_last_data_row, tgt_min_row + 1)  # keep at least header + 1 row
+		tgt_table.ref = (
+			f"{get_column_letter(tgt_min_col)}{tgt_min_row}"
+			f":{get_column_letter(tgt_max_col)}{actual_last_row}"
+		)
 
 		print(f"Data copied successfully from source to target workbook {sheet_name} table {table_name}.")
 
@@ -633,14 +642,14 @@ def file_open(file):
 	wb = load_workbook(file)
 	return wb
 
-def file_close(file, save = True): #source_wb, target_wb):
+def file_close(file, save = True, filename = None): #source_wb, target_wb):
 
 	# Variables Init
 	#source_wb = self.source_wb
 	#target_wb = self.target_wb
 
-	# Save and close the workbooks
-	if save: file.save()
+	# Save and close the workbooks (openpyxl Workbook.save() requires a filename)
+	if save: file.save(filename)
 	file.close()
 	#target_wb.close()
 
@@ -730,6 +739,86 @@ def load_dataframe_to_excel(df, excel_file, sheet_name, table_name):
 
 	# Save the workbook
 	workbook.save(excel_file)
+
+class PPVMCAReport:
+	"""
+	Web-API-friendly wrapper around ppv_report.
+
+	Maps the REST parameters to ppv_report constructor args and provides
+	run() / get_output_files() helpers used by api/routers/mca.py.
+
+	Constructor kwargs
+	------------------
+	data_file   : path to the uploaded Bucketer / S2T Logger Excel file
+	product     : 'GNR' | 'CWF' | 'DMR'
+	work_week   : e.g. 'WW9'
+	label       : optional run label
+	mode        : 'Bucketer' (default) | 'Framework' | 'Data'
+	output_dir  : directory to write output files into (tmpdir)
+
+	run(options)
+	------------
+	options is a list of strings from the frontend checkboxes:
+	  'REDUCED'   → reduced=True  (sets reduced data mode)
+	  'DECODE'    → decode=True   (run MCA decode tab)
+	  'OVERVIEW'  → overview=True (generate unit overview file)
+	Note: MC Checker option has been removed from the new UI.
+
+	get_output_files()
+	------------------
+	Returns list of paths of files that were actually written.
+	"""
+
+	def __init__(self, data_file, product='GNR', work_week='WW1', label='',
+	             mode='Bucketer', output_dir=None):
+		self.data_file  = data_file
+		self.product    = product.upper()
+		self.work_week  = work_week
+		self.label      = label
+		self.mode       = mode
+		self.output_dir = output_dir or os.path.dirname(data_file)
+		self._report    = None  # ppv_report instance created in run()
+
+	def run(self, options=None):
+		if options is None:
+			options = ['REDUCED', 'DECODE', 'OVERVIEW']
+		opts = [o.upper() for o in options]
+
+		reduced  = 'REDUCED'  in opts
+		decode   = 'DECODE'   in opts
+		overview = 'OVERVIEW' in opts
+		# MC_CHECKER option has been removed from new UI
+
+		# ppv_report.run() takes the data-tab selection ('MESH', 'CORE')
+		# These are always processed; the option flags are constructor params.
+		run_opts = ['MESH', 'CORE']
+
+		self._report = ppv_report(
+			name        = self.product,
+			week        = self.work_week,
+			label       = self.label,
+			source_file = self.data_file,
+			report      = self.output_dir,
+			reduced     = reduced,
+			mcdetail    = False,   # MC Checker removed from new UI
+			overview    = overview,
+			decode      = decode,
+			mode        = self.mode,
+			product     = self.product,
+		)
+		self._report.run(options=run_opts)
+
+	def get_output_files(self):
+		"""Return list of (path, filename) tuples for files that were produced."""
+		if self._report is None:
+			return []
+		results = []
+		for attr in ('data_file', 'mca_file', 'ovw_file'):
+			path = getattr(self._report, attr, None)
+			if path and os.path.isfile(path):
+				results.append((path, os.path.basename(path)))
+		return results
+
 
 #if __name__ == "__main__":
 def test(): ## Comment and run with above line, not setting args for this one, use the UI
