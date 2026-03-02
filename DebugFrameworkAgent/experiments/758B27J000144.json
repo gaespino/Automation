@@ -126,7 +126,7 @@
     "VVAR3": "0x4000000",
     "VVAR_EXTRA": null,
     "TTL Folder": "S:\\GNR\\RVP\\TTLs\\TTL_DragonMesh",
-    "Scripts File": null,
+    "Scripts File": "R:\\Templates\\scripts\\cstatesgnr.txt",
     "Pass String": "Test Complete",
     "Fail String": "Test Failed",
     "Stop on Fail": true,
