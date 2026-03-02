@@ -11,13 +11,16 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 export default function LoopParser() {
-  const [files,      setFiles]      = useState<File[]>([]);
-  const [dragging,   setDragging]   = useState(false);
-  const [seqKey,     setSeqKey]     = useState('100');
-  const [pysvFmt,    setPysvFmt]    = useState(false);
-  const [outputName, setOutputName] = useState('loop_output');
-  const [loading,    setLoading]    = useState(false);
-  const [log,        setLog]        = useState('');
+  const [files,       setFiles]       = useState<File[]>([]);
+  const [dragging,    setDragging]    = useState(false);
+  const [startWW,     setStartWW]     = useState('WW1');
+  const [bucket,      setBucket]      = useState('PPV');
+  const [seqKey,      setSeqKey]      = useState('100');
+  const [pysvFmt,     setPysvFmt]     = useState(false);
+  const [zipMode,     setZipMode]     = useState(false);
+  const [outputName,  setOutputName]  = useState('loop_output');
+  const [loading,     setLoading]     = useState(false);
+  const [log,         setLog]         = useState('');
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -47,9 +50,12 @@ export default function LoopParser() {
 
     const fd = new FormData();
     files.forEach(f => fd.append('files', f));
-    fd.append('seq_key', seqKey);
-    fd.append('pysv_format', String(pysvFmt));
-    fd.append('output_name', outputName);
+    fd.append('start_ww',     startWW);
+    fd.append('bucket',       bucket);
+    fd.append('seq_key',      seqKey);
+    fd.append('pysv_format',  String(pysvFmt));
+    fd.append('zipfile_mode', String(zipMode));
+    fd.append('output_name',  outputName);
 
     try {
       const resp = await fetch(`${BASE}/loops/parse`, {
@@ -82,6 +88,12 @@ export default function LoopParser() {
         <div className="panel">
           <div className="section-title">Configuration</div>
           <div className="form-grid">
+            <label>Work Week</label>
+            <input value={startWW} onChange={e => setStartWW(e.target.value)} placeholder="WW1" />
+
+            <label>Bucket</label>
+            <input value={bucket} onChange={e => setBucket(e.target.value)} placeholder="PPV" />
+
             <label>Sequence Key</label>
             <input type="number" value={seqKey} onChange={e => setSeqKey(e.target.value)} min="0" />
 
@@ -93,11 +105,17 @@ export default function LoopParser() {
               <input type="checkbox" checked={pysvFmt} onChange={e => setPysvFmt(e.target.checked)} />
               Enable PySV format
             </label>
+
+            <label>ZIP Mode</label>
+            <label className="check-label">
+              <input type="checkbox" checked={zipMode} onChange={e => setZipMode(e.target.checked)} />
+              Process ZIP files inside folder
+            </label>
           </div>
         </div>
 
         <div className="panel">
-          <div className="section-title">Input Files (.txt, .log)</div>
+          <div className="section-title">Input Files (.txt, .log, .zip)</div>
           <div
             className={`drop-zone${dragging ? ' drag-over' : ''}`}
             onClick={() => inputRef.current?.click()}
@@ -108,13 +126,13 @@ export default function LoopParser() {
             <input
               ref={inputRef}
               type="file"
-              accept=".txt,.log"
+              accept=".txt,.log,.zip"
               multiple
               style={{ display: 'none' }}
               onChange={e => { if (e.target.files) addFiles(Array.from(e.target.files)); e.target.value = ''; }}
             />
             <div className="drop-icon">📂</div>
-            <div className="drop-hint">Drop .txt / .log files here or click to browse</div>
+            <div className="drop-hint">Drop .txt / .log / .zip files here or click to browse</div>
           </div>
 
           {files.length > 0 && (

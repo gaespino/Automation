@@ -1,50 +1,78 @@
-# React + TypeScript + Vite
+# THR Tools — Frontend (React + TypeScript + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the React/TypeScript frontend for the THR Tools Portfolio application. The FastAPI backend (`../app.py`) serves the compiled output from `dist/` as static files, so **Node.js is only required when you change source files** — not at runtime.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Why `dist/` is committed to git
 
-## Expanding the ESLint configuration
+The root `.gitignore` excludes `dist/` globally (a standard Python packaging rule), but contains explicit negation overrides so this folder **is** tracked:
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```
+# React build output — committed so users don't need Node.js to run the app
+!Portfolio/thr_ui/dist/
+!Portfolio/thr_ui/dist/**
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+This means:
+- The server can serve the UI straight after `git pull` — no build step needed to *run* the app.
+- After making source changes (`src/**/*.tsx`, `src/**/*.ts`, etc.) you **must** rebuild `dist/` and commit it so others see the updated UI.
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+---
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+## Rebuilding `dist/` after source changes
+
+Every time you edit a source file you must regenerate the compiled output:
+
+```bash
+cd Portfolio/thr_ui
+
+# Install dependencies (first time only, or after package.json changes)
+npm install
+
+# Rebuild — output goes to dist/
+npm run build
 ```
+
+Then commit the changed `dist/` files along with your source changes:
+
+```bash
+git add src/...          # your source edits
+git add dist/            # the rebuilt output
+git commit -m "Your change description"
+```
+
+> **Important:** If you push source changes without rebuilding `dist/`, the running application will still show the old UI because the server serves `dist/` directly.
+
+---
+
+## Development workflow (live-reload)
+
+For iterative development you can run the Vite dev server, which hot-reloads on every save — **no manual rebuild needed**:
+
+```bash
+cd Portfolio/thr_ui
+npm install        # first time only
+npm run dev        # starts on http://localhost:5173
+```
+
+The dev server proxies API calls to the FastAPI backend. Start the backend first:
+
+```bash
+cd Portfolio
+pip install -r requirements.txt   # first time only
+python app.py                      # starts on http://localhost:8000
+```
+
+When you are happy with your changes, run `npm run build` to update `dist/` and commit everything.
+
+---
+
+## Available scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start Vite dev server with hot-reload (port 5173) |
+| `npm run build` | Compile source → `dist/` (required before committing UI changes) |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Run ESLint on source files |

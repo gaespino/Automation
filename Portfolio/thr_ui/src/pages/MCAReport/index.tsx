@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import './style.css';
 
 const BASE = import.meta.env.VITE_API_BASE ?? '/api';
@@ -10,24 +10,127 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
 type CheckboxOption = { key: string; label: string };
 const OPTIONS: CheckboxOption[] = [
   { key: 'reduced',   label: 'Reduced Report' },
   { key: 'decode',    label: 'MCA Decode' },
   { key: 'overview',  label: 'Overview Sheet' },
-  { key: 'checker',   label: 'MCA Checker File' },
+  // MC Checker option has been removed (deprecated)
 ];
 
+interface OutputFile { name: string; size: number; }
+interface ReportResult { token: string; files: OutputFile[]; }
+interface DirEntry { name: string; path: string; is_drive: boolean; }
+interface BrowseResult { path: string; parent: string | null; entries: DirEntry[]; }
+
+// ---------------------------------------------------------------------------
+// DirPicker modal — server-side folder browser
+// ---------------------------------------------------------------------------
+function DirPicker({ onSelect, onClose }: { onSelect: (path: string) => void; onClose: () => void }) {
+  const [browse, setBrowse] = useState<BrowseResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState('');
+
+  const load = useCallback(async (path: string) => {
+    setLoading(true); setError('');
+    try {
+      const resp = await fetch(`${BASE}/mca/browse?path=${encodeURIComponent(path)}`);
+      if (!resp.ok) throw new Error(await resp.text());
+      setBrowse(await resp.json());
+    } catch (e: unknown) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(''); }, [load]);
+
+  return (
+    <div className="picker-overlay" onClick={onClose}>
+      <div className="picker-modal" onClick={e => e.stopPropagation()}>
+        <div className="picker-header">
+          <span>📁 Browse for folder</span>
+          <button className="btn" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="picker-breadcrumb">
+          {browse?.path
+            ? <>
+                <span className="picker-crumb-link" onClick={() => load('')}>⊞ Root</span>
+                <span className="picker-crumb-sep">/</span>
+                <span className="picker-crumb-current" title={browse.path}>{browse.path}</span>
+              </>
+            : <span className="picker-crumb-current">Root</span>
+          }
+        </div>
+
+        <div className="picker-list">
+          {loading && <div className="picker-msg">Loading…</div>}
+          {error   && <div className="picker-msg picker-err">{error}</div>}
+          {!loading && !error && browse && (
+            <>
+              {browse.parent != null && (
+                <div className="picker-entry picker-up" onClick={() => load(browse.parent!)}>
+                  ⬆ ..
+                </div>
+              )}
+              {browse.entries.length === 0
+                ? <div className="picker-msg">No sub-folders</div>
+                : browse.entries.map(e => (
+                    <div key={e.path} className="picker-entry" onClick={() => load(e.path)}>
+                      {e.is_drive ? '💽' : '📁'} {e.name}
+                    </div>
+                  ))
+              }
+            </>
+          )}
+        </div>
+
+        <div className="picker-footer">
+          <span className="dim">{browse?.path || '/'}</span>
+          <button
+            className="btn success"
+            disabled={!browse?.path}
+            onClick={() => { if (browse?.path) { onSelect(browse.path); onClose(); } }}
+          >
+            ✔ Select this folder
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main MCAReport page
+// ---------------------------------------------------------------------------
 export default function MCAReport() {
-  const [mode,      setMode]      = useState('Framework');
+  const [mode,      setMode]      = useState('Bucketer');
   const [product,   setProduct]   = useState('GNR');
   const [workWeek,  setWorkWeek]  = useState('WW9');
   const [label,     setLabel]     = useState('');
-  const [opts,      setOpts]      = useState<Record<string,boolean>>({});
+  const [opts,      setOpts]      = useState<Record<string,boolean>>({
+    reduced: true, decode: true, overview: true,
+  });
   const [file,      setFile]      = useState<File | null>(null);
   const [dragging,  setDragging]  = useState(false);
   const [loading,   setLoading]   = useState(false);
   const [log,       setLog]       = useState('');
+
+  // Post-generation state
+  const [result,    setResult]    = useState<ReportResult | null>(null);
+  const [selected,  setSelected]  = useState<Set<string>>(new Set());
+  const [savePath,  setSavePath]  = useState('');
+  const [actioning, setActioning] = useState(false);
+  const [showBrowse, setShowBrowse] = useState(false);
+
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -35,6 +138,13 @@ export default function MCAReport() {
 
   const toggleOpt = (k: string) =>
     setOpts(o => ({ ...o, [k]: !o[k] }));
+
+  const toggleFile = (name: string) =>
+    setSelected(s => {
+      const n = new Set(s);
+      if (n.has(name)) n.delete(name); else n.add(name);
+      return n;
+    });
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault(); setDragging(false);
@@ -48,7 +158,8 @@ export default function MCAReport() {
     abortRef.current = ctrl;
     setLoading(true);
     setLog('');
-    addLog(`[INFO] Sending request...`);
+    setResult(null);
+    addLog(`[INFO] Sending request…`);
     addLog(`[INFO] File: ${file.name}`);
 
     const selectedOpts = OPTIONS.filter(o => opts[o.key]).map(o => o.key).join(',');
@@ -68,12 +179,11 @@ export default function MCAReport() {
         const text = await resp.text();
         addLog(`[ERROR] ${resp.status}: ${text}`);
       } else {
-        const blob = await resp.blob();
-        const cd = resp.headers.get('content-disposition') ?? '';
-        const match = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-        const fname = match ? match[1].replace(/['"]/g, '') : 'mca_report.xlsx';
-        downloadBlob(blob, fname);
-        addLog(`[OK] Downloaded: ${fname}`);
+        const data: ReportResult = await resp.json();
+        setResult(data);
+        setSelected(new Set(data.files.map(f => f.name)));
+        addLog(`[OK] Report ready — ${data.files.length} file(s) generated.`);
+        data.files.forEach(f => addLog(`       📄 ${f.name}  (${formatBytes(f.size)})`));
       }
     } catch (err: unknown) {
       if ((err as Error).name !== 'AbortError') addLog(`[ERROR] ${(err as Error).message}`);
@@ -90,6 +200,54 @@ export default function MCAReport() {
     addLog('[INFO] Cancelled by user.');
   };
 
+  const handleDownload = async () => {
+    if (!result || selected.size === 0) return;
+    setActioning(true);
+    addLog(`[INFO] Downloading ${selected.size} file(s)…`);
+    try {
+      const fd = new FormData();
+      fd.append('token', result.token);
+      fd.append('filenames', Array.from(selected).join(','));
+      const resp = await fetch(`${BASE}/mca/download`, { method: 'POST', body: fd });
+      if (!resp.ok) {
+        const text = await resp.text();
+        addLog(`[ERROR] Download failed: ${text}`);
+      } else {
+        const blob = await resp.blob();
+        downloadBlob(blob, 'MCAReport.zip');
+        addLog(`[OK] Downloaded MCAReport.zip`);
+      }
+    } catch (err: unknown) {
+      addLog(`[ERROR] ${(err as Error).message}`);
+    } finally {
+      setActioning(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!result || selected.size === 0 || !savePath.trim()) return;
+    setActioning(true);
+    addLog(`[INFO] Saving ${selected.size} file(s) to: ${savePath}…`);
+    try {
+      const fd = new FormData();
+      fd.append('token', result.token);
+      fd.append('filenames', Array.from(selected).join(','));
+      fd.append('dest_path', savePath.trim());
+      const resp = await fetch(`${BASE}/mca/save`, { method: 'POST', body: fd });
+      const data = await resp.json();
+      if (!resp.ok) {
+        addLog(`[ERROR] Save failed: ${data.detail ?? JSON.stringify(data)}`);
+      } else {
+        addLog(`[OK] Saved ${data.saved.length} file(s) to: ${data.dest_path}`);
+        data.saved.forEach((f: string) => addLog(`       💾 ${f}`));
+      }
+    } catch (err: unknown) {
+      addLog(`[ERROR] ${(err as Error).message}`);
+    } finally {
+      setActioning(false);
+    }
+  };
+
   return (
     <div className="tool-page">
       <h2 className="page-title">📋 MCA Report</h2>
@@ -100,7 +258,7 @@ export default function MCAReport() {
           <div className="form-grid">
             <label>Mode</label>
             <select value={mode} onChange={e => setMode(e.target.value)}>
-              {['Framework','Bucketer','Data'].map(m => <option key={m}>{m}</option>)}
+              {['Bucketer','Framework','Data'].map(m => <option key={m}>{m}</option>)}
             </select>
 
             <label>Product</label>
@@ -166,12 +324,83 @@ export default function MCAReport() {
         </div>
       </div>
 
+      {/* Output file list — shown after a successful report generation */}
+      {result && (
+        <div className="panel" style={{ marginTop: 12 }}>
+          <div className="section-title">Output Files</div>
+          <div className="file-list">
+            {result.files.map(f => (
+              <label key={f.name} className="check-label file-list-row">
+                <input
+                  type="checkbox"
+                  checked={selected.has(f.name)}
+                  onChange={() => toggleFile(f.name)}
+                />
+                <span className="file-entry-name">📄 {f.name}</span>
+                <span className="dim">{formatBytes(f.size)}</span>
+              </label>
+            ))}
+          </div>
+
+          <div className="files-actions">
+            <div className="files-action-block">
+              <div className="files-action-title">⬇ Download as ZIP</div>
+              <div className="files-action-desc dim">Download selected files to your computer as a ZIP archive.</div>
+              <button
+                className="btn primary"
+                onClick={handleDownload}
+                disabled={actioning || selected.size === 0}
+              >
+                ⬇ Download selected ({selected.size})
+              </button>
+            </div>
+
+            <div className="files-action-divider" />
+
+            <div className="files-action-block">
+              <div className="files-action-title">💾 Save to path</div>
+              <div className="files-action-desc dim">Save selected files directly to a folder on the server.</div>
+              <div className="save-row">
+                <input
+                  type="text"
+                  className="save-path-input"
+                  placeholder="e.g. C:\output\MCA or /home/user/output"
+                  value={savePath}
+                  onChange={e => setSavePath(e.target.value)}
+                />
+                <button
+                  className="btn"
+                  title="Browse server filesystem"
+                  onClick={() => setShowBrowse(true)}
+                >
+                  📁 Browse
+                </button>
+                <button
+                  className="btn success"
+                  onClick={handleSave}
+                  disabled={actioning || selected.size === 0 || !savePath.trim()}
+                >
+                  💾 Save selected ({selected.size})
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="panel" style={{ marginTop: 12 }}>
         <div className="section-title">Log</div>
         <div className="log-area" style={{ height: 140 }}>
           {log || 'Ready.'}
         </div>
       </div>
+
+      {showBrowse && (
+        <DirPicker
+          onSelect={p => setSavePath(p)}
+          onClose={() => setShowBrowse(false)}
+        />
+      )}
     </div>
   );
 }

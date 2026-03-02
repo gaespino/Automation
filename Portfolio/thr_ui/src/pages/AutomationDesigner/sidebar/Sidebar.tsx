@@ -11,11 +11,13 @@ interface SidebarProps {
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
   onAssign: (id: string, exp: string) => void;
+  onAddNode: (nodeType: string) => void;
+  onDeleteEdge: (edgeId: string) => void;
 }
 
 export default function Sidebar({
   nodes, edges, log, experiments,
-  onSelectNode, onRename, onDelete, onAssign,
+  onSelectNode, onRename, onDelete, onAssign, onAddNode, onDeleteEdge,
 }: SidebarProps) {
   const [editing, setEditing] = useState<{id:string;name:string;exp:string}|null>(null);
 
@@ -34,7 +36,26 @@ export default function Sidebar({
 
   return (
     <div className="ad-sidebar">
-      {/* Node Editor */}
+      {/* ─── Node Palette ─────────────────────────────────────── */}
+      <div className="section-title">Node Palette</div>
+      <div className="sb-palette">
+        {Object.entries(NODE_TYPES_META).map(([type, meta]) => (
+          <button
+            key={type}
+            className="sb-palette-btn"
+            style={{ borderColor: meta.color }}
+            title={`Add ${meta.label}`}
+            onClick={() => onAddNode(type)}
+          >
+            <span className="sb-palette-sym" style={{ background: meta.color }}>
+              {meta.symbol}
+            </span>
+            <span className="sb-palette-label">{meta.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* ─── Node Editor ──────────────────────────────────────── */}
       <div className="section-title">Node Editor</div>
       {editing ? (
         <div className="sb-editor">
@@ -57,7 +78,7 @@ export default function Sidebar({
         <div className="dim" style={{marginBottom:8}}>Click ✏ on a node to edit.</div>
       )}
 
-      {/* Flow Nodes */}
+      {/* ─── Flow Nodes ───────────────────────────────────────── */}
       <div className="section-title">Flow Nodes ({nodes.length})</div>
       <div className="sb-node-list">
         {nodes.length === 0
@@ -79,18 +100,23 @@ export default function Sidebar({
           })}
       </div>
 
-      {/* Edges */}
+      {/* ─── Connections ──────────────────────────────────────── */}
       <div className="section-title">Connections ({edges.length})</div>
       <div className="sb-edge-list">
         {edges.map(e => (
           <div key={e.id} className="sb-edge-row">
             <span style={{color: e.style?.stroke ?? '#858585'}}>{e.label}</span>
-            <span>{e.source} → {e.target}</span>
+            <span className="sb-edge-path">{e.source} → {e.target}</span>
+            <button
+              className="sb-btn danger"
+              title="Remove connection"
+              onClick={() => onDeleteEdge(e.id)}
+            >✕</button>
           </div>
         ))}
       </div>
 
-      {/* Log */}
+      {/* ─── Log ──────────────────────────────────────────────── */}
       <div className="section-title">Log</div>
       <div className="log-area sb-log">
         {log.join('\n')}
