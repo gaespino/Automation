@@ -55,4 +55,4 @@ Return the list of generated files.
 ```
 
 ## Skills
-- `../skills/automation_flow_designer.skill.md` — full file format specs and node type rules
+- `DebugFrameworkAgent/skills/automation_flow_designer.skill.md` — full file format specs and node type rules

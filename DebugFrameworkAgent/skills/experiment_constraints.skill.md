@@ -32,6 +32,21 @@
 
 > New options can be added to `MESH_MASK_OPTIONS` in `constraints.py` without changing any other code.
 
+#### ⚠️ "Full Chip" terminology — critical mapping
+
+When a user says *"full chip"*, *"no mask"*, *"all cores"*, *"no partition"*, *"unrestricted"*, or any similar phrase:
+
+→ **Set `Configuration (Mask)` to `""` (empty string) or `null`. Do NOT invent a value.**
+
+`""` is the correct and only representation of "run on all cores / no partitioning" in Mesh mode.
+
+**NEVER create values like `"FullChip"`, `"FullChop"`, `"AllCores"`, `"Full"`, or any other string not in the valid list above.**
+Any value not listed is an **error** — reject it and ask the user to confirm they want `""` (no mask).
+
+If a user provides a mask value not in the valid list:
+> "❌ `<value>` is not a valid Configuration (Mask) option for <product>.
+> Valid options are: <list>. Did you mean one of these, or would you like to run full chip (no mask, `""`)?"
+
 ### Slice Mode
 
 | Product | Core Number Range |

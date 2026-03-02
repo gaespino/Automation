@@ -190,7 +190,7 @@ Fields are organized by section. Section order for interactive collection:
 | `600W Unit` | bool | `false` | Use 600W PSU |
 | `Pseudo Config` | bool | `false` | *GNR only.* Enable pseudo config mode |
 | `Post Process` | str | `""` | Post-processing script path |
-| `Configuration (Mask)` | str | `""` | *Mesh:* RowPass1–3, FirstPass, SecondPass, ThirdPass; *Slice:* core number (GNR/CWF: 0–179, DMR: 0–128) |
+| `Configuration (Mask)` | str | `""` | *Mesh:* `""` = full chip (no partitioning); RowPass1–3, FirstPass, SecondPass, ThirdPass (GNR/CWF); Compute0-3, Cbb0-3 (DMR). *Slice:* core number (GNR/CWF: 0–179, DMR: 0–128). **Never invent values — only use items from this list.** |
 | `Boot Breakpoint` | str | `""` | e.g. `0xa2000000` |
 | `Disable 2 Cores` | str | `""` | *CWF only.* Options: `0x3`, `0xc`, `0x9`, `0xa`, `0x5` |
 | `Disable 1 Core` | str | `""` | *DMR only.* Options: `0x1`, `0x2` |
