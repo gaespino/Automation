@@ -17,6 +17,8 @@ interface FieldConfig {
   description?: string;
   required?: boolean;
   options?: string[];
+  condition?: { field: string; value: string };
+  conditional_options?: { field: string; [key: string]: unknown };
 }
 
 type FieldConfigs = Record<string, FieldConfig>;
@@ -42,41 +44,59 @@ function buildDefaults(fieldConfigs: FieldConfigs): Record<string, string> {
   return defaults;
 }
 
+/** Returns true if this field should be shown given the current form values. */
+function isFieldVisible(cfg: FieldConfig, form: Record<string, string>): boolean {
+  if (!cfg.condition) return true;
+  return (form[cfg.condition.field] ?? '') === cfg.condition.value;
+}
+
+/** Resolves conditional_options for a field based on the current form values. */
+function getEffectiveCfg(cfg: FieldConfig, form: Record<string, string>): FieldConfig {
+  if (!cfg.conditional_options) return cfg;
+  const { field, ...variants } = cfg.conditional_options as Record<string, unknown>;
+  const currentVal = form[field as string] ?? '';
+  const variant = (variants as Record<string, unknown>)[currentVal];
+  if (!variant || typeof variant !== 'object') return cfg;
+  return { ...cfg, ...(variant as Partial<FieldConfig>) };
+}
+
 function renderField(
   key: string,
   cfg: FieldConfig,
   value: string,
   onChange: (v: string) => void,
+  form?: Record<string, string>,
 ) {
-  if (cfg.options && cfg.options.length > 0) {
+  const effectiveCfg = form ? getEffectiveCfg(cfg, form) : cfg;
+  if (effectiveCfg.options && effectiveCfg.options.length > 0) {
     return (
-      <select value={value} onChange={e => onChange(e.target.value)} title={cfg.description}>
-        {cfg.options.map(opt => <option key={opt}>{opt}</option>)}
+      <select value={value} onChange={e => onChange(e.target.value)} title={effectiveCfg.description}>
+        {effectiveCfg.options.map(opt => <option key={opt}>{opt}</option>)}
       </select>
     );
   }
-  if (cfg.type === 'bool') {
+  if (effectiveCfg.type === 'bool') {
     return (
-      <label className="check-label" title={cfg.description}>
+      <label className="check-label" title={effectiveCfg.description}>
         <input type="checkbox" checked={value === 'true' || value === 'True'}
           onChange={e => onChange(String(e.target.checked))} />
         {key}
       </label>
     );
   }
-  if (cfg.type === 'int' || cfg.type === 'float') {
+  if (effectiveCfg.type === 'int' || effectiveCfg.type === 'float') {
     return (
       <input type="number" value={value}
         onChange={e => onChange(e.target.value)}
-        title={cfg.description}
-        placeholder={String(cfg.default ?? '')} />
+        title={effectiveCfg.description}
+        placeholder={String(effectiveCfg.default ?? '')} />
     );
   }
   return (
     <input value={value}
       onChange={e => onChange(e.target.value)}
-      title={cfg.description}
-      placeholder={String(cfg.default ?? '')} />
+      title={effectiveCfg.description}
+      placeholder={String(effectiveCfg.default ?? '')} />
   );
 }
 
@@ -97,8 +117,9 @@ export default function ExperimentBuilder() {
   const [saving,       setSaving]       = useState(false);
   const [error,        setError]        = useState('');
   const [formDirty,    setFormDirty]    = useState(false);
-  const loadRef     = useRef<HTMLInputElement>(null);
+  const loadRef      = useRef<HTMLInputElement>(null);
   const tplImportRef = useRef<HTMLInputElement>(null);
+  const xlsxImportRef = useRef<HTMLInputElement>(null);
 
 // Templates – persisted to localStorage
   const [templates, setTemplates] = useState<Record<string, Record<string, string>>>(() => {
@@ -262,6 +283,35 @@ export default function ExperimentBuilder() {
     e.target.value = '';
   };
 
+  const importTemplatesFromExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const formData = new FormData();
+    formData.append('file', f);
+    try {
+      const resp = await fetch(`${BASE}/experiments/templates/import-excel`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!resp.ok) { setError(`${resp.status}: ${await resp.text()}`); return; }
+      const data = await resp.json();
+      const validated: Record<string, Record<string, string>> = {};
+      for (const [name, fields] of Object.entries(data.templates ?? {})) {
+        if (typeof fields === 'object' && fields !== null && !Array.isArray(fields)) {
+          validated[name] = Object.fromEntries(
+            Object.entries(fields as Record<string, unknown>)
+              .filter(([, v]) => v !== null && v !== undefined)
+              .map(([k, v]) => [k, String(v)])
+          );
+        }
+      }
+      setTemplates(t => ({ ...t, ...validated }));
+    } catch (err: unknown) {
+      setError((err as Error).message);
+    }
+    e.target.value = '';
+  };
+
   // ── Compare / side-by-side operations ────────────────────────────────────
 
   const compareExp = (compareMode && compareExpId != null)
@@ -395,8 +445,14 @@ export default function ExperimentBuilder() {
                     title="Import templates from a JSON file">
                     📂
                   </button>
+                  <button className="btn" onClick={() => xlsxImportRef.current?.click()}
+                    title="Import templates from an Excel file (.xlsx, each sheet = one template)">
+                    📊
+                  </button>
                   <input ref={tplImportRef} type="file" accept=".json"
                     style={{ display: 'none' }} onChange={importTemplatesFromFile} />
+                  <input ref={xlsxImportRef} type="file" accept=".xlsx"
+                    style={{ display: 'none' }} onChange={importTemplatesFromExcel} />
                 </div>
               </div>
             )}
@@ -420,24 +476,28 @@ export default function ExperimentBuilder() {
                 />
               </div>
 
-              {Object.entries(sectionGroups).map(([section, fields]) => (
-                <div key={section} className="eb-section">
-                  <div className="eb-section-title">{section}</div>
-                  <div className="schema-form">
-                    {fields.map(([key, cfg]) => (
-                      <React.Fragment key={key}>
-                        <label title={cfg.description ?? key}>
-                          {key}
-                          {cfg.required && <span style={{ color: '#f44747' }}>*</span>}
-                        </label>
-                        <div>
-                          {renderField(key, cfg, form[key] ?? '', v => setField(key, v))}
-                        </div>
-                      </React.Fragment>
-                    ))}
+              {Object.entries(sectionGroups).map(([section, fields]) => {
+                const visibleFields = fields.filter(([, cfg]) => isFieldVisible(cfg, form));
+                if (!visibleFields.length) return null;
+                return (
+                  <div key={section} className="eb-section">
+                    <div className="eb-section-title">{section}</div>
+                    <div className="schema-form">
+                      {visibleFields.map(([key, cfg]) => (
+                        <React.Fragment key={key}>
+                          <label title={cfg.description ?? key}>
+                            {key}
+                            {cfg.required && <span style={{ color: '#f44747' }}>*</span>}
+                          </label>
+                          <div>
+                            {renderField(key, cfg, form[key] ?? '', v => setField(key, v), form)}
+                          </div>
+                        </React.Fragment>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               <div className="action-row" style={{ marginTop: 12 }}>
                 <button className="btn primary" onClick={addToQueue}>
@@ -491,37 +551,41 @@ export default function ExperimentBuilder() {
                     </button>
                   </div>
 
-                  {Object.entries(sectionGroups).map(([section, fields]) => (
-                    <div key={section} className="eb-section">
-                      <div className="eb-section-title">{section}</div>
-                      <div className="compare-grid">
-                        {fields.map(([key]) => {
-                          const cmpVal = compareExp.fields[key] ?? '';
-                          const curVal = form[key] ?? '';
-                          const diff = cmpVal !== curVal;
-                          return (
-                            <React.Fragment key={key}>
-                              <label className={diff ? 'cmp-label-diff' : ''}>
-                                {diff && <span className="cmp-dot" title="Differs from current form">●</span>}
-                                {key}
-                              </label>
-                              <div className="compare-cell">
-                                <span className={`compare-val${diff ? ' compare-val-diff' : ''}`}>
-                                  {cmpVal || '—'}
-                                </span>
-                                {diff && (
-                                  <button className="btn cmp-copy-btn" onClick={() => copyFromCompare(key)}
-                                    title={`Copy "${cmpVal}" → form`}>
-                                    ←
-                                  </button>
-                                )}
-                              </div>
-                            </React.Fragment>
-                          );
-                        })}
+                  {Object.entries(sectionGroups).map(([section, fields]) => {
+                    const visibleFields = fields.filter(([, cfg]) => isFieldVisible(cfg, form));
+                    if (!visibleFields.length) return null;
+                    return (
+                      <div key={section} className="eb-section">
+                        <div className="eb-section-title">{section}</div>
+                        <div className="compare-grid">
+                          {visibleFields.map(([key]) => {
+                            const cmpVal = compareExp.fields[key] ?? '';
+                            const curVal = form[key] ?? '';
+                            const diff = cmpVal !== curVal;
+                            return (
+                              <React.Fragment key={key}>
+                                <label className={diff ? 'cmp-label-diff' : ''}>
+                                  {diff && <span className="cmp-dot" title="Differs from current form">●</span>}
+                                  {key}
+                                </label>
+                                <div className="compare-cell">
+                                  <span className={`compare-val${diff ? ' compare-val-diff' : ''}`}>
+                                    {cmpVal || '—'}
+                                  </span>
+                                  {diff && (
+                                    <button className="btn cmp-copy-btn" onClick={() => copyFromCompare(key)}
+                                      title={`Copy "${cmpVal}" → form`}>
+                                      ←
+                                    </button>
+                                  )}
+                                </div>
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </>
               ) : (
                 <div style={{ color: '#858585', fontSize: 12 }}>

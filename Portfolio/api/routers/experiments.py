@@ -3,6 +3,7 @@ Experiment Builder REST endpoints.
   GET  /api/experiments/config/{product}  — ControlPanelConfig.json
   GET  /api/experiments/products          — available products
   POST /api/experiments/build             — build/export experiment list as .tpl
+  POST /api/experiments/templates/import-excel — import templates from .xlsx
 """
 from __future__ import annotations
 import io
@@ -12,7 +13,7 @@ import sys
 import traceback
 from typing import List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -69,3 +70,36 @@ async def build_experiments(req: ExperimentBuildRequest):
         media_type="application/json",
         headers={"Content-Disposition": f'attachment; filename="{req.filename}"'},
     )
+
+
+@router.post("/templates/import-excel")
+async def import_templates_from_excel(file: UploadFile = File(...)):
+    """Import templates from an Excel file (.xlsx).
+
+    Each worksheet becomes one template (sheet name → template name).
+    Columns A and B of each sheet are read as field→value pairs.
+    """
+    try:
+        import openpyxl
+    except ImportError:
+        raise HTTPException(status_code=500, detail="openpyxl is not installed")
+
+    content = await file.read()
+    try:
+        wb = openpyxl.load_workbook(io.BytesIO(content))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Cannot read Excel file: {exc}")
+
+    templates: dict = {}
+    for sheet_name in wb.sheetnames:
+        sheet = wb[sheet_name]
+        template_data: dict = {}
+        for row in range(1, sheet.max_row + 1):
+            field = sheet.cell(row, 1).value
+            value = sheet.cell(row, 2).value
+            if field and isinstance(field, str):
+                template_data[field] = str(value) if value is not None else ""
+        if template_data:
+            templates[sheet_name] = template_data
+
+    return {"templates": templates}
