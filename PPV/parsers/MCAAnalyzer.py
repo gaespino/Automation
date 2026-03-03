@@ -545,9 +545,8 @@ class MCAAnalyzer:
 
 		vid_col  = 'VisualID' if 'VisualID' in core_df.columns else 'VisualId'
 		core_col = 'CORE' if 'CORE' in core_df.columns else None
-		err_col  = ('ErrorType' if 'ErrorType' in core_df.columns else
-					('MCACOD (ErrDecode)' if 'MCACOD (ErrDecode)' in core_df.columns
-					 else None))
+		err_col  = ('MCACOD (ErrDecode)' if 'MCACOD (ErrDecode)' in core_df.columns else
+					('ErrorType' if 'ErrorType' in core_df.columns else None))
 
 		core_filter = lambda p: p['is_core']
 
@@ -631,10 +630,29 @@ class MCAAnalyzer:
 					if err_col:
 						winning_rows = subset[subset[core_col] == core_hint]
 						unique_errs  = winning_rows[err_col].dropna().unique().tolist()
-						core_mcas    = ', '.join(str(e) for e in unique_errs if e)
+						# Fallback: if winning core has no ML2 rows (found via FirstError only),
+						# use the most common error type from all core ML2 rows for this VID
+						if not unique_errs:
+							all_errs = subset[err_col].dropna()
+							if not all_errs.empty:
+								top_err, _ = self._argmax_unique(Counter(all_errs))
+								if top_err and top_err != 'NotFound':
+									unique_errs = [top_err]
+						core_mcas = ', '.join(str(e) for e in unique_errs if e)
 
 					if debug:
 						print(f"  [CORE] area={core_area!r}  mcas={core_mcas!r}")
+
+			# Always try to populate core_mcas from all ML2 rows when still empty
+			# (covers PUNIT/cascade cases where core_hint stays NotFound)
+			if not core_mcas and err_col and core_col and not subset[core_col].dropna().empty:
+				all_errs = subset[err_col].dropna()
+				if not all_errs.empty:
+					top_err, _ = self._argmax_unique(Counter(all_errs))
+					if top_err and top_err != 'NotFound':
+						core_mcas = top_err
+				if debug and core_mcas:
+					print(f"  [CORE] core_mcas from all rows (fallback): {core_mcas!r}")
 
 			rows.append({
 				'VisualID'    : vid,
@@ -810,6 +828,19 @@ class MCAAnalyzer:
 		"""
 		Build the final Analysis/Summary DataFrame that replicates the
 		Excel 'Analysis' (summ) table.
+
+		Columns (matching Excel column order):
+		  VisualIDs, Step, WW, # Runs, Core Hint, Core Fail Area,
+		  CHA Hint, CHA Fail Area, LLC Hint, LLC Fail Area, SrcIDs,
+		  Other, Top OrigReq, Top OpCode, Top ISMQ, Top SAD,
+		  Top SAD LocPort, Core Mcas, Root Cause,
+		  Core Next Steps, CHA Next Steps, LLC Next Steps,
+		  Other Next Steps, Debug Hints, Failing Area
+
+		Root Cause priority  : Other > CHA Hint > LLC Hint > Core Hint
+		                       (returns the specific IP instance, e.g. 'PUNIT:EPRPUNIT1', 'CHA134', 'CORE45')
+		Debug Hints priority : Other Next Steps > CHA Next Steps > LLC Next Steps > Core Next Steps
+		                       (first non-empty next-step string)
 		"""
 		if rev_units.empty:
 			return pd.DataFrame()
@@ -850,15 +881,16 @@ class MCAAnalyzer:
 			top_locport  = ru.get('Top SAD LocPort','')
 			core_mcas    = ru.get('Core MCAs',      '')
 
-			# Root Cause
-			if core_hint != 'NotFound':
-				root_cause = 'CORE'
+			# Root Cause – specific IP instance with priority:
+			# Others (non-CORE/CHA/LLC) > CHA > LLC > CORE
+			if other:
+				root_cause = other
 			elif cha_hint != 'NotFound':
-				root_cause = 'CHA'
+				root_cause = cha_hint
 			elif llc_hint != 'NotFound':
-				root_cause = 'LLC'
-			elif other:
-				root_cause = 'OTHER'
+				root_cause = llc_hint
+			elif core_hint != 'NotFound':
+				root_cause = core_hint
 			else:
 				root_cause = ''
 
@@ -875,9 +907,13 @@ class MCAAnalyzer:
 			else:
 				cha_next = ''
 
-			llc_next  = (f"Disable LLC: {llc_hint}" if llc_hint != 'NotFound' else '')
-			defeature = (f"Defeature: {other}  -- Check CORE or CHA MCAs for more data."
-						 if other else '')
+			llc_next       = (f"Disable LLC: {llc_hint}" if llc_hint != 'NotFound' else '')
+			other_next     = (f"Defeature: {other}  -- Check CORE or CHA MCAs for more data."
+							  if other else '')
+
+			# Debug Hints – first non-empty next step with priority:
+			# Other Next Steps > CHA Next Steps > LLC Next Steps > Core Next Steps
+			debug_hints = other_next or cha_next or llc_next or core_next
 
 			fail_parts = []
 			if core_area:
@@ -886,33 +922,34 @@ class MCAAnalyzer:
 				fail_parts.append(f"CHA: {cha_area}")
 			if llc_area:
 				fail_parts.append(f"LLC: {llc_area}")
-			fail_area = ' - '.join(fail_parts)
+			failing_area = ' - '.join(fail_parts)
 
 			rows.append({
-				'VisualIDs'      : vid,
-				'Step'           : step,
-				'WW'             : ww,
-				'# Runs'         : num_runs,
-				'Core Hint'      : core_hint,
-				'Core Fail Area' : core_area,
-				'CHA Hint'       : cha_hint,
-				'CHA Fail Area'  : cha_area,
-				'LLC Hint'       : llc_hint,
-				'LLC Fail Area'  : llc_area,
-				'SrcIDs'         : srcids,
-				'Other'          : other,
-				'Top OrigReq'    : top_origreq,
-				'Top OpCode'     : top_opcode,
-				'Top ISMQ'       : top_ismq,
-				'Top SAD'        : top_sad,
-				'Top SAD LocPort': top_locport,
-				'Core Mcas'      : core_mcas,
-				'Root Cause'     : root_cause,
-				'Core Next Steps': core_next,
-				'CHA Next Steps' : cha_next,
-				'LLC Next Steps' : llc_next,
-				'Defeature'      : defeature,
-				'Fail Area'      : fail_area,
+				'VisualIDs'        : vid,
+				'Step'             : step,
+				'WW'               : ww,
+				'# Runs'           : num_runs,
+				'Core Hint'        : core_hint,
+				'Core Fail Area'   : core_area,
+				'CHA Hint'         : cha_hint,
+				'CHA Fail Area'    : cha_area,
+				'LLC Hint'         : llc_hint,
+				'LLC Fail Area'    : llc_area,
+				'SrcIDs'           : srcids,
+				'Other'            : other,
+				'Top OrigReq'      : top_origreq,
+				'Top OpCode'       : top_opcode,
+				'Top ISMQ'         : top_ismq,
+				'Top SAD'          : top_sad,
+				'Top SAD LocPort'  : top_locport,
+				'Core Mcas'        : core_mcas,
+				'Root Cause'       : root_cause,
+				'Core Next Steps'  : core_next,
+				'CHA Next Steps'   : cha_next,
+				'LLC Next Steps'   : llc_next,
+				'Other Next Steps' : other_next,
+				'Debug Hints'      : debug_hints,
+				'Failing Area'     : failing_area,
 			})
 
 		return pd.DataFrame(rows)
@@ -926,13 +963,12 @@ class MCAAnalyzer:
 		if analysis.empty:
 			print("[DEBUG] Analysis DataFrame is empty.")
 			return
-		print(f"\n{'─'*90}")
-		print(f"{'VID':<20} {'Core Hint':<12} {'Core Area':<25} {'Other':<25} {'Root'}")
-		print(f"{'─'*90}")
+		print(f"\n{'─'*110}")
+		print(f"{'VID':<20} {'Core Hint':<12} {'Root Cause':<22} {'Debug Hints':<50}")
+		print(f"{'─'*110}")
 		for _, r in analysis.iterrows():
 			print(f"{str(r['VisualIDs']):<20} "
 				  f"{str(r['Core Hint']):<12} "
-				  f"{str(r.get('Core Fail Area','')):<25} "
-				  f"{str(r.get('Other','')):<25} "
-				  f"{str(r.get('Root Cause',''))}")
-		print(f"{'─'*90}\n")
+				  f"{str(r.get('Root Cause','')):<22} "
+				  f"{str(r.get('Debug Hints',''))[:50]}")
+		print(f"{'─'*110}\n")
