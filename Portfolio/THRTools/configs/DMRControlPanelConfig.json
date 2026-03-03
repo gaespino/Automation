@@ -2,9 +2,9 @@
     "field_configs": {
         "Experiment": {
             "section": "Basic Information",
-            "type": "str",
-            "default": "",
-            "description": "Experiment name/identifier",
+            "type": "bool",
+            "default": true,
+            "description": "Experiment enabled/disabled status",
             "required": true
         },
         "Test Name": {

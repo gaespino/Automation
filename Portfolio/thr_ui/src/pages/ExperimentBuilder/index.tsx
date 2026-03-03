@@ -45,6 +45,48 @@ function buildDefaults(fieldConfigs: FieldConfigs): Record<string, string> {
 }
 
 /**
+ * Formats a flat fields dict for export (mirrors PPV format_experiment_data_for_export):
+ *  - 'Experiment' bool string → "Enabled" / "Disabled"
+ *  - empty strings → null
+ *  - int/float fields → numeric
+ *  - bool fields (other than Experiment) → boolean
+ */
+function formatForExport(
+  fields: Record<string, string>,
+  fieldConfigs: FieldConfigs,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, rawVal] of Object.entries(fields)) {
+    // Experiment: bool string → "Enabled" / "Disabled"
+    if (k === 'Experiment') {
+      out[k] = (rawVal === 'true' || rawVal === 'True') ? 'Enabled' : 'Disabled';
+      continue;
+    }
+    // Empty → null
+    if (rawVal === '' || rawVal === null || rawVal === undefined) {
+      out[k] = null;
+      continue;
+    }
+    const cfg = fieldConfigs[k];
+    let fieldType = cfg?.type ?? 'str';
+    // Resolve conditional type
+    if (cfg?.conditional_options) {
+      const { field, ...variants } = cfg.conditional_options as Record<string, unknown>;
+      const ctrl = fields[field as string] ?? '';
+      const variant = (variants as Record<string, Record<string, string>>)[ctrl];
+      if (variant?.type) fieldType = variant.type;
+    }
+    try {
+      if (fieldType === 'int') out[k] = parseInt(rawVal, 10);
+      else if (fieldType === 'float') out[k] = parseFloat(rawVal);
+      else if (fieldType === 'bool') out[k] = rawVal === 'true' || rawVal === 'True';
+      else out[k] = rawVal;
+    } catch { out[k] = rawVal; }
+  }
+  return out;
+}
+
+/**
  * Returns true if this field should be shown for the current product and form values.
  * - fieldEnableConfig maps field-name → list of allowed products (if absent, all products)
  * - cfg.condition gates on another field's value (e.g. show Linux section only when Content=Linux)
@@ -131,7 +173,6 @@ export default function ExperimentBuilder() {
   const [editId,       setEditId]       = useState<number | null>(null);
   const [filename,     setFilename]     = useState('experiments');
   const [loading,      setLoading]      = useState(false);
-  const [saving,       setSaving]       = useState(false);
   const [error,        setError]        = useState('');
   const [formDirty,    setFormDirty]    = useState(false);
   const loadRef      = useRef<HTMLInputElement>(null);
@@ -373,27 +414,53 @@ export default function ExperimentBuilder() {
 
   // ── Export / Import .tpl ─────────────────────────────────────────────────
 
-  const handleSave = async () => {
+  /** Build a formatted flat-dict for one experiment (unit data merged + typed). */
+  const buildFlatExperiment = (exp: QueuedExperiment): Record<string, unknown> => {
+    const merged = { ...exp.fields, ...unitData };
+    return formatForExport(merged, fieldConfigs);
+  };
+
+  const handleSave = () => {
     if (!queue.length) { setError('Queue is empty.'); return; }
-    setSaving(true); setError('');
+    setError('');
     try {
-      const resp = await fetch(`${BASE}/experiments/build`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ experiments: queue, filename }),
-      });
-      if (!resp.ok) { setError(`${resp.status}: ${await resp.text()}`); }
-      else {
-        const blob = await resp.blob();
-        const cd = resp.headers.get('content-disposition') ?? '';
-        const match = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-        const fname = match ? match[1].replace(/['"]/g, '') : `${filename}.tpl`;
-        downloadBlob(blob, fname);
-        setQueue(q => q.map(e => ({ ...e, dirty: false })));
-      }
+      // Unit data raw values (plain strings)
+      const unitDataRaw: Record<string, string> = { ...unitData };
+
+      const experimentsData = queue.map(exp => buildFlatExperiment(exp));
+
+      const output = {
+        unit_data: unitDataRaw,
+        experiments: experimentsData,
+        templates,
+        saved_date: new Date().toISOString(),
+        tool: 'THR Experiment Builder',
+        file_type: 'configuration',
+      };
+      const blob = new Blob([JSON.stringify(output, null, 2)], { type: 'application/json' });
+      downloadBlob(blob, `${filename}.tpl`);
+      setQueue(q => q.map(e => ({ ...e, dirty: false })));
     } catch (e: unknown) {
       setError((e as Error).message);
-    } finally { setSaving(false); }
+    }
+  };
+
+  /** Export production JSON: { TestName: flatFields, ... } for ALL experiments. */
+  const handleExportJSON = () => {
+    if (!queue.length) { setError('No experiments to export.'); return; }
+    setError('');
+    try {
+      const out: Record<string, unknown> = {};
+      for (const exp of queue) {
+        const flat = buildFlatExperiment(exp);
+        const testName = String(exp.fields['Test Name'] || exp.name);
+        out[testName] = flat;
+      }
+      const blob = new Blob([JSON.stringify(out, null, 4)], { type: 'application/json' });
+      downloadBlob(blob, `${filename}.json`);
+    } catch (e: unknown) {
+      setError((e as Error).message);
+    }
   };
 
   const handleLoad = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -421,9 +488,17 @@ export default function ExperimentBuilder() {
           const fields: Record<string, string> = {};
           let name = `Experiment_${nextId}`;
           for (const [k, v] of Object.entries(ex)) {
-            const str = v === null || v === undefined ? '' : String(v);
-            if (k === 'Test Name') name = str || name;
-            if (k !== 'Experiment') fields[k] = str;
+            if (k === 'Test Name') {
+              name = (v === null || v === undefined ? '' : String(v)) || name;
+            }
+            // Normalise Experiment "Enabled"/"Disabled" → 'true'/'false'
+            if (k === 'Experiment') {
+              if (v === 'Enabled' || v === true) fields[k] = 'true';
+              else if (v === 'Disabled' || v === false) fields[k] = 'false';
+              else fields[k] = v == null ? 'true' : String(v);
+            } else {
+              fields[k] = v === null || v === undefined ? '' : String(v);
+            }
           }
           return { id: nextId++, name, fields, dirty: false };
         };
@@ -484,8 +559,12 @@ export default function ExperimentBuilder() {
             </div>
             {error && <div className="error-msg" style={{ marginBottom: 8 }}>{error}</div>}
             <div className="action-row">
-              <button className="btn primary" onClick={handleSave} disabled={saving || !queue.length}>
-                {saving ? '⏳ Saving…' : '⬇ Save .tpl'}
+              <button className="btn primary" onClick={handleSave} disabled={!queue.length}>
+                ⬇ Save .tpl
+              </button>
+              <button className="btn primary" onClick={handleExportJSON} disabled={!queue.length}
+                title="Export experiments to production JSON file">
+                📤 Export JSON
               </button>
               <button className="btn" onClick={() => loadRef.current?.click()}>
                 📂 Load .tpl
@@ -760,60 +839,80 @@ export default function ExperimentBuilder() {
                 {formDirty && <span className="dirty-badge" title="Unsaved changes"> ●</span>}
               </div>
 
-              <div className="form-action-top">
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', marginBottom: 4, fontSize: 11, color: '#858585' }}>Experiment Name</label>
-                  <input
-                    value={expName}
-                    onChange={e => setExpName(e.target.value)}
-                    placeholder="e.g. V_Scan_0.8"
-                    style={{ width: '100%' }}
-                  />
+              {/* Experiment enabled/disabled toggle (shown separately, like PPV) */}
+              {fieldConfigs['Experiment'] && (
+                <div className="exp-status-bar">
+                  <label className="exp-status-toggle">
+                    <input
+                      type="checkbox"
+                      checked={form['Experiment'] === 'true'}
+                      onChange={e => setField('Experiment', String(e.target.checked))}
+                    />
+                    <span className={`exp-status-badge${form['Experiment'] === 'true' ? ' enabled' : ' disabled'}`}>
+                      {form['Experiment'] === 'true' ? '✓ ENABLED' : '✕ DISABLED'}
+                    </span>
+                  </label>
                 </div>
-                <div className="action-row" style={{ marginTop: 4, flexShrink: 0 }}>
-                  <button className="btn primary" onClick={addToQueue}>
-                    {editId !== null ? '✏ Update' : '+ Add to Experiments'}
-                  </button>
-                  {editId !== null && (
-                    <button className="btn" onClick={cancelEdit}>✕ Cancel Edit</button>
-                  )}
-                  {editId === null && (
-                    <button className="btn" onClick={() => setForm(buildDefaults(fieldConfigs))}>
-                      ↺ Reset Defaults
-                    </button>
-                  )}
-                </div>
-              </div>
+              )}
 
-              {Object.entries(sectionGroups).map(([section, fields]) => {
-                // Unit Data is shown in the left panel; skip it here
-                if (section === 'Unit Data') return null;
-                const visibleFields = fields.filter(([key, cfg]) =>
-                  isFieldVisible(key, cfg, form, product, fieldEnableConfig));
-                if (!visibleFields.length) return null;
-                return (
-                  <div key={section} className="eb-section">
-                    <div className="eb-section-title">{section}</div>
-                    <div className="schema-form">
-                      {visibleFields.map(([key, cfg]) => (
-                        <React.Fragment key={key}>
-                          <div className="field-label-wrap">
-                            <span className="field-label-name">
-                              {key}{cfg.required && <span style={{ color: '#f44747' }}>*</span>}
-                            </span>
-                            {cfg.description && (
-                              <span className="field-desc">{cfg.description}</span>
-                            )}
-                          </div>
-                          <div>
-                            {renderField(key, cfg, form[key] ?? '', v => setField(key, v), form)}
-                          </div>
-                        </React.Fragment>
-                      ))}
-                    </div>
+              <div className={form['Experiment'] === 'false' ? 'exp-form-disabled' : ''}>
+                <div className="form-action-top">
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', marginBottom: 4, fontSize: 11, color: '#858585' }}>Experiment Name</label>
+                    <input
+                      value={expName}
+                      onChange={e => setExpName(e.target.value)}
+                      placeholder="e.g. V_Scan_0.8"
+                      style={{ width: '100%' }}
+                    />
                   </div>
-                );
-              })}
+                  <div className="action-row" style={{ marginTop: 4, flexShrink: 0 }}>
+                    <button className="btn primary" onClick={addToQueue}>
+                      {editId !== null ? '✏ Update' : '+ Add to Experiments'}
+                    </button>
+                    {editId !== null && (
+                      <button className="btn" onClick={cancelEdit}>✕ Cancel Edit</button>
+                    )}
+                    {editId === null && (
+                      <button className="btn" onClick={() => setForm(buildDefaults(fieldConfigs))}>
+                        ↺ Reset Defaults
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {Object.entries(sectionGroups).map(([section, fields]) => {
+                  // Unit Data is shown in the left panel; skip it here
+                  // 'Experiment' is shown as the status toggle above; skip it here
+                  if (section === 'Unit Data') return null;
+                  const visibleFields = fields.filter(([key, cfg]) =>
+                    key !== 'Experiment' &&
+                    isFieldVisible(key, cfg, form, product, fieldEnableConfig));
+                  if (!visibleFields.length) return null;
+                  return (
+                    <div key={section} className="eb-section">
+                      <div className="eb-section-title">{section}</div>
+                      <div className="schema-form">
+                        {visibleFields.map(([key, cfg]) => (
+                          <React.Fragment key={key}>
+                            <div className="field-label-wrap">
+                              <span className="field-label-name">
+                                {key}{cfg.required && <span style={{ color: '#f44747' }}>*</span>}
+                              </span>
+                              {cfg.description && (
+                                <span className="field-desc">{cfg.description}</span>
+                              )}
+                            </div>
+                            <div>
+                              {renderField(key, cfg, form[key] ?? '', v => setField(key, v), form)}
+                            </div>
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
