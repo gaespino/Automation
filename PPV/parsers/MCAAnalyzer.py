@@ -854,8 +854,14 @@ class MCAAnalyzer:
 			if vc:
 				for vid, grp in ppv_df.groupby(vc):
 					if 'Lot' in ppv_df.columns:
-						lots = grp['Lot'].dropna().astype(str).unique()
-						ppv_lot[vid] = ', '.join(lots)
+						raw_lots = grp['Lot'].dropna().astype(str)
+						unique_lots = dict.fromkeys(
+							v.strip()
+							for cell in raw_lots
+							for v in cell.split(',')
+							if v.strip()
+						)
+						ppv_lot[vid] = ', '.join(unique_lots)
 					if 'DecimaWW' in ppv_df.columns:
 						wws = grp['DecimaWW'].dropna().astype(str).unique()
 						ppv_ww[vid] = ', '.join(wws)
