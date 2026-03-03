@@ -267,3 +267,7 @@ S2T/SIMULATIONS/
 
 # React UI dependencies
 Portfolio/thr_ui/node_modules/
+PPV/Decoder/__pycache__/
+PPV/parsers/__pycache__/
+**/__pycache__/
+*.pyc

@@ -5,11 +5,25 @@ Replicates the Analysis, REV_Units, RevCHACount, RevCoreCount, RevLLCCount
 and OtherErrors Excel sheet logic using the decoded MCA data and product
 IP map / layout configuration files.
 
+Algorithm for identifying the failing instance (CORE / CHA / LLC / Other):
+  1. Count ML2/MCA register occurrences per instance (same as Excel Rev*Count arrays).
+  2. If a single instance dominates → that is the hint.
+  3. If there is a TIE in the count → fall back to the UBOX FirstError count array:
+       the UBOX MCERRLOGGINGREG / IERRLOGGINGREG records which portid fired first
+       in each run.  The most-frequent FirstError portid (after physical→logical
+       instance conversion via the ip_map offset) breaks the tie.
+  4. Non-CORE/CHA/LLC first errors (PUNIT, UPI, …) become "Other Errors".
+
+Physical → Logical conversion (ip_map offset):
+  Some IP types have a per-compute-tile offset in their portid numbering.
+  For GNR core_coregp (offset=4):
+    logical = physical - (physical // block_size) * offset
+  where block_size = (items_per_compute) + offset  (e.g. 60+4=64 for GNR cores).
+
 Supports: GNR, CWF (same layout as GNR), DMR (placeholder)
 """
 
 import json
-import os
 import re
 import pandas as pd
 from collections import Counter
@@ -21,14 +35,37 @@ _GNR_LAYOUT_PRODUCTS = {'GNR', 'CWF'}
 # DMR placeholder flag
 _DMR_PRODUCTS = {'DMR'}
 
-# IP translation types that map to CORE/CHA/LLC – excluded from "Other Errors"
+# ip_map[ip_key][1] values that map to CORE / CHA / LLC
 _CORE_TRANSLATE = {'CORE'}
-_CHA_TRANSLATE = {'CHA', 'SCF'}
-_LLC_TRANSLATE = {'LLC', 'SCF_LLC'}
+_CHA_TRANSLATE  = {'CHA', 'SCF'}
+_LLC_TRANSLATE  = {'LLC', 'SCF_LLC'}
+
+# NCEVENT substrings used to select IERR vs MCERR rows in the UBOX DataFrame
+_IERR_LABEL  = 'IERRLOGGINGREG'
+_MCERR_LABEL = 'MCERRLOGGINGREG'
+
+# ip_map entry field indices (list structure is fixed by GNR_ip_map.json schema)
+_IPMAP_IDX_TRANSLATE = 1   # human-readable IP type name (e.g. 'CORE', 'PUNIT')
+_IPMAP_IDX_OFFSET    = 7   # per-compute-tile port-numbering offset (int)
+
+
+def _ipmap_translate(entry, fallback=''):
+	"""Return the IP translate string from an ip_map entry list."""
+	if entry and len(entry) > _IPMAP_IDX_TRANSLATE and entry[_IPMAP_IDX_TRANSLATE]:
+		return entry[_IPMAP_IDX_TRANSLATE]
+	return fallback
+
+
+def _ipmap_offset(entry):
+	"""Return the per-compute offset integer from an ip_map entry list (0 if absent)."""
+	if (entry and len(entry) > _IPMAP_IDX_OFFSET
+			and isinstance(entry[_IPMAP_IDX_OFFSET], int)):
+		return entry[_IPMAP_IDX_OFFSET]
+	return 0
 
 
 def _load_json(path):
-	"""Load a JSON file, return empty dict on failure."""
+	"""Load a JSON file; return empty dict on failure."""
 	try:
 		with open(path, 'r') as f:
 			return json.load(f)
@@ -36,163 +73,288 @@ def _load_json(path):
 		return {}
 
 
-def _compute_location(cha_or_core_id, layout):
+def _compute_location(instance_id, layout):
 	"""
-	Translate a CHA/Core numeric ID to a human-readable location string.
-	Returns "Compute{X} : Row{R} : Col{C}" or "" if not found.
+	Map a logical CORE/CHA/LLC numeric id to a human-readable location.
+	Returns "Compute{X} : Row{R} : Col{C}" or "" when not found.
 	"""
-	key = str(cha_or_core_id)
-	entry = layout.get(key)
+	entry = layout.get(str(instance_id))
 	if not entry:
 		return ''
 	compute_name = entry.get('compute', '')
 	row = entry.get('row', '')
 	col = entry.get('col', '')
-	# compute name like "COMPUTE0" → display number "0"
 	compute_num = re.sub(r'[^0-9]', '', compute_name)
 	return f"Compute{compute_num} : Row{row} : Col{col}"
-
-
-def _translate_location(location_str, ip_map):
-	"""
-	Translate a raw portid location string (e.g. 'core_coregp.0.cpucore.151')
-	to (ip_translate, device_translate, instance) using the ip_map.
-
-	Returns:
-		(ip_translate, device_translate, instance_num) or ('', '', '') on failure
-	"""
-	if not location_str or not isinstance(location_str, str):
-		return ('', '', '')
-
-	parts = location_str.split('.')
-	if len(parts) < 4:
-		return ('', '', '')
-
-	ip_key = parts[0]
-	device_key = parts[2]
-	instance = parts[3]
-
-	# Exact match first
-	entry = ip_map.get(ip_key)
-	if entry is None:
-		# Try prefix match (e.g. "punit_ptpcfsms" matches "punit_*")
-		for k, v in ip_map.items():
-			if k == 'FirstError IP' or k == 'null':
-				continue
-			if ip_key.startswith(k) or k.startswith(ip_key.split(':')[0]):
-				entry = v
-				break
-
-	if entry is None:
-		# Fall back to device_key as IP name and uppercase device as device
-		return (ip_key.upper(), device_key.upper(), instance)
-
-	ip_translate = entry[1] if len(entry) > 1 and entry[1] else ip_key.upper()
-	# Device translate: use device_key from the location string (uppercase)
-	# This matches the Excel format: "PUNIT:EPRPUNIT0" uses the device from the location
-	dev_translate = device_key.upper()
-
-	return (ip_translate, dev_translate, instance)
-
-
-def _failed_instance_str(ip_translate, dev_translate, instance):
-	"""Format the Failed Instance string as 'IP:DEV{instance}'."""
-	if not ip_translate:
-		return ''
-	return f"{ip_translate}:{dev_translate}{instance}"
 
 
 class MCAAnalyzer:
 	"""
 	Replicates the MCA Analysis Excel workbook logic in Python.
 
-	Usage:
-		analyzer = MCAAnalyzer(product='GNR')
-		summary_df = analyzer.analyze(
-			cha_df=cha_decoded_df,
-			llc_df=llc_decoded_df,
-			core_df=core_decoded_df,
-			firsterr_df=firsterr_decoded_df,
-			ppv_df=ppv_data_df     # optional, for Step/WW lookups
-		)
+	Usage
+	-----
+	analyzer = MCAAnalyzer(product='GNR')
+	result   = analyzer.analyze(
+	    cha_df=cha_decoded_df,
+	    llc_df=llc_decoded_df,
+	    core_df=core_decoded_df,
+	    firsterr_df=firsterr_decoded_df,   # UBOX portids() output
+	    ppv_df=ppv_data_df,                # optional, for Step/WW lookups
+	    debug=True,                        # optional verbose trace
+	)
+	result['analysis']  → per-unit Analysis DataFrame
+	result['rev_units'] → intermediate REV_Units DataFrame
 	"""
 
 	def __init__(self, product='GNR', layout_file=None, ip_map_file=None):
 		self.product = product.upper()
-
 		base_dir = Path(__file__).parent.parent / 'analysis'
 
-		# Layout: maps CHA/Core numeric ID → {compute, row, col}
 		if layout_file:
 			self.layout = _load_json(layout_file)
 		elif self.product in _GNR_LAYOUT_PRODUCTS:
 			self.layout = _load_json(base_dir / 'GNR_layout.json')
 		elif self.product in _DMR_PRODUCTS:
-			# DMR placeholder – layout TBD
-			self.layout = {}
+			self.layout = {}           # DMR placeholder
 		else:
 			self.layout = _load_json(base_dir / 'GNR_layout.json')
 
-		# IP map: maps raw portid IP type → [key, translate, ..., device_key, device_translate, offset, ...]
 		if ip_map_file:
 			self.ip_map = _load_json(ip_map_file)
 		elif self.product in _GNR_LAYOUT_PRODUCTS:
 			self.ip_map = _load_json(base_dir / 'GNR_ip_map.json')
 		elif self.product in _DMR_PRODUCTS:
-			# DMR placeholder – ip_map TBD
-			self.ip_map = {}
+			self.ip_map = {}           # DMR placeholder
 		else:
 			self.ip_map = _load_json(base_dir / 'GNR_ip_map.json')
 
-	# ------------------------------------------------------------------
+		# Pre-compute block_size per ip_key (for physical→logical conversion)
+		self._block_size_cache = {}
+
+	# =========================================================================
 	# Public API
-	# ------------------------------------------------------------------
+	# =========================================================================
 
 	def analyze(self, cha_df=None, llc_df=None, core_df=None,
-				firsterr_df=None, ppv_df=None):
+				firsterr_df=None, ppv_df=None, debug=False):
 		"""
 		Run the full MCA analysis pipeline.
 
-		Args:
-			cha_df:      DataFrame from decoder.cha() – CHA MCA decoded data
-			llc_df:      DataFrame from decoder.llc() – LLC MCA decoded data
-			core_df:     DataFrame from decoder.core() – Core MCA decoded data
-			firsterr_df: DataFrame from decoder.portids() – First Error data
-			ppv_df:      DataFrame from PPV data (for Step/WW lookups)
+		Parameters
+		----------
+		cha_df      : DataFrame from decoder.cha()
+		llc_df      : DataFrame from decoder.llc()
+		core_df     : DataFrame from decoder.core()
+		firsterr_df : DataFrame from decoder.portids()  (UBOX FirstError)
+		ppv_df      : DataFrame with Step/WW columns (optional)
+		debug       : When True, print per-VID trace to stdout
 
-		Returns:
-			dict with keys:
-				'analysis'  – Analysis/Summary DataFrame
-				'rev_units' – REV_Units per-unit aggregated DataFrame
+		Returns
+		-------
+		dict with keys 'analysis' and 'rev_units'
 		"""
-		cha_df = cha_df if cha_df is not None else pd.DataFrame()
-		llc_df = llc_df if llc_df is not None else pd.DataFrame()
-		core_df = core_df if core_df is not None else pd.DataFrame()
+		cha_df      = cha_df      if cha_df      is not None else pd.DataFrame()
+		llc_df      = llc_df      if llc_df      is not None else pd.DataFrame()
+		core_df     = core_df     if core_df     is not None else pd.DataFrame()
 		firsterr_df = firsterr_df if firsterr_df is not None else pd.DataFrame()
 
-		# Per-unit aggregations
-		rev_cha = self._build_rev_cha_count(cha_df)
-		rev_llc = self._build_rev_llc_count(llc_df)
-		rev_core = self._build_rev_core_count(core_df)
-		other_errors = self._build_other_errors(firsterr_df)
+		if debug:
+			print(f"\n{'='*60}")
+			print(f"MCAAnalyzer.analyze()  product={self.product}")
+			print(f"  core_df rows   : {len(core_df)}")
+			print(f"  cha_df rows    : {len(cha_df)}")
+			print(f"  llc_df rows    : {len(llc_df)}")
+			print(f"  firsterr rows  : {len(firsterr_df)}")
+			print(f"{'='*60}")
 
-		# Combined REV_Units-equivalent DataFrame
+		rev_cha  = self._build_rev_cha_count(cha_df,   firsterr_df, debug)
+		rev_llc  = self._build_rev_llc_count(llc_df,   firsterr_df, debug)
+		rev_core = self._build_rev_core_count(core_df, firsterr_df, debug)
+		other_errors = self._build_other_errors(firsterr_df, debug)
+
 		rev_units = self._build_rev_units(
 			cha_df, llc_df, core_df,
 			rev_cha, rev_llc, rev_core, other_errors
 		)
 
-		# Final Analysis/Summary DataFrame
 		analysis = self._build_analysis(rev_units, ppv_df)
+
+		if debug:
+			self._print_debug_summary(analysis)
 
 		return {'analysis': analysis, 'rev_units': rev_units}
 
-	# ------------------------------------------------------------------
-	# Internal helpers
-	# ------------------------------------------------------------------
+	# =========================================================================
+	# Physical → Logical instance conversion helpers
+	# =========================================================================
+
+	def _get_block_size(self, ip_key):
+		"""
+		Return the physical port block-size for ip_key.
+
+		block_size = items_per_compute + offset
+		For GNR core_coregp:  60 + 4 = 64
+		For ip types with offset=0: block_size is irrelevant (returns 1).
+		"""
+		if ip_key in self._block_size_cache:
+			return self._block_size_cache[ip_key]
+
+		entry  = self.ip_map.get(ip_key)
+		offset = _ipmap_offset(entry)
+
+		if offset == 0 or not self.layout:
+			self._block_size_cache[ip_key] = 1
+			return 1
+
+		# Derive items-per-compute from the layout (works for CORE; CHA uses
+		# same formula if a CHA layout is present).
+		computes = Counter(v.get('compute', '') for v in self.layout.values() if v)
+		n_computes = len([c for c in computes if c])
+		if n_computes > 0:
+			items_per_compute = len(self.layout) // n_computes
+			block_size = items_per_compute + offset
+		else:
+			block_size = 64  # GNR fallback
+
+		self._block_size_cache[ip_key] = block_size
+		return block_size
+
+	def _physical_to_logical(self, physical_str, ip_key):
+		"""
+		Convert a physical portid instance number to a logical instance number.
+
+		Formula:
+		    compute_idx = physical // block_size
+		    logical     = physical - compute_idx * offset
+
+		Example (GNR CORE, offset=4, block_size=64):
+		    cpucore.148  →  148 // 64 = 2  →  148 - 2*4 = 140  →  CORE140
+		    cpucore.102  →  102 // 64 = 1  →  102 - 1*4 = 98   →  CORE98
+		"""
+		try:
+			physical = int(physical_str)
+		except (ValueError, TypeError):
+			return 0
+
+		entry  = self.ip_map.get(ip_key)
+		offset = _ipmap_offset(entry)
+		if offset == 0:
+			return physical
+
+		block_size  = self._get_block_size(ip_key)
+		compute_idx = physical // block_size
+		return physical - compute_idx * offset
+
+	def _find_ip_map_entry(self, ip_key):
+		"""
+		Return (matched_key, entry) from ip_map for ip_key.
+		Tries exact match, then prefix match.
+		"""
+		if ip_key in self.ip_map:
+			return ip_key, self.ip_map[ip_key]
+		for k, v in self.ip_map.items():
+			if k in ('FirstError IP', 'null') or not v:
+				continue
+			if ip_key.startswith(k) or k.startswith(ip_key.split(':')[0]):
+				return k, v
+		return None, None
+
+	def _parse_firsterr_location(self, loc_str):
+		"""
+		Parse a 'FirstError - Location' string into a structured dict.
+
+		Examples
+		--------
+		'core_coregp.0.cpucore.148'          → ip_translate='CORE',  logical=140, display='CORE140'
+		'scf_cha.0.cpuscf.38'                → ip_translate='CHA',   logical=34,  display='CHA34'
+		'punit_ptpcioregs_0.0.eprpunit.1'    → ip_translate='PUNIT', logical=1,   display='PUNIT:EPRPUNIT1'
+
+		Returns None on parse failure.
+		"""
+		if not loc_str or not isinstance(loc_str, str):
+			return None
+		parts = loc_str.split('.')
+		if len(parts) < 4:
+			return None
+
+		ip_key     = parts[0]
+		device_key = parts[2]
+		instance_s = parts[-1]
+
+		matched_key, entry = self._find_ip_map_entry(ip_key)
+
+		if entry is None:
+			ip_translate = ip_key.upper()
+			logical      = int(instance_s) if instance_s.isdigit() else 0
+			display      = f"{ip_translate}:{device_key.upper()}{instance_s}"
+			is_core = is_cha = is_llc = False
+		else:
+			ip_translate = _ipmap_translate(entry, fallback=ip_key.upper())
+			logical      = self._physical_to_logical(instance_s, matched_key)
+			is_core      = ip_translate.upper() in _CORE_TRANSLATE
+			is_cha       = ip_translate.upper() in _CHA_TRANSLATE
+			is_llc       = ip_translate.upper() in _LLC_TRANSLATE
+			if is_core or is_cha or is_llc:
+				display  = f"{ip_translate}{logical}"
+			else:
+				display  = f"{ip_translate}:{device_key.upper()}{instance_s}"
+
+		return {
+			'ip_key'      : matched_key or ip_key,
+			'ip_translate': ip_translate,
+			'logical'     : logical,
+			'display'     : display,
+			'is_core'     : is_core,
+			'is_cha'      : is_cha,
+			'is_llc'      : is_llc,
+		}
+
+	# =========================================================================
+	# FirstError count helpers (UBOX portids DataFrame)
+	# =========================================================================
+
+	def _firsterr_counts(self, firsterr_df, vid, ncevent_type, ip_filter_fn):
+		"""
+		Build a Counter of logical instance names from the UBOX FirstError data
+		for one VisualID, filtered to a specific NCEVENT type (IERR / MCERR)
+		and ip_translate category.
+
+		Parameters
+		----------
+		ncevent_type : 'IERRLOGGINGREG' or 'MCERRLOGGINGREG'
+		ip_filter_fn : callable(parsed_dict) → bool – selects CORE/CHA/LLC rows
+
+		Returns
+		-------
+		Counter  {display_name: count}  e.g. {'CORE140': 3}
+		"""
+		if firsterr_df.empty:
+			return Counter()
+
+		vid_col = 'VisualID' if 'VisualID' in firsterr_df.columns else 'VisualId'
+		loc_col = 'FirstError - Location'
+		nce_col = 'NCEVENT'
+
+		if loc_col not in firsterr_df.columns:
+			return Counter()
+
+		sub = firsterr_df[firsterr_df[vid_col] == vid]
+		if nce_col in sub.columns:
+			sub = sub[sub[nce_col].str.contains(ncevent_type, na=False)]
+
+		counts = Counter()
+		for loc in sub[loc_col].dropna():
+			parsed = self._parse_firsterr_location(loc)
+			if parsed and ip_filter_fn(parsed):
+				counts[parsed['display']] += 1
+		return counts
+
+	# =========================================================================
+	# Generic helpers
+	# =========================================================================
 
 	def _get_visual_ids(self, *dfs):
-		"""Collect unique VisualIDs across all provided DataFrames."""
 		ids = set()
 		for df in dfs:
 			if df is not None and not df.empty:
@@ -203,78 +365,123 @@ class MCAAnalyzer:
 
 	def _argmax_unique(self, counter):
 		"""
-		Return (winner, is_unique) from a Counter.
-		is_unique=True means exactly one item has the maximum count.
-		Returns ('NotFound', False) if counter is empty.
+		Return (winner, is_unique).
+		is_unique=True iff exactly one key has the maximum count.
 		"""
 		if not counter:
 			return ('NotFound', False)
 		max_count = max(counter.values())
-		winners = [k for k, v in counter.items() if v == max_count]
+		winners   = [k for k, v in counter.items() if v == max_count]
 		if len(winners) == 1:
 			return (winners[0], True)
 		return ('NotFound', False)
 
-	# ------------------------------------------------------------------
-	# RevCHACount equivalent
-	# ------------------------------------------------------------------
-
-	def _build_rev_cha_count(self, cha_df):
+	def _resolve_hint_with_firsterr(self, ml2_counts, firsterr_df, vid,
+									ncevent_type, ip_filter_fn, debug,
+									label=''):
 		"""
-		Build a per-VisualID summary of CHA MCA counts.
+		Determine the failing instance hint using ML2 count + FirstError fallback.
 
-		Returns DataFrame with columns:
-			VisualID, CHA Hint, CHA Fail Area, SrcID Hint
+		Algorithm
+		---------
+		1. If ML2 counts have a unique winner → return it.
+		2. If ML2 counts are tied (or empty) → use FirstError count from UBOX.
+		3. If FirstError also tied → return 'NotFound'.
+
+		Returns
+		-------
+		(hint_str, source_str)
+		  hint_str   : 'CORE140', 'CHA9', 'NotFound', …
+		  source_str : 'ML2'|'FirstError'|'NotFound' (for debug)
+		"""
+		winner, unique = self._argmax_unique(ml2_counts)
+
+		if debug:
+			print(f"  [{label}] ML2 counts  : {dict(ml2_counts)}")
+
+		if unique and winner != 'NotFound':
+			if debug:
+				print(f"  [{label}] → winner from ML2: {winner}")
+			return winner, 'ML2'
+
+		# ---- tie-break via FirstError counts ----
+		fe_counts = self._firsterr_counts(
+			firsterr_df, vid, ncevent_type, ip_filter_fn)
+		if debug:
+			print(f"  [{label}] ML2 tied/empty → FirstError ({ncevent_type}) counts: {dict(fe_counts)}")
+
+		fe_winner, fe_unique = self._argmax_unique(fe_counts)
+		if fe_unique and fe_winner != 'NotFound':
+			if debug:
+				print(f"  [{label}] → winner from FirstError: {fe_winner}")
+			return fe_winner, 'FirstError'
+
+		if debug:
+			print(f"  [{label}] → NotFound (tie in both ML2 and FirstError)")
+		return 'NotFound', 'NotFound'
+
+	# =========================================================================
+	# RevCHACount equivalent
+	# =========================================================================
+
+	def _build_rev_cha_count(self, cha_df, firsterr_df, debug=False):
+		"""
+		Per-VisualID CHA hint.  Tie-broken by UBOX MCERRLOGGINGREG FirstError.
+
+		Returns DataFrame: VisualID, CHA Hint, CHA Fail Area, SrcID Hint
 		"""
 		rows = []
 		if cha_df.empty:
 			return pd.DataFrame(columns=['VisualID', 'CHA Hint', 'CHA Fail Area', 'SrcID Hint'])
 
-		vid_col = 'VisualID' if 'VisualID' in cha_df.columns else 'VisualId'
-		cha_col = 'CHA' if 'CHA' in cha_df.columns else None
-		srcid_col = 'SrcID' if 'SrcID' in cha_df.columns else None
+		vid_col  = 'VisualID' if 'VisualID' in cha_df.columns else 'VisualId'
+		cha_col  = 'CHA'   if 'CHA'   in cha_df.columns else None
+		src_col  = 'SrcID' if 'SrcID' in cha_df.columns else None
+
+		cha_filter = lambda p: p['is_cha']
 
 		for vid in cha_df[vid_col].dropna().unique():
+			if debug:
+				print(f"\n[RevCHA] VID={vid}")
+
 			subset = cha_df[cha_df[vid_col] == vid]
 
-			# CHA counts
 			cha_hint = 'NotFound'
 			cha_area = ''
 			if cha_col and not subset[cha_col].dropna().empty:
-				cha_counts = Counter(subset[cha_col].dropna())
-				winner, unique = self._argmax_unique(cha_counts)
-				if unique and winner != 'NotFound':
-					cha_hint = winner  # already formatted as "CHA{N}"
-					cha_num = re.sub(r'[^0-9]', '', str(winner))
+				ml2_counts = Counter(subset[cha_col].dropna())
+				cha_hint, src = self._resolve_hint_with_firsterr(
+					ml2_counts, firsterr_df, vid,
+					_MCERR_LABEL, cha_filter, debug, label='CHA')
+				if cha_hint != 'NotFound':
+					cha_num  = re.sub(r'[^0-9]', '', str(cha_hint))
 					cha_area = _compute_location(cha_num, self.layout)
 
-			# SrcID hint
 			srcid_hint = 'NotFound'
-			if srcid_col and not subset[srcid_col].dropna().empty:
-				srcid_counts = Counter(subset[srcid_col].dropna())
+			if src_col and not subset[src_col].dropna().empty:
+				srcid_counts = Counter(subset[src_col].dropna())
 				src_winner, src_unique = self._argmax_unique(srcid_counts)
 				if src_unique and src_winner != 'NotFound':
 					srcid_hint = src_winner
 
 			rows.append({
-				'VisualID': vid,
-				'CHA Hint': cha_hint,
+				'VisualID'    : vid,
+				'CHA Hint'    : cha_hint,
 				'CHA Fail Area': cha_area,
-				'SrcID Hint': srcid_hint,
+				'SrcID Hint'  : srcid_hint,
 			})
 
 		return pd.DataFrame(rows)
 
-	# ------------------------------------------------------------------
+	# =========================================================================
 	# RevLLCCount equivalent
-	# ------------------------------------------------------------------
+	# =========================================================================
 
-	def _build_rev_llc_count(self, llc_df):
+	def _build_rev_llc_count(self, llc_df, firsterr_df, debug=False):
 		"""
-		Build a per-VisualID summary of LLC MCA counts.
+		Per-VisualID LLC hint.  Tie-broken by UBOX MCERRLOGGINGREG FirstError.
 
-		Returns DataFrame with columns:
-			VisualID, LLC Hint, LLC Fail Area
+		Returns DataFrame: VisualID, LLC Hint, LLC Fail Area
 		"""
 		rows = []
 		if llc_df.empty:
@@ -283,88 +490,173 @@ class MCAAnalyzer:
 		vid_col = 'VisualID' if 'VisualID' in llc_df.columns else 'VisualId'
 		llc_col = 'LLC' if 'LLC' in llc_df.columns else None
 
+		llc_filter = lambda p: p['is_llc']
+
 		for vid in llc_df[vid_col].dropna().unique():
+			if debug:
+				print(f"\n[RevLLC] VID={vid}")
+
 			subset = llc_df[llc_df[vid_col] == vid]
 
 			llc_hint = 'NotFound'
 			llc_area = ''
 			if llc_col and not subset[llc_col].dropna().empty:
-				llc_counts = Counter(subset[llc_col].dropna())
-				winner, unique = self._argmax_unique(llc_counts)
-				if unique and winner != 'NotFound':
-					llc_hint = winner  # formatted as "LLC{N}"
-					llc_num = re.sub(r'[^0-9]', '', str(winner))
+				ml2_counts = Counter(subset[llc_col].dropna())
+				llc_hint, src = self._resolve_hint_with_firsterr(
+					ml2_counts, firsterr_df, vid,
+					_MCERR_LABEL, llc_filter, debug, label='LLC')
+				if llc_hint != 'NotFound':
+					llc_num  = re.sub(r'[^0-9]', '', str(llc_hint))
 					llc_area = _compute_location(llc_num, self.layout)
 
 			rows.append({
-				'VisualID': vid,
-				'LLC Hint': llc_hint,
+				'VisualID'    : vid,
+				'LLC Hint'    : llc_hint,
 				'LLC Fail Area': llc_area,
 			})
 
 		return pd.DataFrame(rows)
 
-	# ------------------------------------------------------------------
+	# =========================================================================
 	# RevCoreCount equivalent
-	# ------------------------------------------------------------------
+	# =========================================================================
 
-	def _build_rev_core_count(self, core_df):
+	def _build_rev_core_count(self, core_df, firsterr_df, debug=False):
 		"""
-		Build a per-VisualID summary of Core MCA counts.
+		Per-VisualID Core hint.
 
-		Returns DataFrame with columns:
-			VisualID, Core Hint, Core Fail Area, Core MCAs
+		Algorithm
+		---------
+		1. Check the UBOX IERRLOGGINGREG first error for this VID.
+		   - If it is a non-CORE type (PUNIT, UPI, …):
+		       Core Hint = NotFound  (PUNIT is the root cause; CORE MCAs are cascade)
+		       Core Fail Area = compute number extracted from the MCERR CORE location
+		   - If it is a CORE type (or no IERR data available):
+		       proceed to ML2 count + MCERR FirstError tie-breaking.
+		2. Count ML2/CORE register occurrences per CORE id.
+		3. If tied → fall back to UBOX MCERRLOGGINGREG FirstError count to break tie.
+
+		Returns DataFrame: VisualID, Core Hint, Core Fail Area, Core MCAs
 		"""
 		rows = []
 		if core_df.empty:
-			return pd.DataFrame(columns=['VisualID', 'Core Hint', 'Core Fail Area', 'Core MCAs'])
+			return pd.DataFrame(
+				columns=['VisualID', 'Core Hint', 'Core Fail Area', 'Core MCAs'])
 
-		vid_col = 'VisualID' if 'VisualID' in core_df.columns else 'VisualId'
+		vid_col  = 'VisualID' if 'VisualID' in core_df.columns else 'VisualId'
 		core_col = 'CORE' if 'CORE' in core_df.columns else None
-		err_col = 'ErrorType' if 'ErrorType' in core_df.columns else (
-			'MCACOD (ErrDecode)' if 'MCACOD (ErrDecode)' in core_df.columns else None
-		)
+		err_col  = ('ErrorType' if 'ErrorType' in core_df.columns else
+					('MCACOD (ErrDecode)' if 'MCACOD (ErrDecode)' in core_df.columns
+					 else None))
+
+		core_filter = lambda p: p['is_core']
 
 		for vid in core_df[vid_col].dropna().unique():
+			if debug:
+				print(f"\n[RevCore] VID={vid}")
+
 			subset = core_df[core_df[vid_col] == vid]
 
 			core_hint = 'NotFound'
 			core_area = ''
 			core_mcas = ''
 
-			if core_col and not subset[core_col].dropna().empty:
-				core_counts = Counter(subset[core_col].dropna())
-				winner, unique = self._argmax_unique(core_counts)
-				if unique and winner != 'NotFound':
-					core_hint = winner  # formatted as "CORE{N}"
-					core_num = re.sub(r'[^0-9]', '', str(winner))
+			# ----------------------------------------------------------
+			# Step 1 – IERR root-cause gate
+			# If the UBOX IERR first error is non-CORE (e.g. PUNIT), the
+			# real fault is in that IP; the CORE MCAs are cascade/secondary.
+			# In that case, Core Hint stays NotFound but we can still derive
+			# the Core Fail Area (compute number) from the MCERR CORE location.
+			# ----------------------------------------------------------
+			ierr_non_core = False
+			if not firsterr_df.empty:
+				ierr_counts = self._firsterr_counts(
+					firsterr_df, vid, _IERR_LABEL, lambda p: True)
+				if ierr_counts:
+					# Dominant IERR first-error
+					ierr_winner, _ = self._argmax_unique(ierr_counts)
+					if ierr_winner and ierr_winner != 'NotFound':
+						parsed = None
+						# Re-parse to get the is_core flag
+						_vc  = 'VisualID' if 'VisualID' in firsterr_df.columns else 'VisualId'
+						_nce = 'NCEVENT'
+						_lc  = 'FirstError - Location'
+						fe_sub = firsterr_df[firsterr_df[_vc] == vid]
+						if _nce in fe_sub.columns:
+							fe_sub = fe_sub[fe_sub[_nce].str.contains(_IERR_LABEL, na=False)]
+						for loc in fe_sub[_lc].dropna():
+							p = self._parse_firsterr_location(loc)
+							if p and p['display'] == ierr_winner:
+								parsed = p
+								break
+						if parsed and not parsed['is_core']:
+							ierr_non_core = True
+							if debug:
+								print(f"  [CORE] IERR first error is non-CORE: "
+									  f"{ierr_winner} → Core Hint = NotFound")
+							# Derive Core Fail Area from the MCERR CORE location
+							mcerr_core_counts = self._firsterr_counts(
+								firsterr_df, vid, _MCERR_LABEL, core_filter)
+							if mcerr_core_counts:
+								mcerr_winner, _ = self._argmax_unique(mcerr_core_counts)
+								if mcerr_winner and mcerr_winner != 'NotFound':
+									core_num = re.sub(r'[^0-9]', '', str(mcerr_winner))
+									loc_full = _compute_location(core_num, self.layout)
+									# Extract just "Compute{N}" from "Compute{N} : Row{R} : Col{C}"
+									m = re.match(r'(Compute\d+)', loc_full)
+									if m:
+										core_area = m.group(1)
+									else:
+										core_area = loc_full
+										if debug:
+											print(f"  [CORE] WARNING: unexpected location "
+												  f"format {loc_full!r}; using full string")
+									if debug:
+										print(f"  [CORE] Core Fail Area from MCERR: "
+											  f"{mcerr_winner} → {core_area!r}")
+
+			# ----------------------------------------------------------
+			# Step 2 – ML2 count + MCERR tie-breaking (IERR was CORE type)
+			# ----------------------------------------------------------
+			if not ierr_non_core and core_col and not subset[core_col].dropna().empty:
+				ml2_counts = Counter(subset[core_col].dropna())
+				core_hint, src = self._resolve_hint_with_firsterr(
+					ml2_counts, firsterr_df, vid,
+					_MCERR_LABEL, core_filter, debug, label='CORE')
+
+				if core_hint != 'NotFound':
+					core_num  = re.sub(r'[^0-9]', '', str(core_hint))
 					core_area = _compute_location(core_num, self.layout)
 
-					# Core MCAs = unique error types for the winning core
 					if err_col:
-						core_subset = subset[subset[core_col] == winner]
-						unique_errs = core_subset[err_col].dropna().unique().tolist()
-						core_mcas = ', '.join(str(e) for e in unique_errs if e)
+						winning_rows = subset[subset[core_col] == core_hint]
+						unique_errs  = winning_rows[err_col].dropna().unique().tolist()
+						core_mcas    = ', '.join(str(e) for e in unique_errs if e)
+
+					if debug:
+						print(f"  [CORE] area={core_area!r}  mcas={core_mcas!r}")
 
 			rows.append({
-				'VisualID': vid,
-				'Core Hint': core_hint,
+				'VisualID'    : vid,
+				'Core Hint'   : core_hint,
 				'Core Fail Area': core_area,
-				'Core MCAs': core_mcas,
+				'Core MCAs'   : core_mcas,
 			})
 
 		return pd.DataFrame(rows)
 
-	# ------------------------------------------------------------------
-	# Other Errors
-	# ------------------------------------------------------------------
+	# =========================================================================
+	# Other Errors  (non-CORE/CHA/LLC IERR first errors)
+	# =========================================================================
 
-	def _build_other_errors(self, firsterr_df):
+	def _build_other_errors(self, firsterr_df, debug=False):
 		"""
-		Build per-VisualID "Other Errors" string from FirstErr data.
-		Non-CORE/CHA/LLC first errors are joined as 'IP:Device{instance}'.
+		Build per-VisualID "Other Errors" string.
 
-		Returns dict: {visual_id: "Other Errors string"}
+		Source: UBOX IERRLOGGINGREG FirstError - Location rows whose ip_translate
+		is NOT CORE / CHA / LLC.  These are PUNIT, UPI, CMS, SBO, etc.
+
+		Returns dict {visual_id: "PUNIT:EPRPUNIT1, UPI:PCIE6, …"}
 		"""
 		other = {}
 		if firsterr_df.empty:
@@ -372,40 +664,54 @@ class MCAAnalyzer:
 
 		vid_col = 'VisualID' if 'VisualID' in firsterr_df.columns else 'VisualId'
 		loc_col = 'FirstError - Location'
+		nce_col = 'NCEVENT'
 
 		if loc_col not in firsterr_df.columns:
 			return other
 
 		for vid in firsterr_df[vid_col].dropna().unique():
-			subset = firsterr_df[firsterr_df[vid_col] == vid]
-			instances = []
-			for _, row in subset.iterrows():
-				loc = row.get(loc_col, '')
-				if not loc or not isinstance(loc, str):
+			sub = firsterr_df[firsterr_df[vid_col] == vid]
+			# Use IERR register: it captures the hardware-internal first error
+			if nce_col in sub.columns:
+				sub = sub[sub[nce_col].str.contains(_IERR_LABEL, na=False)]
+
+			seen      = {}     # display → count
+			for loc in sub[loc_col].dropna():
+				parsed = self._parse_firsterr_location(loc)
+				if not parsed:
 					continue
-				ip_tr, dev_tr, instance = _translate_location(loc, self.ip_map)
-				# Skip CORE/CHA/LLC – they are handled by their own Rev* sheets
-				if ip_tr.upper() in _CORE_TRANSLATE | _CHA_TRANSLATE | _LLC_TRANSLATE:
-					continue
-				if not ip_tr:
-					continue
-				inst_str = _failed_instance_str(ip_tr, dev_tr, instance)
-				if inst_str and inst_str not in instances:
-					instances.append(inst_str)
-			other[vid] = ', '.join(instances)
+				if parsed['is_core'] or parsed['is_cha'] or parsed['is_llc']:
+					continue   # handled by Rev*Count
+				disp = parsed['display']
+				if disp:
+					seen[disp] = seen.get(disp, 0) + 1
+
+			# Report only the most-frequent (dominant) other-error(s)
+			if seen:
+				max_cnt   = max(seen.values())
+				dominant  = [d for d, c in seen.items() if c == max_cnt]
+				other_str = ', '.join(dominant)
+			else:
+				other_str = ''
+
+			other[vid] = other_str
+
+			if debug and other_str:
+				print(f"\n[OtherErr] VID={vid}: {other_str}"
+					  f"  (IERR counts: {seen})")
 
 		return other
 
-	# ------------------------------------------------------------------
+	# =========================================================================
 	# REV_Units equivalent
-	# ------------------------------------------------------------------
+	# =========================================================================
 
 	def _build_rev_units(self, cha_df, llc_df, core_df,
 						 rev_cha, rev_llc, rev_core, other_errors):
 		"""
 		Build the REV_Units per-unit summary DataFrame.
 
-		Columns match Analysis sheet lookup sources:
+		Columns:
 		  VisualID, # Runs, Core Hint, Core Fail Area, CHA Hint, CHA Fail Area,
 		  LLC Hint, LLC Fail Area, SrcIDs, Other, Top OrigReq, Top OpCode,
 		  Top ISMQ, Top SAD, Top SAD LocPort, SAD Targets, Core MCAs
@@ -421,155 +727,130 @@ class MCAAnalyzer:
 			val = row.iloc[0].get(field, default)
 			return val if pd.notna(val) and val != '' else default
 
-		# Helper: count unique runs for a VisualID
 		def _count_runs(df, vid):
 			if df.empty:
 				return 0
-			vid_col = 'VisualID' if 'VisualID' in df.columns else 'VisualId'
-			run_col = 'Run' if 'Run' in df.columns else None
-			if not run_col or vid_col not in df.columns:
+			vc = 'VisualID' if 'VisualID' in df.columns else 'VisualId'
+			rc = 'Run' if 'Run' in df.columns else None
+			if not rc or vc not in df.columns:
 				return 0
-			subset = df[df[vid_col] == vid]
-			return subset[run_col].dropna().nunique()
+			return df[df[vc] == vid]['Run'].dropna().nunique()
 
-		# Helper: get top value from a CHA column counter
 		def _top_field(df, vid, field):
 			if df.empty or field not in df.columns:
 				return ''
-			vid_col = 'VisualID' if 'VisualID' in df.columns else 'VisualId'
-			subset = df[df[vid_col] == vid]
-			vals = subset[field].dropna()
+			vc = 'VisualID' if 'VisualID' in df.columns else 'VisualId'
+			vals = df[df[vc] == vid][field].dropna()
 			if vals.empty:
 				return ''
-			counts = Counter(vals)
-			winner, _ = self._argmax_unique(counts)
+			winner, _ = self._argmax_unique(Counter(vals))
 			return winner if winner != 'NotFound' else ''
 
 		rows = []
 		for vid in all_vids:
-			# Run count (max across CHA/LLC/CORE)
-			runs = max(
-				_count_runs(cha_df, vid),
-				_count_runs(llc_df, vid),
-				_count_runs(core_df, vid)
-			)
+			runs = max(_count_runs(cha_df, vid),
+					   _count_runs(llc_df, vid),
+					   _count_runs(core_df, vid))
 
-			# Core data
 			core_hint = _lookup(rev_core, vid, 'Core Hint')
 			core_area = _lookup(rev_core, vid, 'Core Fail Area', default='')
 			core_mcas = _lookup(rev_core, vid, 'Core MCAs', default='')
 
-			# CHA data
-			cha_hint = _lookup(rev_cha, vid, 'CHA Hint')
-			cha_area = _lookup(rev_cha, vid, 'CHA Fail Area', default='')
-			srcids = _lookup(rev_cha, vid, 'SrcID Hint')
+			cha_hint  = _lookup(rev_cha, vid, 'CHA Hint')
+			cha_area  = _lookup(rev_cha, vid, 'CHA Fail Area', default='')
+			srcids    = _lookup(rev_cha, vid, 'SrcID Hint')
 
-			# LLC data
-			llc_hint = _lookup(rev_llc, vid, 'LLC Hint')
-			llc_area = _lookup(rev_llc, vid, 'LLC Fail Area', default='')
+			llc_hint  = _lookup(rev_llc, vid, 'LLC Hint')
+			llc_area  = _lookup(rev_llc, vid, 'LLC Fail Area', default='')
 
-			# Other errors
 			other = other_errors.get(vid, '')
 
-			# Top CHA signature fields (most frequent from CHA decoder)
-			top_origreq = _top_field(cha_df, vid, 'Orig Req')
-			top_opcode = _top_field(cha_df, vid, 'Opcode')
-			top_ismq = _top_field(cha_df, vid, 'ISMQ')
-			top_sad = _top_field(cha_df, vid, 'Result')
-			top_locport = _top_field(cha_df, vid, 'Local Port')
+			top_origreq  = _top_field(cha_df, vid, 'Orig Req')
+			top_opcode   = _top_field(cha_df, vid, 'Opcode')
+			top_ismq     = _top_field(cha_df, vid, 'ISMQ')
+			top_sad      = _top_field(cha_df, vid, 'Result')
+			top_locport  = _top_field(cha_df, vid, 'Local Port')
 
-			# All unique non-empty SAD targets (Local Port values)
 			sad_targets = ''
 			if not cha_df.empty and 'Local Port' in cha_df.columns:
-				vid_col = 'VisualID' if 'VisualID' in cha_df.columns else 'VisualId'
-				subset = cha_df[cha_df[vid_col] == vid]
+				vc = 'VisualID' if 'VisualID' in cha_df.columns else 'VisualId'
 				unique_ports = [
-					str(p) for p in subset['Local Port'].dropna().unique()
+					str(p) for p in cha_df[cha_df[vc] == vid]['Local Port'].dropna().unique()
 					if str(p) not in ('', 'nan')
 				]
 				sad_targets = ', '.join(unique_ports)
 
 			rows.append({
-				'VisualID': vid,
-				'# Runs': runs,
-				'Core Hint': core_hint,
+				'VisualID'      : vid,
+				'# Runs'        : runs,
+				'Core Hint'     : core_hint,
 				'Core Fail Area': core_area,
-				'CHA Hint': cha_hint,
-				'CHA Fail Area': cha_area,
-				'LLC Hint': llc_hint,
-				'LLC Fail Area': llc_area,
-				'SrcIDs': srcids,
-				'Other': other,
-				'Top OrigReq': top_origreq,
-				'Top OpCode': top_opcode,
-				'Top ISMQ': top_ismq,
-				'Top SAD': top_sad,
+				'CHA Hint'      : cha_hint,
+				'CHA Fail Area' : cha_area,
+				'LLC Hint'      : llc_hint,
+				'LLC Fail Area' : llc_area,
+				'SrcIDs'        : srcids,
+				'Other'         : other,
+				'Top OrigReq'   : top_origreq,
+				'Top OpCode'    : top_opcode,
+				'Top ISMQ'      : top_ismq,
+				'Top SAD'       : top_sad,
 				'Top SAD LocPort': top_locport,
-				'SAD Targets': sad_targets,
-				'Core MCAs': core_mcas,
+				'SAD Targets'   : sad_targets,
+				'Core MCAs'     : core_mcas,
 			})
 
 		return pd.DataFrame(rows)
 
-	# ------------------------------------------------------------------
+	# =========================================================================
 	# Analysis / Summary DataFrame
-	# ------------------------------------------------------------------
+	# =========================================================================
 
 	def _build_analysis(self, rev_units, ppv_df=None):
 		"""
 		Build the final Analysis/Summary DataFrame that replicates the
 		Excel 'Analysis' (summ) table.
-
-		Columns:
-		  VisualIDs, Step, WW, # Runs, Core Hint, Core Fail Area,
-		  CHA Hint, CHA Fail Area, LLC Hint, LLC Fail Area, SrcIDs,
-		  Other, Top OrigReq, Top OpCode, Top ISMQ, Top SAD,
-		  Top SAD LocPort, Core Mcas, Root Cause,
-		  Core Next Steps, CHA Next Steps, LLC Next Steps,
-		  Defeature, Fail Area
 		"""
 		if rev_units.empty:
 			return pd.DataFrame()
 
-		# PPV lookups for Step / WW
 		ppv_step = {}
-		ppv_ww = {}
+		ppv_ww   = {}
 		if ppv_df is not None and not ppv_df.empty:
-			vid_col = next(
-				(c for c in ('Data.Visual_ID', 'VisualId', 'VisualID') if c in ppv_df.columns),
-				None
-			)
-			if vid_col:
+			vc = next(
+				(c for c in ('Data.Visual_ID', 'VisualId', 'VisualID')
+				 if c in ppv_df.columns), None)
+			if vc:
 				for _, r in ppv_df.iterrows():
-					vid = r[vid_col]
-					if 'Data.Step' in ppv_df.columns:
+					vid = r[vc]
+					if 'Data.Step'     in ppv_df.columns:
 						ppv_step[vid] = r.get('Data.Step', '')
 					if 'Data.Start_WW' in ppv_df.columns:
-						ppv_ww[vid] = r.get('Data.Start_WW', '')
+						ppv_ww[vid]   = r.get('Data.Start_WW', '')
 
 		rows = []
 		for _, ru in rev_units.iterrows():
-			vid = ru['VisualID']
+			vid       = ru['VisualID']
+			step      = ppv_step.get(vid, '')
+			ww        = ppv_ww.get(vid, '')
+			num_runs  = ru.get('# Runs', 0)
 
-			step = ppv_step.get(vid, '')
-			ww = ppv_ww.get(vid, '')
-			num_runs = ru.get('# Runs', 0)
-			core_hint = ru.get('Core Hint', 'NotFound')
-			core_area = ru.get('Core Fail Area', '')
-			cha_hint = ru.get('CHA Hint', 'NotFound')
-			cha_area = ru.get('CHA Fail Area', '')
-			llc_hint = ru.get('LLC Hint', 'NotFound')
-			llc_area = ru.get('LLC Fail Area', '')
-			srcids = ru.get('SrcIDs', 'NotFound')
-			other = ru.get('Other', '')
-			top_origreq = ru.get('Top OrigReq', '')
-			top_opcode = ru.get('Top OpCode', '')
-			top_ismq = ru.get('Top ISMQ', '')
-			top_sad = ru.get('Top SAD', '')
-			top_locport = ru.get('Top SAD LocPort', '')
-			core_mcas = ru.get('Core MCAs', '')
+			core_hint  = ru.get('Core Hint',      'NotFound')
+			core_area  = ru.get('Core Fail Area', '')
+			cha_hint   = ru.get('CHA Hint',       'NotFound')
+			cha_area   = ru.get('CHA Fail Area',  '')
+			llc_hint   = ru.get('LLC Hint',       'NotFound')
+			llc_area   = ru.get('LLC Fail Area',  '')
+			srcids     = ru.get('SrcIDs',         'NotFound')
+			other      = ru.get('Other',          '')
+			top_origreq  = ru.get('Top OrigReq',    '')
+			top_opcode   = ru.get('Top OpCode',     '')
+			top_ismq     = ru.get('Top ISMQ',       '')
+			top_sad      = ru.get('Top SAD',        '')
+			top_locport  = ru.get('Top SAD LocPort','')
+			core_mcas    = ru.get('Core MCAs',      '')
 
-			# Computed: Root Cause
+			# Root Cause
 			if core_hint != 'NotFound':
 				root_cause = 'CORE'
 			elif cha_hint != 'NotFound':
@@ -581,29 +862,23 @@ class MCAAnalyzer:
 			else:
 				root_cause = ''
 
-			# Computed: Core Next Steps
-			if core_hint != 'NotFound':
-				core_next = f"Disable CORE: {core_hint} - MCAs: {core_mcas}"
-			else:
-				core_next = ''
+			# Next Steps
+			core_next = (f"Disable CORE: {core_hint} - MCAs: {core_mcas}"
+						 if core_hint != 'NotFound' else '')
 
-			# Computed: CHA Next Steps
 			if cha_hint != 'NotFound':
-				sig = ' - '.join(filter(None, [top_origreq, top_ismq]))
+				sig      = ' - '.join(filter(None, [top_origreq, top_ismq]))
 				cha_next = f"Disable CHA: {cha_hint} - Signature: {sig} : {top_locport}".rstrip(' :')
 			elif srcids != 'NotFound':
-				sig = ' - '.join(filter(None, [top_origreq, top_ismq]))
+				sig      = ' - '.join(filter(None, [top_origreq, top_ismq]))
 				cha_next = f"Disable SrcID: {srcids} - Signature: {sig} : {top_locport}".rstrip(' :')
 			else:
 				cha_next = ''
 
-			# Computed: LLC Next Steps
-			llc_next = f"Disable LLC: {llc_hint}" if llc_hint != 'NotFound' else ''
+			llc_next  = (f"Disable LLC: {llc_hint}" if llc_hint != 'NotFound' else '')
+			defeature = (f"Defeature: {other}  -- Check CORE or CHA MCAs for more data."
+						 if other else '')
 
-			# Computed: Defeature
-			defeature = f"Defeature: {other}  -- Check CORE or CHA MCAs for more data." if other else ''
-
-			# Computed: Fail Area summary
 			fail_parts = []
 			if core_area:
 				fail_parts.append(f"CORE: {core_area}")
@@ -614,30 +889,50 @@ class MCAAnalyzer:
 			fail_area = ' - '.join(fail_parts)
 
 			rows.append({
-				'VisualIDs': vid,
-				'Step': step,
-				'WW': ww,
-				'# Runs': num_runs,
-				'Core Hint': core_hint,
-				'Core Fail Area': core_area,
-				'CHA Hint': cha_hint,
-				'CHA Fail Area': cha_area,
-				'LLC Hint': llc_hint,
-				'LLC Fail Area': llc_area,
-				'SrcIDs': srcids,
-				'Other': other,
-				'Top OrigReq': top_origreq,
-				'Top OpCode': top_opcode,
-				'Top ISMQ': top_ismq,
-				'Top SAD': top_sad,
+				'VisualIDs'      : vid,
+				'Step'           : step,
+				'WW'             : ww,
+				'# Runs'         : num_runs,
+				'Core Hint'      : core_hint,
+				'Core Fail Area' : core_area,
+				'CHA Hint'       : cha_hint,
+				'CHA Fail Area'  : cha_area,
+				'LLC Hint'       : llc_hint,
+				'LLC Fail Area'  : llc_area,
+				'SrcIDs'         : srcids,
+				'Other'          : other,
+				'Top OrigReq'    : top_origreq,
+				'Top OpCode'     : top_opcode,
+				'Top ISMQ'       : top_ismq,
+				'Top SAD'        : top_sad,
 				'Top SAD LocPort': top_locport,
-				'Core Mcas': core_mcas,
-				'Root Cause': root_cause,
+				'Core Mcas'      : core_mcas,
+				'Root Cause'     : root_cause,
 				'Core Next Steps': core_next,
-				'CHA Next Steps': cha_next,
-				'LLC Next Steps': llc_next,
-				'Defeature': defeature,
-				'Fail Area': fail_area,
+				'CHA Next Steps' : cha_next,
+				'LLC Next Steps' : llc_next,
+				'Defeature'      : defeature,
+				'Fail Area'      : fail_area,
 			})
 
 		return pd.DataFrame(rows)
+
+	# =========================================================================
+	# Debug helpers
+	# =========================================================================
+
+	def _print_debug_summary(self, analysis):
+		"""Print a compact comparison table of all VID results."""
+		if analysis.empty:
+			print("[DEBUG] Analysis DataFrame is empty.")
+			return
+		print(f"\n{'─'*90}")
+		print(f"{'VID':<20} {'Core Hint':<12} {'Core Area':<25} {'Other':<25} {'Root'}")
+		print(f"{'─'*90}")
+		for _, r in analysis.iterrows():
+			print(f"{str(r['VisualIDs']):<20} "
+				  f"{str(r['Core Hint']):<12} "
+				  f"{str(r.get('Core Fail Area','')):<25} "
+				  f"{str(r.get('Other','')):<25} "
+				  f"{str(r.get('Root Cause',''))}")
+		print(f"{'─'*90}\n")
