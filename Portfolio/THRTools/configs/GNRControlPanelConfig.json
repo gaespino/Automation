@@ -2,9 +2,9 @@
     "field_configs": {
         "Experiment": {
             "section": "Basic Information",
-            "type": "str",
-            "default": "",
-            "description": "Experiment name/identifier",
+            "type": "bool",
+            "default": true,
+            "description": "Experiment enabled/disabled status",
             "required": true
         },
         "Test Name": {
@@ -154,7 +154,7 @@
             "description": "Core license key",
             "required": false,
             "options": [
-				"",
+                "",
                 "1: SSE/128",
                 "2: AVX2/256 Light",
                 "3: AVX2/256 Heavy",
@@ -196,7 +196,7 @@
                 "Mesh": {
                     "type": "str",
                     "options": [
-						"",
+                        "",
                         "RowPass1",
                         "RowPass2",
                         "RowPass3",
@@ -208,9 +208,18 @@
                 "Slice": {
                     "type": "int",
                     "range": {
-                        "GNR": [0, 179],
-                        "CWF": [0, 179],
-                        "DMR": [0, 128]
+                        "GNR": [
+                            0,
+                            179
+                        ],
+                        "CWF": [
+                            0,
+                            179
+                        ],
+                        "DMR": [
+                            0,
+                            128
+                        ]
                     }
                 }
             }
@@ -254,6 +263,27 @@
             "type": "int",
             "default": 0,
             "description": "Specific core to check/monitor",
+            "required": false
+        },
+        "Core Disable List": {
+            "section": "Test Configuration",
+            "type": "str",
+            "default": "",
+            "description": "Comma-separated physical core numbers to disable (IA only, e.g. '62, 70')",
+            "required": false
+        },
+        "Slice Disable List": {
+            "section": "Test Configuration",
+            "type": "str",
+            "default": "",
+            "description": "Comma-separated physical core numbers to disable (core and LLC, e.g. '60, 72')",
+            "required": false
+        },
+        "Temperature SP": {
+            "section": "Test Configuration",
+            "type": "float",
+            "default": null,
+            "description": "Temperature setpoint (\u00b0C) for Intec temperature control",
             "required": false
         },
         "Voltage Type": {
