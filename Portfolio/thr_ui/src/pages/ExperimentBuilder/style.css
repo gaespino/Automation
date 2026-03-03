@@ -58,7 +58,10 @@
 .tpl-list option { padding: 2px 4px; }
 .tpl-list option:checked { background: #094771; color: #fff; }
 
-/* Compare panel */
+/* Unit Data panel (shared fields on left) */
+.unit-data-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: start; margin-top: 6px; }
+.unit-data-form input, .unit-data-form select { width: 100%; }
+.unit-data-note { color: #858585; font-size: 10px; font-weight: 400; text-transform: none; letter-spacing: 0; }
 .compare-panel { overflow-y: auto; max-height: calc(100vh - 120px); }
 .compare-exp-badge {
   font-size: 11px;

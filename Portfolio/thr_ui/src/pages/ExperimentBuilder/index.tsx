@@ -116,12 +116,16 @@ let nextId = 1;
 const TPL_LIST_MIN_ROWS = 2;
 const TPL_LIST_MAX_ROWS = 6;
 
+/** Fields that are shared across all experiments and shown in the left Unit Data panel. */
+const UNIT_DATA_KEYS = ['Visual ID', 'Bucket', 'COM Port', 'IP Address', 'Product'];
+
 export default function ExperimentBuilder() {
   const [products,          setProducts]          = useState<string[]>([]);
   const [product,           setProduct]           = useState('');
   const [fieldConfigs,      setFieldConfigs]      = useState<FieldConfigs>({});
   const [fieldEnableConfig, setFieldEnableConfig] = useState<Record<string, string[]>>({});
   const [form,              setForm]              = useState<Record<string, string>>({});
+  const [unitData,          setUnitData]          = useState<Record<string, string>>({});
   const [expName,      setExpName]      = useState('');
   const [queue,        setQueue]        = useState<QueuedExperiment[]>([]);
   const [editId,       setEditId]       = useState<number | null>(null);
@@ -174,12 +178,27 @@ export default function ExperimentBuilder() {
         const fc: FieldConfigs = d.field_configs ?? {};
         setFieldConfigs(fc);
         setFieldEnableConfig(d.field_enable_config ?? {});
-        setForm(buildDefaults(fc));
+        const defaults = buildDefaults(fc);
+        setForm(defaults);
+        // Initialise unit data from defaults (keep any existing user values)
+        setUnitData(prev => {
+          const next: Record<string, string> = {};
+          for (const k of UNIT_DATA_KEYS) {
+            next[k] = prev[k] !== undefined ? prev[k] : (defaults[k] ?? '');
+          }
+          return next;
+        });
         setFormDirty(false);
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [product]);
+
+  /** Update a single unit-data field (also keeps form in sync). */
+  const setUnitField = (key: string, value: string) => {
+    setUnitData(u => ({ ...u, [key]: value }));
+    setForm(f => ({ ...f, [key]: value }));
+  };
 
   const setField = (key: string, value: string) => {
     setForm(f => ({ ...f, [key]: value }));
@@ -201,12 +220,14 @@ export default function ExperimentBuilder() {
 
   const addToQueue = () => {
     const name = expName.trim() || `Experiment_${nextId}`;
+    // Merge shared unit data into the stored experiment fields
+    const mergedFields = { ...form, ...unitData };
     if (editId !== null) {
       setQueue(q => q.map(e => e.id === editId
-        ? { ...e, name, fields: { ...form }, dirty: false } : e));
+        ? { ...e, name, fields: mergedFields, dirty: false } : e));
       setEditId(null);
     } else {
-      setQueue(q => [...q, { id: nextId++, name, fields: { ...form }, dirty: false }]);
+      setQueue(q => [...q, { id: nextId++, name, fields: mergedFields, dirty: false }]);
     }
     setExpName('');
     setFormDirty(false);
@@ -231,12 +252,14 @@ export default function ExperimentBuilder() {
   };
 
   const deleteFromQueue = (id: number) => {
+    if (!window.confirm('Delete this experiment?')) return;
     setQueue(q => q.filter(e => e.id !== id));
     if (compareExpId === id) setCompareExpId(null);
     if (editId === id) cancelEdit();
   };
 
   const clearQueue = () => {
+    if (!window.confirm(`Clear all ${queue.length} experiment(s)?`)) return;
     setQueue([]);
     setEditId(null);
     setCompareExpId(null);
@@ -258,6 +281,7 @@ export default function ExperimentBuilder() {
 
   const deleteTemplate = () => {
     if (!selectedTemplate) return;
+    if (!window.confirm(`Delete template "${selectedTemplate}"?`)) return;
     const name = selectedTemplate;
     setTemplates(t => { const n = { ...t }; delete n[name]; return n; });
     setSelectedTemplate('');
@@ -404,6 +428,18 @@ export default function ExperimentBuilder() {
         const reloaded = rawList.map(ex => normalise(ex as Record<string, unknown>));
         setQueue(reloaded);
 
+        // Populate Unit Data panel from the first experiment's fields
+        if (reloaded.length) {
+          const firstFields = reloaded[0].fields;
+          setUnitData(prev => {
+            const next = { ...prev };
+            for (const k of UNIT_DATA_KEYS) {
+              if (firstFields[k] !== undefined) next[k] = firstFields[k];
+            }
+            return next;
+          });
+        }
+
         // Also restore any templates embedded in a PPV .tpl file
         if (!Array.isArray(data) && data.templates && typeof data.templates === 'object') {
           const validated: Record<string, Record<string, string>> = {};
@@ -432,7 +468,7 @@ export default function ExperimentBuilder() {
 
       <div className={`eb-layout${compareMode ? ' eb-compare-mode' : ''}`}>
 
-        {/* ─── Left: Experiments list + Export/Import ─────────────── */}
+        {/* ─── Left: Experiments list + Unit Data + Export/Import ─── */}
         <div className="eb-left">
           <div className="panel">
             <div className="section-title-row">
@@ -494,6 +530,37 @@ export default function ExperimentBuilder() {
             )}
           </div>
 
+          {/* Unit Data — shared configuration applied to all experiments */}
+          {Object.keys(fieldConfigs).length > 0 && (
+            <div className="panel" style={{ marginTop: 12 }}>
+              <div className="section-title">
+                🖥 Unit Data
+                <span className="unit-data-note"> — shared across all experiments</span>
+              </div>
+              <div className="unit-data-form">
+                {UNIT_DATA_KEYS.map(key => {
+                  const cfg = fieldConfigs[key];
+                  if (!cfg) return null;
+                  return (
+                    <React.Fragment key={key}>
+                      <div className="field-label-wrap">
+                        <span className="field-label-name">
+                          {key}{cfg.required && <span style={{ color: '#f44747' }}>*</span>}
+                        </span>
+                        {cfg.description && (
+                          <span className="field-desc">{cfg.description}</span>
+                        )}
+                      </div>
+                      <div>
+                        {renderField(key, cfg, unitData[key] ?? '', v => setUnitField(key, v))}
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="panel" style={{ marginTop: 12 }}>
             <div className="section-title">Export / Import</div>
             <div className="form-grid" style={{ marginBottom: 10 }}>
@@ -549,6 +616,8 @@ export default function ExperimentBuilder() {
                   </div>
 
                   {Object.entries(sectionGroups).map(([section, fields]) => {
+                    // Unit Data is in the left panel; skip it in compare
+                    if (section === 'Unit Data') return null;
                     const visibleFields = fields.filter(([key, cfg]) =>
                       isFieldVisible(key, cfg, form, product, fieldEnableConfig));
                     if (!visibleFields.length) return null;
@@ -696,6 +765,8 @@ export default function ExperimentBuilder() {
               </div>
 
               {Object.entries(sectionGroups).map(([section, fields]) => {
+                // Unit Data is shown in the left panel; skip it here
+                if (section === 'Unit Data') return null;
                 const visibleFields = fields.filter(([key, cfg]) =>
                   isFieldVisible(key, cfg, form, product, fieldEnableConfig));
                 if (!visibleFields.length) return null;
