@@ -450,7 +450,7 @@ class MCAAnalyzer:
 			cha_area = ''
 			if cha_col and not subset[cha_col].dropna().empty:
 				ml2_counts = Counter(subset[cha_col].dropna())
-				cha_hint, src = self._resolve_hint_with_firsterr(
+				cha_hint, _ = self._resolve_hint_with_firsterr(
 					ml2_counts, firsterr_df, vid,
 					_MCERR_LABEL, cha_filter, debug, label='CHA')
 				if cha_hint != 'NotFound':
@@ -502,7 +502,7 @@ class MCAAnalyzer:
 			llc_area = ''
 			if llc_col and not subset[llc_col].dropna().empty:
 				ml2_counts = Counter(subset[llc_col].dropna())
-				llc_hint, src = self._resolve_hint_with_firsterr(
+				llc_hint, _ = self._resolve_hint_with_firsterr(
 					ml2_counts, firsterr_df, vid,
 					_MCERR_LABEL, llc_filter, debug, label='LLC')
 				if llc_hint != 'NotFound':
@@ -591,7 +591,7 @@ class MCAAnalyzer:
 						if parsed and not parsed['is_core']:
 							ierr_non_core = True
 							if debug:
-								print(f"  [CORE] IERR first error is non-CORE: "
+								print("  [CORE] IERR first error is non-CORE: "
 									  f"{ierr_winner} → Core Hint = NotFound")
 							# Derive Core Fail Area from the MCERR CORE location
 							mcerr_core_counts = self._firsterr_counts(
@@ -608,10 +608,10 @@ class MCAAnalyzer:
 									else:
 										core_area = loc_full
 										if debug:
-											print(f"  [CORE] WARNING: unexpected location "
+											print("  [CORE] WARNING: unexpected location "
 												  f"format {loc_full!r}; using full string")
 									if debug:
-										print(f"  [CORE] Core Fail Area from MCERR: "
+										print("  [CORE] Core Fail Area from MCERR: "
 											  f"{mcerr_winner} → {core_area!r}")
 
 			# ----------------------------------------------------------
@@ -619,7 +619,7 @@ class MCAAnalyzer:
 			# ----------------------------------------------------------
 			if not ierr_non_core and core_col and not subset[core_col].dropna().empty:
 				ml2_counts = Counter(subset[core_col].dropna())
-				core_hint, src = self._resolve_hint_with_firsterr(
+				core_hint, _ = self._resolve_hint_with_firsterr(
 					ml2_counts, firsterr_df, vid,
 					_MCERR_LABEL, core_filter, debug, label='CORE')
 
