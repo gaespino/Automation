@@ -136,11 +136,11 @@ class PPVReportGUI:
         self.overview_check.pack(anchor="w", pady=3)
         self.add_tooltip(self.overview_check, "Include summary overview sheet in report")
         
-        self.mcfile_var = tk.BooleanVar(value=False)
-        self.mcfile_check = tk.Checkbutton(right_opts, text="MCA Checker file", 
-                                          variable=self.mcfile_var, font=("Segoe UI", 9))
-        self.mcfile_check.pack(anchor="w", pady=3)
-        self.add_tooltip(self.mcfile_check, "Generate separate MCA checker validation file")
+        self.mca_analysis_var = tk.BooleanVar(value=False)
+        self.mca_analysis_check = tk.Checkbutton(right_opts, text="MCA Analysis",
+                                                 variable=self.mca_analysis_var, font=("Segoe UI", 9))
+        self.mca_analysis_check.pack(anchor="w", pady=3)
+        self.add_tooltip(self.mca_analysis_check, "Run MCA Analysis and append MCA_Analysis sheet to report")
         
         # Action buttons
         button_frame = tk.Frame(main_container)
@@ -220,19 +220,19 @@ class PPVReportGUI:
         'reduced' : self.reduced_var.get(),
         'overview' : self.overview_var.get(),
         'decode' : self.decode_var.get(),
-        'mcfile' : self.mcfile_var.get()
+        'mca_analysis' : self.mca_analysis_var.get()
         }
 
         # You can add your logic here to handle the submitted data
         messagebox.showinfo("Submitted Data", f"Name: {data['name']}\nWeek: {data['week']}\nLabel: {data['label']}\nSource File: {data['source_file']}\nReport: {data['report']}\nReduced: {data['reduced']}\nOverview: {data['overview']}\nMCA Decode: {data['decode']}")
         # Copy the template file to the new target file
-        PPVMCAs = mcap(name=data['name'], week=data['week'], label=data['label'], source_file=data['source_file'], report = data['report'], reduced = data['reduced'], mcdetail=data['mcfile'], overview = data['overview'], decode = data['decode'])
+        PPVMCAs = mcap(name=data['name'], week=data['week'], label=data['label'], source_file=data['source_file'], report = data['report'], reduced = data['reduced'], overview = data['overview'], decode = data['decode'], mca_analysis=data['mca_analysis'])
         self.header(data)
         
         if data['mode'] == 'Bucketer' or data['mode'] == 'Framework': 
             PPVMCAs.run(options=['MESH', 'CORE'])
         elif data['mode'] == 'Data': 
-            PPVMCAs.gen_auxfiles(data_file=data['source_file'], mca_file=PPVMCAs.mca_file, ovw_file=PPVMCAs.ovw_file, mcfile_on=data['mcfile'], ovw_on= data['overview'], options = ['MESH', 'CORE', 'PPV'])
+            PPVMCAs.gen_auxfiles(data_file=data['source_file'], mca_file=PPVMCAs.mca_file, ovw_file=PPVMCAs.ovw_file, ovw_on= data['overview'], options = ['MESH', 'CORE', 'PPV'])
         else: print(' -- Not a valid mode')
         #self.__init__(self.root)
 
@@ -250,7 +250,7 @@ class PPVReportGUI:
         print(f'\tReduced:   \t\t{data["reduced"]}')
         print(f'\tOverview File:   \t{data["overview"]}')
         print(f'\tMCA Decode:   \t\t{data["decode"]}')
-        print(f'\tMCA Check File:   \t{data["mcfile"]}')
+        print(f'\tMCA Analysis: \t\t{data["mca_analysis"]}')
         print(f'\n{"#"*120}')
         print(f'{"#"*120}\n')
         print(f'\t{"-"*10} Processing data... Please wait.. {"-"*10} \n')

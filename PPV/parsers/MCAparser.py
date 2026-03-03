@@ -174,7 +174,7 @@ def init_select_data(product):
 	return reduced_data_cha, reduced_data_core, reduced_data_others
 
 class ppv_report():
-	def __init__(self, name, week, label, source_file, report, data_core = None, data_cha = None, reduced = False, mcdetail = True, overview = False, decode = False, mode='Bucketer', product=None):
+	def __init__(self, name, week, label, source_file, report, data_core = None, data_cha = None, reduced = False, mcdetail = False, overview = False, decode = False, mode='Bucketer', product=None, mca_analysis=False):
 
 		self.source_file = rf'{source_file}'
 		self.source_sheet = 'raw_data'
@@ -194,6 +194,7 @@ class ppv_report():
 		self.ovw = overview
 		self.decode = decode
 		self.mcfile = mcdetail
+		self.mca_analysis = mca_analysis
 		## File Initialization
 
 		self.name = name
@@ -307,8 +308,8 @@ class ppv_report():
 		if 'CORE' in options and decode:
 			self.parse_CORE_mcas(self.data_file, self.sheet_CORE)
 
-		# Run MCA Analysis if decode mode is enabled
-		if decode:
+		# Run MCA Analysis if the mca_analysis switch is enabled
+		if self.mca_analysis:
 			print(' -- Running MCA Analysis...')
 			self.gen_mca_analysis(self.data_file)
 
