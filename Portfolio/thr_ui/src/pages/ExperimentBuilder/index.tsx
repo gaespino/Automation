@@ -117,7 +117,7 @@ const TPL_LIST_MIN_ROWS = 2;
 const TPL_LIST_MAX_ROWS = 6;
 
 /** Fields that are shared across all experiments and shown in the left Unit Data panel. */
-const UNIT_DATA_KEYS = ['Visual ID', 'Bucket', 'COM Port', 'IP Address', 'Product'];
+const UNIT_DATA_KEYS = ['Product', 'Visual ID', 'Bucket', 'COM Port', 'IP Address'];
 
 export default function ExperimentBuilder() {
   const [products,          setProducts]          = useState<string[]>([]);
@@ -180,11 +180,11 @@ export default function ExperimentBuilder() {
         setFieldEnableConfig(d.field_enable_config ?? {});
         const defaults = buildDefaults(fc);
         setForm(defaults);
-        // Initialise unit data from defaults (keep any existing user values)
+        // Initialise unit data from defaults (always sync Product to the current product)
         setUnitData(prev => {
           const next: Record<string, string> = {};
           for (const k of UNIT_DATA_KEYS) {
-            next[k] = prev[k] !== undefined ? prev[k] : (defaults[k] ?? '');
+            next[k] = k === 'Product' ? product : (prev[k] !== undefined ? prev[k] : (defaults[k] ?? ''));
           }
           return next;
         });
@@ -194,10 +194,11 @@ export default function ExperimentBuilder() {
       .finally(() => setLoading(false));
   }, [product]);
 
-  /** Update a single unit-data field (also keeps form in sync). */
+  /** Update a single unit-data field (also keeps form in sync, and product state if key='Product'). */
   const setUnitField = (key: string, value: string) => {
     setUnitData(u => ({ ...u, [key]: value }));
     setForm(f => ({ ...f, [key]: value }));
+    if (key === 'Product') setProduct(value);
   };
 
   const setField = (key: string, value: string) => {
@@ -250,6 +251,9 @@ export default function ExperimentBuilder() {
     setForm(buildDefaults(fieldConfigs));
     setFormDirty(false);
   };
+
+  /** Alias used by the "✚ New" button — same as cancelling an edit. */
+  const newExperiment = cancelEdit;
 
   const deleteFromQueue = (id: number) => {
     if (!window.confirm('Delete this experiment?')) return;
@@ -468,15 +472,74 @@ export default function ExperimentBuilder() {
 
       <div className={`eb-layout${compareMode ? ' eb-compare-mode' : ''}`}>
 
-        {/* ─── Left: Experiments list + Unit Data + Export/Import ─── */}
+        {/* ─── Left: Export/Import → Unit Data → Experiments list ─── */}
         <div className="eb-left">
+
+          {/* Export / Import — top of left panel */}
           <div className="panel">
+            <div className="section-title">Export / Import</div>
+            <div className="form-grid" style={{ marginBottom: 10 }}>
+              <label>Filename</label>
+              <input value={filename} onChange={e => setFilename(e.target.value)} placeholder="experiments" />
+            </div>
+            {error && <div className="error-msg" style={{ marginBottom: 8 }}>{error}</div>}
+            <div className="action-row">
+              <button className="btn primary" onClick={handleSave} disabled={saving || !queue.length}>
+                {saving ? '⏳ Saving…' : '⬇ Save .tpl'}
+              </button>
+              <button className="btn" onClick={() => loadRef.current?.click()}>
+                📂 Load .tpl
+              </button>
+              <input ref={loadRef} type="file" accept=".tpl,.json" style={{ display: 'none' }} onChange={handleLoad} />
+            </div>
+          </div>
+
+          {/* Unit Data — shared configuration applied to all experiments */}
+          {Object.keys(fieldConfigs).length > 0 && (
+            <div className="panel" style={{ marginTop: 12 }}>
+              <div className="section-title">
+                🖥 Unit Data
+                <span className="unit-data-note"> — shared across all experiments</span>
+              </div>
+              {loading && <div style={{ color: '#858585', fontSize: 11, marginBottom: 4 }}>Loading config…</div>}
+              <div className="unit-data-form">
+                {UNIT_DATA_KEYS.map(key => {
+                  const cfg = fieldConfigs[key];
+                  if (!cfg) return null;
+                  const isProduct = key === 'Product';
+                  return (
+                    <React.Fragment key={key}>
+                      <div className={`field-label-wrap${isProduct ? ' unit-product-label' : ''}`}>
+                        <span className="field-label-name">
+                          {key}{cfg.required && <span style={{ color: '#f44747' }}>*</span>}
+                        </span>
+                        {cfg.description && (
+                          <span className="field-desc">{cfg.description}</span>
+                        )}
+                      </div>
+                      <div className={isProduct ? 'unit-product-input' : ''}>
+                        {renderField(key, cfg, unitData[key] ?? '', v => setUnitField(key, v))}
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Experiments list */}
+          <div className="panel" style={{ marginTop: 12 }}>
             <div className="section-title-row">
               <span className="section-title" style={{ margin: 0, border: 0 }}>
                 Experiments ({queue.length})
                 {queue.some(e => e.dirty) && <span className="dirty-badge"> ●</span>}
               </span>
               <div className="action-row">
+                <button className="btn primary" onClick={newExperiment}
+                  disabled={editId === null}
+                  title="Discard current edit and start a new experiment">
+                  ✚ New
+                </button>
                 <button
                   className={`btn${compareMode ? ' btn-active' : ''}`}
                   onClick={() => setCompareMode(m => !m)}
@@ -530,54 +593,6 @@ export default function ExperimentBuilder() {
             )}
           </div>
 
-          {/* Unit Data — shared configuration applied to all experiments */}
-          {Object.keys(fieldConfigs).length > 0 && (
-            <div className="panel" style={{ marginTop: 12 }}>
-              <div className="section-title">
-                🖥 Unit Data
-                <span className="unit-data-note"> — shared across all experiments</span>
-              </div>
-              <div className="unit-data-form">
-                {UNIT_DATA_KEYS.map(key => {
-                  const cfg = fieldConfigs[key];
-                  if (!cfg) return null;
-                  return (
-                    <React.Fragment key={key}>
-                      <div className="field-label-wrap">
-                        <span className="field-label-name">
-                          {key}{cfg.required && <span style={{ color: '#f44747' }}>*</span>}
-                        </span>
-                        {cfg.description && (
-                          <span className="field-desc">{cfg.description}</span>
-                        )}
-                      </div>
-                      <div>
-                        {renderField(key, cfg, unitData[key] ?? '', v => setUnitField(key, v))}
-                      </div>
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div className="panel" style={{ marginTop: 12 }}>
-            <div className="section-title">Export / Import</div>
-            <div className="form-grid" style={{ marginBottom: 10 }}>
-              <label>Filename</label>
-              <input value={filename} onChange={e => setFilename(e.target.value)} placeholder="experiments" />
-            </div>
-            {error && <div className="error-msg" style={{ marginBottom: 8 }}>{error}</div>}
-            <div className="action-row">
-              <button className="btn primary" onClick={handleSave} disabled={saving || !queue.length}>
-                {saving ? '⏳ Saving…' : '⬇ Save .tpl'}
-              </button>
-              <button className="btn" onClick={() => loadRef.current?.click()}>
-                📂 Load .tpl
-              </button>
-              <input ref={loadRef} type="file" accept=".tpl,.json" style={{ display: 'none' }} onChange={handleLoad} />
-            </div>
-          </div>
         </div>
 
         {/* ─── Center: Compare Panel (when active) ────────────────── */}
@@ -664,19 +679,10 @@ export default function ExperimentBuilder() {
           </div>
         )}
 
-        {/* ─── Right: Product + Templates + Form ──────────────────── */}
+        {/* ─── Right: Templates + Form ────────────────────────────── */}
         <div className="eb-right">
-          {/* Product selector */}
-          <div className="panel">
-            <div className="section-title">Product</div>
-            <select value={product} onChange={e => setProduct(e.target.value)} style={{ width: '100%' }}>
-              {products.map(p => <option key={p}>{p}</option>)}
-            </select>
-            {loading && <div style={{ color: '#858585', fontSize: 11, marginTop: 6 }}>Loading config…</div>}
-          </div>
-
           {/* Templates panel */}
-          <div className="panel" style={{ marginTop: 12 }}>
+          <div className="panel">
             <div
               className="section-title-row tpl-header"
               onClick={() => setTemplatesOpen(o => !o)}
@@ -754,14 +760,29 @@ export default function ExperimentBuilder() {
                 {formDirty && <span className="dirty-badge" title="Unsaved changes"> ●</span>}
               </div>
 
-              <div style={{ marginBottom: 8 }}>
-                <label style={{ display: 'block', marginBottom: 4 }}>Experiment Name</label>
-                <input
-                  value={expName}
-                  onChange={e => setExpName(e.target.value)}
-                  placeholder="e.g. V_Scan_0.8"
-                  style={{ width: '100%' }}
-                />
+              <div className="form-action-top">
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', marginBottom: 4, fontSize: 11, color: '#858585' }}>Experiment Name</label>
+                  <input
+                    value={expName}
+                    onChange={e => setExpName(e.target.value)}
+                    placeholder="e.g. V_Scan_0.8"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+                <div className="action-row" style={{ marginTop: 4, flexShrink: 0 }}>
+                  <button className="btn primary" onClick={addToQueue}>
+                    {editId !== null ? '✏ Update' : '+ Add to Experiments'}
+                  </button>
+                  {editId !== null && (
+                    <button className="btn" onClick={cancelEdit}>✕ Cancel Edit</button>
+                  )}
+                  {editId === null && (
+                    <button className="btn" onClick={() => setForm(buildDefaults(fieldConfigs))}>
+                      ↺ Reset Defaults
+                    </button>
+                  )}
+                </div>
               </div>
 
               {Object.entries(sectionGroups).map(([section, fields]) => {
@@ -793,20 +814,6 @@ export default function ExperimentBuilder() {
                   </div>
                 );
               })}
-
-              <div className="action-row" style={{ marginTop: 12 }}>
-                <button className="btn primary" onClick={addToQueue}>
-                  {editId !== null ? '✏ Update' : '+ Add to Experiments'}
-                </button>
-                {editId !== null && (
-                  <button className="btn" onClick={cancelEdit}>Cancel Edit</button>
-                )}
-                {editId === null && (
-                  <button className="btn" onClick={() => setForm(buildDefaults(fieldConfigs))}>
-                    ↺ Reset Defaults
-                  </button>
-                )}
-              </div>
             </div>
           )}
         </div>
