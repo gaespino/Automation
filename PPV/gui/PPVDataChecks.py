@@ -136,7 +136,7 @@ class PPVReportGUI:
         self.overview_check.pack(anchor="w", pady=3)
         self.add_tooltip(self.overview_check, "Include summary overview sheet in report")
         
-        self.mca_analysis_var = tk.BooleanVar(value=False)
+        self.mca_analysis_var = tk.BooleanVar(value=True)
         self.mca_analysis_check = tk.Checkbutton(right_opts, text="MCA Analysis",
                                                  variable=self.mca_analysis_var, font=("Segoe UI", 9))
         self.mca_analysis_check.pack(anchor="w", pady=3)

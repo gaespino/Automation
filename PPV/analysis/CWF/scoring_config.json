@@ -1,0 +1,6 @@
+{
+  "description": "CWF MCA Analysis scoring weights for Compute/Row/Col failing-area selection. CWF uses the same die layout as GNR. Adjust as needed once CWF-specific calibration data is available.",
+  "score_compute": 1,
+  "score_row": 2,
+  "score_col": 4
+}
