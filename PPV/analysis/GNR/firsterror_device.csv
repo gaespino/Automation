@@ -1,0 +1,11 @@
+FirstError Device,Translate,offset
+cpucore,CORE,4
+cpuscf,SCF,4
+ddrfmb,DDRFMB,0
+ddrmc,DDRMC,0
+ddimb,DDIMB,0
+eprpunit,EPRPUNIT,0
+spk,SPK,0
+punit,PUNIT,0
+scf_crs_sbo,CRS,0
+ubox,ubox,0
