@@ -361,9 +361,51 @@ export default function ExperimentBuilder() {
     reader.onload = ev => {
       try {
         const data = JSON.parse(ev.target?.result as string);
-        const loaded: QueuedExperiment[] = Array.isArray(data) ? data : (data.experiments ?? []);
-        const reloaded = loaded.map(ex => ({ ...ex, id: nextId++, dirty: false }));
+
+        // Normalise an entry to QueuedExperiment regardless of source format.
+        // React-saved format:  {id, name, fields: {…}, dirty}
+        // PPV-saved format:    {"Test Name": "…", "Content": "…", …}   (flat dict)
+        const normalise = (ex: Record<string, unknown>): QueuedExperiment => {
+          if (ex.fields && typeof ex.fields === 'object' && !Array.isArray(ex.fields)) {
+            // Already React format
+            return {
+              id: nextId++,
+              name: String(ex.name ?? `Experiment_${nextId}`),
+              fields: ex.fields as Record<string, string>,
+              dirty: false,
+            };
+          }
+          // PPV flat-dict format: use "Test Name" as the experiment name, remaining keys as fields
+          const fields: Record<string, string> = {};
+          let name = `Experiment_${nextId}`;
+          for (const [k, v] of Object.entries(ex)) {
+            const str = v === null || v === undefined ? '' : String(v);
+            if (k === 'Test Name') name = str || name;
+            if (k !== 'Experiment') fields[k] = str;
+          }
+          return { id: nextId++, name, fields, dirty: false };
+        };
+
+        const rawList: unknown[] = Array.isArray(data) ? data : (data.experiments ?? []);
+        const reloaded = rawList.map(ex => normalise(ex as Record<string, unknown>));
         setQueue(reloaded);
+
+        // Also restore any templates embedded in a PPV .tpl file
+        if (!Array.isArray(data) && data.templates && typeof data.templates === 'object') {
+          const validated: Record<string, Record<string, string>> = {};
+          for (const [name, fields] of Object.entries(data.templates as Record<string, unknown>)) {
+            if (typeof fields === 'object' && fields !== null && !Array.isArray(fields)) {
+              validated[name] = Object.fromEntries(
+                Object.entries(fields as Record<string, unknown>)
+                  .filter(([, v]) => v !== null && v !== undefined)
+                  .map(([k, v]) => [k, String(v)])
+              );
+            }
+          }
+          if (Object.keys(validated).length) {
+            setTemplates(t => ({ ...t, ...validated }));
+          }
+        }
       } catch { setError('Invalid .tpl file (expected JSON).'); }
     };
     reader.readAsText(f);
