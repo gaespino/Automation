@@ -100,7 +100,7 @@ class MCAAnalyzer:
 	    llc_df=llc_decoded_df,
 	    core_df=core_decoded_df,
 	    firsterr_df=firsterr_decoded_df,   # UBOX portids() output
-	    ppv_df=ppv_data_df,                # optional, for Step/WW lookups
+	    ppv_df=ppv_data_df,                # optional, for Lot/WW lookups from PPV tab
 	    debug=True,                        # optional verbose trace
 	)
 	result['analysis']  → per-unit Analysis DataFrame
@@ -147,7 +147,7 @@ class MCAAnalyzer:
 		llc_df      : DataFrame from decoder.llc()
 		core_df     : DataFrame from decoder.core()
 		firsterr_df : DataFrame from decoder.portids()  (UBOX FirstError)
-		ppv_df      : DataFrame with Step/WW columns (optional)
+		ppv_df      : DataFrame with Lot/WW columns from the PPV tab (optional)
 		debug       : When True, print per-VID trace to stdout
 
 		Returns
@@ -830,7 +830,7 @@ class MCAAnalyzer:
 		Excel 'Analysis' (summ) table.
 
 		Columns (matching Excel column order):
-		  VisualIDs, Step, WW, # Runs, Core Hint, Core Fail Area,
+		  VisualIDs, Lot, WW, # Runs, Core Hint, Core Fail Area,
 		  CHA Hint, CHA Fail Area, LLC Hint, LLC Fail Area, SrcIDs,
 		  Other, Top OrigReq, Top OpCode, Top ISMQ, Top SAD,
 		  Top SAD LocPort, Core Mcas, Root Cause,
@@ -845,24 +845,25 @@ class MCAAnalyzer:
 		if rev_units.empty:
 			return pd.DataFrame()
 
-		ppv_step = {}
-		ppv_ww   = {}
+		ppv_lot = {}
+		ppv_ww  = {}
 		if ppv_df is not None and not ppv_df.empty:
 			vc = next(
-				(c for c in ('Data.Visual_ID', 'VisualId', 'VisualID')
+				(c for c in ('VisualId', 'VisualID', 'Data.Visual_ID')
 				 if c in ppv_df.columns), None)
 			if vc:
-				for _, r in ppv_df.iterrows():
-					vid = r[vc]
-					if 'Data.Step'     in ppv_df.columns:
-						ppv_step[vid] = r.get('Data.Step', '')
-					if 'Data.Start_WW' in ppv_df.columns:
-						ppv_ww[vid]   = r.get('Data.Start_WW', '')
+				for vid, grp in ppv_df.groupby(vc):
+					if 'Lot' in ppv_df.columns:
+						lots = grp['Lot'].dropna().astype(str).unique()
+						ppv_lot[vid] = ', '.join(lots)
+					if 'DecimaWW' in ppv_df.columns:
+						wws = grp['DecimaWW'].dropna().astype(str).unique()
+						ppv_ww[vid] = ', '.join(wws)
 
 		rows = []
 		for _, ru in rev_units.iterrows():
 			vid       = ru['VisualID']
-			step      = ppv_step.get(vid, '')
+			lot       = ppv_lot.get(vid, '')
 			ww        = ppv_ww.get(vid, '')
 			num_runs  = ru.get('# Runs', 0)
 
@@ -926,7 +927,7 @@ class MCAAnalyzer:
 
 			rows.append({
 				'VisualIDs'        : vid,
-				'Step'             : step,
+				'Lot'              : lot,
 				'WW'               : ww,
 				'# Runs'           : num_runs,
 				'Core Hint'        : core_hint,
