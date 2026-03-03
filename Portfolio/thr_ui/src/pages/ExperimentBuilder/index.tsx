@@ -44,8 +44,20 @@ function buildDefaults(fieldConfigs: FieldConfigs): Record<string, string> {
   return defaults;
 }
 
-/** Returns true if this field should be shown given the current form values. */
-function isFieldVisible(cfg: FieldConfig, form: Record<string, string>): boolean {
+/**
+ * Returns true if this field should be shown for the current product and form values.
+ * - fieldEnableConfig maps field-name → list of allowed products (if absent, all products)
+ * - cfg.condition gates on another field's value (e.g. show Linux section only when Content=Linux)
+ */
+function isFieldVisible(
+  key: string,
+  cfg: FieldConfig,
+  form: Record<string, string>,
+  product: string,
+  fieldEnableConfig: Record<string, string[]>,
+): boolean {
+  const allowedProducts = fieldEnableConfig[key];
+  if (allowedProducts && !allowedProducts.includes(product)) return false;
   if (!cfg.condition) return true;
   return (form[cfg.condition.field] ?? '') === cfg.condition.value;
 }
@@ -105,10 +117,11 @@ const TPL_LIST_MIN_ROWS = 2;
 const TPL_LIST_MAX_ROWS = 6;
 
 export default function ExperimentBuilder() {
-  const [products,     setProducts]     = useState<string[]>([]);
-  const [product,      setProduct]      = useState('');
-  const [fieldConfigs, setFieldConfigs] = useState<FieldConfigs>({});
-  const [form,         setForm]         = useState<Record<string, string>>({});
+  const [products,          setProducts]          = useState<string[]>([]);
+  const [product,           setProduct]           = useState('');
+  const [fieldConfigs,      setFieldConfigs]      = useState<FieldConfigs>({});
+  const [fieldEnableConfig, setFieldEnableConfig] = useState<Record<string, string[]>>({});
+  const [form,              setForm]              = useState<Record<string, string>>({});
   const [expName,      setExpName]      = useState('');
   const [queue,        setQueue]        = useState<QueuedExperiment[]>([]);
   const [editId,       setEditId]       = useState<number | null>(null);
@@ -160,6 +173,7 @@ export default function ExperimentBuilder() {
       .then(d => {
         const fc: FieldConfigs = d.field_configs ?? {};
         setFieldConfigs(fc);
+        setFieldEnableConfig(d.field_enable_config ?? {});
         setForm(buildDefaults(fc));
         setFormDirty(false);
       })
@@ -418,8 +432,171 @@ export default function ExperimentBuilder() {
 
       <div className={`eb-layout${compareMode ? ' eb-compare-mode' : ''}`}>
 
-        {/* ─── Left: Product + Templates + Form ───────────────────── */}
-        <div>
+        {/* ─── Left: Experiments list + Export/Import ─────────────── */}
+        <div className="eb-left">
+          <div className="panel">
+            <div className="section-title-row">
+              <span className="section-title" style={{ margin: 0, border: 0 }}>
+                Experiments ({queue.length})
+                {queue.some(e => e.dirty) && <span className="dirty-badge"> ●</span>}
+              </span>
+              <div className="action-row">
+                <button
+                  className={`btn${compareMode ? ' btn-active' : ''}`}
+                  onClick={() => setCompareMode(m => !m)}
+                  title="Toggle side-by-side compare view"
+                >
+                  ⊞ {compareMode ? 'Hide Compare' : 'Compare'}
+                </button>
+                <button className="btn" onClick={clearQueue} disabled={!queue.length}>🗑 Clear</button>
+              </div>
+            </div>
+
+            {queue.length === 0 ? (
+              <div style={{ color: '#858585', fontSize: 12, marginTop: 8 }}>
+                No experiments yet. Fill the form and click Add.
+              </div>
+            ) : (
+              <div className="queue-table-wrap">
+                <table className="queue-table">
+                  <thead>
+                    <tr><th>Name</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    {queue.map(exp => (
+                      <tr key={exp.id}
+                        className={[
+                          editId === exp.id ? 'row-editing' : '',
+                          compareExpId === exp.id ? 'row-comparing' : '',
+                        ].filter(Boolean).join(' ')}
+                      >
+                        <td className="q-name">
+                          {exp.name}
+                          {exp.dirty && <span className="dirty-badge" title="Has unsaved edits"> ●</span>}
+                        </td>
+                        <td className="q-actions">
+                          <button className="btn" title="Edit" onClick={() => startEdit(exp)}>✏</button>
+                          <button className="btn" title="Duplicate" onClick={() => duplicateExp(exp)}>⧉</button>
+                          {compareMode && (
+                            <button
+                              className={`btn${compareExpId === exp.id ? ' btn-active' : ''}`}
+                              title="Compare with this experiment"
+                              onClick={() => setCompareExpId(id => id === exp.id ? null : exp.id)}
+                            >⊞</button>
+                          )}
+                          <button className="btn danger" title="Delete" onClick={() => deleteFromQueue(exp.id)}>🗑</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="panel" style={{ marginTop: 12 }}>
+            <div className="section-title">Export / Import</div>
+            <div className="form-grid" style={{ marginBottom: 10 }}>
+              <label>Filename</label>
+              <input value={filename} onChange={e => setFilename(e.target.value)} placeholder="experiments" />
+            </div>
+            {error && <div className="error-msg" style={{ marginBottom: 8 }}>{error}</div>}
+            <div className="action-row">
+              <button className="btn primary" onClick={handleSave} disabled={saving || !queue.length}>
+                {saving ? '⏳ Saving…' : '⬇ Save .tpl'}
+              </button>
+              <button className="btn" onClick={() => loadRef.current?.click()}>
+                📂 Load .tpl
+              </button>
+              <input ref={loadRef} type="file" accept=".tpl,.json" style={{ display: 'none' }} onChange={handleLoad} />
+            </div>
+          </div>
+        </div>
+
+        {/* ─── Center: Compare Panel (when active) ────────────────── */}
+        {compareMode && (
+          <div className="eb-compare-col">
+            <div className="panel compare-panel">
+              <div className="section-title-row">
+                <span className="section-title" style={{ margin: 0, border: 0 }}>
+                  ⊞ Compare With
+                </span>
+                <button className="btn" style={{ fontSize: 10 }}
+                  onClick={() => { setCompareMode(false); setCompareExpId(null); }}>
+                  ✕ Close
+                </button>
+              </div>
+
+              <select
+                value={compareExpId ?? ''}
+                onChange={e => setCompareExpId(e.target.value ? Number(e.target.value) : null)}
+                style={{ width: '100%', marginTop: 6, marginBottom: 8 }}
+              >
+                <option value="">— select experiment —</option>
+                {queue.map(exp => (
+                  <option key={exp.id} value={exp.id}>{exp.name}</option>
+                ))}
+              </select>
+
+              {compareExp ? (
+                <>
+                  <div className="compare-exp-badge">{compareExp.name}</div>
+                  <div className="action-row" style={{ marginBottom: 8 }}>
+                    <button className="btn primary" onClick={copyAllFromCompare}
+                      title="Copy all fields from this experiment into the current form">
+                      ← Copy All to Form
+                    </button>
+                  </div>
+
+                  {Object.entries(sectionGroups).map(([section, fields]) => {
+                    const visibleFields = fields.filter(([key, cfg]) =>
+                      isFieldVisible(key, cfg, form, product, fieldEnableConfig));
+                    if (!visibleFields.length) return null;
+                    return (
+                      <div key={section} className="eb-section">
+                        <div className="eb-section-title">{section}</div>
+                        <div className="compare-grid">
+                          {visibleFields.map(([key]) => {
+                            const cmpVal = compareExp.fields[key] ?? '';
+                            const curVal = form[key] ?? '';
+                            const diff = cmpVal !== curVal;
+                            return (
+                              <React.Fragment key={key}>
+                                <label className={diff ? 'cmp-label-diff' : ''}>
+                                  {diff && <span className="cmp-dot" title="Differs from current form">●</span>}
+                                  {key}
+                                </label>
+                                <div className="compare-cell">
+                                  <span className={`compare-val${diff ? ' compare-val-diff' : ''}`}>
+                                    {cmpVal || '—'}
+                                  </span>
+                                  {diff && (
+                                    <button className="btn cmp-copy-btn" onClick={() => copyFromCompare(key)}
+                                      title={`Copy "${cmpVal}" → form`}>
+                                      ←
+                                    </button>
+                                  )}
+                                </div>
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
+              ) : (
+                <div style={{ color: '#858585', fontSize: 12 }}>
+                  Select an experiment to compare its fields with the current form.
+                  Differing fields will be highlighted; individual values can be copied to the form.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ─── Right: Product + Templates + Form ──────────────────── */}
+        <div className="eb-right">
           {/* Product selector */}
           <div className="panel">
             <div className="section-title">Product</div>
@@ -519,7 +696,8 @@ export default function ExperimentBuilder() {
               </div>
 
               {Object.entries(sectionGroups).map(([section, fields]) => {
-                const visibleFields = fields.filter(([, cfg]) => isFieldVisible(cfg, form));
+                const visibleFields = fields.filter(([key, cfg]) =>
+                  isFieldVisible(key, cfg, form, product, fieldEnableConfig));
                 if (!visibleFields.length) return null;
                 return (
                   <div key={section} className="eb-section">
@@ -527,10 +705,14 @@ export default function ExperimentBuilder() {
                     <div className="schema-form">
                       {visibleFields.map(([key, cfg]) => (
                         <React.Fragment key={key}>
-                          <label title={cfg.description ?? key}>
-                            {key}
-                            {cfg.required && <span style={{ color: '#f44747' }}>*</span>}
-                          </label>
+                          <div className="field-label-wrap">
+                            <span className="field-label-name">
+                              {key}{cfg.required && <span style={{ color: '#f44747' }}>*</span>}
+                            </span>
+                            {cfg.description && (
+                              <span className="field-desc">{cfg.description}</span>
+                            )}
+                          </div>
                           <div>
                             {renderField(key, cfg, form[key] ?? '', v => setField(key, v), form)}
                           </div>
@@ -543,7 +725,7 @@ export default function ExperimentBuilder() {
 
               <div className="action-row" style={{ marginTop: 12 }}>
                 <button className="btn primary" onClick={addToQueue}>
-                  {editId !== null ? '✏ Update' : '+ Add to Queue'}
+                  {editId !== null ? '✏ Update' : '+ Add to Experiments'}
                 </button>
                 {editId !== null && (
                   <button className="btn" onClick={cancelEdit}>Cancel Edit</button>
@@ -556,176 +738,6 @@ export default function ExperimentBuilder() {
               </div>
             </div>
           )}
-        </div>
-
-        {/* ─── Center: Compare Panel (when active) ────────────────── */}
-        {compareMode && (
-          <div>
-            <div className="panel compare-panel">
-              <div className="section-title-row">
-                <span className="section-title" style={{ margin: 0, border: 0 }}>
-                  ⊞ Compare With
-                </span>
-                <button className="btn" style={{ fontSize: 10 }}
-                  onClick={() => { setCompareMode(false); setCompareExpId(null); }}>
-                  ✕ Close
-                </button>
-              </div>
-
-              <select
-                value={compareExpId ?? ''}
-                onChange={e => setCompareExpId(e.target.value ? Number(e.target.value) : null)}
-                style={{ width: '100%', marginTop: 6, marginBottom: 8 }}
-              >
-                <option value="">— select experiment —</option>
-                {queue.map(exp => (
-                  <option key={exp.id} value={exp.id}>{exp.name}</option>
-                ))}
-              </select>
-
-              {compareExp ? (
-                <>
-                  <div className="compare-exp-badge">{compareExp.name}</div>
-                  <div className="action-row" style={{ marginBottom: 8 }}>
-                    <button className="btn primary" onClick={copyAllFromCompare}
-                      title="Copy all fields from this experiment into the current form">
-                      ← Copy All to Form
-                    </button>
-                  </div>
-
-                  {Object.entries(sectionGroups).map(([section, fields]) => {
-                    const visibleFields = fields.filter(([, cfg]) => isFieldVisible(cfg, form));
-                    if (!visibleFields.length) return null;
-                    return (
-                      <div key={section} className="eb-section">
-                        <div className="eb-section-title">{section}</div>
-                        <div className="compare-grid">
-                          {visibleFields.map(([key]) => {
-                            const cmpVal = compareExp.fields[key] ?? '';
-                            const curVal = form[key] ?? '';
-                            const diff = cmpVal !== curVal;
-                            return (
-                              <React.Fragment key={key}>
-                                <label className={diff ? 'cmp-label-diff' : ''}>
-                                  {diff && <span className="cmp-dot" title="Differs from current form">●</span>}
-                                  {key}
-                                </label>
-                                <div className="compare-cell">
-                                  <span className={`compare-val${diff ? ' compare-val-diff' : ''}`}>
-                                    {cmpVal || '—'}
-                                  </span>
-                                  {diff && (
-                                    <button className="btn cmp-copy-btn" onClick={() => copyFromCompare(key)}
-                                      title={`Copy "${cmpVal}" → form`}>
-                                      ←
-                                    </button>
-                                  )}
-                                </div>
-                              </React.Fragment>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </>
-              ) : (
-                <div style={{ color: '#858585', fontSize: 12 }}>
-                  Select an experiment from the queue to compare its fields with the current form.
-                  Differing fields will be highlighted; individual values can be copied to the form.
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ─── Right: Queue + Export ──────────────────────────────── */}
-        <div>
-          <div className="panel">
-            <div className="section-title-row">
-              <span className="section-title" style={{ margin: 0, border: 0 }}>
-                Queue ({queue.length})
-                {queue.some(e => e.dirty) && <span className="dirty-badge"> ●</span>}
-              </span>
-              <div className="action-row">
-                <button
-                  className={`btn${compareMode ? ' btn-active' : ''}`}
-                  onClick={() => setCompareMode(m => !m)}
-                  title="Toggle side-by-side compare view"
-                >
-                  ⊞ {compareMode ? 'Hide Compare' : 'Compare'}
-                </button>
-                <button className="btn" onClick={clearQueue} disabled={!queue.length}>🗑 Clear</button>
-              </div>
-            </div>
-
-            {queue.length === 0 ? (
-              <div style={{ color: '#858585', fontSize: 12, marginTop: 8 }}>
-                No experiments in queue. Add one from the form.
-              </div>
-            ) : (
-              <div className="queue-table-wrap">
-                <table className="queue-table">
-                  <thead>
-                    <tr><th>Experiment</th><th>Fields</th><th></th></tr>
-                  </thead>
-                  <tbody>
-                    {queue.map(exp => (
-                      <tr key={exp.id}
-                        className={[
-                          editId === exp.id ? 'row-editing' : '',
-                          compareExpId === exp.id ? 'row-comparing' : '',
-                        ].filter(Boolean).join(' ')}
-                      >
-                        <td className="q-name">
-                          {exp.name}
-                          {exp.dirty && <span className="dirty-badge" title="Has unsaved edits"> ●</span>}
-                        </td>
-                        <td className="q-fields">
-                          {Object.entries(exp.fields).slice(0, 3).map(([k, v]) => (
-                            <span key={k} className="field-tag">{k}={v}</span>
-                          ))}
-                          {Object.keys(exp.fields).length > 3 && (
-                            <span className="field-more">+{Object.keys(exp.fields).length - 3}</span>
-                          )}
-                        </td>
-                        <td className="q-actions">
-                          <button className="btn" title="Edit" onClick={() => startEdit(exp)}>✏</button>
-                          <button className="btn" title="Duplicate" onClick={() => duplicateExp(exp)}>⧉</button>
-                          {compareMode && (
-                            <button
-                              className={`btn${compareExpId === exp.id ? ' btn-active' : ''}`}
-                              title="Compare with this experiment"
-                              onClick={() => setCompareExpId(id => id === exp.id ? null : exp.id)}
-                            >⊞</button>
-                          )}
-                          <button className="btn danger" title="Delete" onClick={() => deleteFromQueue(exp.id)}>🗑</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          <div className="panel" style={{ marginTop: 12 }}>
-            <div className="section-title">Export / Import</div>
-            <div className="form-grid" style={{ marginBottom: 10 }}>
-              <label>Filename</label>
-              <input value={filename} onChange={e => setFilename(e.target.value)} placeholder="experiments" />
-            </div>
-            {error && <div className="error-msg" style={{ marginBottom: 8 }}>{error}</div>}
-            <div className="action-row">
-              <button className="btn primary" onClick={handleSave} disabled={saving || !queue.length}>
-                {saving ? '⏳ Saving…' : '⬇ Save .tpl'}
-              </button>
-              <button className="btn" onClick={() => loadRef.current?.click()}>
-                📂 Load .tpl
-              </button>
-              <input ref={loadRef} type="file" accept=".tpl,.json" style={{ display: 'none' }} onChange={handleLoad} />
-            </div>
-          </div>
         </div>
 
       </div>

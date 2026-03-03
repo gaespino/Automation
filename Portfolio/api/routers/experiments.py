@@ -53,7 +53,13 @@ async def get_config(product: str):
 
     # Support both formats: {"field_configs": {...}} and flat {"key": value}
     field_configs = raw.get("field_configs", raw)
-    return {"product": product.upper(), "config": raw, "field_configs": field_configs}
+    field_enable_config = raw.get("field_enable_config", {})
+    return {
+        "product": product.upper(),
+        "config": raw,
+        "field_configs": field_configs,
+        "field_enable_config": field_enable_config,
+    }
 
 
 class ExperimentBuildRequest(BaseModel):
