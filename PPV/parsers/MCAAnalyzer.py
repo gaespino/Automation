@@ -21,6 +21,12 @@ Physical → Logical conversion (ip_map offset):
   where block_size = (items_per_compute) + offset  (e.g. 60+4=64 for GNR cores).
 
 Supports: GNR, CWF (same layout as GNR), DMR (placeholder)
+
+Per-product configuration is stored in PPV/analysis/{product}/:
+  ip_map.json        – IP translation / port-offset table
+  layout.json        – Compute/Row/Col position for each logical instance id
+  scoring_config.json – score_compute / score_row / score_col weights used
+                        when ranking candidate failing locations
 """
 
 import json
@@ -107,25 +113,39 @@ class MCAAnalyzer:
 	result['rev_units'] → intermediate REV_Units DataFrame
 	"""
 
-	def __init__(self, product='GNR', layout_file=None, ip_map_file=None):
-		self.product = product.upper()
-		base_dir = Path(__file__).parent.parent / 'analysis'
+	def __init__(self, product='GNR', layout_file=None, ip_map_file=None, config_file=None):
+		self.product  = product.upper()
+		base_dir      = Path(__file__).parent.parent / 'analysis'
+		product_dir   = base_dir / self.product
 
+		# Load per-product scoring config (score weights for Compute/Row/Col selection)
+		_cfg_path = config_file or product_dir / 'scoring_config.json'
+		_cfg = _load_json(_cfg_path)
+		self.score_compute = _cfg.get('score_compute', 1)
+		self.score_row     = _cfg.get('score_row',     2)
+		self.score_col     = _cfg.get('score_col',     4)
+
+		# Layout: prefer product subfolder layout.json, fall back to root GNR files
 		if layout_file:
 			self.layout = _load_json(layout_file)
+		elif (product_dir / 'layout.json').exists():
+			self.layout = _load_json(product_dir / 'layout.json')
 		elif self.product in _GNR_LAYOUT_PRODUCTS:
 			self.layout = _load_json(base_dir / 'GNR_layout.json')
 		elif self.product in _DMR_PRODUCTS:
-			self.layout = {}           # DMR placeholder
+			self.layout = {}
 		else:
 			self.layout = _load_json(base_dir / 'GNR_layout.json')
 
+		# IP map: prefer product subfolder ip_map.json, fall back to root GNR files
 		if ip_map_file:
 			self.ip_map = _load_json(ip_map_file)
+		elif (product_dir / 'ip_map.json').exists():
+			self.ip_map = _load_json(product_dir / 'ip_map.json')
 		elif self.product in _GNR_LAYOUT_PRODUCTS:
 			self.ip_map = _load_json(base_dir / 'GNR_ip_map.json')
 		elif self.product in _DMR_PRODUCTS:
-			self.ip_map = {}           # DMR placeholder
+			self.ip_map = {}
 		else:
 			self.ip_map = _load_json(base_dir / 'GNR_ip_map.json')
 
