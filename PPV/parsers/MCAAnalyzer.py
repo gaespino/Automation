@@ -685,10 +685,14 @@ class MCAAnalyzer:
 		"""
 		Build per-VisualID "Other Errors" string.
 
-		Source: UBOX IERRLOGGINGREG FirstError - Location rows whose ip_translate
-		is NOT CORE / CHA / LLC.  These are PUNIT, UPI, CMS, SBO, etc.
+		Source: UBOX FirstError - Location rows (both MCERRLOGGINGREG and
+		IERRLOGGINGREG) whose ip_translate is NOT CORE / CHA / LLC.
+		Examples: PUNIT, B2CMI, MSE, CMS, SBO, UBOX, …
 
-		Returns dict {visual_id: "PUNIT:EPRPUNIT1, UPI:PCIE6, …"}
+		PUNIT/UBOX appear in IERR rows; B2CMI/MSE/CMS/SBO appear in MCERR rows.
+		Both register types are scanned so no IP class is missed.
+
+		Returns dict {visual_id: "PUNIT:EPRPUNIT1, B2CMI:DDRFMB6, …"}
 		"""
 		other = {}
 		if firsterr_df.empty:
@@ -696,16 +700,14 @@ class MCAAnalyzer:
 
 		vid_col = 'VisualID' if 'VisualID' in firsterr_df.columns else 'VisualId'
 		loc_col = 'FirstError - Location'
-		nce_col = 'NCEVENT'
 
 		if loc_col not in firsterr_df.columns:
 			return other
 
 		for vid in firsterr_df[vid_col].dropna().unique():
 			sub = firsterr_df[firsterr_df[vid_col] == vid]
-			# Use IERR register: it captures the hardware-internal first error
-			if nce_col in sub.columns:
-				sub = sub[sub[nce_col].str.contains(_IERR_LABEL, na=False)]
+			# Scan ALL rows (both IERR and MCERR): each IP class appears in
+			# exactly one register type per ip_translation.json failing_ips.
 
 			seen      = {}     # display → count
 			for loc in sub[loc_col].dropna():
@@ -730,7 +732,7 @@ class MCAAnalyzer:
 
 			if debug and other_str:
 				print(f"\n[OtherErr] VID={vid}: {other_str}"
-					  f"  (IERR counts: {seen})")
+					  f"  (counts: {seen})")
 
 		return other
 

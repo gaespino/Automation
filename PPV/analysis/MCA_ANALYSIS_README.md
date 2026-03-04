@@ -155,9 +155,16 @@ Maps the translated IP category to which register type it appears in.
 | `PUNIT`       | `IERRLOGGINGREG`   | Internal Error register      |
 | `UBOX`        | `IERRLOGGINGREG`   | Internal Error register      |
 
-This table drives the **IERR gate** logic: when the dominant first error is an
-`IERRLOGGINGREG` entry (e.g. PUNIT), Core MCAs are treated as cascade effects and
-`Core Hint` is forced to `NotFound`.
+This table has two purposes:
+
+1. **IERR gate** — when the dominant first error is an `IERRLOGGINGREG` entry
+   (e.g. PUNIT), Core MCAs are treated as cascade effects and `Core Hint` is
+   forced to `NotFound`.
+2. **Other Errors scanning** — `_build_other_errors` scans **both** MCERR and
+   IERR rows.  IPs that appear only in MCERR rows (B2CMI, MSE, CMS, SBO) are
+   captured because the IERR-only filter was removed.  CORE/CHA/LLC entries
+   that appear in MCERR are still excluded by the `is_core`/`is_cha`/`is_llc`
+   guard, so there is no double-counting.
 
 ---
 
@@ -487,14 +494,18 @@ When a new IP register array (e.g. UPI, PCIe) becomes available in the decoded d
    "upipxp": { "translate": "UPI", "offset": 0 }
    ```
 
-3. **`ip_translation.json → failing_ips`** — add the translated label and its register type:
+3. **`ip_translation.json → failing_ips`** — add the translated label and its register type.
+   Use `"MCERRLOGGINGREG"` for memory-bus IPs (B2CMI, MSE, CMS, SBO) and
+   `"IERRLOGGINGREG"` for internal-error IPs (PUNIT, UBOX, UPI):
    ```json
    "UPI": "IERRLOGGINGREG"
    ```
 
-4. **`MCAAnalyzer.py`** — if UPI needs to influence the `Core Hint = NotFound` gate (IERR
-   gate), the new IP must resolve to `IERRLOGGINGREG` in `failing_ips`.  No other code change
-   is required.
+4. **`MCAAnalyzer.py`** — no code change is needed.  `_build_other_errors` now
+   scans both IERR and MCERR rows, so any non-CORE/CHA/LLC IP will be captured
+   regardless of which register it appears in.  If the new IP should also trigger
+   the `Core Hint = NotFound` gate, it must map to `IERRLOGGINGREG` in
+   `failing_ips`.
 
 5. **`priority_rules.json`** — add a rule if the new IP needs custom priority:
    ```json
