@@ -1,0 +1,20 @@
+{
+  "description": "Root Cause and Debug Hints priority rules for GNR. Rules are evaluated in order; the first matching rule overrides the default priority. Each priority list is ordered highest-priority first.",
+
+  "default_root_cause_order" : ["other", "cha", "llc", "core"],
+  "default_debug_hints_order": ["other", "cha", "llc", "core"],
+
+  "rules": [
+    {
+      "name": "PortIn nuisance",
+      "description": "When Top OrigReq is PortIn and a CHA Hint is available with a SrcID, the CHA error is a nuisance side-effect. Demote CHA below Core so the Core failure is surfaced as the primary root cause.",
+      "condition": {
+        "top_origreq_equals" : "PortIn",
+        "cha_hint_present"   : true,
+        "srcid_present"      : true
+      },
+      "override_root_cause_order" : ["other", "llc", "core", "cha"],
+      "override_debug_hints_order": ["other", "llc", "core", "cha"]
+    }
+  ]
+}

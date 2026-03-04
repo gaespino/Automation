@@ -1,0 +1,8 @@
+{
+  "description": "Root Cause and Debug Hints priority rules for DMR. Add product-specific rules as DMR data becomes available.",
+
+  "default_root_cause_order" : ["other", "cha", "llc", "core"],
+  "default_debug_hints_order": ["other", "cha", "llc", "core"],
+
+  "rules": []
+}

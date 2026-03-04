@@ -155,6 +155,13 @@ class MCAAnalyzer:
 		# can extend ip_translation.json with missing entries.
 		self._translation_misses: set = set()
 
+		# Load root-cause / debug-hints priority rules
+		_rules_path = product_dir / 'priority_rules.json'
+		_rules_data = _load_json(_rules_path)
+		self._default_rc_order  = _rules_data.get('default_root_cause_order',  ['other', 'cha', 'llc', 'core'])
+		self._default_dh_order  = _rules_data.get('default_debug_hints_order', ['other', 'cha', 'llc', 'core'])
+		self._priority_rules    = _rules_data.get('rules', [])
+
 	# =========================================================================
 	# Public API
 	# =========================================================================
@@ -831,6 +838,53 @@ class MCAAnalyzer:
 	# Analysis / Summary DataFrame
 	# =========================================================================
 
+	def _resolve_priority_order(self, context):
+		"""
+		Evaluate priority_rules.json rules against the per-row context dict and
+		return (rc_order, dh_order) — the ordered lists of IP-category tokens
+		('other', 'cha', 'llc', 'core') to use for Root Cause and Debug Hints.
+
+		Rules are evaluated in declaration order; the first matching rule wins.
+		If no rule matches, the default orders from the config are returned.
+
+		Context keys used by condition evaluators
+		------------------------------------------
+		top_origreq  : str   – value of 'Top OrigReq' for this row
+		cha_present  : bool  – True when CHA Hint != 'NotFound'
+		srcid_present: bool  – True when SrcIDs != 'NotFound'
+		llc_present  : bool  – True when LLC Hint != 'NotFound'
+		core_present : bool  – True when Core Hint != 'NotFound'
+		other_present: bool  – True when Other is non-empty
+		"""
+		# Map each condition key → context lookup key
+		_bool_conditions = {
+			'cha_hint_present' : 'cha_present',
+			'srcid_present'    : 'srcid_present',
+			'llc_hint_present' : 'llc_present',
+			'core_hint_present': 'core_present',
+			'other_present'    : 'other_present',
+		}
+
+		for rule in self._priority_rules:
+			cond = rule.get('condition', {})
+
+			# String equality check
+			if cond.get('top_origreq_equals') is not None:
+				if context.get('top_origreq', '') != cond['top_origreq_equals']:
+					continue
+
+			# Boolean presence checks
+			if all(
+				context.get(ctx_key, False) == cond[cond_key]
+				for cond_key, ctx_key in _bool_conditions.items()
+				if cond_key in cond
+			):
+				rc_order = rule.get('override_root_cause_order',  self._default_rc_order)
+				dh_order = rule.get('override_debug_hints_order', self._default_dh_order)
+				return rc_order, dh_order
+
+		return self._default_rc_order, self._default_dh_order
+
 	def _build_analysis(self, rev_units, ppv_df=None):
 		"""
 		Build the final Analysis/Summary DataFrame that replicates the
@@ -844,10 +898,10 @@ class MCAAnalyzer:
 		  Core Next Steps, CHA Next Steps, LLC Next Steps,
 		  Other Next Steps, Debug Hints, Failing Area
 
-		Root Cause priority  : Other > CHA Hint > LLC Hint > Core Hint
-		                       (returns the specific IP instance, e.g. 'PUNIT:EPRPUNIT1', 'CHA134', 'CORE45')
-		Debug Hints priority : Other Next Steps > CHA Next Steps > LLC Next Steps > Core Next Steps
-		                       (first non-empty next-step string)
+		Root Cause and Debug Hints are determined by evaluating the rules
+		defined in priority_rules.json for the product. The first matching
+		rule's priority order is used; if no rule matches, the configured
+		default order is applied.
 		"""
 		if rev_units.empty:
 			return pd.DataFrame()
@@ -895,18 +949,32 @@ class MCAAnalyzer:
 			top_locport  = ru.get('Top SAD LocPort','')
 			core_mcas    = ru.get('Core MCAs',      '')
 
-			# Root Cause – specific IP instance with priority:
-			# Others (non-CORE/CHA/LLC) > CHA > LLC > CORE
-			if other:
-				root_cause = other
-			elif cha_hint != 'NotFound':
-				root_cause = cha_hint
-			elif llc_hint != 'NotFound':
-				root_cause = llc_hint
-			elif core_hint != 'NotFound':
-				root_cause = core_hint
-			else:
-				root_cause = ''
+			# Resolve priority orders via configurable rules
+			_ctx = {
+				'top_origreq'  : top_origreq,
+				'cha_present'  : cha_hint  != 'NotFound',
+				'llc_present'  : llc_hint  != 'NotFound',
+				'core_present' : core_hint != 'NotFound',
+				'srcid_present': srcids    != 'NotFound',
+				'other_present': bool(other),
+			}
+			rc_order, dh_order = self._resolve_priority_order(_ctx)
+
+			# Map category token → (value, is_present)
+			_rc_map = {
+				'other': (other,     bool(other)),
+				'cha'  : (cha_hint,  cha_hint  != 'NotFound'),
+				'llc'  : (llc_hint,  llc_hint  != 'NotFound'),
+				'core' : (core_hint, core_hint != 'NotFound'),
+			}
+
+			# Root Cause – first present entry in the resolved priority order
+			root_cause = ''
+			for token in rc_order:
+				val, present = _rc_map.get(token, ('', False))
+				if present:
+					root_cause = val
+					break
 
 			# Next Steps
 			core_next = (f"Disable CORE: {core_hint} - MCAs: {core_mcas}"
@@ -921,13 +989,25 @@ class MCAAnalyzer:
 			else:
 				cha_next = ''
 
-			llc_next       = (f"Disable LLC: {llc_hint}" if llc_hint != 'NotFound' else '')
-			other_next     = (f"Defeature: {other}  -- Check CORE or CHA MCAs for more data."
-							  if other else '')
+			llc_next   = (f"Disable LLC: {llc_hint}" if llc_hint != 'NotFound' else '')
+			other_next = (f"Defeature: {other}  -- Check CORE or CHA MCAs for more data."
+						  if other else '')
 
-			# Debug Hints – first non-empty next step with priority:
-			# Other Next Steps > CHA Next Steps > LLC Next Steps > Core Next Steps
-			debug_hints = other_next or cha_next or llc_next or core_next
+			# Map category token → next-step string
+			_dh_map = {
+				'other': other_next,
+				'cha'  : cha_next,
+				'llc'  : llc_next,
+				'core' : core_next,
+			}
+
+			# Debug Hints – first non-empty next-step in the resolved priority order
+			debug_hints = ''
+			for token in dh_order:
+				val = _dh_map.get(token, '')
+				if val:
+					debug_hints = val
+					break
 
 			fail_parts = []
 			if core_area:
