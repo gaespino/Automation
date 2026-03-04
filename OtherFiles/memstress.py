@@ -508,7 +508,7 @@ def validate_memory_integrity(addr_list, threads, test_pattern=0xDEADBEEFDEADBEE
     return failures
 
 
-def run_memory_stress(addr_start, addr_end, addr_step=0x40,
+def run_memory_stress(addr_start=None, addr_end=None, addr_step=0x40,
                      patterns=None, iterations=100,
                      operation='write', socket=0, num_threads=None,
                      verify=False, use_wbinvd=False, randomize=False,
@@ -517,14 +517,18 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
                      log_to_csv=True, csv_filename=None,
                      race_tolerant=True, pre_post_validation=False,
                      deterministic=False, track_last_writer=False,
-                     use_excel=True, use_txt=False, data_size=8):
+                     use_excel=True, use_txt=False, data_size=8,
+                     addr_list=None):
     """
     Run memory stress test across multiple threads.
 
     Args:
-        addr_start: Starting address (hex or int)
-        addr_end: Ending address (hex or int)
-        addr_step: Address stride/step size (default 0x40 = 64 bytes, cache line size)
+        addr_start: Starting address (hex or int). Not required if addr_list is provided.
+        addr_end: Ending address (hex or int). Not required if addr_list is provided.
+        addr_step: Address stride/step size (default 0x40 = 64 bytes, cache line size).
+                  Ignored if addr_list is provided.
+        addr_list: Optional explicit list of addresses to stress (e.g. from MC_ADDR error logs).
+                  When provided, addr_start/addr_end/addr_step/cha_stress_mode are ignored.
         patterns: List of 64-bit patterns to use (default: DEFAULT_PATTERNS)
         iterations: Number of iterations per thread (default: 100)
         operation: Type of operation - 'write', 'add', 'xor', 'multiply', 'rotate',
@@ -561,6 +565,10 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
     if patterns is None:
         patterns = DEFAULT_PATTERNS
 
+    # Validate address inputs
+    if addr_list is None and (addr_start is None or addr_end is None):
+        raise ValueError("Must provide either addr_list or both addr_start and addr_end.")
+
     # Validate parameters
     if operation not in OPERATIONS:
         raise ValueError(f"Unknown operation '{operation}'. Valid operations: {list(OPERATIONS.keys())}")
@@ -586,8 +594,18 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
 
     num_threads_actual = len(threads_list)
 
-    # Build address list using CHA stress mode if specified
-    if cha_stress_mode and cha_stress_mode in CHA_STRESS_MODES:
+    # Build address list: use provided list, CHA mode, or sequential range
+    if addr_list is not None:
+        # Use caller-supplied address list directly (e.g. from error logs)
+        addr_list = [int(a, 16) if isinstance(a, str) else a for a in addr_list]
+        if verbose:
+            print(f"Using explicit address list: {len(addr_list):,} addresses")
+        # Derive addr_start/addr_end from the list for reporting purposes
+        if addr_start is None:
+            addr_start = min(addr_list)
+        if addr_end is None:
+            addr_end = max(addr_list)
+    elif cha_stress_mode and cha_stress_mode in CHA_STRESS_MODES:
         if verbose:
             print(f"Using CHA stress mode: {cha_stress_mode} - {CHA_STRESS_MODES[cha_stress_mode]}")
         addr_list = generate_cha_stress_addresses(addr_start, addr_end, addr_step, cha_stress_mode)
@@ -620,8 +638,12 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
     if verbose:
         print(f"\n{'='*60}")
         print(f"Memory Stress Configuration:")
-        print(f"  Address Range: {hex(addr_start)} to {hex(addr_end)}")
-        print(f"  Address Step: {hex(addr_step)} ({addr_step} bytes)")
+        if addr_list is not None and total_addresses != (addr_end - addr_start) // addr_step:
+            print(f"  Address List: {total_addresses:,} explicit addresses")
+            print(f"  Address Range: {hex(addr_start)} to {hex(addr_end)} (observed span)")
+        else:
+            print(f"  Address Range: {hex(addr_start)} to {hex(addr_end)}")
+            print(f"  Address Step: {hex(addr_step)} ({addr_step} bytes)")
         print(f"  Total Addresses: {total_addresses:,}")
         print(f"  Memory Range: {(addr_end - addr_start) / (1024**3):.2f} GB")
         print(f"  Operation: {operation} - {OPERATIONS[operation]}")
@@ -782,7 +804,7 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
         'config': {
             'addr_start': hex(addr_start),
             'addr_end': hex(addr_end),
-            'addr_step': hex(addr_step),
+            'addr_step': 'explicit list' if (addr_list is not None and total_addresses != (addr_end - addr_start) // addr_step) else hex(addr_step),
             'total_addresses': total_addresses,
             'memory_range_gb': (addr_end - addr_start) / (1024**3),
             'operation': operation,
