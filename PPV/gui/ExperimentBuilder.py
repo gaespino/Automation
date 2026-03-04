@@ -2083,7 +2083,8 @@ class ExperimentBuilderGUI:
         sections = {
             'Basic Information': ['Experiment', 'Test Name', 'Test Mode', 'Test Type'],
             'Advanced Configuration': ['Configuration (Mask)', 'Boot Breakpoint', 'Pseudo Config',
-                                      'Disable 2 Cores', 'Disable 1 Core', 'Check Core', 'Temperature SP', 'Stop on Fail',
+                                      'Disable 2 Cores', 'Disable 1 Core', 'Check Core',
+                                      'Core Disable List', 'Slice Disable List', 'Temperature SP', 'Stop on Fail',
                                       'Fuse File', 'Bios File'],
             'Test Configuration': ['TTL Folder', 'Scripts File', 'Post Process', 'Pass String',
                                   'Fail String', 'Test Number', 'Test Time', 'Loops', 'Reset',

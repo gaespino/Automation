@@ -17,11 +17,11 @@ from fastapi.responses import StreamingResponse
 router = APIRouter()
 
 
-def _backend():
-    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+def _merger_module():
+    here = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, here)
-    from THRTools.utils.PPVReportMerger import PPVReportMerger  # type: ignore
-    return PPVReportMerger
+    import THRTools.utils.PPVReportMerger as pm  # type: ignore
+    return pm
 
 
 @router.post("/merge")
@@ -40,8 +40,8 @@ async def files_merge(
 
         out = os.path.join(tmpdir, f"{output_name}.xlsx")
         try:
-            merger = _backend()()
-            merger.merge_excel_files(tmpdir, out, prefix=prefix or None)
+            pm = _merger_module()
+            pm.merge_excel_files(tmpdir, out, prefix=prefix or '')
             with open(out, "rb") as fh:
                 result = fh.read()
         except Exception:
@@ -71,8 +71,8 @@ async def files_append(
 
         sheet_list = [s.strip() for s in sheets.split(",") if s.strip()] or None
         try:
-            merger = _backend()()
-            merger.append_excel_tables(src_path, tgt_path, sheet_names=sheet_list)
+            pm = _merger_module()
+            pm.append_excel_tables(src_path, tgt_path, sheet_names=sheet_list)
             with open(tgt_path, "rb") as fh:
                 result = fh.read()
         except Exception:

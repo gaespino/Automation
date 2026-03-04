@@ -79,14 +79,16 @@ _DIST = Path(__file__).parent.parent / "thr_ui" / "dist"
 if _DIST.exists():
     app.mount("/thr/assets", StaticFiles(directory=str(_DIST / "assets")), name="thr_assets")
 
+    _NO_CACHE = {"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache"}
+
     @app.get("/thr/{full_path:path}", include_in_schema=False)
     async def serve_react(full_path: str):
         index = _DIST / "index.html"
-        return FileResponse(str(index))
+        return FileResponse(str(index), headers=_NO_CACHE)
 
     @app.get("/thr", include_in_schema=False)
     async def serve_react_root():
-        return FileResponse(str(_DIST / "index.html"))
+        return FileResponse(str(_DIST / "index.html"), headers=_NO_CACHE)
 else:
     logger.warning(
         "React build not found at %s — run `npm run build` inside thr_ui/ to enable the UI", _DIST
