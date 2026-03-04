@@ -3,7 +3,7 @@ MCAAnalyzer - Replicates MCA Analysis Excel functionality in Python
 
 Replicates the Analysis, REV_Units, RevCHACount, RevCoreCount, RevLLCCount
 and OtherErrors Excel sheet logic using the decoded MCA data and product
-IP map / layout configuration files.
+IP translation / layout configuration files.
 
 Algorithm for identifying the failing instance (CORE / CHA / LLC / Other):
   1. Count ML2/MCA register occurrences per instance (same as Excel Rev*Count arrays).
@@ -11,30 +11,30 @@ Algorithm for identifying the failing instance (CORE / CHA / LLC / Other):
   3. If there is a TIE in the count → fall back to the UBOX FirstError count array:
        the UBOX MCERRLOGGINGREG / IERRLOGGINGREG records which portid fired first
        in each run.  The most-frequent FirstError portid (after physical→logical
-       instance conversion via the ip_map offset) breaks the tie.
+       instance conversion via the device offset) breaks the tie.
   4. Non-CORE/CHA/LLC first errors (PUNIT, UPI, …) become "Other Errors".
 
-Physical → Logical conversion (ip_map offset):
+Physical → Logical conversion (device offset):
   Some IP types have a per-compute-tile offset in their portid numbering.
-  For GNR core_coregp (offset=4):
+  For GNR cpucore (offset=4):
     logical = physical - (physical // block_size) * offset
   where block_size = (items_per_compute) + offset  (e.g. 60+4=64 for GNR cores).
 
 Supports: GNR, CWF (same layout as GNR), DMR (placeholder)
 
 Per-product configuration is stored in PPV/analysis/{product}/:
-  ip_map.json           – IP translation / port-offset table (legacy; still loaded)
-  layout.json           – Compute/Row/Col position for each logical instance id
-  scoring_config.json   – score_compute / score_row / score_col weights used
-                          when ranking candidate failing locations
-  firsterror_ip.csv     – FirstError IP → Translate lookup table
-  firsterror_device.csv – FirstError Device → Translate + offset lookup table
-  failing_ips.csv       – Failing IPS → register type (MCERRLOGGINGREG/IERRLOGGINGREG)
+  ip_translation.json – consolidated IP translation config with three sections:
+    "firsterror_ip"     : {ip_key → translate}
+    "firsterror_device" : {device_key → {"translate": str, "offset": int}}
+    "failing_ips"       : {ip_translate → register_type}
+  layout.json         – Compute/Row/Col position for each logical instance id
+  scoring_config.json – score_compute / score_row / score_col weights used
+                        when ranking candidate failing locations
 
 Translation fallback:
-  When an ip_key or device_key is not found in the CSV lookup tables:
-  - The raw key value is used as-is (uppercase for IP, uppercase for device)
-  - A WARNING is printed so the missing entry can be added to the CSV
+  When an ip_key or device_key is not found in ip_translation.json:
+  - The raw key value is used as-is (uppercase)
+  - A WARNING is printed once per unknown key so the entry can be added to the JSON
 """
 
 import json
@@ -49,7 +49,7 @@ _GNR_LAYOUT_PRODUCTS = {'GNR', 'CWF'}
 # DMR placeholder flag
 _DMR_PRODUCTS = {'DMR'}
 
-# ip_map[ip_key][1] values that map to CORE / CHA / LLC
+# ip_translation "firsterror_ip" values that map to CORE / CHA / LLC
 _CORE_TRANSLATE = {'CORE'}
 _CHA_TRANSLATE  = {'CHA', 'SCF'}
 _LLC_TRANSLATE  = {'LLC', 'SCF_LLC'}
@@ -57,25 +57,6 @@ _LLC_TRANSLATE  = {'LLC', 'SCF_LLC'}
 # NCEVENT substrings used to select IERR vs MCERR rows in the UBOX DataFrame
 _IERR_LABEL  = 'IERRLOGGINGREG'
 _MCERR_LABEL = 'MCERRLOGGINGREG'
-
-# ip_map entry field indices (list structure is fixed by GNR_ip_map.json schema)
-_IPMAP_IDX_TRANSLATE = 1   # human-readable IP type name (e.g. 'CORE', 'PUNIT')
-_IPMAP_IDX_OFFSET    = 7   # per-compute-tile port-numbering offset (int)
-
-
-def _ipmap_translate(entry, fallback=''):
-	"""Return the IP translate string from an ip_map entry list."""
-	if entry and len(entry) > _IPMAP_IDX_TRANSLATE and entry[_IPMAP_IDX_TRANSLATE]:
-		return entry[_IPMAP_IDX_TRANSLATE]
-	return fallback
-
-
-def _ipmap_offset(entry):
-	"""Return the per-compute offset integer from an ip_map entry list (0 if absent)."""
-	if (entry and len(entry) > _IPMAP_IDX_OFFSET
-			and isinstance(entry[_IPMAP_IDX_OFFSET], int)):
-		return entry[_IPMAP_IDX_OFFSET]
-	return 0
 
 
 def _load_json(path):
@@ -87,45 +68,20 @@ def _load_json(path):
 		return {}
 
 
-def _load_csv_lookup(path, key_col, val_col):
+def _load_ip_translation(path):
 	"""
-	Load a two-column CSV into a {key: value} dict.
-	Returns empty dict if the file is missing or malformed.
+	Load ip_translation.json.  Returns a dict with keys:
+	  'firsterror_ip'     : {ip_key: translate_str}
+	  'firsterror_device' : {device_key: {'translate': str, 'offset': int}}
+	  'failing_ips'       : {ip_translate: register_type_str}
+	Returns empty sub-dicts on failure.
 	"""
-	try:
-		df = pd.read_csv(path)
-		df.columns = [c.strip() for c in df.columns]
-		if key_col not in df.columns or val_col not in df.columns:
-			return {}
-		df = df.dropna(subset=[key_col, val_col])
-		return dict(zip(df[key_col].astype(str).str.strip(),
-		                df[val_col].astype(str).str.strip()))
-	except Exception:
-		return {}
-
-
-def _load_csv_device_lookup(path):
-	"""
-	Load firsterror_device.csv into {device_key: {'translate': str, 'offset': int}}.
-	Returns empty dict if the file is missing or malformed.
-	"""
-	try:
-		df = pd.read_csv(path)
-		df.columns = [c.strip() for c in df.columns]
-		df = df.dropna(subset=['FirstError Device'])
-		result = {}
-		for _, row in df.iterrows():
-			key = str(row.get('FirstError Device', '')).strip()
-			if not key:
-				continue
-			offset_raw = pd.to_numeric(row.get('offset', 0), errors='coerce')
-			result[key] = {
-				'translate': str(row.get('Translate', key)).strip(),
-				'offset'   : int(offset_raw) if pd.notna(offset_raw) else 0,
-			}
-		return result
-	except Exception:
-		return {}
+	data = _load_json(path)
+	return {
+		'firsterror_ip'    : data.get('firsterror_ip',     {}),
+		'firsterror_device': data.get('firsterror_device', {}),
+		'failing_ips'      : data.get('failing_ips',       {}),
+	}
 
 
 def _compute_location(instance_id, layout):
@@ -162,7 +118,7 @@ class MCAAnalyzer:
 	result['rev_units'] → intermediate REV_Units DataFrame
 	"""
 
-	def __init__(self, product='GNR', layout_file=None, ip_map_file=None, config_file=None):
+	def __init__(self, product='GNR', layout_file=None, config_file=None):
 		self.product  = product.upper()
 		base_dir      = Path(__file__).parent.parent / 'analysis'
 		product_dir   = base_dir / self.product
@@ -186,31 +142,17 @@ class MCAAnalyzer:
 		else:
 			self.layout = _load_json(base_dir / 'GNR_layout.json')
 
-		# IP map: prefer product subfolder ip_map.json, fall back to root GNR files
-		if ip_map_file:
-			self.ip_map = _load_json(ip_map_file)
-		elif (product_dir / 'ip_map.json').exists():
-			self.ip_map = _load_json(product_dir / 'ip_map.json')
-		elif self.product in _GNR_LAYOUT_PRODUCTS:
-			self.ip_map = _load_json(base_dir / 'GNR_ip_map.json')
-		elif self.product in _DMR_PRODUCTS:
-			self.ip_map = {}
-		else:
-			self.ip_map = _load_json(base_dir / 'GNR_ip_map.json')
-
-		# Pre-compute block_size per ip_key (for physical→logical conversion)
+		# Pre-compute block_size cache (for physical→logical conversion)
 		self._block_size_cache = {}
 
-		# Load CSV lookup tables (with graceful fallback to empty dicts)
-		self.firsterror_ip_map     = _load_csv_lookup(
-			product_dir / 'firsterror_ip.csv', 'FirstError IP', 'Translate')
-		self.firsterror_device_map = _load_csv_device_lookup(
-			product_dir / 'firsterror_device.csv')
-		self.failing_ips_map       = _load_csv_lookup(
-			product_dir / 'failing_ips.csv', 'Failing IPS', 'Type')
+		# Load consolidated IP translation config from ip_translation.json
+		_trans = _load_ip_translation(product_dir / 'ip_translation.json')
+		self.firsterror_ip_map     = _trans['firsterror_ip']
+		self.firsterror_device_map = _trans['firsterror_device']
+		self.failing_ips_map       = _trans['failing_ips']
 
-		# Track keys that were not found in the CSV tables so the caller can
-		# extend the config files with missing entries.
+		# Track keys that were not found in the translation config so the caller
+		# can extend ip_translation.json with missing entries.
 		self._translation_misses: set = set()
 
 	# =========================================================================
@@ -270,23 +212,6 @@ class MCAAnalyzer:
 	# Physical → Logical instance conversion helpers
 	# =========================================================================
 
-	def _get_block_size(self, ip_key):
-		"""
-		Return the physical port block-size for ip_key (using ip_map offset).
-
-		block_size = items_per_compute + offset
-		For GNR core_coregp:  60 + 4 = 64
-		For ip types with offset=0: block_size is irrelevant (returns 1).
-		"""
-		if ip_key in self._block_size_cache:
-			return self._block_size_cache[ip_key]
-
-		entry  = self.ip_map.get(ip_key)
-		offset = _ipmap_offset(entry)
-		bs = self._block_size_for_offset(offset)
-		self._block_size_cache[ip_key] = bs
-		return bs
-
 	def _block_size_for_offset(self, offset):
 		"""
 		Return block_size = items_per_compute + offset, derived from the layout.
@@ -303,37 +228,10 @@ class MCAAnalyzer:
 			return len(self.layout) // n_computes + offset
 		return 64  # GNR fallback
 
-	def _physical_to_logical(self, physical_str, ip_key):
-		"""
-		Convert a physical portid instance number to a logical instance number
-		using the ip_map-based offset for ip_key.
-
-		Formula:
-		    compute_idx = physical // block_size
-		    logical     = physical - compute_idx * offset
-
-		Example (GNR CORE, offset=4, block_size=64):
-		    cpucore.148  →  148 // 64 = 2  →  148 - 2*4 = 140  →  CORE140
-		    cpucore.102  →  102 // 64 = 1  →  102 - 1*4 = 98   →  CORE98
-		"""
-		try:
-			physical = int(physical_str)
-		except (ValueError, TypeError):
-			return 0
-
-		entry  = self.ip_map.get(ip_key)
-		offset = _ipmap_offset(entry)
-		if offset == 0:
-			return physical
-
-		block_size  = self._get_block_size(ip_key)
-		compute_idx = physical // block_size
-		return physical - compute_idx * offset
-
 	def _physical_to_logical_by_offset(self, physical_str, offset):
 		"""
 		Convert a physical portid instance number to logical using an explicit
-		offset value (sourced from firsterror_device.csv rather than ip_map).
+		offset value (from ip_translation.json firsterror_device section).
 		"""
 		try:
 			physical = int(physical_str)
@@ -345,28 +243,14 @@ class MCAAnalyzer:
 		compute_idx = physical // block_size
 		return physical - compute_idx * offset
 
-	def _find_ip_map_entry(self, ip_key):
-		"""
-		Return (matched_key, entry) from ip_map for ip_key.
-		Tries exact match, then prefix match.
-		"""
-		if ip_key in self.ip_map:
-			return ip_key, self.ip_map[ip_key]
-		for k, v in self.ip_map.items():
-			if k in ('FirstError IP', 'null') or not v:
-				continue
-			if ip_key.startswith(k) or k.startswith(ip_key.split(':')[0]):
-				return k, v
-		return None, None
-
 	def _parse_firsterr_location(self, loc_str):
 		"""
 		Parse a 'FirstError - Location' string into a structured dict using the
-		CSV lookup tables (firsterror_ip.csv / firsterror_device.csv).
+		ip_translation.json lookup tables.
 
-		If an ip_key or device_key is not found in the tables the raw value is
-		used as-is and a WARNING is emitted once per unknown key so the config
-		file can be extended.
+		If an ip_key or device_key is not found the raw value is used as-is and
+		a WARNING is emitted once per unknown key so the entry can be added to
+		ip_translation.json.
 
 		Examples
 		--------
@@ -386,7 +270,7 @@ class MCAAnalyzer:
 		device_key = parts[2]
 		instance_s = parts[-1]
 
-		# --- IP translation (firsterror_ip.csv) ---
+		# --- IP translation (ip_translation.json → firsterror_ip) ---
 		if ip_key in self.firsterror_ip_map:
 			ip_translate = self.firsterror_ip_map[ip_key]
 		else:
@@ -395,9 +279,9 @@ class MCAAnalyzer:
 			if miss_key not in self._translation_misses:
 				self._translation_misses.add(miss_key)
 				print(f"WARNING [MCAAnalyzer] Unknown FirstError IP key '{ip_key}'"
-				      " – using raw value. Add to firsterror_ip.csv.")
+				      " – using raw value. Add to ip_translation.json.")
 
-		# --- Device translation (firsterror_device.csv) ---
+		# --- Device translation (ip_translation.json → firsterror_device) ---
 		device_info = self.firsterror_device_map.get(device_key)
 		if device_info:
 			device_translate = device_info['translate']
@@ -409,7 +293,7 @@ class MCAAnalyzer:
 			if miss_key not in self._translation_misses:
 				self._translation_misses.add(miss_key)
 				print(f"WARNING [MCAAnalyzer] Unknown FirstError Device key '{device_key}'"
-				      " – using raw value, offset=0. Add to firsterror_device.csv.")
+				      " – using raw value, offset=0. Add to ip_translation.json.")
 
 		# --- Physical → Logical (device-based offset) ---
 		logical = self._physical_to_logical_by_offset(instance_s, offset)
