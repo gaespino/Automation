@@ -104,8 +104,8 @@ def collect_map_data(workbook, sheet_name='Map'):
 	print(f"Exported {len(data)} compute entries")
 
 
-formula_data = collect_formula_data(wb)
-write_formula_data_to_csv(formula_data, 'mca_analysis_formulas.csv')
+#formula_data = collect_formula_data(wb)
+#write_formula_data_to_csv(formula_data, 'mca_analysis_formulas.csv')
 
-collect_computes_data(wb)
+#collect_computes_data(wb)
 collect_map_data(wb)

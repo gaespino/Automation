@@ -18,6 +18,14 @@ except ImportError:
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from Decoder import decoder as mcparse
 
+try:
+    from .MCAAnalyzer import MCAAnalyzer
+except ImportError:
+    try:
+        from MCAAnalyzer import MCAAnalyzer
+    except ImportError:
+        MCAAnalyzer = None
+
 
 def init_select_data(product):
 
@@ -166,7 +174,7 @@ def init_select_data(product):
 	return reduced_data_cha, reduced_data_core, reduced_data_others
 
 class ppv_report():
-	def __init__(self, name, week, label, source_file, report, data_core = None, data_cha = None, reduced = False, mcdetail = True, overview = False, decode = False, mode='Bucketer', product=None):
+	def __init__(self, name, week, label, source_file, report, data_core = None, data_cha = None, reduced = False, mcdetail = False, overview = False, decode = False, mode='Bucketer', product=None, mca_analysis=False):
 
 		self.source_file = rf'{source_file}'
 		self.source_sheet = 'raw_data'
@@ -186,6 +194,7 @@ class ppv_report():
 		self.ovw = overview
 		self.decode = decode
 		self.mcfile = mcdetail
+		self.mca_analysis = mca_analysis
 		## File Initialization
 
 		self.name = name
@@ -298,6 +307,11 @@ class ppv_report():
 			self.parse_mcas(self.data_file, self.sheet_CHA)
 		if 'CORE' in options and decode:
 			self.parse_CORE_mcas(self.data_file, self.sheet_CORE)
+
+		# Run MCA Analysis if the mca_analysis switch is enabled
+		if self.mca_analysis:
+			print(' -- Running MCA Analysis...')
+			self.gen_mca_analysis(self.data_file)
 
 		self.gen_auxfiles(data_file = self.data_file, mca_file=self.mca_file, ovw_file=self.ovw_file, mcfile_on=mcfile_on, ovw_on= ovw_on, options = options)
 
@@ -604,7 +618,60 @@ class ppv_report():
 
 		addtable(df=core_df, excel_file=source_file, sheet='CORE_MCAS', table_name='coredecode')
 
-# File manipulation scripts
+	def gen_mca_analysis(self, source_file):
+		"""
+		Run MCAAnalyzer on the decoded CHA/LLC/CORE/UBOX sheets already
+		written to *source_file* and append an 'MCA_Analysis' sheet with
+		the per-unit summary (replicates the Excel 'Analysis' tab).
+		"""
+		if MCAAnalyzer is None:
+			print(' -- MCAAnalyzer not available, skipping MCA Analysis sheet.')
+			return
+
+		wb = load_workbook(source_file)
+		sheet_names = wb.sheetnames
+		wb.close()
+
+		def _safe_read(sheet):
+			if sheet in sheet_names:
+				try:
+					return pd.read_excel(source_file, sheet_name=sheet)
+				except Exception:
+					pass
+			return pd.DataFrame()
+
+		cha_df = _safe_read('CHA_MCAS')
+		llc_df = _safe_read('LLC_MCAS')
+		core_df = _safe_read('CORE_MCAS')
+		firsterr_df = _safe_read('UBOX')
+		ppv_df = _safe_read('PPV')
+
+		# Column name alignment: decoder writes 'Visual ID' (with space)
+		for df in (cha_df, llc_df, core_df, firsterr_df):
+			if 'Visual ID' in df.columns:
+				df.rename(columns={'Visual ID': 'VisualID'}, inplace=True)
+
+		analyzer = MCAAnalyzer(product=self.product)
+		result = analyzer.analyze(
+			cha_df=cha_df,
+			llc_df=llc_df,
+			core_df=core_df,
+			firsterr_df=firsterr_df,
+			ppv_df=ppv_df,
+		)
+		analysis_df = result.get('analysis', pd.DataFrame())
+
+		if analysis_df.empty:
+			print(' -- MCA Analysis produced no data, skipping sheet creation.')
+			return
+
+		print(f' -- Writing MCA_Analysis sheet with {len(analysis_df)} units.')
+		with pd.ExcelWriter(source_file, engine='openpyxl', mode='a') as writer:
+			analysis_df.to_excel(writer, sheet_name='MCA_Analysis', index=False)
+
+		addtable(df=analysis_df, excel_file=source_file, sheet='MCA_Analysis', table_name='mca_analysis')
+
+
 def file_open(file):
 	# Variables Init
 	#source_file = self.data_file

@@ -94,21 +94,21 @@ def mask_64bit(value):
 def generate_cha_stress_addresses(addr_start, addr_end, addr_step, mode='sequential', count=None):
     """
     Generate address patterns specifically for CHA address parity stress testing.
-    
+
     Args:
         addr_start: Starting address
         addr_end: Ending address
         addr_step: Base step size
         mode: CHA stress mode (from CHA_STRESS_MODES)
         count: Number of addresses to generate (None = use full range)
-    
+
     Returns:
         list: Generated addresses
     """
     if mode == 'sequential':
         # Standard sequential access
         return list(range(addr_start, addr_end, addr_step))
-    
+
     elif mode == 'walking_addr':
         # Walking 1s through address bits - stresses address parity checking
         addrs = []
@@ -118,7 +118,7 @@ def generate_cha_stress_addresses(addr_start, addr_end, addr_step, mode='sequent
             if addr_start <= addr < addr_end:
                 addrs.append(addr)
         return addrs
-    
+
     elif mode == 'addr_inversion':
         # Alternating address patterns - stresses address bit flips
         addrs = []
@@ -129,13 +129,13 @@ def generate_cha_stress_addresses(addr_start, addr_end, addr_step, mode='sequent
             if addr_start <= flipped < addr_end:
                 addrs.append(flipped)
         return addrs[:count] if count else addrs
-    
+
     elif mode == 'cacheline_stride':
         # Large strides to stress different cache lines
         # Use prime number stride to avoid set aliasing
         stride = 4096 + 64  # Page + cacheline offset
         return list(range(addr_start, addr_end, stride))
-    
+
     elif mode == 'same_set':
         # Target same cache set with different tags - stresses set indexing
         # Assuming 11-bit set index (2048 sets), 6-bit offset (64B line)
@@ -147,7 +147,7 @@ def generate_cha_stress_addresses(addr_start, addr_end, addr_step, mode='sequent
             if addr_start <= addr < addr_end:
                 addrs.append(addr)
         return addrs
-    
+
     elif mode == 'bank_interleave':
         # Access patterns that stress memory bank interleaving
         addrs = []
@@ -158,7 +158,7 @@ def generate_cha_stress_addresses(addr_start, addr_end, addr_step, mode='sequent
                 if addr < addr_end:
                     addrs.append(addr)
         return addrs[:count] if count else addrs
-    
+
     elif mode == 'random_addr':
         # Pseudo-random addresses within range
         import hashlib
@@ -171,7 +171,7 @@ def generate_cha_stress_addresses(addr_start, addr_end, addr_step, mode='sequent
             addr = addr_start + ((hash_val % (addr_range // 64)) * 64)
             addrs.append(addr)
         return addrs
-    
+
     else:
         # Default to sequential
         return list(range(addr_start, addr_end, addr_step))
@@ -180,7 +180,7 @@ def generate_cha_stress_addresses(addr_start, addr_end, addr_step, mode='sequent
 def perform_operation(thread, addr, pattern, operation='write', original_value=None, data_size=8):
     """
     Perform specified operation on memory address.
-    
+
     Args:
         thread: Thread object to perform operation
         addr: Memory address
@@ -188,16 +188,16 @@ def perform_operation(thread, addr, pattern, operation='write', original_value=N
         operation: Type of operation to perform
         original_value: Original memory value (for operations that need it)
         data_size: Size of data transfer in bytes (1, 2, 4, 8, 16, 32, 64)
-    
+
     Returns:
         tuple: (expected_value, actual_value_written)
     """
-    # Convert address to hex string for IPC API
-    addr_str = hex(addr) if isinstance(addr, int) else addr
-    
+    # Convert address to physical hex string for IPC API (p suffix = physical mode)
+    addr_str = '0x%xp' % addr if isinstance(addr, int) else addr
+
     # Mask pattern to data size
     pattern = mask_value(pattern, data_size)
-    
+
     if operation == 'write':
         # For sizes > 8 bytes, write multiple 8-byte chunks
         if data_size <= 8:
@@ -207,12 +207,12 @@ def perform_operation(thread, addr, pattern, operation='write', original_value=N
         else:
             # Write in 8-byte chunks for larger sizes
             for offset in range(0, data_size, 8):
-                chunk_addr = hex(addr + offset) if isinstance(addr, int) else hex(int(addr, 16) + offset)
+                chunk_addr = '0x%xp' % (addr + offset) if isinstance(addr, int) else ('0x%xp' % int(addr, 16) + offset)
                 # For each chunk, use pattern (could be extended to vary per chunk)
                 thread.mem(chunk_addr, 8, pattern)
             expected = pattern
             actual = pattern
-        
+
     elif operation == 'add':
         # Read current value, add pattern, write back
         read_size = min(data_size, 8)  # Limit to 8 bytes for arithmetic ops
@@ -221,7 +221,7 @@ def perform_operation(thread, addr, pattern, operation='write', original_value=N
         thread.mem(addr_str, read_size, result)
         expected = result
         actual = result
-        
+
     elif operation == 'xor':
         # XOR pattern with current value
         read_size = min(data_size, 8)
@@ -230,7 +230,7 @@ def perform_operation(thread, addr, pattern, operation='write', original_value=N
         thread.mem(addr_str, read_size, result)
         expected = result
         actual = result
-        
+
     elif operation == 'multiply':
         # Multiply (use lower 32-bits to avoid overflow issues)
         read_size = min(data_size, 8)
@@ -242,7 +242,7 @@ def perform_operation(thread, addr, pattern, operation='write', original_value=N
         thread.mem(addr_str, read_size, result)
         expected = result
         actual = result
-        
+
     elif operation == 'rotate':
         # Rotate left by pattern & appropriate bit count for data size
         read_size = min(data_size, 8)
@@ -253,7 +253,7 @@ def perform_operation(thread, addr, pattern, operation='write', original_value=N
         thread.mem(addr_str, read_size, result)
         expected = result
         actual = result
-        
+
     elif operation == 'atomic_add':
         # Atomic add using lock xadd instruction
         # Note: This is approximated - actual implementation may vary
@@ -272,7 +272,7 @@ def perform_operation(thread, addr, pattern, operation='write', original_value=N
             thread.mem(addr_str, read_size, result)
             expected = result
             actual = result
-            
+
     elif operation == 'atomic_xchg':
         # Atomic exchange
         read_size = min(data_size, 8)
@@ -285,7 +285,7 @@ def perform_operation(thread, addr, pattern, operation='write', original_value=N
             thread.mem(addr_str, read_size, pattern)
             expected = pattern
             actual = pattern
-            
+
     elif operation == 'atomic_cmpxchg':
         # Atomic compare and exchange (compare with original_value, exchange with pattern)
         read_size = min(data_size, 8)
@@ -302,17 +302,17 @@ def perform_operation(thread, addr, pattern, operation='write', original_value=N
             actual = pattern
     else:
         raise ValueError(f"Unknown operation: {operation}")
-    
+
     return expected, actual
 
-def stress_worker(thread_idx, threads_list, addr_list, patterns, iterations, 
-                  operation='write', verify=False, use_wbinvd=False, 
+def stress_worker(thread_idx, threads_list, addr_list, patterns, iterations,
+                  operation='write', verify=False, use_wbinvd=False,
                   randomize=False, verbose=True, original_values=None, restore_memory=False,
-                  log_data=None, race_tolerant=False, valid_patterns=None, 
+                  log_data=None, race_tolerant=False, valid_patterns=None,
                   last_writer_tracker=None, deterministic_seed=None, data_size=8):
     """
     Worker function for each thread to stress memory.
-    
+
     Args:
         thread_idx: Index of the thread
         threads_list: List of all available threads
@@ -334,34 +334,34 @@ def stress_worker(thread_idx, threads_list, addr_list, patterns, iterations,
     failures = 0
     operation_count = 0
     thread_log = []  # Local log for this thread
-    
+
     # Use deterministic random if seed provided
     if deterministic_seed is not None:
         local_rng = random.Random(deterministic_seed + thread_idx)
-    
+
     for iteration in range(iterations):
         if verbose and iteration % 10 == 0 and len(addr_list) > 0:
             print(f"Thread {thread_idx}: Iteration {iteration+1}/{iterations}")
-        
+
         # Optionally randomize address order
         if randomize:
             random.shuffle(addr_list)
-        
+
         for addr in addr_list:
             # Use deterministic pattern selection if seed provided
             if deterministic_seed is not None:
                 pattern = local_rng.choice(patterns)
             else:
                 pattern = random.choice(patterns)
-            
+
             original_val = original_values.get(addr, None) if original_values else None
-            
+
             # Perform the specified operation
             expected, actual = perform_operation(
                 thread, addr, pattern, operation, original_val, data_size
             )
             operation_count += 1
-            
+
             # Track last writer for this address (thread-safe dict update)
             if last_writer_tracker is not None:
                 last_writer_tracker[addr] = {
@@ -371,20 +371,20 @@ def stress_worker(thread_idx, threads_list, addr_list, patterns, iterations,
                     'iteration': iteration,
                     'operation': operation
                 }
-            
+
             # Optional: flush cache to force memory traffic
             if use_wbinvd:
                 thread.wbinvd()
-            
+
             # Verify operation result
-            addr_hex = hex(addr) if isinstance(addr, int) else addr
+            addr_hex = '0x%xp' % addr if isinstance(addr, int) else addr
             status = 'PASS'
             read_val = None
-            
+
             if verify:
                 read_size = min(data_size, 8)  # Read up to 8 bytes for verification
                 read_val = thread.mem(addr_hex, read_size)
-                
+
                 # Determine expected value based on last writer if tracking enabled
                 if last_writer_tracker is not None and addr in last_writer_tracker:
                     last_write = last_writer_tracker[addr]
@@ -417,11 +417,11 @@ def stress_worker(thread_idx, threads_list, addr_list, patterns, iterations,
                         else:
                             failures += 1
                             status = 'FAIL'  # True failure - unexpected value
-                    
+
                 if verbose and len(addr_list) <= 10 and status == 'FAIL':  # Only print real failures
                     print(f"  Thread {thread_idx} Iter {iteration}: {addr_hex} "
                           f"wrote {hex(pattern)}, expected {hex(expected)}, read {hex(read_val)} - {status}")
-            
+
             # Log operation details
             if log_data is not None:
                 thread_log.append({
@@ -435,7 +435,7 @@ def stress_worker(thread_idx, threads_list, addr_list, patterns, iterations,
                     'read_value': hex(read_val) if read_val is not None else 'N/A',
                     'status': status
                 })
-    
+
     # Restore original memory values if requested
     if restore_memory and original_values:
         if verbose and len(addr_list) > 0:
@@ -443,12 +443,12 @@ def stress_worker(thread_idx, threads_list, addr_list, patterns, iterations,
         for addr in addr_list:
             if addr in original_values:
                 restore_size = min(data_size, 8)
-                thread.mem(hex(addr), restore_size, original_values[addr])
-    
+                thread.mem('0x%xp' % addr, restore_size, original_values[addr])
+
     # Add thread log to shared log
     if log_data is not None:
         log_data.extend(thread_log)
-    
+
     if verbose and len(addr_list) > 0:
         status = f"Thread {thread_idx} complete: {operation_count} operations"
         if verify:
@@ -456,7 +456,7 @@ def stress_worker(thread_idx, threads_list, addr_list, patterns, iterations,
         if restore_memory:
             status += ", memory restored"
         print(status)
-    
+
     return failures
 
 
@@ -464,27 +464,27 @@ def validate_memory_integrity(addr_list, threads, test_pattern=0xDEADBEEFDEADBEE
     """
     Validate memory integrity by writing a known pattern and verifying all threads read consistently.
     Use before/after stress testing to detect real hardware failures.
-    
+
     Args:
         addr_list: List of addresses to test
         threads: List of thread objects
         test_pattern: Pattern to write (default: 0xDEADBEEFDEADBEEF)
         verbose: Print detailed results
-    
+
     Returns:
         list: Failures detected (empty list = PASS)
     """
     failures = []
-    
+
     if verbose:
         print(f"\nValidating memory integrity on {len(addr_list):,} addresses...")
-    
+
     for addr in addr_list:
-        addr_hex = hex(addr) if isinstance(addr, int) else addr
-        
+        addr_hex = '0x%xp' % addr if isinstance(addr, int) else addr
+
         # Write pattern with thread 0
         threads[0].mem(addr_hex, 8, test_pattern)
-        
+
         # Verify all threads read the same value
         for idx, thread in enumerate(threads):
             read_val = thread.mem(addr_hex, 8)
@@ -498,33 +498,37 @@ def validate_memory_integrity(addr_list, threads, test_pattern=0xDEADBEEFDEADBEE
                 })
                 if verbose:
                     print(f"  FAIL: Thread {idx} @ {addr_hex}: expected {hex(test_pattern)}, read {hex(read_val)}")
-    
+
     if verbose:
         if failures:
             print(f"  Result: FAILED - {len(failures)} coherency errors detected")
         else:
             print(f"  Result: PASSED - All threads read consistently")
-    
+
     return failures
 
 
-def run_memory_stress(addr_start, addr_end, addr_step=0x40, 
+def run_memory_stress(addr_start=None, addr_end=None, addr_step=0x40,
                      patterns=None, iterations=100,
                      operation='write', socket=0, num_threads=None,
-                     verify=False, use_wbinvd=False, randomize=False, 
+                     verify=False, use_wbinvd=False, randomize=False,
                      restore_memory=True, verbose=True,
                      cha_stress_mode=None, interleave_threads=True,
                      log_to_csv=True, csv_filename=None,
                      race_tolerant=True, pre_post_validation=False,
                      deterministic=False, track_last_writer=False,
-                     use_excel=True, use_txt=False, data_size=8):
+                     use_excel=True, use_txt=False, data_size=8,
+                     addr_list=None):
     """
     Run memory stress test across multiple threads.
-    
+
     Args:
-        addr_start: Starting address (hex or int)
-        addr_end: Ending address (hex or int)
-        addr_step: Address stride/step size (default 0x40 = 64 bytes, cache line size)
+        addr_start: Starting address (hex or int). Not required if addr_list is provided.
+        addr_end: Ending address (hex or int). Not required if addr_list is provided.
+        addr_step: Address stride/step size (default 0x40 = 64 bytes, cache line size).
+                  Ignored if addr_list is provided.
+        addr_list: Optional explicit list of addresses to stress (e.g. from MC_ADDR error logs).
+                  When provided, addr_start/addr_end/addr_step/cha_stress_mode are ignored.
         patterns: List of 64-bit patterns to use (default: DEFAULT_PATTERNS)
         iterations: Number of iterations per thread (default: 100)
         operation: Type of operation - 'write', 'add', 'xor', 'multiply', 'rotate',
@@ -554,20 +558,24 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
         use_txt: Deprecated - TXT report now always generated for quick viewing
         data_size: Size of data transfer in bytes: 1, 2, 4, 8, 16, 32, 64 (default: 8)
                   64 bytes = 512-bit (2 BL ring pumps), 32 bytes = 256-bit, etc.
-    
+
     Returns:
         dict: Statistics about the stress test including report_file path, pre/post validation results
     """
     if patterns is None:
         patterns = DEFAULT_PATTERNS
-    
+
+    # Validate address inputs
+    if addr_list is None and (addr_start is None or addr_end is None):
+        raise ValueError("Must provide either addr_list or both addr_start and addr_end.")
+
     # Validate parameters
     if operation not in OPERATIONS:
         raise ValueError(f"Unknown operation '{operation}'. Valid operations: {list(OPERATIONS.keys())}")
-    
+
     if data_size not in DATA_SIZES:
         raise ValueError(f"Invalid data_size '{data_size}'. Valid sizes: {list(DATA_SIZES.keys())} bytes")
-    
+
     # Get threads for the specified socket
     if socket == 0:
         ipc_obj = ipc
@@ -575,7 +583,7 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
         ipc_obj = ipc
     else:
         raise ValueError(f"Invalid socket number: {socket}")
-    
+
     # Get available threads
     if num_threads is None:
         # Use all available threads
@@ -583,19 +591,29 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
     else:
         # Limit to specified number of threads
         threads_list = ipc_obj.threads[:num_threads]
-    
+
     num_threads_actual = len(threads_list)
-    
-    # Build address list using CHA stress mode if specified
-    if cha_stress_mode and cha_stress_mode in CHA_STRESS_MODES:
+
+    # Build address list: use provided list, CHA mode, or sequential range
+    if addr_list is not None:
+        # Use caller-supplied address list directly (e.g. from error logs)
+        addr_list = [int(a, 16) if isinstance(a, str) else a for a in addr_list]
+        if verbose:
+            print(f"Using explicit address list: {len(addr_list):,} addresses")
+        # Derive addr_start/addr_end from the list for reporting purposes
+        if addr_start is None:
+            addr_start = min(addr_list)
+        if addr_end is None:
+            addr_end = max(addr_list)
+    elif cha_stress_mode and cha_stress_mode in CHA_STRESS_MODES:
         if verbose:
             print(f"Using CHA stress mode: {cha_stress_mode} - {CHA_STRESS_MODES[cha_stress_mode]}")
         addr_list = generate_cha_stress_addresses(addr_start, addr_end, addr_step, cha_stress_mode)
     else:
         addr_list = list(range(addr_start, addr_end, addr_step))
-    
+
     total_addresses = len(addr_list)
-    
+
     # Pre-stress validation
     pre_validation_failures = []
     if pre_post_validation:
@@ -604,7 +622,7 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
             print(f"PRE-STRESS VALIDATION")
             print(f"{'='*60}")
         pre_validation_failures = validate_memory_integrity(addr_list, threads_list, verbose=verbose)
-    
+
     # Save original memory values if restore is requested
     original_values = {}
     if restore_memory:
@@ -613,15 +631,19 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
         # Use first thread to read original values
         read_size = min(data_size, 8)
         for addr in addr_list:
-            original_values[addr] = threads_list[0].mem(hex(addr), read_size)
+            original_values[addr] = threads_list[0].mem('0x%xp' % addr, read_size)
         if verbose:
             print(f"Original values saved for {len(original_values):,} addresses\n")
-    
+
     if verbose:
         print(f"\n{'='*60}")
         print(f"Memory Stress Configuration:")
-        print(f"  Address Range: {hex(addr_start)} to {hex(addr_end)}")
-        print(f"  Address Step: {hex(addr_step)} ({addr_step} bytes)")
+        if addr_list is not None and total_addresses != (addr_end - addr_start) // addr_step:
+            print(f"  Address List: {total_addresses:,} explicit addresses")
+            print(f"  Address Range: {hex(addr_start)} to {hex(addr_end)} (observed span)")
+        else:
+            print(f"  Address Range: {hex(addr_start)} to {hex(addr_end)}")
+            print(f"  Address Step: {hex(addr_step)} ({addr_step} bytes)")
         print(f"  Total Addresses: {total_addresses:,}")
         print(f"  Memory Range: {(addr_end - addr_start) / (1024**3):.2f} GB")
         print(f"  Operation: {operation} - {OPERATIONS[operation]}")
@@ -637,17 +659,17 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
             print(f"  Mode: All threads on same addresses (max contention)")
         print(f"  Total Operations: {total_addresses * iterations * num_threads_actual:,}")
         print(f"{'='*60}\n")
-    
+
     # Initialize logging
     log_data = [] if log_to_csv or verify else None
-    
+
     # Prepare set of valid patterns for race detection
     valid_patterns_set = set(patterns) if race_tolerant and verify else None
-    
+
     # Initialize last writer tracking (shared across threads)
     last_writer_tracker = {} if track_last_writer else None
     deterministic_seed = hash((addr_start, addr_end, iterations)) if deterministic else None
-    
+
     # Generate filename if needed
     timestamp = None
     if log_to_csv and csv_filename is None:
@@ -656,7 +678,7 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
         temp_dir = r"C:\Temp"
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
-        
+
         # Use Excel if available and requested, otherwise CSV
         if use_excel and EXCEL_AVAILABLE:
             csv_filename = os.path.join(temp_dir, f"{timestamp}_memstress.xlsx")
@@ -664,10 +686,10 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
             csv_filename = os.path.join(temp_dir, f"{timestamp}_memstress.csv")
             if use_excel and not EXCEL_AVAILABLE:
                 print("Note: Excel format requested but openpyxl not available. Using CSV format.")
-    
+
     # Split address list among threads
     thread_objects = []
-    
+
     # Adjust thread count if we have fewer addresses than threads
     if total_addresses < num_threads_actual:
         if verbose:
@@ -693,33 +715,33 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
                     thread_addr_lists.append(addr_list[i*chunk_size:(i+1)*chunk_size])
                 else:
                     thread_addr_lists.append(addr_list[i*chunk_size:])
-    
+
     start_time = time.time()
-    
+
     for i in range(num_threads_actual):
         chunk = thread_addr_lists[i]
-        
+
         t = threading.Thread(
-            target=stress_worker, 
-            args=(i, threads_list, chunk, patterns, iterations, 
-                  operation, verify, use_wbinvd, randomize, verbose, 
-                  original_values, restore_memory, log_data, 
+            target=stress_worker,
+            args=(i, threads_list, chunk, patterns, iterations,
+                  operation, verify, use_wbinvd, randomize, verbose,
+                  original_values, restore_memory, log_data,
                   race_tolerant, valid_patterns_set,
                   last_writer_tracker, deterministic_seed, data_size)
         )
         thread_objects.append(t)
         t.start()
-    
+
     # Wait for all threads to complete
     for t in thread_objects:
         t.join()
-    
+
     end_time = time.time()
     elapsed = end_time - start_time
-    
+
     total_ops = total_addresses * iterations * num_threads_actual
     ops_per_sec = total_ops / elapsed if elapsed > 0 else 0
-    
+
     # Post-stress validation
     post_validation_failures = []
     if pre_post_validation:
@@ -728,7 +750,7 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
             print(f"POST-STRESS VALIDATION")
             print(f"{'='*60}")
         post_validation_failures = validate_memory_integrity(addr_list, threads_list, verbose=verbose)
-    
+
     # Calculate pass/fail/race statistics
     total_failures = 0
     total_passes = 0
@@ -740,28 +762,28 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
         total_passes = sum(1 for entry in log_data if entry['status'] == 'PASS')
         total_races = sum(1 for entry in log_data if entry['status'] == 'RACE')
         total_races_expected = sum(1 for entry in log_data if entry['status'] == 'RACE_EXPECTED')
-        
+
         # Analyze failure patterns if we have real failures
         if total_failures > 0:
             from collections import Counter
             failures_list = [e for e in log_data if e['status'] == 'FAIL']
-            
+
             addr_failures = Counter(e['address'] for e in failures_list)
             thread_failures = Counter(e['thread'] for e in failures_list)
-            
+
             # Detect hot spots (>10% of failures at same location)
-            hot_addresses = [addr for addr, count in addr_failures.items() 
+            hot_addresses = [addr for addr, count in addr_failures.items()
                            if count > total_failures * 0.1]
             hot_threads = [tid for tid, count in thread_failures.items()
                          if count > total_failures * 0.1]
-            
+
             failure_analysis = {
                 'hot_addresses': hot_addresses,
                 'hot_threads': hot_threads,
                 'addr_distribution': dict(addr_failures.most_common(5)),
                 'thread_distribution': dict(thread_failures.most_common(5))
             }
-    
+
     # Determine final verdict (must be calculated before report_data)
     if pre_post_validation:
         # Pre/post validation is the ground truth
@@ -775,14 +797,14 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
         test_verdict = "PASS" if total_failures == 0 else "FAIL"
     else:
         test_verdict = "NOT VERIFIED"
-    
+
     # Prepare comprehensive report data
     report_data = {
         'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         'config': {
             'addr_start': hex(addr_start),
             'addr_end': hex(addr_end),
-            'addr_step': hex(addr_step),
+            'addr_step': 'explicit list' if (addr_list is not None and total_addresses != (addr_end - addr_start) // addr_step) else hex(addr_step),
             'total_addresses': total_addresses,
             'memory_range_gb': (addr_end - addr_start) / (1024**3),
             'operation': operation,
@@ -820,19 +842,19 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
         'last_writer_tracker': last_writer_tracker,
         'patterns': patterns,
     }
-    
+
     # Write to Excel/CSV and always write TXT
     report_path = None
     txt_report_path = None
     if log_to_csv:
         report_path = os.path.abspath(csv_filename)
-        
+
         # Write primary format (Excel or CSV)
         if use_excel and EXCEL_AVAILABLE and report_path.endswith('.xlsx'):
             _write_excel_report(report_path, report_data, verbose)
         else:
             _write_csv_report(report_path, log_data, verbose)
-        
+
         # Always write TXT report for quick viewing (especially on stations without Excel)
         if timestamp is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -841,7 +863,7 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
             os.makedirs(temp_dir)
         txt_report_path = os.path.join(temp_dir, f"{timestamp}_memstress.txt")
         _write_txt_report(txt_report_path, report_data, verbose)
-    
+
     if verbose:
         print(f"\n{'='*60}")
         print(f"Memory Stress Complete:")
@@ -862,14 +884,14 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
         if restore_memory:
             print(f"  Memory Restored: Yes ({len(original_values):,} addresses)")
         print(f"")
-        
+
         # Show validation results
         if pre_post_validation:
             print(f"  Pre-Validation: {'PASS' if not pre_validation_failures else f'FAIL ({len(pre_validation_failures)} errors)'}")
             print(f"  Post-Validation: {'PASS' if not post_validation_failures else f'FAIL ({len(post_validation_failures)} errors)'}")
-        
+
         print(f"  FINAL VERDICT: {test_verdict}")
-        
+
         if test_verdict.startswith("FAIL") and verbose:
             if pre_validation_failures:
                 print(f"\n  WARNING: Memory was already corrupted before stress test!")
@@ -891,7 +913,7 @@ def run_memory_stress(addr_start, addr_end, addr_step=0x40,
                 if txt_report_path:
                     print(f"  Quick view TXT report: {txt_report_path}")
         print(f"{'='*60}\n")
-    
+
     return {
         'elapsed_time': elapsed,
         'total_operations': total_ops,
@@ -932,7 +954,7 @@ def main():
         interleave_threads=True,
         restore_memory=True
     )
-    
+
     # Example 1b: Basic write stress test (memory will be restored)
     # run_memory_stress(
     #     addr_start=0x1F0EAE6980,
@@ -942,7 +964,7 @@ def main():
     #     operation='write',
     #     restore_memory=True
     # )
-    
+
     # Example 2: XOR operation with verification
     # run_memory_stress(
     #     addr_start=0x1F0EAE6980,
@@ -953,7 +975,7 @@ def main():
     #     verify=True,
     #     restore_memory=True
     # )
-    
+
     # Example 3: Atomic add operations for cache coherency stress
     # run_memory_stress(
     #     addr_start=0x1F0EAE6980,
@@ -964,7 +986,7 @@ def main():
     #     verify=True,
     #     restore_memory=True
     # )
-    
+
     # Example 4: Multiply operations with custom patterns
     # custom_patterns = [
     #     0x0000000000000002,  # Multiply by 2
@@ -980,7 +1002,7 @@ def main():
     #     verify=True,
     #     restore_memory=True
     # )
-    
+
     # Example 5: Rotate operations (bit manipulation)
     # run_memory_stress(
     #     addr_start=0x1F0EAE6980,
@@ -991,7 +1013,7 @@ def main():
     #     verify=True,
     #     restore_memory=True
     # )
-    
+
     # Example 6: Maximum throughput (no verification, no restore, no cache flush)
     # run_memory_stress(
     #     addr_start=0x1F0EAE6980,
@@ -1004,7 +1026,7 @@ def main():
     #     randomize=False,
     #     restore_memory=False
     # )
-    
+
     # Example 7: Force memory traffic with cache flushes
     # run_memory_stress(
     #     addr_start=0x1F0EAE6980,
@@ -1016,7 +1038,7 @@ def main():
     #     verify=True,
     #     restore_memory=True
     # )
-    
+
     # Example 8: CHA Address Parity - Address bit inversion
     # run_memory_stress(
     #     addr_start=0x1F0EAE6980,
@@ -1026,7 +1048,7 @@ def main():
     #     verify=True,
     #     interleave_threads=True
     # )
-    
+
     # Example 9: CHA stress - Same cache set conflicts
     # run_memory_stress(
     #     addr_start=0x1F0EAE6980,
@@ -1036,7 +1058,7 @@ def main():
     #     iterations=500,
     #     verify=True
     # )
-    
+
     # Example 10: CHA stress - Bank interleaving patterns
     # run_memory_stress(
     #     addr_start=0x1F0EAE6980,
@@ -1052,14 +1074,14 @@ def _write_csv_report(filepath, log_data, verbose=False):
     """Write simple CSV report with operation log."""
     if not log_data:
         return
-    
+
     with open(filepath, 'w', newline='') as csvfile:
-        fieldnames = ['thread', 'iteration', 'address', 'original_value', 'pattern', 
+        fieldnames = ['thread', 'iteration', 'address', 'original_value', 'pattern',
                      'operation', 'expected', 'read_value', 'status']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(log_data)
-    
+
     if verbose:
         print(f"\nDetailed log saved to: {filepath}")
 
@@ -1072,7 +1094,7 @@ def _write_txt_report(filepath, report_data, verbose=False):
         f.write("  MEMORY STRESS TEST REPORT\n")
         f.write("=" * 100 + "\n")
         f.write(f"Timestamp: {report_data['timestamp']}\n\n")
-        
+
         # Configuration Section
         f.write("-" * 100 + "\n")
         f.write("  TEST CONFIGURATION\n")
@@ -1082,76 +1104,76 @@ def _write_txt_report(filepath, report_data, verbose=False):
             label = key.replace('_', ' ').title()
             f.write(f"  {label:.<35} {str(value):<60}\n")
         f.write("\n")
-        
+
         # Results Section
         f.write("-" * 100 + "\n")
         f.write("  TEST RESULTS\n")
         f.write("-" * 100 + "\n")
         results = report_data['results']
-        
+
         verdict = results['test_verdict']
         status_mark = "[PASS]" if verdict.startswith('PASS') else "[FAIL]"
         f.write(f"  Test Verdict:............................ {verdict} {status_mark}\n")
         f.write(f"  Elapsed Time:............................ {results['elapsed_time']:.2f} seconds\n")
         f.write(f"  Total Operations:........................ {results['total_operations']:,}\n")
         f.write(f"  Operations/Second:....................... {results['ops_per_second']:,.0f}\n")
-        
+
         if config['verify']:
             f.write(f"\n  VERIFICATION STATISTICS:\n")
             f.write(f"    Passes:................................ {results['passes']:,}\n")
-            
+
             if report_data['config']['track_last_writer'] and results['races_expected'] > 0:
                 f.write(f"    Expected Races:........................ {results['races_expected']:,} (read correct last writer)\n")
-            
+
             if results['races'] > 0:
                 f.write(f"    Races (Unexpected Pattern):............ {results['races']:,}\n")
-            
+
             f.write(f"    Failures:.............................. {results['failures']:,}")
             if results['failures'] == 0:
                 f.write(" [OK]\n")
             else:
                 f.write(" [ERROR]\n")
-            
+
             total_checked = results['passes'] + results['failures'] + results['races'] + results['races_expected']
             if total_checked > 0:
                 success_count = results['passes'] + results['races'] + results['races_expected']
                 f.write(f"    Success Rate:.......................... {(success_count/total_checked*100):.2f}%\n")
-        
+
         if config['restore_memory']:
             f.write(f"\n  Memory Restored:......................... Yes\n")
-        
+
         # Validation Results
         if config['pre_post_validation']:
             f.write("\n" + "-" * 100 + "\n")
             f.write("  VALIDATION RESULTS\n")
             f.write("-" * 100 + "\n")
-            
+
             pre_status = "[PASS]" if results['pre_validation_failures'] == 0 else f"[FAIL] ({results['pre_validation_failures']} errors)"
             post_status = "[PASS]" if results['post_validation_failures'] == 0 else f"[FAIL] ({results['post_validation_failures']} errors)"
-            
+
             f.write(f"  Pre-Stress Validation:................... {pre_status}\n")
             f.write(f"  Post-Stress Validation:.................. {post_status}\n")
-        
+
         # Failure Analysis
         if report_data['failure_analysis']:
             f.write("\n" + "-" * 100 + "\n")
             f.write("  FAILURE ANALYSIS\n")
             f.write("-" * 100 + "\n")
             fa = report_data['failure_analysis']
-            
+
             if fa['hot_addresses']:
                 f.write(f"  Hot Addresses (>10% failures):\n")
                 for addr in fa['hot_addresses'][:5]:
                     f.write(f"    > {addr}\n")
-            
+
             if fa['hot_threads']:
                 f.write(f"  Hot Threads (>10% failures):\n")
                 f.write(f"    Threads: {', '.join(str(t) for t in fa['hot_threads'][:10])}\n")
-            
+
             f.write(f"\n  Top 5 Addresses by Failure Count:\n")
             for addr, count in fa['addr_distribution'].items():
                 f.write(f"    {addr:.<50} {count:>5} failures\n")
-        
+
         # Operation Log (sample)
         if report_data['log_data']:
             f.write("\n" + "-" * 100 + "\n")
@@ -1159,16 +1181,16 @@ def _write_txt_report(filepath, report_data, verbose=False):
             f.write("-" * 100 + "\n")
             f.write(f"{'Thread':<8}{'Iter':<6}{'Address':<20}{'Pattern':<20}{'Operation':<10}{'Expected':<20}{'Read':<20}{'Status':<15}\n")
             f.write("-" * 100 + "\n")
-            
+
             for entry in report_data['log_data'][:100]:
                 status_mark = {'PASS': '[OK]', 'FAIL': '[ERR]', 'RACE': '[~]', 'RACE_EXPECTED': '[=]'}.get(entry['status'], '[?]')
                 f.write(f"{entry['thread']:<8}{entry['iteration']:<6}{entry['address']:<20}{entry['pattern'][:18]:<20}"
                        f"{entry['operation']:<10}{entry['expected'][:18]:<20}{entry['read_value'][:18]:<20}"
                        f"{status_mark} {entry['status']:<13}\n")
-            
+
             if len(report_data['log_data']) > 100:
                 f.write(f"\n  ... ({len(report_data['log_data']) - 100:,} more operations not shown)\n")
-        
+
         # Pre-Validation Failures
         if report_data['pre_validation_failures']:
             f.write("\n" + "-" * 100 + "\n")
@@ -1176,14 +1198,14 @@ def _write_txt_report(filepath, report_data, verbose=False):
             f.write("-" * 100 + "\n")
             f.write(f"{'Address':<20}{'Thread':<10}{'Expected':<20}{'Read':<20}{'Type':<30}\n")
             f.write("-" * 100 + "\n")
-            
+
             for failure in report_data['pre_validation_failures'][:50]:
                 f.write(f"{failure['address']:<20}{failure['thread']:<10}{failure['expected']:<20}"
                        f"{failure['read']:<20}{failure['type']:<30}\n")
-            
+
             if len(report_data['pre_validation_failures']) > 50:
                 f.write(f"\n  ... ({len(report_data['pre_validation_failures']) - 50} more failures not shown)\n")
-        
+
         # Post-Validation Failures
         if report_data['post_validation_failures']:
             f.write("\n" + "-" * 100 + "\n")
@@ -1191,14 +1213,14 @@ def _write_txt_report(filepath, report_data, verbose=False):
             f.write("-" * 100 + "\n")
             f.write(f"{'Address':<20}{'Thread':<10}{'Expected':<20}{'Read':<20}{'Type':<30}\n")
             f.write("-" * 100 + "\n")
-            
+
             for failure in report_data['post_validation_failures'][:50]:
                 f.write(f"{failure['address']:<20}{failure['thread']:<10}{failure['expected']:<20}"
                        f"{failure['read']:<20}{failure['type']:<30}\n")
-            
+
             if len(report_data['post_validation_failures']) > 50:
                 f.write(f"\n  ... ({len(report_data['post_validation_failures']) - 50} more failures not shown)\n")
-        
+
         # Last Writer Tracker (sample)
         if report_data['last_writer_tracker']:
             f.write("\n" + "-" * 100 + "\n")
@@ -1206,27 +1228,27 @@ def _write_txt_report(filepath, report_data, verbose=False):
             f.write("-" * 100 + "\n")
             f.write(f"{'Address':<20}{'Thread':<10}{'Pattern':<20}{'Expected':<20}{'Iteration':<12}{'Operation':<10}\n")
             f.write("-" * 100 + "\n")
-            
+
             for idx, (addr, info) in enumerate(report_data['last_writer_tracker'].items()):
                 if idx >= 50:
                     break
                 addr_str = hex(addr) if isinstance(addr, int) else addr
                 f.write(f"{addr_str:<20}{info['thread']:<10}{hex(info['pattern'])[:18]:<20}"
                        f"{hex(info['expected'])[:18]:<20}{info['iteration']:<12}{info['operation']:<10}\n")
-            
+
             if len(report_data['last_writer_tracker']) > 50:
                 f.write(f"\n  ... ({len(report_data['last_writer_tracker']) - 50:,} more addresses not shown)\n")
-        
+
         # Patterns Used
         f.write("\n" + "-" * 100 + "\n")
         f.write("  PATTERNS USED\n")
         f.write("-" * 100 + "\n")
         f.write(f"{'Index':<10}{'Hex Value':<20}{'Decimal Value':<25}\n")
         f.write("-" * 100 + "\n")
-        
+
         for idx, pattern in enumerate(report_data['patterns']):
             f.write(f"{idx:<10}{hex(pattern):<20}{pattern:<25}\n")
-        
+
         # Footer
         f.write("\n" + "=" * 100 + "\n")
         f.write("  END OF REPORT\n")
@@ -1237,7 +1259,7 @@ def _write_txt_report(filepath, report_data, verbose=False):
         f.write("  [~]   RACE           - Read valid pattern but not from last writer (timing variance)\n")
         f.write("  [=]   RACE_EXPECTED  - Read correct last writer's value (expected race condition)\n")
         f.write("\nNote: View this file in Notepad with Consolas font for best formatting.\n")
-    
+
     if verbose:
         print(f"\nComprehensive TXT report saved to: {filepath}")
 
@@ -1251,7 +1273,7 @@ def _write_txt_report(filepath, report_data, verbose=False):
         f.write("═" * 100 + "\n")
         f.write(f"Timestamp: {report_data['timestamp']}\n")
         f.write("\n")
-        
+
         # Configuration Section
         f.write("─" * 100 + "\n")
         f.write("  TEST CONFIGURATION\n")
@@ -1261,57 +1283,57 @@ def _write_txt_report(filepath, report_data, verbose=False):
             label = key.replace('_', ' ').title()
             f.write(f"  {label:.<35} {str(value):<60}\n")
         f.write("\n")
-        
+
         # Results Section
         f.write("─" * 100 + "\n")
         f.write("  TEST RESULTS\n")
         f.write("─" * 100 + "\n")
         results = report_data['results']
-        
+
         verdict = results['test_verdict']
         status_mark = "✓ PASS" if verdict.startswith('PASS') else "✗ FAIL"
         f.write(f"  Test Verdict:............................ {verdict} [{status_mark}]\n")
         f.write(f"  Elapsed Time:............................ {results['elapsed_time']:.2f} seconds\n")
         f.write(f"  Total Operations:........................ {results['total_operations']:,}\n")
         f.write(f"  Operations/Second:....................... {results['ops_per_second']:,.0f}\n")
-        
+
         if config['verify']:
             f.write(f"\n  VERIFICATION STATISTICS:\n")
             f.write(f"    Passes:................................ {results['passes']:,}\n")
-            
+
             if report_data['config']['track_last_writer'] and results['races_expected'] > 0:
                 f.write(f"    Expected Races:........................ {results['races_expected']:,} (read correct last writer)\n")
-            
+
             if results['races'] > 0:
                 f.write(f"    Races (Unexpected Pattern):............ {results['races']:,}\n")
-            
+
             f.write(f"    Failures:.............................. {results['failures']:,}")
             if results['failures'] == 0:
                 f.write(" ✓\n")
             else:
                 f.write(" ✗\n")
-            
+
             total_checked = results['passes'] + results['failures'] + results['races'] + results['races_expected']
             if total_checked > 0:
                 success_count = results['passes'] + results['races'] + results['races_expected']
                 f.write(f"    Success Rate:.......................... {(success_count/total_checked*100):.2f}%\n")
-        
+
         if config['restore_memory']:
             f.write(f"\n  Memory Restored:......................... Yes\n")
-        
+
         # Validation Results
         if config['pre_post_validation']:
             f.write("\n")
             f.write("─" * 100 + "\n")
             f.write("  VALIDATION RESULTS\n")
             f.write("─" * 100 + "\n")
-            
+
             pre_status = "✓ PASS" if results['pre_validation_failures'] == 0 else f"✗ FAIL ({results['pre_validation_failures']} errors)"
             post_status = "✓ PASS" if results['post_validation_failures'] == 0 else f"✗ FAIL ({results['post_validation_failures']} errors)"
-            
+
             f.write(f"  Pre-Stress Validation:................... {pre_status}\n")
             f.write(f"  Post-Stress Validation:.................. {post_status}\n")
-        
+
         # Failure Analysis
         if report_data['failure_analysis']:
             f.write("\n")
@@ -1319,20 +1341,20 @@ def _write_txt_report(filepath, report_data, verbose=False):
             f.write("  FAILURE ANALYSIS\n")
             f.write("─" * 100 + "\n")
             fa = report_data['failure_analysis']
-            
+
             if fa['hot_addresses']:
                 f.write(f"  Hot Addresses (>10% failures):\n")
                 for addr in fa['hot_addresses'][:5]:
                     f.write(f"    • {addr}\n")
-            
+
             if fa['hot_threads']:
                 f.write(f"  Hot Threads (>10% failures):\n")
                 f.write(f"    Threads: {', '.join(str(t) for t in fa['hot_threads'][:10])}\n")
-            
+
             f.write(f"\n  Top 5 Addresses by Failure Count:\n")
             for addr, count in fa['addr_distribution'].items():
                 f.write(f"    {addr:.<50} {count:>5} failures\n")
-        
+
         # Operation Log (sample)
         if report_data['log_data']:
             f.write("\n")
@@ -1341,16 +1363,16 @@ def _write_txt_report(filepath, report_data, verbose=False):
             f.write("─" * 100 + "\n")
             f.write(f"{'Thread':<8}{'Iter':<6}{'Address':<20}{'Pattern':<20}{'Operation':<10}{'Expected':<20}{'Read':<20}{'Status':<15}\n")
             f.write("─" * 100 + "\n")
-            
+
             for entry in report_data['log_data'][:100]:
                 status_mark = {'PASS': '✓', 'FAIL': '✗', 'RACE': '~', 'RACE_EXPECTED': '≈'}.get(entry['status'], '?')
                 f.write(f"{entry['thread']:<8}{entry['iteration']:<6}{entry['address']:<20}{entry['pattern'][:18]:<20}"
                        f"{entry['operation']:<10}{entry['expected'][:18]:<20}{entry['read_value'][:18]:<20}"
                        f"{status_mark} {entry['status']:<13}\n")
-            
+
             if len(report_data['log_data']) > 100:
                 f.write(f"\n  ... ({len(report_data['log_data']) - 100:,} more operations not shown)\n")
-        
+
         # Pre-Validation Failures
         if report_data['pre_validation_failures']:
             f.write("\n")
@@ -1359,14 +1381,14 @@ def _write_txt_report(filepath, report_data, verbose=False):
             f.write("─" * 100 + "\n")
             f.write(f"{'Address':<20}{'Thread':<10}{'Expected':<20}{'Read':<20}{'Type':<30}\n")
             f.write("─" * 100 + "\n")
-            
+
             for failure in report_data['pre_validation_failures'][:50]:
                 f.write(f"{failure['address']:<20}{failure['thread']:<10}{failure['expected']:<20}"
                        f"{failure['read']:<20}{failure['type']:<30}\n")
-            
+
             if len(report_data['pre_validation_failures']) > 50:
                 f.write(f"\n  ... ({len(report_data['pre_validation_failures']) - 50} more failures not shown)\n")
-        
+
         # Post-Validation Failures
         if report_data['post_validation_failures']:
             f.write("\n")
@@ -1375,14 +1397,14 @@ def _write_txt_report(filepath, report_data, verbose=False):
             f.write("─" * 100 + "\n")
             f.write(f"{'Address':<20}{'Thread':<10}{'Expected':<20}{'Read':<20}{'Type':<30}\n")
             f.write("─" * 100 + "\n")
-            
+
             for failure in report_data['post_validation_failures'][:50]:
                 f.write(f"{failure['address']:<20}{failure['thread']:<10}{failure['expected']:<20}"
                        f"{failure['read']:<20}{failure['type']:<30}\n")
-            
+
             if len(report_data['post_validation_failures']) > 50:
                 f.write(f"\n  ... ({len(report_data['post_validation_failures']) - 50} more failures not shown)\n")
-        
+
         # Last Writer Tracker (sample)
         if report_data['last_writer_tracker']:
             f.write("\n")
@@ -1391,17 +1413,17 @@ def _write_txt_report(filepath, report_data, verbose=False):
             f.write("─" * 100 + "\n")
             f.write(f"{'Address':<20}{'Thread':<10}{'Pattern':<20}{'Expected':<20}{'Iteration':<12}{'Operation':<10}\n")
             f.write("─" * 100 + "\n")
-            
+
             for idx, (addr, info) in enumerate(report_data['last_writer_tracker'].items()):
                 if idx >= 50:
                     break
                 addr_str = hex(addr) if isinstance(addr, int) else addr
                 f.write(f"{addr_str:<20}{info['thread']:<10}{hex(info['pattern'])[:18]:<20}"
                        f"{hex(info['expected'])[:18]:<20}{info['iteration']:<12}{info['operation']:<10}\n")
-            
+
             if len(report_data['last_writer_tracker']) > 50:
                 f.write(f"\n  ... ({len(report_data['last_writer_tracker']) - 50:,} more addresses not shown)\n")
-        
+
         # Patterns Used
         f.write("\n")
         f.write("─" * 100 + "\n")
@@ -1409,10 +1431,10 @@ def _write_txt_report(filepath, report_data, verbose=False):
         f.write("─" * 100 + "\n")
         f.write(f"{'Index':<10}{'Hex Value':<20}{'Decimal Value':<25}\n")
         f.write("─" * 100 + "\n")
-        
+
         for idx, pattern in enumerate(report_data['patterns']):
             f.write(f"{idx:<10}{hex(pattern):<20}{pattern:<25}\n")
-        
+
         # Footer
         f.write("\n")
         f.write("═" * 100 + "\n")
@@ -1426,7 +1448,7 @@ def _write_txt_report(filepath, report_data, verbose=False):
         f.write("  ≈ RACE_EXPECTED  - Read correct last writer's value (expected race condition)\n")
         f.write("\n")
         f.write("Note: View this file in Notepad with Consolas font for best formatting.\n")
-    
+
     if verbose:
         print(f"\nComprehensive TXT report saved to: {filepath}")
 
@@ -1434,10 +1456,10 @@ def _write_txt_report(filepath, report_data, verbose=False):
 def _write_excel_report(filepath, report_data, verbose=False):
     """Write comprehensive Excel report with multiple sheets."""
     wb = Workbook()
-    
+
     # Remove default sheet
     wb.remove(wb.active)
-    
+
     # Define styles
     header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
     header_font = Font(bold=True, color="FFFFFF")
@@ -1452,43 +1474,43 @@ def _write_excel_report(filepath, report_data, verbose=False):
         top=Side(style='thin'),
         bottom=Side(style='thin')
     )
-    
+
     # Sheet 1: Summary
     ws_summary = wb.create_sheet("Summary", 0)
     ws_summary.column_dimensions['A'].width = 30
     ws_summary.column_dimensions['B'].width = 40
-    
+
     row = 1
     ws_summary[f'A{row}'] = "MEMORY STRESS TEST REPORT"
     ws_summary[f'A{row}'].font = Font(bold=True, size=14)
     row += 1
-    
+
     ws_summary[f'A{row}'] = "Timestamp:"
     ws_summary[f'B{row}'] = report_data['timestamp']
     row += 2
-    
+
     # Configuration Section
     ws_summary[f'A{row}'] = "TEST CONFIGURATION"
     ws_summary[f'A{row}'].font = subheader_font
     ws_summary[f'A{row}'].fill = subheader_fill
     row += 1
-    
+
     config = report_data['config']
     for key, value in config.items():
         ws_summary[f'A{row}'] = key.replace('_', ' ').title()
         ws_summary[f'B{row}'] = str(value)
         row += 1
-    
+
     row += 1
-    
+
     # Results Section
     ws_summary[f'A{row}'] = "TEST RESULTS"
     ws_summary[f'A{row}'].font = subheader_font
     ws_summary[f'A{row}'].fill = subheader_fill
     row += 1
-    
+
     results = report_data['results']
-    
+
     # Format results with colors
     ws_summary[f'A{row}'] = "Test Verdict"
     ws_summary[f'B{row}'] = results['test_verdict']
@@ -1497,65 +1519,65 @@ def _write_excel_report(filepath, report_data, verbose=False):
     elif results['test_verdict'].startswith('FAIL'):
         ws_summary[f'B{row}'].fill = fail_fill
     row += 1
-    
+
     ws_summary[f'A{row}'] = "Elapsed Time (seconds)"
     ws_summary[f'B{row}'] = f"{results['elapsed_time']:.2f}"
     row += 1
-    
+
     ws_summary[f'A{row}'] = "Total Operations"
     ws_summary[f'B{row}'] = f"{results['total_operations']:,}"
     row += 1
-    
+
     ws_summary[f'A{row}'] = "Operations/Second"
     ws_summary[f'B{row}'] = f"{results['ops_per_second']:,.0f}"
     row += 1
-    
+
     if config['verify']:
         ws_summary[f'A{row}'] = "Passes"
         ws_summary[f'B{row}'] = f"{results['passes']:,}"
         ws_summary[f'B{row}'].fill = pass_fill if results['passes'] > 0 else None
         row += 1
-        
+
         if report_data['config']['track_last_writer'] and results['races_expected'] > 0:
             ws_summary[f'A{row}'] = "Expected Races"
             ws_summary[f'B{row}'] = f"{results['races_expected']:,}"
             row += 1
-        
+
         if results['races'] > 0:
             ws_summary[f'A{row}'] = "Races (Unexpected Pattern)"
             ws_summary[f'B{row}'] = f"{results['races']:,}"
             ws_summary[f'B{row}'].fill = race_fill
             row += 1
-        
+
         ws_summary[f'A{row}'] = "Failures"
         ws_summary[f'B{row}'] = f"{results['failures']:,}"
         ws_summary[f'B{row}'].fill = fail_fill if results['failures'] > 0 else pass_fill
         row += 1
-        
+
         total_checked = results['passes'] + results['failures'] + results['races'] + results['races_expected']
         if total_checked > 0:
             success_count = results['passes'] + results['races'] + results['races_expected']
             ws_summary[f'A{row}'] = "Success Rate"
             ws_summary[f'B{row}'] = f"{(success_count/total_checked*100):.2f}%"
             row += 1
-    
+
     if config['pre_post_validation']:
         row += 1
         ws_summary[f'A{row}'] = "VALIDATION RESULTS"
         ws_summary[f'A{row}'].font = subheader_font
         ws_summary[f'A{row}'].fill = subheader_fill
         row += 1
-        
+
         ws_summary[f'A{row}'] = "Pre-Validation"
         ws_summary[f'B{row}'] = f"PASS" if results['pre_validation_failures'] == 0 else f"FAIL ({results['pre_validation_failures']} errors)"
         ws_summary[f'B{row}'].fill = pass_fill if results['pre_validation_failures'] == 0 else fail_fill
         row += 1
-        
+
         ws_summary[f'A{row}'] = "Post-Validation"
         ws_summary[f'B{row}'] = f"PASS" if results['post_validation_failures'] == 0 else f"FAIL ({results['post_validation_failures']} errors)"
         ws_summary[f'B{row}'].fill = pass_fill if results['post_validation_failures'] == 0 else fail_fill
         row += 1
-    
+
     # Failure Analysis
     if report_data['failure_analysis']:
         row += 1
@@ -1563,38 +1585,38 @@ def _write_excel_report(filepath, report_data, verbose=False):
         ws_summary[f'A{row}'].font = subheader_font
         ws_summary[f'A{row}'].fill = subheader_fill
         row += 1
-        
+
         fa = report_data['failure_analysis']
-        
+
         if fa['hot_addresses']:
             ws_summary[f'A{row}'] = "Hot Addresses (>10% failures)"
             ws_summary[f'B{row}'] = ', '.join(fa['hot_addresses'][:5])
             row += 1
-        
+
         if fa['hot_threads']:
             ws_summary[f'A{row}'] = "Hot Threads (>10% failures)"
             ws_summary[f'B{row}'] = ', '.join(str(t) for t in fa['hot_threads'][:10])
             row += 1
-        
+
         ws_summary[f'A{row}'] = "Top 5 Addresses by Failures"
         row += 1
         for addr, count in fa['addr_distribution'].items():
             ws_summary[f'A{row}'] = f"  {addr}"
             ws_summary[f'B{row}'] = count
             row += 1
-    
+
     # Sheet 2: Operation Log
     if report_data['log_data']:
         ws_log = wb.create_sheet("Operation Log", 1)
-        headers = ['Thread', 'Iteration', 'Address', 'Original Value', 'Pattern', 
+        headers = ['Thread', 'Iteration', 'Address', 'Original Value', 'Pattern',
                   'Operation', 'Expected', 'Read Value', 'Status']
-        
+
         for col, header in enumerate(headers, 1):
             cell = ws_log.cell(1, col, header)
             cell.font = header_font
             cell.fill = header_fill
             cell.alignment = Alignment(horizontal='center')
-        
+
         for row_idx, entry in enumerate(report_data['log_data'], 2):
             ws_log.cell(row_idx, 1, entry['thread'])
             ws_log.cell(row_idx, 2, entry['iteration'])
@@ -1604,7 +1626,7 @@ def _write_excel_report(filepath, report_data, verbose=False):
             ws_log.cell(row_idx, 6, entry['operation'])
             ws_log.cell(row_idx, 7, entry['expected'])
             ws_log.cell(row_idx, 8, entry['read_value'])
-            
+
             status_cell = ws_log.cell(row_idx, 9, entry['status'])
             if entry['status'] == 'PASS':
                 status_cell.fill = pass_fill
@@ -1612,55 +1634,55 @@ def _write_excel_report(filepath, report_data, verbose=False):
                 status_cell.fill = fail_fill
             elif 'RACE' in entry['status']:
                 status_cell.fill = race_fill
-        
+
         # Auto-adjust column widths
         for col in range(1, 10):
             ws_log.column_dimensions[get_column_letter(col)].width = 18
-    
+
     # Sheet 3: Pre-Validation Failures
     if report_data['pre_validation_failures']:
         ws_pre = wb.create_sheet("Pre-Validation Failures", 2)
         headers = ['Address', 'Thread', 'Expected', 'Read', 'Type']
-        
+
         for col, header in enumerate(headers, 1):
             cell = ws_pre.cell(1, col, header)
             cell.font = header_font
             cell.fill = header_fill
-        
+
         for row_idx, failure in enumerate(report_data['pre_validation_failures'], 2):
             ws_pre.cell(row_idx, 1, failure['address'])
             ws_pre.cell(row_idx, 2, failure['thread'])
             ws_pre.cell(row_idx, 3, failure['expected'])
             ws_pre.cell(row_idx, 4, failure['read'])
             ws_pre.cell(row_idx, 5, failure['type'])
-    
+
     # Sheet 4: Post-Validation Failures
     if report_data['post_validation_failures']:
         ws_post = wb.create_sheet("Post-Validation Failures", 3)
         headers = ['Address', 'Thread', 'Expected', 'Read', 'Type']
-        
+
         for col, header in enumerate(headers, 1):
             cell = ws_post.cell(1, col, header)
             cell.font = header_font
             cell.fill = header_fill
-        
+
         for row_idx, failure in enumerate(report_data['post_validation_failures'], 2):
             ws_post.cell(row_idx, 1, failure['address'])
             ws_post.cell(row_idx, 2, failure['thread'])
             ws_post.cell(row_idx, 3, failure['expected'])
             ws_post.cell(row_idx, 4, failure['read'])
             ws_post.cell(row_idx, 5, failure['type'])
-    
+
     # Sheet 5: Last Writer Tracker
     if report_data['last_writer_tracker']:
         ws_lw = wb.create_sheet("Last Writer Tracker", 4)
         headers = ['Address', 'Thread', 'Pattern', 'Expected', 'Iteration', 'Operation']
-        
+
         for col, header in enumerate(headers, 1):
             cell = ws_lw.cell(1, col, header)
             cell.font = header_font
             cell.fill = header_fill
-        
+
         for row_idx, (addr, info) in enumerate(report_data['last_writer_tracker'].items(), 2):
             ws_lw.cell(row_idx, 1, hex(addr) if isinstance(addr, int) else addr)
             ws_lw.cell(row_idx, 2, info['thread'])
@@ -1668,27 +1690,27 @@ def _write_excel_report(filepath, report_data, verbose=False):
             ws_lw.cell(row_idx, 4, hex(info['expected']))
             ws_lw.cell(row_idx, 5, info['iteration'])
             ws_lw.cell(row_idx, 6, info['operation'])
-        
+
         for col in range(1, 7):
             ws_lw.column_dimensions[get_column_letter(col)].width = 20
-    
+
     # Sheet 6: Patterns Used
     ws_patterns = wb.create_sheet("Patterns", 5)
     ws_patterns['A1'] = "Pattern Index"
     ws_patterns['B1'] = "Hex Value"
     ws_patterns['C1'] = "Decimal Value"
-    
+
     for i, cell in enumerate([ws_patterns['A1'], ws_patterns['B1'], ws_patterns['C1']]):
         cell.font = header_font
         cell.fill = header_fill
-    
+
     for idx, pattern in enumerate(report_data['patterns'], 2):
         ws_patterns[f'A{idx}'] = idx - 2
         ws_patterns[f'B{idx}'] = hex(pattern)
         ws_patterns[f'C{idx}'] = pattern
-    
+
     wb.save(filepath)
-    
+
     if verbose:
         print(f"\nComprehensive Excel report saved to: {filepath}")
         print(f"  Sheets: Summary, Operation Log, ", end="")
@@ -1727,7 +1749,7 @@ def print_operations_help():
 if __name__ == "__main__":
     # Uncomment to see available operations
     # print_operations_help()
-    
+
     main()
     # Example 3: Force memory traffic with cache flushes
     # run_memory_stress(
@@ -1738,7 +1760,7 @@ if __name__ == "__main__":
     #     use_wbinvd=True,
     #     verify=True
     # )
-    
+
     # Example 4: Custom patterns
     # custom_patterns = [
     #     0xDEADBEEFDEADBEEF,

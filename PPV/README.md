@@ -256,6 +256,9 @@ Added download functionality to Framework Report Builder for copying PPV folders
 - This README - Overview and structure
 - Tool-specific READMEs in subdirectories
 
+### MCA Analysis
+- **Developer Guide**: `analysis/MCA_ANALYSIS_README.md` — comprehensive reference for the MCA Analysis pipeline, per-product config files, priority rules system, and how to onboard new products (DMR) or add new IP types
+
 ### Experiment Builder
 - **User Guide**: `EXPERIMENT_BUILDER_USER_GUIDE.md` - Start here!
 - **Full README**: `gui/EXPERIMENT_BUILDER_README.md` - Complete manual

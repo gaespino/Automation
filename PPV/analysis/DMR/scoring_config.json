@@ -1,0 +1,6 @@
+{
+  "description": "DMR MCA Analysis scoring weights for Compute/Row/Col failing-area selection. Placeholder values — update once DMR-specific calibration data is available.",
+  "score_compute": 1,
+  "score_row": 2,
+  "score_col": 4
+}
