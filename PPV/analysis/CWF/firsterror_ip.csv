@@ -1,0 +1,9 @@
+FirstError IP,Translate
+core_coregp,CORE
+scf_cha,CHA
+scf_b2cmi,B2CMI
+mse,MSE
+scf_cms,CMS
+scf_sbo,SBO
+punit_ptpcioregs_0,PUNIT
+ubox_ncevents,UBOX
