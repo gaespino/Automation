@@ -780,10 +780,11 @@ class MCAAnalyzer:
 			if vals.empty:
 				return ''
 			# Always return a value; append '*' when multiple values tie for top count
-			top_count = Counter(vals).most_common(1)[0][1]
-			top_vals = [v for v, c in Counter(vals).most_common() if c == top_count]
-			winner = top_vals[0]
-			return f"{winner}*" if len(top_vals) > 1 else str(winner)
+			cnt = Counter(vals)
+			top_count = cnt.most_common(1)[0][1]
+			top_vals = [v for v, c in cnt.most_common() if c == top_count]
+			winner = str(top_vals[0])
+			return f"{winner}*" if len(top_vals) > 1 else winner
 
 		rows = []
 		for vid in all_vids:
