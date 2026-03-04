@@ -779,8 +779,11 @@ class MCAAnalyzer:
 			vals = vals[vals.astype(str).str.strip() != '']
 			if vals.empty:
 				return ''
-			# Use most_common to always return a value, even on ties
-			return Counter(vals).most_common(1)[0][0]
+			# Always return a value; append '*' when multiple values tie for top count
+			top_count = Counter(vals).most_common(1)[0][1]
+			top_vals = [v for v, c in Counter(vals).most_common() if c == top_count]
+			winner = top_vals[0]
+			return f"{winner}*" if len(top_vals) > 1 else str(winner)
 
 		rows = []
 		for vid in all_vids:
@@ -1004,11 +1007,12 @@ class MCAAnalyzer:
 			# Resolve priority orders via configurable rules
 			_ctx = {
 				# String fields – support _equals, _in, _contains operators
-				'top_origreq'  : top_origreq,
-				'top_opcode'   : top_opcode,
-				'top_ismq'     : top_ismq,
-				'top_sad'      : top_sad,
-				'top_locport'  : top_locport,
+				# Strip trailing '*' (tie indicator) for rule matching
+				'top_origreq'  : top_origreq.rstrip('*'),
+				'top_opcode'   : top_opcode.rstrip('*'),
+				'top_ismq'     : top_ismq.rstrip('*'),
+				'top_sad'      : top_sad.rstrip('*'),
+				'top_locport'  : top_locport.rstrip('*'),
 				'core_mcas'    : core_mcas,
 				# Boolean presence flags – direct equality match
 				'cha_hint_present' : cha_hint  != 'NotFound',
