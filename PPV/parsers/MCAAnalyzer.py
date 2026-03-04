@@ -309,7 +309,7 @@ class MCAAnalyzer:
 		is_cha  = ip_translate.upper() in _CHA_TRANSLATE
 		is_llc  = ip_translate.upper() in _LLC_TRANSLATE
 
-		if is_core or is_cha or is_llc:
+		if is_core or is_cha or is_llc or offset > 0:
 			display = f"{ip_translate}{logical}"
 		else:
 			display = f"{ip_translate}:{device_translate}{instance_s}"
@@ -336,7 +336,8 @@ class MCAAnalyzer:
 
 		Parameters
 		----------
-		ncevent_type : 'IERRLOGGINGREG' or 'MCERRLOGGINGREG'
+		ncevent_type : 'IERRLOGGINGREG', 'MCERRLOGGINGREG', or None.
+		              When None, all rows are scanned (both IERR and MCERR).
 		ip_filter_fn : callable(parsed_dict) → bool – selects CORE/CHA/LLC rows
 
 		Returns
@@ -354,7 +355,7 @@ class MCAAnalyzer:
 			return Counter()
 
 		sub = firsterr_df[firsterr_df[vid_col] == vid]
-		if nce_col in sub.columns:
+		if ncevent_type and nce_col in sub.columns:
 			sub = sub[sub[nce_col].str.contains(ncevent_type, na=False)]
 
 		counts = Counter()
@@ -635,7 +636,7 @@ class MCAAnalyzer:
 				ml2_counts = Counter(subset[core_col].dropna())
 				core_hint, _ = self._resolve_hint_with_firsterr(
 					ml2_counts, firsterr_df, vid,
-					_MCERR_LABEL, core_filter, debug, label='CORE')
+					None, core_filter, debug, label='CORE')
 
 				if core_hint != 'NotFound':
 					core_num  = re.sub(r'[^0-9]', '', str(core_hint))
