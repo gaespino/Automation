@@ -558,9 +558,11 @@ class MCAAnalyzer:
 			return pd.DataFrame(
 				columns=['VisualID', 'Core Hint', 'Core Fail Area', 'Core MCAs'])
 
-		vid_col  = 'VisualID' if 'VisualID' in core_df.columns else 'VisualId'
-		core_col = 'CORE' if 'CORE' in core_df.columns else None
-		err_col  = ('MCACOD (ErrDecode)' if 'MCACOD (ErrDecode)' in core_df.columns else
+		vid_col   = 'VisualID' if 'VisualID' in core_df.columns else 'VisualId'
+		_core_key = 'MODULE' if self.product != 'GNR' else 'CORE'
+		_err_key  = 'MC DECODE' if self.product != 'GNR' else 'MCACOD (ErrDecode)'
+		core_col  = _core_key if _core_key in core_df.columns else None
+		err_col   = (_err_key if _err_key in core_df.columns else
 					('ErrorType' if 'ErrorType' in core_df.columns else None))
 
 		core_filter = lambda p: p['is_core']
