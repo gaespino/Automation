@@ -1,4 +1,17 @@
 {
+ "_META": {
+  "product": "DMR (Diamond Rapids)",
+  "core_arch": "BigCore (PNC - Panther Cove)",
+  "smt": "No SMT/HT - one thread per core",
+  "notes": [
+   "IFU/DCU/DTLB tables are GNR BigCore baseline - compatible with DMR PNC architecture",
+   "DCU in DMR uses EXTENDED 22-bit MSCOD (bits 37:16, not 31:16). decoder_dmr.py handles this.",
+   "ML2 MSCOD is a bitfield register. MSCOD entries cover single-bit patterns for direct lookup.",
+   "For multi-bit MSCOD values, the decoder returns raw MSCOD+MCACOD - use _MSCOD_BITFIELDS.",
+   "Source: GNR core_params + DMR mcadecode.py (based on DMR_MCA_CUSTOMER_DOCUMENTATION.xlsx)",
+   "Bank map: Bank0=IFU, Bank1=DCU, Bank2=DTLB, Bank3=ML2(MLC)"
+  ]
+ },
  "IFU": {
   "MSCOD": {
    "0": {
@@ -18,7 +31,7 @@
      "5": {
       "Name0": "DSB FE",
       "Description0": "Pipeline Error",
-      "Name1": "DSB Data ",
+      "Name1": "DSB Data",
       "Description1": "Pipeline Error"
      }
     }
@@ -306,6 +319,7 @@
   }
  },
  "DCU": {
+  "_DCU_NOTES": "DMR DCU EXTENDED 22-bit MSCOD (bits 37:16). decoder_dmr.py handles this.",
   "MSCOD": {
    "32": {
     "MCACOD": {
@@ -350,9 +364,9 @@
      "276": {
       "Name0": "Load read error - correctable",
       "Description0": "D_CACHE_L1_RD_ERR",
-      "Name1": "Load read error - uncorrectabe - non modified",
+      "Name1": "Load read error - uncorrectable - non modified",
       "Description1": "D_CACHE_L1_RD_ERR",
-      "Name2": "Load read error - uncorrectabe - modified line",
+      "Name2": "Load read error - uncorrectable - modified line",
       "Description2": "D_CACHE_L1_RD_ERR"
      },
      "388": {
@@ -462,7 +476,7 @@
    "2": {
     "MCACOD": {
      "25": {
-      "Name": "PDE/EPDE tag parity ",
+      "Name": "PDE/EPDE tag parity",
       "Description": "G_TLB_L2_ERR"
      },
      "5": {
@@ -474,7 +488,7 @@
    "3": {
     "MCACOD": {
      "25": {
-      "Name": "PDE/EPDE data parity ",
+      "Name": "PDE/EPDE data parity",
       "Description": "G_TLB_L2_ERR"
      },
      "1030": {
@@ -514,162 +528,501 @@
   }
  },
  "ML2": {
-  "MCACOD": {
-   "1024": {
-    "Name": "WDTimeout (3 strike)",
-    "Description": "Internal Unclassified"
+  "_ML2_NOTES": [
+   "ML2 = Module Level Cache (L2), Bank 3. Also referred to as MLC.",
+   "MSCOD is a BITFIELD register; multiple bits can be set simultaneously for compound errors.",
+   "See _MSCOD_BITFIELDS for the bitfield decode reference.",
+   "MSCOD entries listed cover single-bit (simple error) patterns for direct decoder lookup.",
+   "For multi-bit MSCOD, the decoder falls back to raw MSCOD+MCACOD display.",
+   "In DMR, Acode no longer has a single valid bit; error details are reported in MLC bank.",
+   "MCACOD cache hierarchy values: 277=D_CACHE_L2_RD_ERR, 297=G_CACHE_L2_WR_ERR,",
+   "  309=D_CACHE_L2_DRD_ERR, 325=D_CACHE_L2_DWR_ERR, 337=I_CACHE_L2_IRD_ERR,",
+   "  357=D_CACHE_L2_PREFETCH_ERR, 377=G_CACHE_L2_EVICT_ERR,",
+   "  389=D_CACHE_L2_SNOOP_ERR, 393=G_CACHE_L2_SNOOP_ERR"
+  ],
+  "_MSCOD_BITFIELDS": {
+   "MLC_Timeout_type": {
+    "_note": "Used when MCACOD=0x400 (1024, 3-strike WD timeout). Bits indicate stall reason.",
+    "TimeOutThread": {
+     "min": 0,
+     "max": 0
+    },
+    "ActiveThreads": {
+     "min": 2,
+     "max": 3
+    },
+    "XQ_Empty": {
+     "min": 6,
+     "max": 6
+    },
+    "LQ_Empty": {
+     "min": 7,
+     "max": 7
+    },
+    "SnpQ_Empty": {
+     "min": 8,
+     "max": 8
+    },
+    "No_U2C_Req_Credit": {
+     "min": 9,
+     "max": 9
+    },
+    "No_C2U_Credits": {
+     "min": 10,
+     "max": 12
+    },
+    "ExtCmpCntIsZero": {
+     "min": 13,
+     "max": 13
+    },
+    "FBVCntIsZero": {
+     "min": 14,
+     "max": 14
+    },
+    "VirtLLC_Prefetch": {
+     "min": 15,
+     "max": 15
+    }
    },
-   "1038": {
-    "Name": "acode-pm-ucss internal errors",
-    "Description": "Internal Unclassified"
-   },
-   "1030": {
-    "Name": "Trust ",
-    "Description": "Internal Unclassified"
-   },
-   "5": {
-    "Name": "SQDB or IDI (addr / data) parity",
-    "Description": "Pipeline Error"
-   },
-   "1029": {
-    "Name": "SQDB or IDI (addr / data) parity",
-    "Description": "Internal Unclassified"
-   },
-   "309": {
-    "Name": "Data read - DCU RD, RFO, ITOM",
-    "Description": "D_CACHE_L2_DRD_ERR"
-   },
-   "337": {
-    "Name": "Instr fetch - IFU CRD (code read)",
-    "Description": "I_CACHE_L2_IRD_ERR"
-   },
-   "357": {
-    "Name": "Prefetch - MPL RD, RFO, CRD (code read)",
-    "Description": "D_CACHE_L2_PREFETCH_ERR"
-   },
-   "377": {
-    "Name": "Fill/Evict - eviction",
-    "Description": "G_CACHE_L2_EVICT_ERR"
-   },
-   "325": {
-    "Name": "Data write - DCU WB",
-    "Description": "D_CACHE_L2_DWR_ERR"
-   },
-   "389": {
-    "Name": "Snoop - probe / confirm",
-    "Description": "D_CACHE_L2_SNOOP_ERR"
-   },
-   "393": {
-    "Name": "Snoop",
-    "Description": "G_CACHE_L2_SNOOP_ERR"
-   },
-   "297": {
-    "Name": "MLC Flush (ecc error on tag or data)",
-    "Description": "G_CACHE_L2_WR_ERR"
-   },
-   "1033": {
-    "Name": "Error during C6 restore",
-    "Description": "Internal Unclassified"
-   },
-   "277": {
-    "Name": "Generic read - SETMON (zlen)",
-    "Description": "D_CACHE_L2_RD_ERR"
+   "Others_type": {
+    "_note": "Used for tag/data/MESI/misc/C6SRAM errors. Each field encodes error type.",
+    "Tag": {
+     "min": 0,
+     "max": 1,
+     "decode": {
+      "0": "no err",
+      "1": "C err",
+      "2": "UC err",
+      "3": "reserved"
+     }
+    },
+    "MESI": {
+     "min": 2,
+     "max": 3,
+     "decode": {
+      "0": "no err",
+      "1": "C err",
+      "2": "UC err",
+      "3": "reserved"
+     }
+    },
+    "Data": {
+     "min": 4,
+     "max": 5,
+     "decode": {
+      "0": "no err",
+      "1": "C err",
+      "2": "UC err",
+      "3": "Psn+no Fwd"
+     }
+    },
+    "Misc": {
+     "min": 6,
+     "max": 7,
+     "decode": {
+      "0": "no err",
+      "1": "SQ/IDI err",
+      "2": "WD",
+      "3": "Trust"
+     }
+    },
+    "C6SRAM": {
+     "min": 8,
+     "max": 8,
+     "decode": {
+      "0": "no err",
+      "1": "err"
+     }
+    }
    }
   },
   "MSCOD": {
-   "type": {
-    "MLC": {
-     "TimeOutThread": {
-      "min": 0,
-      "max": 0
+   "0": {
+    "_note": "No bitfield error bits set. Error fully characterized by MCACOD alone.",
+    "MCACOD": {
+     "5": {
+      "Name": "SQDB or IDI (addr/data) parity",
+      "Description": "Pipeline Error"
      },
-     "ActiveThreads": {
-      "min": 2,
-      "max": 3
+     "277": {
+      "Name": "Generic read - SETMON (zlen)",
+      "Description": "D_CACHE_L2_RD_ERR"
      },
-     "XQ Empty": {
-      "min": 6,
-      "max": 6
+     "297": {
+      "Name": "MLC Flush (ecc error on tag or data)",
+      "Description": "G_CACHE_L2_WR_ERR"
      },
-     "LQ Empty": {
-      "min": 7,
-      "max": 7
+     "309": {
+      "Name": "Data read - DCU RD, RFO, ITOM",
+      "Description": "D_CACHE_L2_DRD_ERR"
      },
-     "SnpQ Empty": {
-      "min": 8,
-      "max": 8
+     "325": {
+      "Name": "Data write - DCU WB",
+      "Description": "D_CACHE_L2_DWR_ERR"
      },
-     "No U2C Req Credit": {
-      "min": 9,
-      "max": 9
+     "337": {
+      "Name": "Instr fetch - IFU CRD (code read)",
+      "Description": "I_CACHE_L2_IRD_ERR"
      },
-     "No C2U Credits": {
-      "min": 10,
-      "max": 12
+     "357": {
+      "Name": "Prefetch - MPL RD, RFO, CRD",
+      "Description": "D_CACHE_L2_PREFETCH_ERR"
      },
-     "ExtCmpCntIsZero": {
-      "min": 13,
-      "max": 13
+     "377": {
+      "Name": "Fill/Evict - eviction",
+      "Description": "G_CACHE_L2_EVICT_ERR"
      },
-     "FBVCntIsZero": {
-      "min": 14,
-      "max": 14
+     "389": {
+      "Name": "Snoop - probe / confirm",
+      "Description": "D_CACHE_L2_SNOOP_ERR"
      },
-     "VirtLLC Prefetch": {
-      "min": 15,
-      "max": 15
+     "393": {
+      "Name": "Snoop",
+      "Description": "G_CACHE_L2_SNOOP_ERR"
+     },
+     "1024": {
+      "Name": "WDTimeout (3 strike)",
+      "Description": "Internal Unclassified"
+     },
+     "1029": {
+      "Name": "SQDB or IDI (addr/data) parity",
+      "Description": "Internal Unclassified"
+     },
+     "1030": {
+      "Name": "Trust",
+      "Description": "Internal Unclassified"
+     },
+     "1033": {
+      "Name": "Error during C6 restore",
+      "Description": "Internal Unclassified"
+     },
+     "1038": {
+      "Name": "acode-pm-ucss internal errors",
+      "Description": "Internal Unclassified"
      }
-    },
-    "Others": {
-     "Tag": {
-      "min": 0,
-      "max": 1,
-      "decode": {
-       "0": "no err",
-       "1": "C err",
-       "2": "UC err",
-       "3": ""
-      }
+    }
+   },
+   "1": {
+    "_note": "bits 1:0=01: Tag CE. MCACOD=cache access type.",
+    "MCACOD": {
+     "277": {
+      "Name": "Tag CE - Generic read / SETMON",
+      "Description": "D_CACHE_L2_RD_ERR"
      },
-     "MESI": {
-      "min": 2,
-      "max": 3,
-      "decode": {
-       "0": "no err",
-       "1": "C err",
-       "2": "UC err",
-       "3": ""
-      }
+     "297": {
+      "Name": "Tag CE - MLC Flush",
+      "Description": "G_CACHE_L2_WR_ERR"
      },
-     "Data": {
-      "min": 4,
-      "max": 5,
-      "decode": {
-       "0": "no err",
-       "1": "C err",
-       "2": "UC err",
-       "3": "Psn+no Fwd"
-      }
+     "309": {
+      "Name": "Tag CE - Data read (DCU RD/RFO/ITOM)",
+      "Description": "D_CACHE_L2_DRD_ERR"
      },
-     "Misc": {
-      "min": 6,
-      "max": 7,
-      "decode": {
-       "0": "no err",
-       "1": "SQ/IDI err",
-       "2": "WD",
-       "3": "Trust"
-      }
+     "325": {
+      "Name": "Tag CE - Data write (DCU WB)",
+      "Description": "D_CACHE_L2_DWR_ERR"
      },
-     "C6SRAM": {
-      "min": 8,
-      "max": 8,
-      "decode": {
-       "0": "no err",
-       "1": "C err",
-       "2": "UC err",
-       "3": ""
-      }
+     "337": {
+      "Name": "Tag CE - Instr fetch (IFU CRD)",
+      "Description": "I_CACHE_L2_IRD_ERR"
+     },
+     "357": {
+      "Name": "Tag CE - Prefetch (MPL RD/RFO/CRD)",
+      "Description": "D_CACHE_L2_PREFETCH_ERR"
+     },
+     "377": {
+      "Name": "Tag CE - Fill/Evict",
+      "Description": "G_CACHE_L2_EVICT_ERR"
+     },
+     "389": {
+      "Name": "Tag CE - Snoop (probe/confirm)",
+      "Description": "D_CACHE_L2_SNOOP_ERR"
+     },
+     "393": {
+      "Name": "Tag CE - Snoop",
+      "Description": "G_CACHE_L2_SNOOP_ERR"
+     }
+    }
+   },
+   "2": {
+    "_note": "bits 1:0=10: Tag UCE. MCACOD=cache access type.",
+    "MCACOD": {
+     "277": {
+      "Name": "Tag UCE - Generic read / SETMON",
+      "Description": "D_CACHE_L2_RD_ERR"
+     },
+     "297": {
+      "Name": "Tag UCE - MLC Flush",
+      "Description": "G_CACHE_L2_WR_ERR"
+     },
+     "309": {
+      "Name": "Tag UCE - Data read (DCU RD/RFO/ITOM)",
+      "Description": "D_CACHE_L2_DRD_ERR"
+     },
+     "325": {
+      "Name": "Tag UCE - Data write (DCU WB)",
+      "Description": "D_CACHE_L2_DWR_ERR"
+     },
+     "337": {
+      "Name": "Tag UCE - Instr fetch (IFU CRD)",
+      "Description": "I_CACHE_L2_IRD_ERR"
+     },
+     "357": {
+      "Name": "Tag UCE - Prefetch (MPL RD/RFO/CRD)",
+      "Description": "D_CACHE_L2_PREFETCH_ERR"
+     },
+     "377": {
+      "Name": "Tag UCE - Fill/Evict",
+      "Description": "G_CACHE_L2_EVICT_ERR"
+     },
+     "389": {
+      "Name": "Tag UCE - Snoop (probe/confirm)",
+      "Description": "D_CACHE_L2_SNOOP_ERR"
+     },
+     "393": {
+      "Name": "Tag UCE - Snoop",
+      "Description": "G_CACHE_L2_SNOOP_ERR"
+     }
+    }
+   },
+   "4": {
+    "_note": "bits 3:2=01: MESI CE. MCACOD=cache access type.",
+    "MCACOD": {
+     "277": {
+      "Name": "MESI CE - Generic read / SETMON",
+      "Description": "D_CACHE_L2_RD_ERR"
+     },
+     "297": {
+      "Name": "MESI CE - MLC Flush",
+      "Description": "G_CACHE_L2_WR_ERR"
+     },
+     "309": {
+      "Name": "MESI CE - Data read (DCU RD/RFO/ITOM)",
+      "Description": "D_CACHE_L2_DRD_ERR"
+     },
+     "325": {
+      "Name": "MESI CE - Data write (DCU WB)",
+      "Description": "D_CACHE_L2_DWR_ERR"
+     },
+     "337": {
+      "Name": "MESI CE - Instr fetch (IFU CRD)",
+      "Description": "I_CACHE_L2_IRD_ERR"
+     },
+     "357": {
+      "Name": "MESI CE - Prefetch (MPL RD/RFO/CRD)",
+      "Description": "D_CACHE_L2_PREFETCH_ERR"
+     },
+     "377": {
+      "Name": "MESI CE - Fill/Evict",
+      "Description": "G_CACHE_L2_EVICT_ERR"
+     },
+     "389": {
+      "Name": "MESI CE - Snoop (probe/confirm)",
+      "Description": "D_CACHE_L2_SNOOP_ERR"
+     },
+     "393": {
+      "Name": "MESI CE - Snoop",
+      "Description": "G_CACHE_L2_SNOOP_ERR"
+     }
+    }
+   },
+   "8": {
+    "_note": "bits 3:2=10: MESI UCE. MCACOD=cache access type.",
+    "MCACOD": {
+     "277": {
+      "Name": "MESI UCE - Generic read / SETMON",
+      "Description": "D_CACHE_L2_RD_ERR"
+     },
+     "297": {
+      "Name": "MESI UCE - MLC Flush",
+      "Description": "G_CACHE_L2_WR_ERR"
+     },
+     "309": {
+      "Name": "MESI UCE - Data read (DCU RD/RFO/ITOM)",
+      "Description": "D_CACHE_L2_DRD_ERR"
+     },
+     "325": {
+      "Name": "MESI UCE - Data write (DCU WB)",
+      "Description": "D_CACHE_L2_DWR_ERR"
+     },
+     "337": {
+      "Name": "MESI UCE - Instr fetch (IFU CRD)",
+      "Description": "I_CACHE_L2_IRD_ERR"
+     },
+     "357": {
+      "Name": "MESI UCE - Prefetch (MPL RD/RFO/CRD)",
+      "Description": "D_CACHE_L2_PREFETCH_ERR"
+     },
+     "377": {
+      "Name": "MESI UCE - Fill/Evict",
+      "Description": "G_CACHE_L2_EVICT_ERR"
+     },
+     "389": {
+      "Name": "MESI UCE - Snoop (probe/confirm)",
+      "Description": "D_CACHE_L2_SNOOP_ERR"
+     },
+     "393": {
+      "Name": "MESI UCE - Snoop",
+      "Description": "G_CACHE_L2_SNOOP_ERR"
+     }
+    }
+   },
+   "16": {
+    "_note": "bits 5:4=01: Data CE. MCACOD=cache access type.",
+    "MCACOD": {
+     "277": {
+      "Name": "Data CE - Generic read / SETMON",
+      "Description": "D_CACHE_L2_RD_ERR"
+     },
+     "297": {
+      "Name": "Data CE - MLC Flush",
+      "Description": "G_CACHE_L2_WR_ERR"
+     },
+     "309": {
+      "Name": "Data CE - Data read (DCU RD/RFO/ITOM)",
+      "Description": "D_CACHE_L2_DRD_ERR"
+     },
+     "325": {
+      "Name": "Data CE - Data write (DCU WB)",
+      "Description": "D_CACHE_L2_DWR_ERR"
+     },
+     "337": {
+      "Name": "Data CE - Instr fetch (IFU CRD)",
+      "Description": "I_CACHE_L2_IRD_ERR"
+     },
+     "357": {
+      "Name": "Data CE - Prefetch (MPL RD/RFO/CRD)",
+      "Description": "D_CACHE_L2_PREFETCH_ERR"
+     },
+     "377": {
+      "Name": "Data CE - Fill/Evict",
+      "Description": "G_CACHE_L2_EVICT_ERR"
+     },
+     "389": {
+      "Name": "Data CE - Snoop (probe/confirm)",
+      "Description": "D_CACHE_L2_SNOOP_ERR"
+     },
+     "393": {
+      "Name": "Data CE - Snoop",
+      "Description": "G_CACHE_L2_SNOOP_ERR"
+     }
+    }
+   },
+   "32": {
+    "_note": "bits 5:4=10: Data UCE. MCACOD=cache access type.",
+    "MCACOD": {
+     "277": {
+      "Name": "Data UCE - Generic read / SETMON",
+      "Description": "D_CACHE_L2_RD_ERR"
+     },
+     "297": {
+      "Name": "Data UCE - MLC Flush",
+      "Description": "G_CACHE_L2_WR_ERR"
+     },
+     "309": {
+      "Name": "Data UCE - Data read (DCU RD/RFO/ITOM)",
+      "Description": "D_CACHE_L2_DRD_ERR"
+     },
+     "325": {
+      "Name": "Data UCE - Data write (DCU WB)",
+      "Description": "D_CACHE_L2_DWR_ERR"
+     },
+     "337": {
+      "Name": "Data UCE - Instr fetch (IFU CRD)",
+      "Description": "I_CACHE_L2_IRD_ERR"
+     },
+     "357": {
+      "Name": "Data UCE - Prefetch (MPL RD/RFO/CRD)",
+      "Description": "D_CACHE_L2_PREFETCH_ERR"
+     },
+     "377": {
+      "Name": "Data UCE - Fill/Evict",
+      "Description": "G_CACHE_L2_EVICT_ERR"
+     },
+     "389": {
+      "Name": "Data UCE - Snoop (probe/confirm)",
+      "Description": "D_CACHE_L2_SNOOP_ERR"
+     },
+     "393": {
+      "Name": "Data UCE - Snoop",
+      "Description": "G_CACHE_L2_SNOOP_ERR"
+     }
+    }
+   },
+   "48": {
+    "_note": "bits 5:4=11: Data Poison+no Forward. Typically occurs on read-side operations.",
+    "MCACOD": {
+     "277": {
+      "Name": "Data Psn+no Fwd - Generic read / SETMON",
+      "Description": "D_CACHE_L2_RD_ERR"
+     },
+     "309": {
+      "Name": "Data Psn+no Fwd - Data read (DCU RD/RFO/ITOM)",
+      "Description": "D_CACHE_L2_DRD_ERR"
+     },
+     "337": {
+      "Name": "Data Psn+no Fwd - Instr fetch (IFU CRD)",
+      "Description": "I_CACHE_L2_IRD_ERR"
+     },
+     "357": {
+      "Name": "Data Psn+no Fwd - Prefetch (MPL RD/RFO/CRD)",
+      "Description": "D_CACHE_L2_PREFETCH_ERR"
+     },
+     "389": {
+      "Name": "Data Psn+no Fwd - Snoop (probe/confirm)",
+      "Description": "D_CACHE_L2_SNOOP_ERR"
+     },
+     "393": {
+      "Name": "Data Psn+no Fwd - Snoop",
+      "Description": "G_CACHE_L2_SNOOP_ERR"
+     }
+    }
+   },
+   "64": {
+    "_note": "bits 7:6=01: Misc=SQ/IDI error (SQ queue or IDI interface parity).",
+    "MCACOD": {
+     "5": {
+      "Name": "Misc SQ/IDI error",
+      "Description": "Pipeline Error"
+     },
+     "1029": {
+      "Name": "Misc SQ/IDI error",
+      "Description": "Internal Unclassified"
+     }
+    }
+   },
+   "128": {
+    "_note": "bits 7:6=10: Misc=WD (Watchdog). See MLC_Timeout_type bitfield for stall reason detail.",
+    "MCACOD": {
+     "1024": {
+      "Name": "WDTimeout - Watchdog fired (3-strike)",
+      "Description": "Internal Unclassified"
+     }
+    }
+   },
+   "129": {
+    "_note": "MSCOD=0x81: WD(bit7)+TimeOutThread(bit0). Most common 3-strike MSCOD pattern in DMR.",
+    "MCACOD": {
+     "1024": {
+      "Name": "WDTimeout (3 strike) - WD + TimeOutThread",
+      "Description": "Internal Unclassified"
+     }
+    }
+   },
+   "192": {
+    "_note": "bits 7:6=11: Misc=Trust error.",
+    "MCACOD": {
+     "1030": {
+      "Name": "Trust error (Misc bits=11)",
+      "Description": "Internal Unclassified"
+     }
+    }
+   },
+   "256": {
+    "_note": "bit 8=1: C6SRAM error (error in C6 save state SRAM).",
+    "MCACOD": {
+     "1033": {
+      "Name": "C6SRAM error - Error during C6 restore",
+      "Description": "Internal Unclassified"
      }
     }
    }
