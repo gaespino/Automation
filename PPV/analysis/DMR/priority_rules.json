@@ -1,14 +1,26 @@
 {
   "description": "Root Cause and Debug Hints priority rules for DMR. Add product-specific rules as DMR data becomes available.",
-
-  "default_root_cause_order" : ["mem", "io", "other", "cha", "llc", "core"],
-  "default_debug_hints_order": ["mem", "io", "other", "cha", "llc", "core"],
-
+  "default_root_cause_order": [
+    "mem",
+    "io",
+    "other",
+    "cha",
+    "llc",
+    "core"
+  ],
+  "default_debug_hints_order": [
+    "mem",
+    "io",
+    "other",
+    "cha",
+    "llc",
+    "core"
+  ],
   "_condition_operators_reference": {
     "_summary": "All conditions in a rule must be satisfied (implicit AND). Three operators work on string fields; boolean flags use direct equality.",
     "_string_operators": {
-      "{field}_equals"  : "Exact case-sensitive match.           e.g. \"top_origreq_equals\": \"PortIn\"",
-      "{field}_in"      : "Value is in the provided list.        e.g. \"top_origreq_in\": [\"PortIn\", \"PortOut\"]",
+      "{field}_equals": "Exact case-sensitive match.           e.g. \"top_origreq_equals\": \"PortIn\"",
+      "{field}_in": "Value is in the provided list.        e.g. \"top_origreq_in\": [\"PortIn\", \"PortOut\"]",
       "{field}_contains": "Substring present anywhere in value.  e.g. \"core_mcas_contains\": \"bank\""
     },
     "_boolean_flags": {
@@ -34,17 +46,78 @@
       "mem_hint_present   – true when MEM Hint  != 'NotFound'"
     ]
   },
-
   "rules": [
+    {
+      "name": "IO present without Other — deprioritize IO",
+      "description": "When IO fails are present but there are no Other errors, IO MCAs are likely secondary (nuisance) indicators rather than root cause. Deprioritize IO to the end of the priority order.",
+      "condition": {
+        "io_hint_present": true,
+        "other_present": false
+      },
+      "override_root_cause_order": [
+        "other",
+        "cha",
+        "llc",
+        "core",
+        "mem",
+        "io"
+      ],
+      "override_debug_hints_order": [
+        "other",
+        "cha",
+        "llc",
+        "core",
+        "mem",
+        "io"
+      ]
+    },
+    {
+      "name": "MEM present without Other — deprioritize MEM",
+      "description": "When MEM fails are present but there are no Other errors, MEM MCAs are likely secondary (nuisance) indicators rather than root cause. Deprioritize MEM to the end of the priority order.",
+      "condition": {
+        "mem_hint_present": true,
+        "other_present": false
+      },
+      "override_root_cause_order": [
+        "other",
+        "cha",
+        "llc",
+        "core",
+        "mem",
+        "io"
+      ],
+      "override_debug_hints_order": [
+        "other",
+        "cha",
+        "llc",
+        "core",
+        "mem",
+        "io"
+      ]
+    },
     {
       "name": "IO and MEM both present skeleton",
       "description": "TODO: When both IO and MEM hints are present, both should appear in Debug Hints. Tune priority as data becomes available.",
       "condition": {
-        "io_hint_present" : true,
+        "io_hint_present": true,
         "mem_hint_present": true
       },
-      "override_root_cause_order" : ["mem", "io", "other", "cha", "llc", "core"],
-      "override_debug_hints_order": ["mem", "io", "other", "cha", "llc", "core"]
+      "override_root_cause_order": [
+        "mem",
+        "io",
+        "other",
+        "cha",
+        "llc",
+        "core"
+      ],
+      "override_debug_hints_order": [
+        "mem",
+        "io",
+        "other",
+        "cha",
+        "llc",
+        "core"
+      ]
     }
   ]
 }

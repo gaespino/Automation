@@ -808,6 +808,13 @@ class MCAAnalyzer:
 				if src_unique and src_winner != 'NotFound':
 					srcid_hint = src_winner
 
+			# SrcID / ModuleID fallback: when no CHA Hint was resolved but multiple
+			# CHA rows share a common SrcID (GNR/CWF) or ModuleID (DMR), surface it
+			# as the CHA Hint in the form "SrcID{value}" / "ModuleID{value}".
+			if cha_hint == 'NotFound' and srcid_hint != 'NotFound':
+				_prefix  = 'ModuleID' if (src_col == 'ModuleID') else 'SrcID'
+				cha_hint = f"{_prefix}{srcid_hint}"
+
 			rows.append({
 				'VisualID'     : vid,
 				'CHA Hint'     : cha_hint,
