@@ -369,6 +369,19 @@ class MCAAnalyzer:
 	# Generic helpers
 	# =========================================================================
 
+	def _detect_column(self, df, *candidates):
+		"""
+		Return the first column name from *candidates* that exists in *df*.
+		Returns None when none of the candidates are present.
+
+		Used to handle product-specific column name variations across decoders,
+		e.g. CORE (GNR bigcore) → MODULE (CWF atom) → Core (DMR).
+		"""
+		for col in candidates:
+			if col in df.columns:
+				return col
+		return None
+
 	def _get_visual_ids(self, *dfs):
 		ids = set()
 		for df in dfs:
@@ -450,7 +463,8 @@ class MCAAnalyzer:
 			return pd.DataFrame(columns=['VisualID', 'CHA Hint', 'CHA Fail Area', 'SrcID Hint'])
 
 		vid_col  = 'VisualID' if 'VisualID' in cha_df.columns else 'VisualId'
-		cha_col  = 'CHA'   if 'CHA'   in cha_df.columns else None
+		# GNR/CWF uses 'CHA'; DMR CCF uses 'ModuleID' (CBO instance from MC_MISC bits 30:26).
+		cha_col  = self._detect_column(cha_df, 'CHA', 'ModuleID')
 		src_col  = 'SrcID' if 'SrcID' in cha_df.columns else None
 
 		cha_filter = lambda p: p['is_cha']
@@ -559,9 +573,10 @@ class MCAAnalyzer:
 				columns=['VisualID', 'Core Hint', 'Core Fail Area', 'Core MCAs'])
 
 		vid_col  = 'VisualID' if 'VisualID' in core_df.columns else 'VisualId'
-		core_col = 'CORE' if 'CORE' in core_df.columns else None
-		err_col  = ('MCACOD (ErrDecode)' if 'MCACOD (ErrDecode)' in core_df.columns else
-					('ErrorType' if 'ErrorType' in core_df.columns else None))
+		# Core identifier column priority: CORE (GNR/CWF bigcore) > MODULE (CWF atom) > Core (DMR).
+		core_col = self._detect_column(core_df, 'CORE', 'MODULE', 'Core')
+		# Error-decode column priority: MCACOD (ErrDecode) (GNR/CWF) > MC DECODE (DMR) > ErrorType (generic).
+		err_col  = self._detect_column(core_df, 'MCACOD (ErrDecode)', 'MC DECODE', 'ErrorType')
 
 		core_filter = lambda p: p['is_core']
 

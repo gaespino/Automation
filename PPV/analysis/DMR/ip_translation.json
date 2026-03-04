@@ -1,5 +1,19 @@
 {
-  "firsterror_ip"    : {},
-  "firsterror_device": {},
-  "failing_ips"      : {}
+  "firsterror_ip": {
+    "ccf_cha"           : "CHA",
+    "ccf_llc"           : "LLC",
+    "ncu_sncevents"     : "NCU",
+    "punit_regs"        : "PUNIT"
+  },
+  "firsterror_device": {
+    "cpucore"    : {"translate": "CORE",    "offset": 0},
+    "cpuccf"     : {"translate": "CCF",     "offset": 0},
+    "punit"      : {"translate": "PUNIT",   "offset": 0},
+    "ncu"        : {"translate": "NCU",     "offset": 0}
+  },
+  "failing_ips": {
+    "CCF"   : "MCERRLOGGINGREG",
+    "NCU"   : "IERRLOGGINGREG",
+    "PUNIT" : "IERRLOGGINGREG"
+  }
 }
