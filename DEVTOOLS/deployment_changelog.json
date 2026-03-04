@@ -87,5 +87,59 @@
     "replacements_count": 0,
     "renames_count": 0,
     "report_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_report_20260223_180035.csv"
+  },
+  {
+    "timestamp": "20260304_164135",
+    "date": "2026-03-04",
+    "product": "GNR",
+    "source_type": "BASELINE",
+    "deployment_type": "S2T",
+    "target": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\GNR\\prod\\S2T",
+    "files_deployed": [
+      "UI\\System2TesterUI.py",
+      "GNRSetTesterRegs.py",
+      "Tools\\TemperatureControl.py",
+      "GNRCoreManipulation.py"
+    ],
+    "files_deployed_count": 4,
+    "files_skipped_count": 41,
+    "errors_count": 0,
+    "replacements_count": 1,
+    "renames_count": 2,
+    "report_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_report_20260304_164135.csv"
+  },
+  {
+    "timestamp": "20260304_164421",
+    "date": "2026-03-04",
+    "product": "GNR",
+    "source_type": "BASELINE",
+    "deployment_type": "DebugFramework",
+    "target": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\GNR\\prod\\DebugFramework",
+    "files_deployed": [
+      "PPV\\utils\\fusefilegenerator.py",
+      "PPV\\configs\\DMRControlPanelConfig.json",
+      "PPV\\gui\\fusefileui.py",
+      "PPV\\gui\\AutomationDesigner.py",
+      "PPV\\gui\\PPVFrameworkReport.py",
+      "PPV\\configs\\fuses\\gnr\\compute.csv",
+      "PPV\\utils\\FrameworkFileFix.py",
+      "PPV\\gui\\PPVTools.py",
+      "ExecutionHandler\\Configurations.py",
+      "PPV\\gui\\ExperimentBuilder.py",
+      "PPV\\parsers\\Frameworkparser.py",
+      "Automation_Flow\\AutomationFlows.py",
+      "PPV\\configs\\GNRControlPanelConfig.json",
+      "PPV\\Decoder\\decoder_dmr.py",
+      "PPV\\utils\\status_bar.py",
+      "GNRSystemDebug.py",
+      "PPV\\configs\\fuses\\gnr\\io.csv",
+      "PPV\\configs\\CWFControlPanelConfig.json"
+    ],
+    "files_deployed_count": 18,
+    "files_skipped_count": 107,
+    "errors_count": 0,
+    "replacements_count": 5,
+    "renames_count": 1,
+    "report_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_report_20260304_164421.csv"
   }
 ]

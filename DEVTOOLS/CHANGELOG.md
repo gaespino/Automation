@@ -291,3 +291,55 @@ This is intentional as these files are development-specific and not needed in th
 - `configs\fuses\gnr\io.csv`
 
 ---
+
+## [20260304_164135] — GNR Deploy — March 04, 2026
+
+### Summary
+- **Product:** GNR  
+- **Source:** BASELINE / S2T  
+- **Target:** `Q:\Gaespino\scripts\s2t\Deploys\GNR\prod\S2T`  
+- **Files Deployed:** 4  
+- **Errors:** 0  
+- **Import Replacements:** 1  
+- **File Renames:** 2  
+
+### Deployed Files
+- `UI\System2TesterUI.py`
+- `GNRSetTesterRegs.py` ← *renamed from `SetTesterRegs.py`*
+- `Tools\TemperatureControl.py`
+- `GNRCoreManipulation.py` ← *renamed from `CoreManipulation.py`*
+
+---
+
+## [20260304_164421] — GNR Deploy — March 04, 2026
+
+### Summary
+- **Product:** GNR  
+- **Source:** BASELINE / DebugFramework  
+- **Target:** `Q:\Gaespino\scripts\s2t\Deploys\GNR\prod\DebugFramework`  
+- **Files Deployed:** 18  
+- **Errors:** 0  
+- **Import Replacements:** 5  
+- **File Renames:** 1  
+
+### Deployed Files
+- `PPV\utils\fusefilegenerator.py`
+- `PPV\configs\DMRControlPanelConfig.json`
+- `PPV\gui\fusefileui.py`
+- `PPV\gui\AutomationDesigner.py`
+- `PPV\gui\PPVFrameworkReport.py`
+- `PPV\configs\fuses\gnr\compute.csv`
+- `PPV\utils\FrameworkFileFix.py`
+- `PPV\gui\PPVTools.py`
+- `ExecutionHandler\Configurations.py`
+- `PPV\gui\ExperimentBuilder.py`
+- `PPV\parsers\Frameworkparser.py`
+- `Automation_Flow\AutomationFlows.py`
+- `PPV\configs\GNRControlPanelConfig.json`
+- `PPV\Decoder\decoder_dmr.py`
+- `PPV\utils\status_bar.py`
+- `GNRSystemDebug.py` ← *renamed from `SystemDebug.py`*
+- `PPV\configs\fuses\gnr\io.csv`
+- `PPV\configs\CWFControlPanelConfig.json`
+
+---
