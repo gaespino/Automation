@@ -2,6 +2,7 @@
 #from traceback import extract_tb
 import pandas as pd
 from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 import shutil
 #import win32com.client as win32
@@ -709,7 +710,7 @@ def addtable(df, excel_file, sheet, table_name ):
 	ws = wb[sheet]
 
 	# Define the table range, in case there is no data add blanks to the first column, this is just to be consistent with data
-	table_range = f'A1:{chr(64+len(df.columns))}{len(df)+1 if not df.empty else 2}'
+	table_range = f'A1:{get_column_letter(len(df.columns))}{len(df)+1 if not df.empty else 2}'
 
 	# Create a table
 	table = Table(displayName=table_name, ref=table_range)
@@ -752,7 +753,7 @@ def load_dataframe_to_excel(df, excel_file, sheet_name, table_name):
 		table = table_name
 
 	else:
-		table_range = f"A1:{chr(64+len(df.columns))}{len(df)+1}"
+		table_range = f"A1:{get_column_letter(len(df.columns))}{len(df)+1}"
 		table = table_name
 		table = Table(displayName="chadecode", ref=table_range)
 		# Add a default style with striped rows and banded columns
