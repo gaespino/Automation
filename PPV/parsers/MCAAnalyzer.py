@@ -847,38 +847,86 @@ class MCAAnalyzer:
 		Rules are evaluated in declaration order; the first matching rule wins.
 		If no rule matches, the default orders from the config are returned.
 
-		Context keys used by condition evaluators
-		------------------------------------------
-		top_origreq  : str   – value of 'Top OrigReq' for this row
-		cha_present  : bool  – True when CHA Hint != 'NotFound'
-		srcid_present: bool  – True when SrcIDs != 'NotFound'
-		llc_present  : bool  – True when LLC Hint != 'NotFound'
-		core_present : bool  – True when Core Hint != 'NotFound'
-		other_present: bool  – True when Other is non-empty
-		"""
-		# Map each condition key → context lookup key
-		_bool_conditions = {
-			'cha_hint_present' : 'cha_present',
-			'srcid_present'    : 'srcid_present',
-			'llc_hint_present' : 'llc_present',
-			'core_hint_present': 'core_present',
-			'other_present'    : 'other_present',
-		}
+		Condition operators (JSON key patterns)
+		---------------------------------------
+		All conditions in a rule must be satisfied for the rule to match
+		(implicit AND).  Three operator suffixes are supported for string
+		context fields, plus direct boolean equality for flag fields:
 
+		  {field}_equals  <str>   – exact case-sensitive match
+		  {field}_in      [list]  – membership in a list of strings
+		  {field}_contains <str>  – substring present anywhere in the value
+
+		  {flag}          <bool>  – direct equality for boolean context keys
+
+		String context fields available in conditions
+		----------------------------------------------
+		  top_origreq   – value of 'Top OrigReq'    (e.g. "PortIn", "Read")
+		  top_opcode    – value of 'Top OpCode'      (e.g. "RdCur", "WrPush")
+		  top_ismq      – value of 'Top ISMQ'
+		  top_sad       – value of 'Top SAD'
+		  top_locport   – value of 'Top SAD LocPort'
+		  core_mcas     – value of 'Core Mcas'
+
+		Boolean context flags available in conditions
+		----------------------------------------------
+		  cha_hint_present   – True when CHA Hint != 'NotFound'
+		  llc_hint_present   – True when LLC Hint != 'NotFound'
+		  core_hint_present  – True when Core Hint != 'NotFound'
+		  srcid_present      – True when SrcIDs != 'NotFound'
+		  other_present      – True when Other is non-empty
+
+		Examples
+		--------
+		  # Exact match on a single string field
+		  "condition": { "top_origreq_equals": "PortIn" }
+
+		  # Membership in a list
+		  "condition": { "top_origreq_in": ["PortIn", "PortOut"] }
+
+		  # Substring (e.g. core bank error)
+		  "condition": { "core_mcas_contains": "bank" }
+
+		  # Boolean flag combined with string match
+		  "condition": {
+		    "top_origreq_equals": "PortIn",
+		    "cha_hint_present"  : true,
+		    "srcid_present"     : true
+		  }
+		"""
 		for rule in self._priority_rules:
 			cond = rule.get('condition', {})
+			# An empty/absent condition dict is a catch-all: it matches every row.
+			# This is intentional and can be used to set a product-wide default
+			# override at the end of the rules list (last resort).
+			match = True
 
-			# String equality check
-			if cond.get('top_origreq_equals') is not None:
-				if context.get('top_origreq', '') != cond['top_origreq_equals']:
-					continue
+			for cond_key, cond_val in cond.items():
+				if cond_key.endswith('_equals'):
+					ctx_key = cond_key[:-len('_equals')]
+					# String fields are always str (initialized with '' fallback)
+					if context.get(ctx_key, '') != cond_val:
+						match = False
+						break
+				elif cond_key.endswith('_in'):
+					ctx_key = cond_key[:-len('_in')]
+					if context.get(ctx_key, '') not in cond_val:
+						match = False
+						break
+				elif cond_key.endswith('_contains'):
+					ctx_key = cond_key[:-len('_contains')]
+					# str() is safe: string context fields are always str ('');
+					# this guard also handles any unexpected non-string values.
+					if cond_val not in str(context.get(ctx_key, '')):
+						match = False
+						break
+				else:
+					# Direct boolean / value equality (for presence flags)
+					if context.get(cond_key) != cond_val:
+						match = False
+						break
 
-			# Boolean presence checks
-			if all(
-				context.get(ctx_key, False) == cond[cond_key]
-				for cond_key, ctx_key in _bool_conditions.items()
-				if cond_key in cond
-			):
+			if match:
 				rc_order = rule.get('override_root_cause_order',  self._default_rc_order)
 				dh_order = rule.get('override_debug_hints_order', self._default_dh_order)
 				return rc_order, dh_order
@@ -951,12 +999,19 @@ class MCAAnalyzer:
 
 			# Resolve priority orders via configurable rules
 			_ctx = {
+				# String fields – support _equals, _in, _contains operators
 				'top_origreq'  : top_origreq,
-				'cha_present'  : cha_hint  != 'NotFound',
-				'llc_present'  : llc_hint  != 'NotFound',
-				'core_present' : core_hint != 'NotFound',
-				'srcid_present': srcids    != 'NotFound',
-				'other_present': bool(other),
+				'top_opcode'   : top_opcode,
+				'top_ismq'     : top_ismq,
+				'top_sad'      : top_sad,
+				'top_locport'  : top_locport,
+				'core_mcas'    : core_mcas,
+				# Boolean presence flags – direct equality match
+				'cha_hint_present' : cha_hint  != 'NotFound',
+				'llc_hint_present' : llc_hint  != 'NotFound',
+				'core_hint_present': core_hint != 'NotFound',
+				'srcid_present'    : srcids    != 'NotFound',
+				'other_present'    : bool(other),
 			}
 			rc_order, dh_order = self._resolve_priority_order(_ctx)
 
