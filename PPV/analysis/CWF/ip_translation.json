@@ -2,6 +2,7 @@
   "firsterror_ip": {
     "core_coregp"       : "CORE",
     "scf_cha"           : "CHA",
+    "scf_llc"           : "LLC",
     "scf_b2cmi"         : "B2CMI",
     "mse"               : "MSE",
     "scf_cms"           : "CMS",
@@ -22,6 +23,7 @@
     "ubox"       : {"translate": "ubox",    "offset": 0}
   },
   "failing_ips": {
+    "LLC"  : "MCERRLOGGINGREG",
     "B2CMI": "MCERRLOGGINGREG",
     "MSE"  : "MCERRLOGGINGREG",
     "CMS"  : "MCERRLOGGINGREG",

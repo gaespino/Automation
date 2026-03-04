@@ -431,30 +431,147 @@ class MCAAnalyzer:
 					ids.update(df[col].dropna().unique())
 		return sorted(ids)
 
-	def _argmax_unique(self, counter):
+	@staticmethod
+	def _clean_hint(hint):
+		"""Strip trailing '*' tie-marker and return (clean_str, numeric_id).
+
+		Used by location helpers to resolve a hint like 'CHA9*' → ('CHA9', '9').
 		"""
-		Return (winner, is_unique).
-		is_unique=True iff exactly one key has the maximum count.
+		clean = str(hint).rstrip('*')
+		num   = re.sub(r'[^0-9]', '', clean)
+		return clean, num
+
+	def _argmax_unique(self, counter, max_ties=1):
+		"""
+		Return (winner, is_resolved).
+
+		is_resolved=True iff the number of keys sharing the maximum count
+		is ≤ max_ties.  When max_ties > 1 and exactly N (2 ≤ N ≤ max_ties)
+		keys share the max, the first key is returned with '*' appended to
+		indicate the tie.  When more than max_ties keys tie, ('NotFound',
+		False) is returned so the caller can fall back to spatial scoring.
 		"""
 		if not counter:
 			return ('NotFound', False)
 		max_count = max(counter.values())
 		winners   = [k for k, v in counter.items() if v == max_count]
-		if len(winners) == 1:
-			return (winners[0], True)
+		if len(winners) <= max_ties:
+			winner = str(winners[0])
+			if len(winners) > 1:
+				winner = f"{winner}*"
+			return (winner, True)
 		return ('NotFound', False)
+
+	def _score_fail_area(self, entries_weighted):
+		"""
+		Compute a spatial fail-area description from a set of failing layout
+		entries when no single IP dominates.
+
+		entries_weighted : list of (layout_entry_dict, count)
+		    Each entry is a dict with at least {compute, row, col} for GNR/CWF
+		    or {cbb, compute, row, col} for DMR.
+
+		Returns a human-readable string such as:
+		  GNR/CWF : 'Col3', 'Row1', 'Compute0'
+		  DMR     : 'CBB0 : Col3', 'CBB0 : Row1', 'CBB0 : Compute0', 'CBB0'
+		or '' if no layout data is available.
+
+		Scoring uses the configured weights (score_col > score_row >
+		score_compute) so column-level correlation is preferred over
+		row-level, which is preferred over compute-level.
+		"""
+		if not entries_weighted:
+			return ''
+
+		from collections import Counter as _Counter
+		total = sum(c for _, c in entries_weighted)
+		is_dmr = 'cbb' in entries_weighted[0][0]
+
+		if is_dmr:
+			# --- CBB level ---
+			cbb_totals = _Counter()
+			for entry, c in entries_weighted:
+				cbb_totals[str(entry.get('cbb', ''))] += c
+			top_cbb, cbb_count = cbb_totals.most_common(1)[0]
+			multiple_cbbs = len(cbb_totals) > 1
+
+			# --- within the dominant CBB: compute / row / col ---
+			in_cbb = [(e, c) for e, c in entries_weighted
+					  if str(e.get('cbb', '')) == top_cbb]
+			n_cbb  = sum(c for _, c in in_cbb)
+
+			comp_totals = _Counter()
+			row_totals  = _Counter()
+			col_totals  = _Counter()
+			for entry, c in in_cbb:
+				comp_totals[str(entry.get('compute', ''))] += c
+				row_totals [str(entry.get('row',     ''))] += c
+				col_totals [str(entry.get('col',     ''))] += c
+
+			top_comp = comp_totals.most_common(1)[0][0] if comp_totals else ''
+			top_row  = row_totals .most_common(1)[0][0] if row_totals  else ''
+			top_col  = col_totals .most_common(1)[0][0] if col_totals  else ''
+			comp_c   = comp_totals.most_common(1)[0][1] if comp_totals else 0
+			row_c    = row_totals .most_common(1)[0][1] if row_totals  else 0
+			col_c    = col_totals .most_common(1)[0][1] if col_totals  else 0
+
+			# CBB-level score is only meaningful when instances span multiple CBBs;
+			# when all instances fall in the same CBB, defer to sub-dimensions.
+			# score_col + 1 gives CBB-level grouping a slight edge over the highest
+			# single-dimension score so it wins only when cross-CBB concentration
+			# is strong relative to within-CBB variation.
+			cbb_score  = ((cbb_count / total) * (self.score_col + 1)
+						  if multiple_cbbs else 0)
+			comp_score = (comp_c    / n_cbb)  * self.score_compute if n_cbb else 0
+			row_score  = (row_c     / n_cbb)  * self.score_row     if n_cbb else 0
+			col_score  = (col_c     / n_cbb)  * self.score_col     if n_cbb else 0
+
+			candidates = {
+				f"CBB{top_cbb} : Col{top_col}"     : col_score,
+				f"CBB{top_cbb} : Row{top_row}"     : row_score,
+				f"CBB{top_cbb} : Compute{top_comp}": comp_score,
+				f"CBB{top_cbb}"                    : cbb_score,
+			}
+			return max(candidates, key=candidates.get)
+
+		else:
+			# --- GNR/CWF: compute / row / col ---
+			comp_totals = _Counter()
+			row_totals  = _Counter()
+			col_totals  = _Counter()
+			for entry, c in entries_weighted:
+				comp_num = re.sub(r'[^0-9]', '', str(entry.get('compute', '')))
+				comp_totals[comp_num]                      += c
+				row_totals [str(entry.get('row', ''))]     += c
+				col_totals [str(entry.get('col', ''))]     += c
+
+			top_comp = comp_totals.most_common(1)[0][0] if comp_totals else ''
+			top_row  = row_totals .most_common(1)[0][0] if row_totals  else ''
+			top_col  = col_totals .most_common(1)[0][0] if col_totals  else ''
+			comp_c   = comp_totals.most_common(1)[0][1] if comp_totals else 0
+			row_c    = row_totals .most_common(1)[0][1] if row_totals  else 0
+			col_c    = col_totals .most_common(1)[0][1] if col_totals  else 0
+
+			candidates = {
+				f"Col{top_col}"     : (col_c  / total) * self.score_col,
+				f"Row{top_row}"     : (row_c  / total) * self.score_row,
+				f"Compute{top_comp}": (comp_c / total) * self.score_compute,
+			}
+			return max(candidates, key=candidates.get)
 
 	def _resolve_hint_with_firsterr(self, ml2_counts, firsterr_df, vid,
 									ncevent_type, ip_filter_fn, debug,
-									label=''):
+									label='', max_ties=2):
 		"""
 		Determine the failing instance hint using ML2 count + FirstError fallback.
 
 		Algorithm
 		---------
-		1. If ML2 counts have a unique winner → return it.
-		2. If ML2 counts are tied (or empty) → use FirstError count from UBOX.
-		3. If FirstError also tied → return 'NotFound'.
+		1. If ML2 counts have ≤ max_ties keys sharing the maximum → return the
+		   first (with '*' if there is a tie).
+		2. If ML2 counts are tied beyond max_ties (or empty) → use FirstError
+		   count from UBOX.
+		3. If FirstError also tied beyond max_ties → return 'NotFound'.
 
 		Returns
 		-------
@@ -462,7 +579,7 @@ class MCAAnalyzer:
 		  hint_str   : 'CORE140', 'CHA9', 'NotFound', …
 		  source_str : 'ML2'|'FirstError'|'NotFound' (for debug)
 		"""
-		winner, unique = self._argmax_unique(ml2_counts)
+		winner, unique = self._argmax_unique(ml2_counts, max_ties=max_ties)
 
 		if debug:
 			print(f"  [{label}] ML2 counts  : {dict(ml2_counts)}")
@@ -478,7 +595,7 @@ class MCAAnalyzer:
 		if debug:
 			print(f"  [{label}] ML2 tied/empty → FirstError ({ncevent_type}) counts: {dict(fe_counts)}")
 
-		fe_winner, fe_unique = self._argmax_unique(fe_counts)
+		fe_winner, fe_unique = self._argmax_unique(fe_counts, max_ties=max_ties)
 		if fe_unique and fe_winner != 'NotFound':
 			if debug:
 				print(f"  [{label}] → winner from FirstError: {fe_winner}")
@@ -496,6 +613,10 @@ class MCAAnalyzer:
 		"""
 		GNR/CWF: resolve CHA Hint and CHA Fail Area for one VID.
 
+		When no single CHA dominates, the spatial scoring helper
+		_score_fail_area() is used to derive a region-level Fail Area
+		(e.g. 'Col4', 'Row1', 'Compute0') even when CHA Hint is NotFound.
+
 		Returns (cha_hint, cha_area)
 		"""
 		cha_hint = 'NotFound'
@@ -505,10 +626,20 @@ class MCAAnalyzer:
 			ml2_counts = Counter(subset[cha_col].dropna())
 			cha_hint, _ = self._resolve_hint_with_firsterr(
 				ml2_counts, firsterr_df, vid,
-				_MCERR_LABEL, cha_filter, debug, label='CHA')
+				_MCERR_LABEL, cha_filter, debug, label='CHA', max_ties=2)
 			if cha_hint != 'NotFound':
-				cha_num  = re.sub(r'[^0-9]', '', str(cha_hint))
+				_, cha_num = self._clean_hint(cha_hint)
 				cha_area = _compute_location(cha_num, self.layout)
+			else:
+				# Spatial fallback — score all CHAs by location
+				entries = []
+				for name, count in ml2_counts.items():
+					num = re.sub(r'[^0-9]', '', str(name))
+					entry = self.layout.get(str(num))
+					if entry:
+						entries.append((entry, count))
+				if entries:
+					cha_area = self._score_fail_area(entries)
 		return cha_hint, cha_area
 
 	def _cha_hint_dmr(self, subset, cbb_col, env_col, inst_col, vid, debug):
@@ -517,8 +648,12 @@ class MCAAnalyzer:
 
 		Builds a composite key CBB{val}:ENV{val}:INST{val} (using the raw
 		column values which already carry the prefix from the DMR decoder,
-		e.g. 'CBB0', 'ENV0', 'INST00').  The most-common key is mapped back
-		to a module number via layout.json; the hint is returned as 'CBO{n}'.
+		e.g. 'CBB0', 'ENV0', 'INST00').  The most-common key (up to 2-way
+		tie tolerance) is mapped back to a module number via layout.json;
+		the hint is returned as 'CBO{n}'.
+
+		When no single key dominates beyond the tie tolerance, the spatial
+		scoring helper _score_fail_area() derives a region-level Fail Area.
 
 		Returns (cha_hint, cha_area)
 		"""
@@ -539,14 +674,15 @@ class MCAAnalyzer:
 			return cha_hint, cha_area
 
 		ml2_counts = Counter(keys)
-		winner, unique = self._argmax_unique(ml2_counts)
+		winner, unique = self._argmax_unique(ml2_counts, max_ties=2)
 		if debug:
 			print(f"  [CHA-DMR] ML2 counts: {dict(ml2_counts)}")
 		if unique and winner != 'NotFound':
+			clean_hint, _ = self._clean_hint(winner)
 			# Parse the winner key back into CBB/ENV/INST numeric strings
-			cbb_m  = re.search(r'CBB(\w+)', winner)
-			env_m  = re.search(r'ENV(\w+)', winner)
-			inst_m = re.search(r'INST(\w+)', winner)
+			cbb_m  = re.search(r'CBB(\w+)', clean_hint)
+			env_m  = re.search(r'ENV(\w+)', clean_hint)
+			inst_m = re.search(r'INST(\w+)', clean_hint)
 			if cbb_m and env_m and inst_m:
 				cbb_str  = cbb_m.group(1)
 				env_str  = env_m.group(1)
@@ -556,15 +692,38 @@ class MCAAnalyzer:
 							str(entry.get('env', '')) == env_str and
 							str(entry.get('inst', '')) == inst_str):
 						cha_hint = f"CBO{mod_id}"
+						if winner.endswith('*'):
+							cha_hint = f"{cha_hint}*"
 						cha_area = _compute_location(mod_id, self.layout, mode='cha')
 						break
 			if debug:
 				print(f"  [CHA-DMR] winner={winner!r} → hint={cha_hint!r}  area={cha_area!r}")
+		else:
+			# Spatial fallback — resolve all keys to layout entries and score
+			entries = []
+			for key, count in ml2_counts.items():
+				cbb_m  = re.search(r'CBB(\w+)', key)
+				env_m  = re.search(r'ENV(\w+)', key)
+				inst_m = re.search(r'INST(\w+)', key)
+				if cbb_m and env_m and inst_m:
+					for entry in self.layout.values():
+						if (str(entry.get('cbb', ''))  == cbb_m.group(1) and
+								str(entry.get('env', ''))  == env_m.group(1) and
+								str(entry.get('inst', '')) == inst_m.group(1)):
+							entries.append((entry, count))
+							break
+			if entries:
+				cha_area = self._score_fail_area(entries)
+			if debug:
+				print(f"  [CHA-DMR] spatial fallback area={cha_area!r}")
 		return cha_hint, cha_area
 
 	def _llc_hint_gnr_cwf(self, subset, llc_col, firsterr_df, vid, debug):
 		"""
 		GNR/CWF: resolve LLC Hint and LLC Fail Area for one VID.
+
+		When no single LLC dominates, the spatial scoring helper
+		_score_fail_area() derives a region-level Fail Area.
 
 		Returns (llc_hint, llc_area)
 		"""
@@ -575,10 +734,19 @@ class MCAAnalyzer:
 			ml2_counts = Counter(subset[llc_col].dropna())
 			llc_hint, _ = self._resolve_hint_with_firsterr(
 				ml2_counts, firsterr_df, vid,
-				_MCERR_LABEL, llc_filter, debug, label='LLC')
+				_MCERR_LABEL, llc_filter, debug, label='LLC', max_ties=2)
 			if llc_hint != 'NotFound':
-				llc_num  = re.sub(r'[^0-9]', '', str(llc_hint))
+				_, llc_num = self._clean_hint(llc_hint)
 				llc_area = _compute_location(llc_num, self.layout)
+			else:
+				entries = []
+				for name, count in ml2_counts.items():
+					num = re.sub(r'[^0-9]', '', str(name))
+					entry = self.layout.get(str(num))
+					if entry:
+						entries.append((entry, count))
+				if entries:
+					llc_area = self._score_fail_area(entries)
 		return llc_hint, llc_area
 
 	def _core_hint_gnr_cwf(self, subset, core_col, err_col,
@@ -642,12 +810,12 @@ class MCAAnalyzer:
 			ml2_counts = Counter(subset[core_col].dropna())
 			core_hint, _ = self._resolve_hint_with_firsterr(
 				ml2_counts, firsterr_df, vid,
-				None, core_filter, debug, label='CORE')
+				None, core_filter, debug, label='CORE', max_ties=2)
 			if core_hint != 'NotFound':
-				core_num  = re.sub(r'[^0-9]', '', str(core_hint))
+				clean_hint, core_num = self._clean_hint(core_hint)
 				core_area = _compute_location(core_num, self.layout, mode='core')
 				if err_col:
-					winning_rows = subset[subset[core_col] == core_hint]
+					winning_rows = subset[subset[core_col] == clean_hint]
 					unique_errs  = winning_rows[err_col].dropna().unique().tolist()
 					if not unique_errs:
 						all_errs = subset[err_col].dropna()
@@ -658,6 +826,17 @@ class MCAAnalyzer:
 					core_mcas = ', '.join(str(e) for e in unique_errs if e)
 				if debug:
 					print(f"  [CORE] area={core_area!r}  mcas={core_mcas!r}")
+			else:
+				# Spatial fallback — score all failing cores by location
+				if ml2_counts:
+					entries = []
+					for name, count in ml2_counts.items():
+						num = re.sub(r'[^0-9]', '', str(name))
+						entry = self.layout.get(str(num))
+						if entry:
+							entries.append((entry, count))
+					if entries:
+						core_area = self._score_fail_area(entries)
 
 		# Fallback — populate core_mcas even when hint is NotFound
 		if not core_mcas and err_col and core_col and not subset[core_col].dropna().empty:
@@ -675,6 +854,8 @@ class MCAAnalyzer:
 		"""
 		DMR: resolve Core Hint, Core Fail Area, and Core MCAs for one VID.
 		Uses ML2 counts alone (no IERR gate, no FirstError tie-break).
+		Supports a 2-way tie tolerance and falls back to spatial scoring
+		when no single Module dominates.
 
 		Returns (core_hint, core_area, core_mcas)
 		"""
@@ -684,14 +865,14 @@ class MCAAnalyzer:
 
 		if core_col and not subset[core_col].dropna().empty:
 			ml2_counts = Counter(subset[core_col].dropna())
-			core_hint, _ = self._argmax_unique(ml2_counts)
+			core_hint, _ = self._argmax_unique(ml2_counts, max_ties=2)
 			if debug:
 				print(f"  [CORE-DMR] ML2 counts: {dict(ml2_counts)}")
 			if core_hint != 'NotFound':
-				core_num  = re.sub(r'[^0-9]', '', str(core_hint))
+				clean_hint, core_num = self._clean_hint(core_hint)
 				core_area = _compute_location(core_num, self.layout, mode='core')
 				if err_col:
-					winning_rows = subset[subset[core_col] == core_hint]
+					winning_rows = subset[subset[core_col] == clean_hint]
 					unique_errs  = winning_rows[err_col].dropna().unique().tolist()
 					if not unique_errs:
 						all_errs = subset[err_col].dropna()
@@ -702,6 +883,16 @@ class MCAAnalyzer:
 					core_mcas = ', '.join(str(e) for e in unique_errs if e)
 				if debug:
 					print(f"  [CORE-DMR] area={core_area!r}  mcas={core_mcas!r}")
+			else:
+				# Spatial fallback
+				entries = []
+				for name, count in ml2_counts.items():
+					num = re.sub(r'[^0-9]', '', str(name))
+					entry = self.layout.get(str(num))
+					if entry:
+						entries.append((entry, count))
+				if entries:
+					core_area = self._score_fail_area(entries)
 
 		if not core_mcas and err_col and core_col and not subset[core_col].dropna().empty:
 			all_errs = subset[err_col].dropna()
@@ -850,14 +1041,31 @@ class MCAAnalyzer:
 					subset, cha_col, firsterr_df, vid, debug)
 
 			srcid_hint = 'NotFound'
-			if src_col and not subset[src_col].dropna().empty:
+			if is_dmr:
+				# DMR: ModuleIDs are per-CBB; only treat as dominant when
+				# the CBB+ModuleID composite key is unique across all data.
+				if src_col and cbb_col and src_col in subset.columns and cbb_col in subset.columns:
+					composite_keys = subset.apply(
+						lambda r: f"CBB{r[cbb_col]}:ModuleID{r[src_col]}"
+						if pd.notna(r[cbb_col]) and pd.notna(r[src_col]) else None,
+						axis=1
+					).dropna()
+					if not composite_keys.empty:
+						comp_counts = Counter(composite_keys)
+						comp_winner, comp_unique = self._argmax_unique(comp_counts)
+						if comp_unique and comp_winner != 'NotFound':
+							# Extract the raw ModuleID part for display
+							_mid_m = re.search(r'ModuleID(.+)$', comp_winner)
+							if _mid_m:
+								srcid_hint = _mid_m.group(1)
+			elif src_col and not subset[src_col].dropna().empty:
 				srcid_counts = Counter(subset[src_col].dropna())
 				src_winner, src_unique = self._argmax_unique(srcid_counts)
 				if src_unique and src_winner != 'NotFound':
 					srcid_hint = src_winner
 
 			# SrcID / ModuleID fallback: when no CHA Hint was resolved but multiple
-			# CHA rows share a common SrcID (GNR/CWF) or ModuleID (DMR), surface it
+			# CHA rows share a common SrcID (GNR/CWF) or CBB+ModuleID (DMR), surface it
 			# as the CHA Hint in the form "SrcID{value}" / "ModuleID{value}".
 			if cha_hint == 'NotFound' and srcid_hint != 'NotFound':
 				_prefix  = 'ModuleID' if (src_col == 'ModuleID') else 'SrcID'
@@ -1117,7 +1325,7 @@ class MCAAnalyzer:
 		if rev_io  is None: rev_io  = _empty_io
 		if rev_mem is None: rev_mem = _empty_mem
 
-		all_vids = self._get_visual_ids(cha_df, llc_df, core_df)
+		all_vids = self._get_visual_ids(cha_df, llc_df, core_df, rev_io, rev_mem)
 
 		def _lookup(df_ref, vid, field, default='NotFound'):
 			if df_ref.empty or 'VisualID' not in df_ref.columns:
