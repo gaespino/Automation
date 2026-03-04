@@ -94,7 +94,7 @@ def _compute_location(instance_id, layout, mode='core'):
 
 	For DMR entries (with 'cbb' key):
 	  mode='core' → "CBB{cbb} : Compute{compute} : Row{row} : Col{col}"
-	  mode='cha'  → "CBB{cbb} : ENV{env} : Instance{cbo} : Row{row} : Col{col}"
+	  mode='cha'  → "CBB{cbb} : ENV{env} : INST{inst} : Row{row} : Col{col}"
 
 	Returns "" when not found.
 	"""
@@ -108,9 +108,9 @@ def _compute_location(instance_id, layout, mode='core'):
 		row     = entry.get('row', '')
 		col     = entry.get('col', '')
 		env     = entry.get('env', '')
-		cbo     = entry.get('cbo', '')
+		inst    = entry.get('inst', '')
 		if mode == 'cha':
-			return f"CBB{cbb} : ENV{env} : Instance{cbo} : Row{row} : Col{col}"
+			return f"CBB{cbb} : ENV{env} : INST{inst} : Row{row} : Col{col}"
 		return f"CBB{cbb} : Compute{compute} : Row{row} : Col{col}"
 	# GNR/CWF layout entry
 	compute_name = entry.get('compute', '')
@@ -182,6 +182,27 @@ class MCAAnalyzer:
 		self._default_rc_order  = _rules_data.get('default_root_cause_order',  ['other', 'cha', 'llc', 'core'])
 		self._default_dh_order  = _rules_data.get('default_debug_hints_order', ['other', 'cha', 'llc', 'core'])
 		self._priority_rules    = _rules_data.get('rules', [])
+
+		# Load per-product column name configuration (column_config.json).
+		# Each key maps to the exact DataFrame column header produced by the
+		# product's decoder.  A null/missing key means the column is not
+		# applicable for this product (e.g. llc_col is null for DMR).
+		_cc = _load_json(product_dir / 'column_config.json')
+		self._col_cfg = {
+			'core_key':     _cc.get('core_key',     'CORE'),
+			'err_key':      _cc.get('err_key',      'MCACOD (ErrDecode)'),
+			'cha_col':      _cc.get('cha_col'),
+			'cha_cbb_col':  _cc.get('cha_cbb_col'),
+			'cha_env_col':  _cc.get('cha_env_col'),
+			'cha_inst_col': _cc.get('cha_inst_col'),
+			'llc_col':      _cc.get('llc_col'),
+			'src_col':      _cc.get('src_col',      'SrcID'),
+			'io_grp_col':   _cc.get('io_grp_col'),
+			'io_inst_col':  _cc.get('io_inst_col',  'Instance'),
+			'io_dec_col':   _cc.get('io_dec_col',   'MC_DECODE'),
+			'mem_inst_col': _cc.get('mem_inst_col', 'Instance'),
+			'mem_dec_col':  _cc.get('mem_dec_col',  'MC_DECODE'),
+		}
 
 	# =========================================================================
 	# Public API
@@ -490,10 +511,14 @@ class MCAAnalyzer:
 				cha_area = _compute_location(cha_num, self.layout)
 		return cha_hint, cha_area
 
-	def _cha_hint_dmr(self, subset, env_col, inst_col, vid, debug):
+	def _cha_hint_dmr(self, subset, cbb_col, env_col, inst_col, vid, debug):
 		"""
-		DMR: resolve CHA Hint and CHA Fail Area for one VID using synthetic
-		ENV+CBO keys from the CCF DataFrame.
+		DMR: resolve CHA Hint and CHA Fail Area for one VID.
+
+		Builds a composite key CBB{val}:ENV{val}:INST{val} (using the raw
+		column values which already carry the prefix from the DMR decoder,
+		e.g. 'CBB0', 'ENV0', 'INST00').  The most-common key is mapped back
+		to a module number via layout.json; the hint is returned as 'CBO{n}'.
 
 		Returns (cha_hint, cha_area)
 		"""
@@ -503,12 +528,13 @@ class MCAAnalyzer:
 			return cha_hint, cha_area
 
 		def _make_key(row):
-			env_val  = str(row[env_col]).strip()  if pd.notna(row[env_col])  else ''
-			inst_val = str(row[inst_col]).strip() if pd.notna(row[inst_col]) else ''
-			return f"ENV{env_val}_CBO{inst_val}"
+			cbb_val  = str(row[cbb_col]).strip() if cbb_col and pd.notna(row[cbb_col])  else ''
+			env_val  = str(row[env_col]).strip()  if pd.notna(row[env_col])              else ''
+			inst_val = str(row[inst_col]).strip() if pd.notna(row[inst_col])             else ''
+			return f"{cbb_val}:{env_val}:{inst_val}"
 
 		keys = subset.apply(_make_key, axis=1).dropna()
-		keys = keys[keys != 'ENV_CBO']
+		keys = keys[keys != '::']
 		if keys.empty:
 			return cha_hint, cha_area
 
@@ -517,19 +543,23 @@ class MCAAnalyzer:
 		if debug:
 			print(f"  [CHA-DMR] ML2 counts: {dict(ml2_counts)}")
 		if unique and winner != 'NotFound':
-			m = re.search(r'_CBO(.+)$', winner)
-			cbo_val  = m.group(1) if m else winner
-			cha_hint = f"CBO{cbo_val}"
-			env_m = re.match(r'ENV(\d+)_', winner)
-			if env_m:
-				env_num = env_m.group(1)
+			# Parse the winner key back into CBB/ENV/INST numeric strings
+			cbb_m  = re.search(r'CBB(\w+)', winner)
+			env_m  = re.search(r'ENV(\w+)', winner)
+			inst_m = re.search(r'INST(\w+)', winner)
+			if cbb_m and env_m and inst_m:
+				cbb_str  = cbb_m.group(1)
+				env_str  = env_m.group(1)
+				inst_str = inst_m.group(1)
 				for mod_id, entry in self.layout.items():
-					if (str(entry.get('env', '')) == str(env_num) and
-							str(entry.get('cbo', '')) == str(cbo_val)):
+					if (str(entry.get('cbb', '')) == cbb_str and
+							str(entry.get('env', '')) == env_str and
+							str(entry.get('inst', '')) == inst_str):
+						cha_hint = f"CBO{mod_id}"
 						cha_area = _compute_location(mod_id, self.layout, mode='cha')
 						break
 			if debug:
-				print(f"  [CHA-DMR] → hint={cha_hint!r}  area={cha_area!r}")
+				print(f"  [CHA-DMR] winner={winner!r} → hint={cha_hint!r}  area={cha_area!r}")
 		return cha_hint, cha_area
 
 	def _llc_hint_gnr_cwf(self, subset, llc_col, firsterr_df, vid, debug):
@@ -689,6 +719,10 @@ class MCAAnalyzer:
 		Product-neutral: resolve IO Hint, IO Details, and IO MCAs for one VID.
 		The caller resolves the group column (IO for GNR/CWF, IMH_CBB for DMR).
 
+		When multiple (grp:inst:dec) combinations tie for first place, the first
+		winner is returned with '*' appended to indicate a tie (same convention
+		as Top OrigReq).
+
 		Returns (io_hint, io_details, io_mcas)
 		"""
 		io_hint    = 'NotFound'
@@ -707,24 +741,31 @@ class MCAAnalyzer:
 		keys = subset.apply(_io_key, axis=1).dropna()
 		keys = keys[keys != '::']
 		if not keys.empty:
-			cnt = Counter(keys)
-			winner, unique = self._argmax_unique(cnt)
-			io_mcas = len(subset)
-			if unique and winner != 'NotFound':
-				parts    = winner.split(':')
-				grp_val  = parts[0] if len(parts) > 0 else ''
-				inst_val = parts[1] if len(parts) > 1 else ''
-				dec_val  = parts[2] if len(parts) > 2 else ''
-				io_hint    = f"{grp_val}:{inst_val}" if grp_val else inst_val
-				io_details = f"{dec_val} ({cnt[winner]} occurrences)"
-				if debug:
-					print(f"\n[RevIO] VID={vid}: hint={io_hint!r}  "
-						  f"details={io_details!r}")
+			cnt       = Counter(keys)
+			top_count = cnt.most_common(1)[0][1]
+			top_vals  = [v for v, c in cnt.most_common() if c == top_count]
+			winner    = top_vals[0]
+			has_tie   = len(top_vals) > 1
+			io_mcas   = len(subset)
+			parts     = winner.split(':')
+			grp_val   = parts[0] if len(parts) > 0 else ''
+			inst_val  = parts[1] if len(parts) > 1 else ''
+			dec_val   = parts[2] if len(parts) > 2 else ''
+			raw_hint  = f"{grp_val}:{inst_val}" if grp_val else inst_val
+			io_hint    = f"{raw_hint}*" if has_tie else raw_hint
+			io_details = f"{dec_val} ({top_count} occurrences)"
+			if debug:
+				print(f"\n[RevIO] VID={vid}: hint={io_hint!r}  "
+					  f"details={io_details!r}  tie={has_tie}")
 		return io_hint, io_details, io_mcas
 
 	def _mem_hint_per_vid(self, subset, inst_col, dec_col, vid, debug):
 		"""
 		Product-neutral: resolve MEM Hint, MEM Details, and MEM MCAs for one VID.
+
+		When multiple (inst:dec) combinations tie for first place, the first
+		winner is returned with '*' appended to indicate a tie (same convention
+		as Top OrigReq).
 
 		Returns (mem_hint, mem_details, mem_mcas)
 		"""
@@ -743,18 +784,20 @@ class MCAAnalyzer:
 		keys = subset.apply(_mem_key, axis=1).dropna()
 		keys = keys[keys != ':']
 		if not keys.empty:
-			cnt = Counter(keys)
-			winner, unique = self._argmax_unique(cnt)
-			mem_mcas = len(subset)
-			if unique and winner != 'NotFound':
-				parts    = winner.split(':')
-				inst_val = parts[0] if len(parts) > 0 else ''
-				dec_val  = parts[1] if len(parts) > 1 else ''
-				mem_hint    = inst_val
-				mem_details = f"{dec_val} ({cnt[winner]} occurrences)"
-				if debug:
-					print(f"\n[RevMEM] VID={vid}: hint={mem_hint!r}  "
-						  f"details={mem_details!r}")
+			cnt       = Counter(keys)
+			top_count = cnt.most_common(1)[0][1]
+			top_vals  = [v for v, c in cnt.most_common() if c == top_count]
+			winner    = top_vals[0]
+			has_tie   = len(top_vals) > 1
+			mem_mcas  = len(subset)
+			parts     = winner.split(':')
+			inst_val  = parts[0] if len(parts) > 0 else ''
+			dec_val   = parts[1] if len(parts) > 1 else ''
+			mem_hint    = f"{inst_val}*" if has_tie else inst_val
+			mem_details = f"{dec_val} ({top_count} occurrences)"
+			if debug:
+				print(f"\n[RevMEM] VID={vid}: hint={mem_hint!r}  "
+					  f"details={mem_details!r}  tie={has_tie}")
 		return mem_hint, mem_details, mem_mcas
 
 	# =========================================================================
@@ -767,7 +810,7 @@ class MCAAnalyzer:
 
 		Routes per-VID computation to the product-specific helper:
 		  - GNR/CWF → _cha_hint_gnr_cwf()  (ML2 + MCERR FirstError tie-break)
-		  - DMR     → _cha_hint_dmr()       (synthetic ENV+CBO key, ML2 only)
+		  - DMR     → _cha_hint_dmr()       (CBB:ENV:INST key via column_config, ML2 only)
 
 		Returns DataFrame: VisualID, CHA Hint, CHA Fail Area, SrcID Hint
 		"""
@@ -778,14 +821,19 @@ class MCAAnalyzer:
 		vid_col = 'VisualID' if 'VisualID' in cha_df.columns else 'VisualId'
 		is_dmr  = self.product in _DMR_PRODUCTS
 
+		def _col(key):
+			"""Resolve a config column name to the actual DF column or None."""
+			name = self._col_cfg.get(key)
+			return name if name and name in cha_df.columns else None
+
 		if is_dmr:
-			env_col  = 'ENV'      if 'ENV'      in cha_df.columns else None
-			inst_col = 'Instance' if 'Instance' in cha_df.columns else None
-			src_col  = ('ModuleID' if 'ModuleID' in cha_df.columns else
-						('SrcID'   if 'SrcID'    in cha_df.columns else None))
+			cbb_col  = _col('cha_cbb_col')
+			env_col  = _col('cha_env_col')
+			inst_col = _col('cha_inst_col')
+			src_col  = _col('src_col')
 		else:
-			cha_col = 'CHA'   if 'CHA'   in cha_df.columns else None
-			src_col = 'SrcID' if 'SrcID' in cha_df.columns else None
+			cha_col  = _col('cha_col')
+			src_col  = _col('src_col')
 
 		for vid in cha_df[vid_col].dropna().unique():
 			if debug:
@@ -796,7 +844,7 @@ class MCAAnalyzer:
 
 			if is_dmr:
 				cha_hint, cha_area = self._cha_hint_dmr(
-					subset, env_col, inst_col, vid, debug)
+					subset, cbb_col, env_col, inst_col, vid, debug)
 			else:
 				cha_hint, cha_area = self._cha_hint_gnr_cwf(
 					subset, cha_col, firsterr_df, vid, debug)
@@ -881,8 +929,8 @@ class MCAAnalyzer:
 				columns=['VisualID', 'Core Hint', 'Core Fail Area', 'Core MCAs'])
 
 		vid_col   = 'VisualID' if 'VisualID' in core_df.columns else 'VisualId'
-		_core_key = 'MODULE' if self.product != 'GNR' else 'CORE'
-		_err_key  = 'MC DECODE' if self.product != 'GNR' else 'MCACOD (ErrDecode)'
+		_core_key = self._col_cfg['core_key']
+		_err_key  = self._col_cfg['err_key']
 		core_col  = _core_key if _core_key in core_df.columns else None
 		err_col   = (_err_key if _err_key in core_df.columns else
 					('ErrorType' if 'ErrorType' in core_df.columns else None))
@@ -979,8 +1027,9 @@ class MCAAnalyzer:
 		"""
 		Per-VisualID IO hint dispatcher.
 
-		Resolves the product-specific group column (IO for GNR/CWF, IMH_CBB for
-		DMR) and delegates per-VID computation to _io_hint_per_vid().
+		Resolves the product-specific group and instance columns from
+		column_config.json and delegates per-VID computation to
+		_io_hint_per_vid().
 
 		Returns DataFrame: VisualID, IO Hint, IO Details, IO MCAs
 		"""
@@ -989,14 +1038,14 @@ class MCAAnalyzer:
 			return pd.DataFrame(columns=['VisualID', 'IO Hint', 'IO Details', 'IO MCAs'])
 
 		vid_col  = 'VisualID' if 'VisualID' in io_df.columns else 'VisualId'
-		inst_col = 'Instance'  if 'Instance'  in io_df.columns else None
-		dec_col  = 'MC_DECODE' if 'MC_DECODE' in io_df.columns else None
 
-		# Group column differs by product
-		if self.product in _DMR_PRODUCTS:
-			grp_col = 'IMH_CBB' if 'IMH_CBB' in io_df.columns else None
-		else:
-			grp_col = 'IO' if 'IO' in io_df.columns else None
+		def _col(key):
+			name = self._col_cfg.get(key)
+			return name if name and name in io_df.columns else None
+
+		grp_col  = _col('io_grp_col')
+		inst_col = _col('io_inst_col')
+		dec_col  = _col('io_dec_col')
 
 		for vid in io_df[vid_col].dropna().unique():
 			subset = io_df[io_df[vid_col] == vid]
@@ -1015,7 +1064,9 @@ class MCAAnalyzer:
 		"""
 		Per-VisualID MEM hint dispatcher.
 
-		Delegates per-VID computation to the product-neutral _mem_hint_per_vid().
+		Resolves the product-specific instance and decode columns from
+		column_config.json and delegates per-VID computation to
+		_mem_hint_per_vid().
 
 		Returns DataFrame: VisualID, MEM Hint, MEM Details, MEM MCAs
 		"""
@@ -1024,8 +1075,13 @@ class MCAAnalyzer:
 			return pd.DataFrame(columns=['VisualID', 'MEM Hint', 'MEM Details', 'MEM MCAs'])
 
 		vid_col  = 'VisualID' if 'VisualID' in mem_df.columns else 'VisualId'
-		inst_col = 'Instance'  if 'Instance'  in mem_df.columns else None
-		dec_col  = 'MC_DECODE' if 'MC_DECODE' in mem_df.columns else None
+
+		def _col(key):
+			name = self._col_cfg.get(key)
+			return name if name and name in mem_df.columns else None
+
+		inst_col = _col('mem_inst_col')
+		dec_col  = _col('mem_dec_col')
 
 		for vid in mem_df[vid_col].dropna().unique():
 			subset = mem_df[mem_df[vid_col] == vid]
