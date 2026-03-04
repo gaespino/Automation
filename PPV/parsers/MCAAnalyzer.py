@@ -776,10 +776,11 @@ class MCAAnalyzer:
 				return ''
 			vc = 'VisualID' if 'VisualID' in df.columns else 'VisualId'
 			vals = df[df[vc] == vid][field].dropna()
+			vals = vals[vals.astype(str).str.strip() != '']
 			if vals.empty:
 				return ''
-			winner, _ = self._argmax_unique(Counter(vals))
-			return winner if winner != 'NotFound' else ''
+			# Use most_common to always return a value, even on ties
+			return Counter(vals).most_common(1)[0][0]
 
 		rows = []
 		for vid in all_vids:
