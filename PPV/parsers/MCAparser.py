@@ -645,9 +645,11 @@ class ppv_report():
 		core_df = _safe_read('CORE_MCAS')
 		firsterr_df = _safe_read('UBOX')
 		ppv_df = _safe_read('PPV')
+		io_df  = _safe_read('IO_MCAS')
+		mem_df = _safe_read('MEM_MCAS')
 
 		# Column name alignment: decoder writes 'Visual ID' (with space)
-		for df in (cha_df, llc_df, core_df, firsterr_df):
+		for df in (cha_df, llc_df, core_df, firsterr_df, io_df, mem_df):
 			if 'Visual ID' in df.columns:
 				df.rename(columns={'Visual ID': 'VisualID'}, inplace=True)
 
@@ -658,6 +660,8 @@ class ppv_report():
 			core_df=core_df,
 			firsterr_df=firsterr_df,
 			ppv_df=ppv_df,
+			io_df=io_df,
+			mem_df=mem_df,
 		)
 		analysis_df = result.get('analysis', pd.DataFrame())
 

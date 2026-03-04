@@ -84,14 +84,35 @@ def _load_ip_translation(path):
 	}
 
 
-def _compute_location(instance_id, layout):
+def _compute_location(instance_id, layout, mode='core'):
 	"""
 	Map a logical CORE/CHA/LLC numeric id to a human-readable location.
-	Returns "Compute{X} : Row{R} : Col{C}" or "" when not found.
+
+	For GNR/CWF entries (no 'cbb' key):
+	  mode='core' → "Compute{X} : Row{R} : Col{C}"
+	  mode='cha'  → "Compute{X} : Row{R} : Col{C}"  (same as core)
+
+	For DMR entries (with 'cbb' key):
+	  mode='core' → "CBB{cbb} : Compute{compute} : Row{row} : Col{col}"
+	  mode='cha'  → "CBB{cbb} : ENV{env} : Instance{cbo} : Row{row}"
+
+	Returns "" when not found.
 	"""
 	entry = layout.get(str(instance_id))
 	if not entry:
 		return ''
+	if 'cbb' in entry:
+		# DMR layout entry
+		cbb     = entry.get('cbb', '')
+		compute = entry.get('compute', '')
+		row     = entry.get('row', '')
+		col     = entry.get('col', '')
+		env     = entry.get('env', '')
+		cbo     = entry.get('cbo', '')
+		if mode == 'cha':
+			return f"CBB{cbb} : ENV{env} : Instance{cbo} : Row{row}"
+		return f"CBB{cbb} : Compute{compute} : Row{row} : Col{col}"
+	# GNR/CWF layout entry
 	compute_name = entry.get('compute', '')
 	row = entry.get('row', '')
 	col = entry.get('col', '')
@@ -167,7 +188,9 @@ class MCAAnalyzer:
 	# =========================================================================
 
 	def analyze(self, cha_df=None, llc_df=None, core_df=None,
-				firsterr_df=None, ppv_df=None, debug=False):
+				firsterr_df=None, ppv_df=None,
+				io_df=None, mem_df=None,
+				debug=False):
 		"""
 		Run the full MCA analysis pipeline.
 
@@ -178,6 +201,8 @@ class MCAAnalyzer:
 		core_df     : DataFrame from decoder.core()
 		firsterr_df : DataFrame from decoder.portids()  (UBOX FirstError)
 		ppv_df      : DataFrame with Lot/WW columns from the PPV tab (optional)
+		io_df       : DataFrame from decoder.io()  (optional; IO_MCAS sheet)
+		mem_df      : DataFrame from decoder.mem() (optional; MEM_MCAS sheet)
 		debug       : When True, print per-VID trace to stdout
 
 		Returns
@@ -188,6 +213,8 @@ class MCAAnalyzer:
 		llc_df      = llc_df      if llc_df      is not None else pd.DataFrame()
 		core_df     = core_df     if core_df     is not None else pd.DataFrame()
 		firsterr_df = firsterr_df if firsterr_df is not None else pd.DataFrame()
+		io_df       = io_df       if io_df       is not None else pd.DataFrame()
+		mem_df      = mem_df      if mem_df      is not None else pd.DataFrame()
 
 		if debug:
 			print(f"\n{'='*60}")
@@ -196,16 +223,21 @@ class MCAAnalyzer:
 			print(f"  cha_df rows    : {len(cha_df)}")
 			print(f"  llc_df rows    : {len(llc_df)}")
 			print(f"  firsterr rows  : {len(firsterr_df)}")
+			print(f"  io_df rows     : {len(io_df)}")
+			print(f"  mem_df rows    : {len(mem_df)}")
 			print(f"{'='*60}")
 
 		rev_cha  = self._build_rev_cha_count(cha_df,   firsterr_df, debug)
 		rev_llc  = self._build_rev_llc_count(llc_df,   firsterr_df, debug)
 		rev_core = self._build_rev_core_count(core_df, firsterr_df, debug)
 		other_errors = self._build_other_errors(firsterr_df, debug)
+		rev_io   = self._build_rev_io_count(io_df,   debug)
+		rev_mem  = self._build_rev_mem_count(mem_df,  debug)
 
 		rev_units = self._build_rev_units(
 			cha_df, llc_df, core_df,
-			rev_cha, rev_llc, rev_core, other_errors
+			rev_cha, rev_llc, rev_core, other_errors,
+			rev_io=rev_io, rev_mem=rev_mem,
 		)
 
 		analysis = self._build_analysis(rev_units, ppv_df)
@@ -441,7 +473,13 @@ class MCAAnalyzer:
 
 	def _build_rev_cha_count(self, cha_df, firsterr_df, debug=False):
 		"""
-		Per-VisualID CHA hint.  Tie-broken by UBOX MCERRLOGGINGREG FirstError.
+		Per-VisualID CHA hint.  Tie-broken by UBOX MCERRLOGGINGREG FirstError
+		(GNR/CWF only; DMR uses ML2 counts alone — no FirstError data).
+
+		For DMR, the CHA tab contains CCF rows with ENV and Instance columns.
+		The hint key is a synthetic "ENV{n}_CBO{cbo}" string formed per row;
+		the displayed hint is "CBO{cbo}" (the dominant CBO identifier).
+		SrcID for DMR is read from the 'ModuleID' column (fallback: 'SrcID').
 
 		Returns DataFrame: VisualID, CHA Hint, CHA Fail Area, SrcID Hint
 		"""
@@ -450,6 +488,72 @@ class MCAAnalyzer:
 			return pd.DataFrame(columns=['VisualID', 'CHA Hint', 'CHA Fail Area', 'SrcID Hint'])
 
 		vid_col  = 'VisualID' if 'VisualID' in cha_df.columns else 'VisualId'
+
+		# DMR path: CCF dataframe uses ENV + Instance (CBO) columns
+		if self.product in _DMR_PRODUCTS:
+			env_col  = 'ENV'      if 'ENV'      in cha_df.columns else None
+			inst_col = 'Instance' if 'Instance' in cha_df.columns else None
+			src_col  = ('ModuleID' if 'ModuleID' in cha_df.columns else
+						('SrcID'   if 'SrcID'    in cha_df.columns else None))
+
+			for vid in cha_df[vid_col].dropna().unique():
+				if debug:
+					print(f"\n[RevCHA-DMR] VID={vid}")
+
+				subset = cha_df[cha_df[vid_col] == vid]
+
+				cha_hint = 'NotFound'
+				cha_area = ''
+
+				if env_col and inst_col:
+					# Build synthetic key from ENV + Instance (CBO) columns
+					def _make_key(row):
+						env_val  = str(row[env_col]).strip()  if pd.notna(row[env_col])  else ''
+						inst_val = str(row[inst_col]).strip() if pd.notna(row[inst_col]) else ''
+						return f"ENV{env_val}_CBO{inst_val}"
+
+					keys = subset.apply(_make_key, axis=1).dropna()
+					keys = keys[keys != 'ENV_CBO']  # filter empty keys
+					if not keys.empty:
+						ml2_counts = Counter(keys)
+						winner, unique = self._argmax_unique(ml2_counts)
+						if debug:
+							print(f"  [CHA-DMR] ML2 counts: {dict(ml2_counts)}")
+						if unique and winner != 'NotFound':
+							# Extract CBO value from winner key "ENV{n}_CBO{cbo}"
+							m = re.search(r'_CBO(.+)$', winner)
+							cbo_val  = m.group(1) if m else winner
+							cha_hint = f"CBO{cbo_val}"
+							# Derive module_id from the most common ENV value
+							# to compute the layout-based fail area
+							env_m = re.match(r'ENV(\d+)_', winner)
+							if env_m:
+								env_num = env_m.group(1)
+								# Find a layout entry whose env matches
+								for mod_id, entry in self.layout.items():
+									if str(entry.get('env', '')) == str(env_num) and str(entry.get('cbo', '')) == str(cbo_val):
+										cha_area = _compute_location(mod_id, self.layout, mode='cha')
+										break
+							if debug:
+								print(f"  [CHA-DMR] → hint={cha_hint!r}  area={cha_area!r}")
+
+				srcid_hint = 'NotFound'
+				if src_col and not subset[src_col].dropna().empty:
+					srcid_counts = Counter(subset[src_col].dropna())
+					src_winner, src_unique = self._argmax_unique(srcid_counts)
+					if src_unique and src_winner != 'NotFound':
+						srcid_hint = src_winner
+
+				rows.append({
+					'VisualID'    : vid,
+					'CHA Hint'    : cha_hint,
+					'CHA Fail Area': cha_area,
+					'SrcID Hint'  : srcid_hint,
+				})
+
+			return pd.DataFrame(rows)
+
+		# GNR / CWF path (original logic)
 		cha_col  = 'CHA'   if 'CHA'   in cha_df.columns else None
 		src_col  = 'SrcID' if 'SrcID' in cha_df.columns else None
 
@@ -497,9 +601,12 @@ class MCAAnalyzer:
 		Per-VisualID LLC hint.  Tie-broken by UBOX MCERRLOGGINGREG FirstError.
 
 		Returns DataFrame: VisualID, LLC Hint, LLC Fail Area
+
+		Note: DMR uses CCF (combined CHA+LLC block); LLC is always empty for DMR.
+		The early-return guard handles this cleanly — no analysis is attempted.
 		"""
 		rows = []
-		if llc_df.empty:
+		if llc_df.empty or self.product in _DMR_PRODUCTS:
 			return pd.DataFrame(columns=['VisualID', 'LLC Hint', 'LLC Fail Area'])
 
 		vid_col = 'VisualID' if 'VisualID' in llc_df.columns else 'VisualId'
@@ -578,14 +685,15 @@ class MCAAnalyzer:
 			core_mcas = ''
 
 			# ----------------------------------------------------------
-			# Step 1 – IERR root-cause gate
+			# Step 1 – IERR root-cause gate (GNR/CWF only)
 			# If the UBOX IERR first error is non-CORE (e.g. PUNIT), the
 			# real fault is in that IP; the CORE MCAs are cascade/secondary.
 			# In that case, Core Hint stays NotFound but we can still derive
 			# the Core Fail Area (compute number) from the MCERR CORE location.
+			# DMR has no FirstError data yet → skip this gate entirely.
 			# ----------------------------------------------------------
 			ierr_non_core = False
-			if not firsterr_df.empty:
+			if self.product not in _DMR_PRODUCTS and not firsterr_df.empty:
 				ierr_counts = self._firsterr_counts(
 					firsterr_df, vid, _IERR_LABEL, lambda p: True)
 				if ierr_counts:
@@ -632,17 +740,23 @@ class MCAAnalyzer:
 											  f"{mcerr_winner} → {core_area!r}")
 
 			# ----------------------------------------------------------
-			# Step 2 – ML2 count + MCERR tie-breaking (IERR was CORE type)
+			# Step 2 – ML2 count (+ MCERR tie-breaking for GNR/CWF)
+			# For DMR: use ML2 counts alone (_argmax_unique directly)
 			# ----------------------------------------------------------
 			if not ierr_non_core and core_col and not subset[core_col].dropna().empty:
 				ml2_counts = Counter(subset[core_col].dropna())
-				core_hint, _ = self._resolve_hint_with_firsterr(
-					ml2_counts, firsterr_df, vid,
-					None, core_filter, debug, label='CORE')
+				if self.product in _DMR_PRODUCTS:
+					core_hint, _ = self._argmax_unique(ml2_counts)
+					if debug:
+						print(f"  [CORE-DMR] ML2 counts: {dict(ml2_counts)}")
+				else:
+					core_hint, _ = self._resolve_hint_with_firsterr(
+						ml2_counts, firsterr_df, vid,
+						None, core_filter, debug, label='CORE')
 
 				if core_hint != 'NotFound':
 					core_num  = re.sub(r'[^0-9]', '', str(core_hint))
-					core_area = _compute_location(core_num, self.layout)
+					core_area = _compute_location(core_num, self.layout, mode='core')
 
 					if err_col:
 						winning_rows = subset[subset[core_col] == core_hint]
@@ -740,19 +854,154 @@ class MCAAnalyzer:
 		return other
 
 	# =========================================================================
+	# IO/MEM Commonality Analyzers (Phase 3)
+	# =========================================================================
+
+	def _build_rev_io_count(self, io_df, debug=False):
+		"""
+		Per-VisualID IO hint from the IO_MCAS DataFrame.
+
+		GNR/CWF columns used: IO (die, e.g. 'io0'), Instance, MC_DECODE
+		DMR columns used:     IMH_CBB (e.g. 'IMH0'), Instance, MC_DECODE
+
+		Algorithm: count (group, Instance, MC_DECODE) tuples per VID and
+		report the most-common combination as the IO hint.
+
+		Returns DataFrame: VisualID, IO Hint, IO Details, IO MCAs
+		"""
+		rows = []
+		if io_df is None or io_df.empty:
+			return pd.DataFrame(columns=['VisualID', 'IO Hint', 'IO Details', 'IO MCAs'])
+
+		vid_col  = 'VisualID' if 'VisualID' in io_df.columns else 'VisualId'
+		inst_col = 'Instance' if 'Instance' in io_df.columns else None
+
+		# Group column differs by product
+		if self.product in _DMR_PRODUCTS:
+			grp_col = 'IMH_CBB' if 'IMH_CBB' in io_df.columns else None
+		else:
+			grp_col = 'IO' if 'IO' in io_df.columns else None
+
+		dec_col  = 'MC_DECODE' if 'MC_DECODE' in io_df.columns else None
+
+		for vid in io_df[vid_col].dropna().unique():
+			subset = io_df[io_df[vid_col] == vid]
+
+			io_hint    = 'NotFound'
+			io_details = ''
+			io_mcas    = 0
+
+			if inst_col and not subset[inst_col].dropna().empty:
+				def _io_key(row):
+					grp  = str(row[grp_col]).strip()  if grp_col  and pd.notna(row[grp_col])  else ''
+					inst = str(row[inst_col]).strip() if pd.notna(row[inst_col]) else ''
+					dec  = str(row[dec_col]).strip()  if dec_col  and pd.notna(row[dec_col])  else ''
+					return f"{grp}:{inst}:{dec}"
+
+				keys = subset.apply(_io_key, axis=1).dropna()
+				keys = keys[keys != '::']
+				if not keys.empty:
+					cnt = Counter(keys)
+					winner, unique = self._argmax_unique(cnt)
+					io_mcas = len(subset)
+					if unique and winner != 'NotFound':
+						parts    = winner.split(':')
+						grp_val  = parts[0] if len(parts) > 0 else ''
+						inst_val = parts[1] if len(parts) > 1 else ''
+						dec_val  = parts[2] if len(parts) > 2 else ''
+						io_hint    = f"{grp_val}:{inst_val}" if grp_val else inst_val
+						io_details = f"{dec_val} ({cnt[winner]} occurrences)"
+						if debug:
+							print(f"\n[RevIO] VID={vid}: hint={io_hint!r}  "
+								  f"details={io_details!r}")
+
+			rows.append({
+				'VisualID'  : vid,
+				'IO Hint'   : io_hint,
+				'IO Details': io_details,
+				'IO MCAs'   : io_mcas,
+			})
+
+		return pd.DataFrame(rows)
+
+	def _build_rev_mem_count(self, mem_df, debug=False):
+		"""
+		Per-VisualID MEM hint from the MEM_MCAS DataFrame.
+
+		Columns used (all products): Instance, MC_DECODE
+
+		Algorithm: count (Instance, MC_DECODE) tuples per VID and report
+		the most-common combination as the MEM hint.
+
+		Returns DataFrame: VisualID, MEM Hint, MEM Details, MEM MCAs
+		"""
+		rows = []
+		if mem_df is None or mem_df.empty:
+			return pd.DataFrame(columns=['VisualID', 'MEM Hint', 'MEM Details', 'MEM MCAs'])
+
+		vid_col  = 'VisualID' if 'VisualID' in mem_df.columns else 'VisualId'
+		inst_col = 'Instance'  if 'Instance'  in mem_df.columns else None
+		dec_col  = 'MC_DECODE' if 'MC_DECODE' in mem_df.columns else None
+
+		for vid in mem_df[vid_col].dropna().unique():
+			subset = mem_df[mem_df[vid_col] == vid]
+
+			mem_hint    = 'NotFound'
+			mem_details = ''
+			mem_mcas    = 0
+
+			if inst_col and not subset[inst_col].dropna().empty:
+				def _mem_key(row):
+					inst = str(row[inst_col]).strip() if pd.notna(row[inst_col]) else ''
+					dec  = str(row[dec_col]).strip()  if dec_col and pd.notna(row[dec_col]) else ''
+					return f"{inst}:{dec}"
+
+				keys = subset.apply(_mem_key, axis=1).dropna()
+				keys = keys[keys != ':']
+				if not keys.empty:
+					cnt = Counter(keys)
+					winner, unique = self._argmax_unique(cnt)
+					mem_mcas = len(subset)
+					if unique and winner != 'NotFound':
+						parts    = winner.split(':')
+						inst_val = parts[0] if len(parts) > 0 else ''
+						dec_val  = parts[1] if len(parts) > 1 else ''
+						mem_hint    = inst_val
+						mem_details = f"{dec_val} ({cnt[winner]} occurrences)"
+						if debug:
+							print(f"\n[RevMEM] VID={vid}: hint={mem_hint!r}  "
+								  f"details={mem_details!r}")
+
+			rows.append({
+				'VisualID'   : vid,
+				'MEM Hint'   : mem_hint,
+				'MEM Details': mem_details,
+				'MEM MCAs'   : mem_mcas,
+			})
+
+		return pd.DataFrame(rows)
+
+	# =========================================================================
 	# REV_Units equivalent
 	# =========================================================================
 
 	def _build_rev_units(self, cha_df, llc_df, core_df,
-						 rev_cha, rev_llc, rev_core, other_errors):
+						 rev_cha, rev_llc, rev_core, other_errors,
+						 rev_io=None, rev_mem=None):
 		"""
 		Build the REV_Units per-unit summary DataFrame.
 
 		Columns:
 		  VisualID, # Runs, Core Hint, Core Fail Area, CHA Hint, CHA Fail Area,
 		  LLC Hint, LLC Fail Area, SrcIDs, Other, Top OrigReq, Top OpCode,
-		  Top ISMQ, Top SAD, Top SAD LocPort, SAD Targets, Core MCAs
+		  Top ISMQ, Top SAD, Top SAD LocPort, SAD Targets, Core MCAs,
+		  IO Hint, IO Details, IO MCAs, MEM Hint, MEM Details, MEM MCAs
 		"""
+		_empty_io  = pd.DataFrame(columns=['VisualID', 'IO Hint',  'IO Details',  'IO MCAs'])
+		_empty_mem = pd.DataFrame(columns=['VisualID', 'MEM Hint', 'MEM Details', 'MEM MCAs'])
+		if rev_io  is None: rev_io  = _empty_io
+		if rev_mem is None: rev_mem = _empty_mem
+
 		all_vids = self._get_visual_ids(cha_df, llc_df, core_df)
 
 		def _lookup(df_ref, vid, field, default='NotFound'):
@@ -822,6 +1071,14 @@ class MCAAnalyzer:
 				]
 				sad_targets = ', '.join(unique_ports)
 
+			io_hint    = _lookup(rev_io,  vid, 'IO Hint')
+			io_details = _lookup(rev_io,  vid, 'IO Details',  default='')
+			io_mcas    = _lookup(rev_io,  vid, 'IO MCAs',     default=0)
+
+			mem_hint    = _lookup(rev_mem, vid, 'MEM Hint')
+			mem_details = _lookup(rev_mem, vid, 'MEM Details', default='')
+			mem_mcas    = _lookup(rev_mem, vid, 'MEM MCAs',    default=0)
+
 			rows.append({
 				'VisualID'      : vid,
 				'# Runs'        : runs,
@@ -840,6 +1097,12 @@ class MCAAnalyzer:
 				'Top SAD LocPort': top_locport,
 				'SAD Targets'   : sad_targets,
 				'Core MCAs'     : core_mcas,
+				'IO Hint'       : io_hint,
+				'IO Details'    : io_details,
+				'IO MCAs'       : io_mcas,
+				'MEM Hint'      : mem_hint,
+				'MEM Details'   : mem_details,
+				'MEM MCAs'      : mem_mcas,
 			})
 
 		return pd.DataFrame(rows)
@@ -885,6 +1148,8 @@ class MCAAnalyzer:
 		  core_hint_present  – True when Core Hint != 'NotFound'
 		  srcid_present      – True when SrcIDs != 'NotFound'
 		  other_present      – True when Other is non-empty
+		  io_hint_present    – True when IO Hint  != 'NotFound'
+		  mem_hint_present   – True when MEM Hint != 'NotFound'
 
 		Examples
 		--------
@@ -1007,6 +1272,13 @@ class MCAAnalyzer:
 			top_locport  = ru.get('Top SAD LocPort','')
 			core_mcas    = ru.get('Core MCAs',      '')
 
+			io_hint     = ru.get('IO Hint',     'NotFound')
+			io_details  = ru.get('IO Details',  '')
+			io_mcas     = ru.get('IO MCAs',     0)
+			mem_hint    = ru.get('MEM Hint',    'NotFound')
+			mem_details = ru.get('MEM Details', '')
+			mem_mcas    = ru.get('MEM MCAs',    0)
+
 			# Resolve priority orders via configurable rules
 			_ctx = {
 				# String fields – support _equals, _in, _contains operators
@@ -1017,12 +1289,16 @@ class MCAAnalyzer:
 				'top_sad'      : top_sad.rstrip('*'),
 				'top_locport'  : top_locport.rstrip('*'),
 				'core_mcas'    : core_mcas,
+				'io_mcas'      : str(io_mcas),
+				'mem_mcas'     : str(mem_mcas),
 				# Boolean presence flags – direct equality match
 				'cha_hint_present' : cha_hint  != 'NotFound',
 				'llc_hint_present' : llc_hint  != 'NotFound',
 				'core_hint_present': core_hint != 'NotFound',
 				'srcid_present'    : srcids    != 'NotFound',
 				'other_present'    : bool(other),
+				'io_hint_present'  : io_hint   != 'NotFound',
+				'mem_hint_present' : mem_hint  != 'NotFound',
 			}
 			rc_order, dh_order = self._resolve_priority_order(_ctx)
 
@@ -1032,6 +1308,8 @@ class MCAAnalyzer:
 				'cha'  : (cha_hint,  cha_hint  != 'NotFound'),
 				'llc'  : (llc_hint,  llc_hint  != 'NotFound'),
 				'core' : (core_hint, core_hint != 'NotFound'),
+				'io'   : (io_hint,   io_hint   != 'NotFound'),
+				'mem'  : (mem_hint,  mem_hint  != 'NotFound'),
 			}
 
 			# Root Cause – first present entry in the resolved priority order
@@ -1058,6 +1336,8 @@ class MCAAnalyzer:
 			llc_next   = (f"Disable LLC: {llc_hint}" if llc_hint != 'NotFound' else '')
 			other_next = (f"Defeature: {other}  -- Check CORE or CHA MCAs for more data."
 						  if other else '')
+			io_next    = (f"Check IO: {io_hint} - {io_details}" if io_hint != 'NotFound' else '')
+			mem_next   = (f"Check MEM: {mem_hint} - {mem_details}" if mem_hint != 'NotFound' else '')
 
 			# Map category token → next-step string
 			_dh_map = {
@@ -1065,6 +1345,8 @@ class MCAAnalyzer:
 				'cha'  : cha_next,
 				'llc'  : llc_next,
 				'core' : core_next,
+				'io'   : io_next,
+				'mem'  : mem_next,
 			}
 
 			# Debug Hints – first non-empty next-step in the resolved priority order
@@ -1103,11 +1385,17 @@ class MCAAnalyzer:
 				'Top SAD'          : top_sad,
 				'Top SAD LocPort'  : top_locport,
 				'Core Mcas'        : core_mcas,
+				'IO Hint'          : io_hint,
+				'IO Details'       : io_details,
+				'MEM Hint'         : mem_hint,
+				'MEM Details'      : mem_details,
 				'Root Cause'       : root_cause,
 				'Core Next Steps'  : core_next,
 				'CHA Next Steps'   : cha_next,
 				'LLC Next Steps'   : llc_next,
 				'Other Next Steps' : other_next,
+				'IO IPs Next Steps': io_next,
+				'MEM IPs Next Steps': mem_next,
 				'Debug Hints'      : debug_hints,
 				'Failing Area'     : failing_area,
 			})
