@@ -47,29 +47,55 @@
     ]
   },
   "rules": [
-    {
-      "name": "IO and MEM both present skeleton",
-      "description": "TODO: When both IO and MEM hints are present, both should appear in Debug Hints. Tune priority as data becomes available.",
-      "condition": {
-        "io_hint_present": true,
-        "mem_hint_present": true
-      },
-      "override_root_cause_order": [
-        "mem",
-        "io",
-        "other",
-        "cha",
-        "llc",
-        "core"
-      ],
-      "override_debug_hints_order": [
-        "mem",
-        "io",
-        "other",
-        "cha",
-        "llc",
-        "core"
-      ]
-    }
-  ]
+  {
+    "name": "IO present without Other — deprioritize IO",
+    "description": "IO MCAs (ULA, IOCACHE) without Other firstErrors are likely secondary nuisance effects.",
+    "condition": {
+      "io_hint_present": true,
+      "other_present": false
+    },
+    "override_root_cause_order":   ["other","cha","core","mem","io"],
+    "override_debug_hints_order":  ["other","cha","core","mem","io"]
+  },
+  {
+    "name": "MEM present without Other — deprioritize MEM",
+    "description": "MEM MCAs (HA, HSF, SUBCHN) without Other firstErrors are likely secondary effects.",
+    "condition": {
+      "mem_hint_present": true,
+      "other_present": false
+    },
+    "override_root_cause_order":   ["other","cha","core","io","mem"],
+    "override_debug_hints_order":  ["other","cha","core","io","mem"]
+  },
+  {
+    "name": "CHA (CCF) error with MEM — MEM is likely root cause",
+    "description": "When both CCF and HA/HSF MCAs are present, the SCA→HAMVF dependency means HA timeout is typically the root cause. Promote mem above cha.",
+    "condition": {
+      "cha_hint_present": true,
+      "mem_hint_present": true
+    },
+    "override_root_cause_order":   ["mem","cha","core","io","other"],
+    "override_debug_hints_order":  ["mem","cha","core","io","other"]
+  },
+  {
+    "name": "IO and MEM both present",
+    "description": "TODO: Tune once DMR data characterizes whether HA or ULA failures are primary.",
+    "condition": {
+      "io_hint_present": true,
+      "mem_hint_present": true
+    },
+    "override_root_cause_order":   ["mem","io","other","cha","core"],
+    "override_debug_hints_order":  ["mem","io","other","cha","core"]
+  },
+  {
+    "name": "Opcode PortIn/PortOut with CHA — demote CHA",
+    "description": "DMR CCF equivalent of the GNR PortIn/PortOut rule. In DMR, OrigReq is combined with Opcode (no MC_MISC3). Uses top_opcode instead.",
+    "condition": {
+      "top_opcode_in": ["PortIn", "PortOut"],
+      "cha_hint_present": true
+    },
+    "override_root_cause_order":   ["mem","io","other","core","cha"],
+    "override_debug_hints_order":  ["mem","io","other","core","cha"]
+  }
+]
 }
