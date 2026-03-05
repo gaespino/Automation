@@ -53,30 +53,80 @@
   },
   "rules": [
     {
-      "name": "CHA (CCF) error with MEM \u2014 MEM is likely root cause",
-      "description": "When both CCF and HA/HSF MCAs are present, the SCA\u2192HAMVF dependency means HA timeout is typically the root cause. Promote mem above cha.",
+      "name": "PortIn or PortOut nuisance",
+      "description": "When Top OrigReq is PortIn or PortOut and a CHA Hint is available, the CHA error is a nuisance side-effect of a Core failure. Demote CHA below Core so the Core failure is surfaced as the primary root cause.",
       "condition": {
-        "cha_hint_present": true,
-        "mem_hint_present": true
+        "top_origreq_in": ["PortIn", "PortOut"],
+        "cha_hint_present": true
       },
       "override_root_cause_order": [
         "other",
         "mem",
-        "cha",
+        "io",
+        "llc",
         "core",
-        "io"
+        "cha"
       ],
       "override_debug_hints_order": [
         "other",
         "mem",
-        "cha",
+        "io",
+        "llc",
         "core",
+        "cha"
+      ]
+    },
+    {
+      "name": "IO present without Other — deprioritize IO",
+      "description": "When IO fails are present but there are no Other errors, IO MCAs are likely secondary (nuisance) indicators rather than root cause. Deprioritize IO to the end of the priority order.",
+      "condition": {
+        "io_hint_present": true,
+        "other_present": false
+      },
+      "override_root_cause_order": [
+        "other",
+        "cha",
+        "llc",
+        "core",
+        "mem",
+        "io"
+      ],
+      "override_debug_hints_order": [
+        "other",
+        "cha",
+        "llc",
+        "core",
+        "mem",
         "io"
       ]
     },
     {
-      "name": "IO and MEM both present",
-      "description": "TODO: Tune once DMR data characterizes whether HA or ULA failures are primary.",
+      "name": "MEM present without Other — deprioritize MEM",
+      "description": "When MEM fails are present but there are no Other errors, MEM MCAs are likely secondary (nuisance) indicators rather than root cause. Deprioritize MEM to the end of the priority order.",
+      "condition": {
+        "mem_hint_present": true,
+        "other_present": false
+      },
+      "override_root_cause_order": [
+        "other",
+        "cha",
+        "llc",
+        "core",
+        "mem",
+        "io"
+      ],
+      "override_debug_hints_order": [
+        "other",
+        "cha",
+        "llc",
+        "core",
+        "mem",
+        "io"
+      ]
+    },
+    {
+      "name": "IO and MEM both present skeleton",
+      "description": "TODO: When both IO and MEM hints are present, both should appear in Debug Hints. Tune priority as data becomes available.",
       "condition": {
         "io_hint_present": true,
         "mem_hint_present": true
@@ -86,6 +136,7 @@
         "mem",
         "io",
         "cha",
+        "llc",
         "core"
       ],
       "override_debug_hints_order": [
@@ -93,191 +144,67 @@
         "mem",
         "io",
         "cha",
+        "llc",
         "core"
       ]
     },
-    {
-      "name": "Opcode PortIn/PortOut with CHA \u2014 demote CHA",
-      "description": "DMR CCF equivalent of the GNR PortIn/PortOut rule. In DMR, OrigReq is combined with Opcode (no MC_MISC3). Uses top_opcode instead.",
-      "condition": {
-        "top_opcode_in": [
-          "PortIn",
-          "PortOut"
-        ],
-        "cha_hint_present": true
-      },
-      "override_root_cause_order": [
-        "other",
-        "mem",
-        "io",
-        "core",
-        "cha"
-      ],
-      "override_debug_hints_order": [
-        "other",
-        "mem",
-        "io",
-        "core",
-        "cha"
-      ]
-    },
-    {
-      "name": "Writeback or Flush opcode with CHA and Core \u2014 Core is root cause",
-      "description": "Opcodes WbMtoI, WbEFtoI, CLFlush, CLWB, LLCWBInv etc. are Core-initiated operations writing data to the CHA/LLC. The CHA error is a downstream side effect. Promote Core above CHA.",
-      "condition": {
-        "top_opcode_in": [
-          "WbMtoI",
-          "WbMtoE",
-          "WbEFtoI",
-          "WbEFtoE",
-          "WbOtoI",
-          "WbOtoE",
-          "WbStoI",
-          "CLFlush",
-          "CLFlush_Opt",
-          "CLWB",
-          "LLCWBInv",
-          "LLCWB",
-          "LLCInv"
-        ],
-        "cha_hint_present": true,
-        "core_hint_present": true
-      },
-      "override_root_cause_order": [
-        "other",
-        "mem",
-        "io",
-        "core",
-        "cha"
-      ],
-      "override_debug_hints_order": [
-        "other",
-        "mem",
-        "io",
-        "core",
-        "cha"
-      ]
-    },
-    {
-      "name": "Lock or SplitLock opcode with CHA \u2014 Core is root cause",
-      "description": "Lock and SplitLock are atomic operations initiated by a Core. The CHA is a victim of the serialization. Demote CHA.",
-      "condition": {
-        "top_opcode_in": [
-          "Lock",
-          "SplitLock",
-          "Unlock"
-        ],
-        "cha_hint_present": true
-      },
-      "override_root_cause_order": [
-        "other",
-        "mem",
-        "io",
-        "core",
-        "cha"
-      ],
-      "override_debug_hints_order": [
-        "other",
-        "mem",
-        "io",
-        "core",
-        "cha"
-      ]
-    },
-    {
-      "name": "Demand Read or RFO opcode with CHA \u2014 CHA is root cause",
-      "description": "CRd, DRd, RFO mean Core is waiting for CHA to fill a cache line. The Core 3-strike MCA is a downstream victim of CHA failing to respond. CHA is root cause.",
-      "condition": {
-        "top_opcode_in": [
-          "CRd",
-          "DRd",
-          "DRd_Opt",
-          "DRdPTE",
-          "RFO",
-          "RFO_Pref",
-          "UCRdF",
-          "ItoM",
-          "SpecItoM",
-          "ItoMWr"
-        ],
-        "cha_hint_present": true,
-        "core_hint_present": true
-      },
-      "override_root_cause_order": [
-        "other",
-        "mem",
-        "io",
-        "cha",
-        "core"
-      ],
-      "override_debug_hints_order": [
-        "other",
-        "mem",
-        "io",
-        "cha",
-        "core"
-      ]
-    },
-    {
-      "name": "Core-only fail \u2014 pure Core hardware defect",
-      "description": "Core MCAs (IFU, DCU, DTLB) firing without any CHA or MEM hint indicate a pure Core hardware defect (pipeline, cache, TLB). Core is unambiguously root cause.",
-      "condition": {
-        "core_hint_present": true,
-        "cha_hint_present": false,
-        "mem_hint_present": false
-      },
-      "override_root_cause_order": [
-        "other",
-        "core",
-        "io",
-        "mem",
-        "cha"
-      ],
-      "override_debug_hints_order": [
-        "other",
-        "core",
-        "io",
-        "mem",
-        "cha"
-      ]
-    },
-    {
-      "_TODO": "Requires cha_mscod condition support in MCAAnalyzer",
-      "name": "CCF TA Overflow with Core \u2014 Core hammering CCF",
-      "condition": {
-        "cha_mscod_in": [
-          "1",
-          "3",
-          "5",
-          "7",
-          "9"
-        ],
-        "core_hint_present": true
-      },
-      "override_root_cause_order": [
-        "other",
-        "mem",
-        "io",
-        "core",
-        "cha"
-      ],
-      "override_debug_hints_order": [
-        "other",
-        "mem",
-        "io",
-        "core",
-        "cha"
-      ]
-    },
-    {
-      "name": "IO MCIP bit set \u2014 deprioritize IO",
-      "description": "When IO MCAs (MC DECODE) shows 'MCE when MCIP bit is set (MSCOD=2)', the IO error is a secondary victim of another failure. Move IO to the last position so the actual root cause surfaces. This is an adjust_last rule \u2014 it composes on top of whichever override rule already fired, leaving the relative ordering of all other IPs unchanged.",
-      "action": "adjust_last",
-      "targets": ["io"],
-      "condition": {
-        "io_hint_present": true,
-        "io_mcas_contains": "MCIP bit is set"
-      }
-    }
+	{
+  "name": "Demand Read or RFO — CHA is root cause",
+  "description": "CRd, DRd, RFO mean Core is waiting for CHA to fill a cache line. Core 3-strike is downstream. CHA is root cause.",
+  "condition": {
+    "top_origreq_in": ["CRd", "DRd", "DRd_Opt", "DRdPTE", "RFO", "RFO_Pref", "UCRdF", "ItoM", "SpecItoM", "ItoMWr"],
+    "cha_hint_present": true,
+    "core_hint_present": true
+  },
+  "override_root_cause_order":  ["other", "mem", "io", "cha", "llc", "core"],
+  "override_debug_hints_order": ["other", "mem", "io", "cha", "llc", "core"]
+},
+{
+  "name": "Writeback or Flush opcode with CHA and Core — Core is root cause",
+  "description": "Wbxxx, CLFlush, CLWB, LLCWBInv are Core-initiated operations. CHA error is a downstream side effect.",
+  "condition": {
+    "top_origreq_in": [
+      "WbMtoI", "WbMtoE", "WbEFtoI", "WbEFtoE",
+      "WbOtoI", "WbOtoE", "WbStoI",
+      "CLFlush", "CLFlush_Opt", "CLWB",
+      "LLCWBInv", "LLCWB", "LLCInv"
+    ],
+    "cha_hint_present": true,
+    "core_hint_present": true
+  },
+  "override_root_cause_order":  ["other", "mem", "io", "llc", "core", "cha"],
+  "override_debug_hints_order": ["other", "mem", "io", "llc", "core", "cha"]
+},
+{
+  "name": "Lock or SplitLock with CHA — Core is root cause",
+  "description": "Atomic lock operations are Core-initiated. CHA serialization error is a victim.",
+  "condition": {
+    "top_origreq_in": ["Lock", "SplitLock", "Unlock"],
+    "cha_hint_present": true
+  },
+  "override_root_cause_order":  ["other", "mem", "io", "llc", "core", "cha"],
+  "override_debug_hints_order": ["other", "mem", "io", "llc", "core", "cha"]
+},
+{
+  "name": "Core-only fail — pure Core hardware defect",
+  "description": "Core MCAs without any CHA or MEM hint indicate a pure Core hardware defect (IFU, DCU, DTLB pipeline/cache errors).",
+  "condition": {
+    "core_hint_present": true,
+    "cha_hint_present": false,
+    "mem_hint_present": false
+  },
+  "override_root_cause_order":  ["other", "core", "llc", "io", "mem", "cha"],
+  "override_debug_hints_order": ["other", "core", "llc", "io", "mem", "cha"]
+},
+{
+  "name": "IO MCIP bit set — deprioritize IO",
+  "description": "When IO MCAs (MC DECODE) shows 'MCE when MCIP bit is set (MSCOD=2)', the IO error is a secondary victim of another failure (e.g. CHA or Core). Move IO to the last position so the actual root cause surfaces. This is an adjust_last rule — it composes on top of whichever override rule (PortIn, Core-only, etc.) already fired, leaving the relative ordering of all other IPs unchanged.",
+  "action": "adjust_last",
+  "targets": ["io"],
+  "condition": {
+    "io_hint_present": true,
+    "io_mcas_contains": "MCIP bit is set"
+  }
+}
   ]
 }
