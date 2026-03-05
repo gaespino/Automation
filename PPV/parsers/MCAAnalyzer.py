@@ -166,6 +166,13 @@ class MCAAnalyzer:
 		# Pre-compute block_size cache (for physical→logical conversion)
 		self._block_size_cache = {}
 
+		# Pre-compute DMR CCF reverse index: (cbb, env, inst) → module_id.
+		# Used by _cha_hint_dmr for O(1) lookup instead of linear layout scan.
+		self._dmr_ccf_reverse = {
+			(str(v['cbb']), str(v['env']), str(v['inst'])): k
+			for k, v in self.layout.items() if 'env' in v
+		}
+
 		# Load consolidated IP translation config from ip_translation.json
 		_trans = _load_ip_translation(product_dir / 'ip_translation.json')
 		self.firsterror_ip_map     = _trans['firsterror_ip']
@@ -710,11 +717,11 @@ class MCAAnalyzer:
 			env_m  = re.search(r'ENV(\w+)', key)
 			inst_m = re.search(r'INST(\w+)', key)
 			if cbb_m and env_m and inst_m:
-				for mid, ent in self.layout.items():
-					if (str(ent.get('cbb',  '')) == cbb_m.group(1) and
-							str(ent.get('env',  '')) == env_m.group(1) and
-							str(ent.get('inst', '')) == inst_m.group(1)):
-						return mid, ent
+				# O(1) lookup via pre-built reverse index
+				mid = self._dmr_ccf_reverse.get(
+					(cbb_m.group(1), env_m.group(1), inst_m.group(1)))
+				if mid is not None:
+					return mid, self.layout[mid]
 			return None, None
 
 		for key, count in ml2_counts.items():
@@ -731,14 +738,13 @@ class MCAAnalyzer:
 			env_m  = re.search(r'ENV(\w+)', clean_hint)
 			inst_m = re.search(r'INST(\w+)', clean_hint)
 			if cbb_m and env_m and inst_m:
-				for mod_id, entry in self.layout.items():
-					if (str(entry.get('cbb', '')) == cbb_m.group(1) and
-							str(entry.get('env', '')) == env_m.group(1) and
-							str(entry.get('inst', '')) == inst_m.group(1)):
-						cha_hint = f"CBO{mod_id}"
-						if winner.endswith('*'):
-							cha_hint = f"{cha_hint}*"
-						break
+				# O(1) lookup via pre-built reverse index
+				mod_id = self._dmr_ccf_reverse.get(
+					(cbb_m.group(1), env_m.group(1), inst_m.group(1)))
+				if mod_id is not None:
+					cha_hint = f"CBO{mod_id}"
+					if winner.endswith('*'):
+						cha_hint = f"{cha_hint}*"
 			if debug:
 				print(f"  [CHA-DMR] winner={winner!r} → hint={cha_hint!r}")
 
@@ -1258,9 +1264,20 @@ class MCAAnalyzer:
 				parsed = self._parse_firsterr_location(loc)
 				if not parsed:
 					continue
-				if parsed['is_core'] or parsed['is_cha'] or parsed['is_llc']:
+				if parsed['is_core'] or parsed['is_cha']:
 					continue   # handled by Rev*Count
-				disp = parsed['display']
+				# LLC entries are handled by Rev*Count UNLESS the ip_translate
+				# is explicitly listed in failing_ips_map (e.g. CWF's
+				# scf_llc → LLC → MCERRLOGGINGREG must appear in Others).
+				if parsed['is_llc'] and parsed['ip_translate'] not in self.failing_ips_map:
+					continue
+				# For LLC entries in failing_ips_map use register-type display
+				# to be consistent with other Others entries (e.g. B2CMI:MCERRLOGGINGREG)
+				if parsed['is_llc']:
+					reg_type = self.failing_ips_map[parsed['ip_translate']]
+					disp = f"{parsed['ip_translate']}:{reg_type}"
+				else:
+					disp = parsed['display']
 				if disp:
 					seen[disp] = seen.get(disp, 0) + 1
 
