@@ -4,6 +4,7 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
+from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 import shutil
 #import win32com.client as win32
 import xlwings as xw
@@ -675,6 +676,126 @@ class ppv_report():
 			analysis_df.to_excel(writer, sheet_name='MCA_Analysis', index=False)
 
 		addtable(df=analysis_df, excel_file=source_file, sheet='MCA_Analysis', table_name='mca_analysis')
+		_format_analysis_sheet(analysis_df, source_file)
+
+
+def _format_analysis_sheet(df, excel_file):
+	"""Apply color-coded header formatting to MCA_Analysis sheet, grouping columns by IP."""
+	# Group → (header fill hex, columns that belong to that group)
+	# Colors are gentle pastels for readability
+	GROUP_COLORS = {
+		'identity':  'BDD7EE',  # light blue  – VisualIDs, # Runs, WW
+		'results':   'FCE4D6',  # light orange – Root Cause, Debug Hints, Failing Area
+		'cha':       'E2EFDA',  # light green  – CHA group + traffic sig
+		'llc':       'D9E1F2',  # light blue   – LLC group
+		'core':      'EAD1DC',  # light pink   – Core group
+		'io':        'FFF2CC',  # light yellow – IO group
+		'mem':       'D9D9FF',  # light purple – MEM group
+		'other':     'FFE0CC',  # light salmon – Other group
+		'lot':       'F2F2F2',  # light gray   – Lot
+	}
+	COLUMN_GROUPS = {
+		'VisualIDs'        : 'identity',
+		'# Runs'           : 'identity',
+		'WW'               : 'identity',
+		'Root Cause'       : 'results',
+		'Debug Hints'      : 'results',
+		'Failing Area'     : 'results',
+		'CHA Hint'         : 'cha',
+		'SrcIDs'           : 'cha',
+		'CHA Fail Area'    : 'cha',
+		'CHA MCAs'         : 'cha',
+		'CHA Next Steps'   : 'cha',
+		'Top OrigReq'      : 'cha',
+		'Top OpCode'       : 'cha',
+		'Top ISMQ'         : 'cha',
+		'Top SAD'          : 'cha',
+		'Top SAD LocPort'  : 'cha',
+		'LLC Hint'         : 'llc',
+		'LLC MCAs'         : 'llc',
+		'LLC Next Steps'   : 'llc',
+		'Core Hint'        : 'core',
+		'Core Fail Area'   : 'core',
+		'Core MCAs'        : 'core',
+		'Core Bank'        : 'core',
+		'Core Next Steps'  : 'core',
+		'IO Hint'          : 'io',
+		'IO MCAs'          : 'io',
+		'IO Next Steps'    : 'io',
+		'MEM Hint'         : 'mem',
+		'MEM MCAs'         : 'mem',
+		'MEM Next Steps'   : 'mem',
+		'Other'            : 'other',
+		'Other Next Steps' : 'other',
+		'Lot'              : 'lot',
+	}
+	try:
+		wb = load_workbook(excel_file)
+		ws = wb['MCA_Analysis']
+
+		# Build fill objects once per group
+		fills = {grp: PatternFill(start_color=color, end_color=color, fill_type='solid')
+				 for grp, color in GROUP_COLORS.items()}
+		bold_font = Font(bold=True)
+		center_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+		# Apply fills to header row (row 1)
+		for col_idx, col_name in enumerate(df.columns, start=1):
+			cell = ws.cell(row=1, column=col_idx)
+			group = COLUMN_GROUPS.get(col_name)
+			if group and group in fills:
+				cell.fill = fills[group]
+			cell.font = bold_font
+			cell.alignment = center_align
+
+		# Set reasonable column widths
+		WIDTHS = {
+			'VisualIDs'        : 18,
+			'# Runs'           : 8,
+			'WW'               : 8,
+			'Root Cause'       : 22,
+			'Debug Hints'      : 45,
+			'Failing Area'     : 20,
+			'CHA Hint'         : 14,
+			'SrcIDs'           : 10,
+			'CHA Fail Area'    : 16,
+			'CHA MCAs'         : 22,
+			'CHA Next Steps'   : 45,
+			'Top OrigReq'      : 12,
+			'Top OpCode'       : 12,
+			'Top ISMQ'         : 12,
+			'Top SAD'          : 12,
+			'Top SAD LocPort'  : 14,
+			'LLC Hint'         : 14,
+			'LLC MCAs'         : 22,
+			'LLC Next Steps'   : 35,
+			'Core Hint'        : 14,
+			'Core Fail Area'   : 16,
+			'Core MCAs'        : 22,
+			'Core Bank'        : 12,
+			'Core Next Steps'  : 35,
+			'IO Hint'          : 18,
+			'IO MCAs'          : 22,
+			'IO Next Steps'    : 35,
+			'MEM Hint'         : 18,
+			'MEM MCAs'         : 22,
+			'MEM Next Steps'   : 35,
+			'Other'            : 22,
+			'Other Next Steps' : 40,
+			'Lot'              : 14,
+		}
+		for col_idx, col_name in enumerate(df.columns, start=1):
+			col_letter = get_column_letter(col_idx)
+			width = WIDTHS.get(col_name, 14)
+			ws.column_dimensions[col_letter].width = width
+
+		# Freeze panes after the first row so headers stay visible
+		ws.freeze_panes = 'A2'
+
+		wb.save(excel_file)
+		wb.close()
+	except Exception as exc:
+		print(f'[WARN] _format_analysis_sheet: {exc}')
 
 
 def file_open(file):

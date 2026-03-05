@@ -1,17 +1,17 @@
 {
   "description": "Root Cause and Debug Hints priority rules for GNR. Rules are evaluated in order; the first matching rule overrides the default priority. Each priority list is ordered highest-priority first.",
   "default_root_cause_order": [
+    "other",
     "mem",
     "io",
-    "other",
     "cha",
     "llc",
     "core"
   ],
   "default_debug_hints_order": [
+    "other",
     "mem",
     "io",
-    "other",
     "cha",
     "llc",
     "core"
@@ -55,17 +55,17 @@
         "cha_hint_present": true
       },
       "override_root_cause_order": [
+        "other",
         "mem",
         "io",
-        "other",
         "llc",
         "core",
         "cha"
       ],
       "override_debug_hints_order": [
+        "other",
         "mem",
         "io",
-        "other",
         "llc",
         "core",
         "cha"
@@ -127,17 +127,17 @@
         "mem_hint_present": true
       },
       "override_root_cause_order": [
+        "other",
         "mem",
         "io",
-        "other",
         "cha",
         "llc",
         "core"
       ],
       "override_debug_hints_order": [
+        "other",
         "mem",
         "io",
-        "other",
         "cha",
         "llc",
         "core"
@@ -151,8 +151,8 @@
     "cha_hint_present": true,
     "core_hint_present": true
   },
-  "override_root_cause_order":  ["mem", "io", "other", "cha", "llc", "core"],
-  "override_debug_hints_order": ["mem", "io", "other", "cha", "llc", "core"]
+  "override_root_cause_order":  ["other", "mem", "io", "cha", "llc", "core"],
+  "override_debug_hints_order": ["other", "mem", "io", "cha", "llc", "core"]
 },
 {
   "name": "Writeback or Flush opcode with CHA and Core — Core is root cause",
@@ -167,8 +167,8 @@
     "cha_hint_present": true,
     "core_hint_present": true
   },
-  "override_root_cause_order":  ["mem", "io", "other", "llc", "core", "cha"],
-  "override_debug_hints_order": ["mem", "io", "other", "llc", "core", "cha"]
+  "override_root_cause_order":  ["other", "mem", "io", "llc", "core", "cha"],
+  "override_debug_hints_order": ["other", "mem", "io", "llc", "core", "cha"]
 },
 {
   "name": "Lock or SplitLock with CHA — Core is root cause",
@@ -177,8 +177,8 @@
     "top_origreq_in": ["Lock", "SplitLock", "Unlock"],
     "cha_hint_present": true
   },
-  "override_root_cause_order":  ["mem", "io", "other", "llc", "core", "cha"],
-  "override_debug_hints_order": ["mem", "io", "other", "llc", "core", "cha"]
+  "override_root_cause_order":  ["other", "mem", "io", "llc", "core", "cha"],
+  "override_debug_hints_order": ["other", "mem", "io", "llc", "core", "cha"]
 },
 {
   "name": "Core-only fail — pure Core hardware defect",
@@ -188,8 +188,8 @@
     "cha_hint_present": false,
     "mem_hint_present": false
   },
-  "override_root_cause_order":  ["core", "llc", "io", "other", "mem", "cha"],
-  "override_debug_hints_order": ["core", "llc", "io", "other", "mem", "cha"]
+  "override_root_cause_order":  ["other", "core", "llc", "io", "mem", "cha"],
+  "override_debug_hints_order": ["other", "core", "llc", "io", "mem", "cha"]
 }
   ]
 }

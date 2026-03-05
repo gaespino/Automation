@@ -1,17 +1,17 @@
 {
   "description": "Root Cause and Debug Hints priority rules for DMR.",
   "default_root_cause_order": [
+    "other",
     "mem",
     "io",
-    "other",
     "cha",
     "llc",
     "core"
   ],
   "default_debug_hints_order": [
+    "other",
     "mem",
     "io",
-    "other",
     "cha",
     "llc",
     "core"
@@ -55,18 +55,18 @@
         "mem_hint_present": true
       },
       "override_root_cause_order": [
+        "other",
         "mem",
         "cha",
         "core",
-        "io",
-        "other"
+        "io"
       ],
       "override_debug_hints_order": [
+        "other",
         "mem",
         "cha",
         "core",
-        "io",
-        "other"
+        "io"
       ]
     },
     {
@@ -77,16 +77,16 @@
         "mem_hint_present": true
       },
       "override_root_cause_order": [
+        "other",
         "mem",
         "io",
-        "other",
         "cha",
         "core"
       ],
       "override_debug_hints_order": [
+        "other",
         "mem",
         "io",
-        "other",
         "cha",
         "core"
       ]
@@ -102,16 +102,16 @@
         "cha_hint_present": true
       },
       "override_root_cause_order": [
+        "other",
         "mem",
         "io",
-        "other",
         "core",
         "cha"
       ],
       "override_debug_hints_order": [
+        "other",
         "mem",
         "io",
-        "other",
         "core",
         "cha"
       ]
@@ -139,16 +139,16 @@
         "core_hint_present": true
       },
       "override_root_cause_order": [
+        "other",
         "mem",
         "io",
-        "other",
         "core",
         "cha"
       ],
       "override_debug_hints_order": [
+        "other",
         "mem",
         "io",
-        "other",
         "core",
         "cha"
       ]
@@ -165,16 +165,16 @@
         "cha_hint_present": true
       },
       "override_root_cause_order": [
+        "other",
         "mem",
         "io",
-        "other",
         "core",
         "cha"
       ],
       "override_debug_hints_order": [
+        "other",
         "mem",
         "io",
-        "other",
         "core",
         "cha"
       ]
@@ -199,16 +199,16 @@
         "core_hint_present": true
       },
       "override_root_cause_order": [
+        "other",
         "mem",
         "io",
-        "other",
         "cha",
         "core"
       ],
       "override_debug_hints_order": [
+        "other",
         "mem",
         "io",
-        "other",
         "cha",
         "core"
       ]
@@ -222,16 +222,16 @@
         "mem_hint_present": false
       },
       "override_root_cause_order": [
+        "other",
         "core",
         "io",
-        "other",
         "mem",
         "cha"
       ],
       "override_debug_hints_order": [
+        "other",
         "core",
         "io",
-        "other",
         "mem",
         "cha"
       ]
@@ -250,16 +250,16 @@
         "core_hint_present": true
       },
       "override_root_cause_order": [
+        "other",
         "mem",
         "io",
-        "other",
         "core",
         "cha"
       ],
       "override_debug_hints_order": [
+        "other",
         "mem",
         "io",
-        "other",
         "core",
         "cha"
       ]

@@ -1475,55 +1475,48 @@ class MCAAnalyzer:
 				sad_targets = ', '.join(unique_ports)
 
 			io_hint    = _lookup(rev_io,  vid, 'IO Hint')
-			io_details = _lookup(rev_io,  vid, 'IO Details',  default='')
 			io_mcas    = _lookup(rev_io,  vid, 'IO MCAs',     default=0)
 
 			mem_hint    = _lookup(rev_mem, vid, 'MEM Hint')
-			mem_details = _lookup(rev_mem, vid, 'MEM Details', default='')
 			mem_mcas    = _lookup(rev_mem, vid, 'MEM MCAs',    default=0)
 
-			# MC_DECODE: most-common error decode string per IP type
-			_dec_col     = self._col_cfg.get('dec_col',     'MC_DECODE')
+			# Per-IP error code: use err_key for CHA/LLC; dec_col for IO/MEM display
+			_err_key     = self._col_cfg.get('err_key',     'MCACOD (ErrDecode)')
 			_io_dec_col  = self._col_cfg.get('io_dec_col',  'MC_DECODE')
 			_mem_dec_col = self._col_cfg.get('mem_dec_col', 'MC_DECODE')
 			_bank_col    = self._col_cfg.get('bank_col',    'ErrorType')
-			cha_mscod    = _top_field(cha_df,  vid, _dec_col)
-			llc_mscod    = _top_field(llc_df,  vid, _dec_col)
-			core_mscod   = _top_field(core_df, vid, _dec_col)
+			cha_mcas_str = _top_field(cha_df,  vid, _err_key)
+			llc_mcas_str = _top_field(llc_df,  vid, _err_key)
 			core_bank    = _top_field(core_df, vid, _bank_col)
-			io_mscod     = _top_field(io_df,   vid, _io_dec_col)
-			mem_mscod    = _top_field(mem_df,  vid, _mem_dec_col)
+			io_mcas_str  = _top_field(io_df,   vid, _io_dec_col)
+			mem_mcas_str = _top_field(mem_df,  vid, _mem_dec_col)
 
 			rows.append({
-				'VisualID'      : vid,
-				'# Runs'        : runs,
-				'Core Hint'     : core_hint,
-				'Core Fail Area': core_area,
-				'CHA Hint'      : cha_hint,
-				'CHA Fail Area' : cha_area,
-				'LLC Hint'      : llc_hint,
-				'LLC Fail Area' : llc_area,
-				'SrcIDs'        : srcids,
-				'Other'         : other,
-				'Top OrigReq'   : top_origreq,
-				'Top OpCode'    : top_opcode,
-				'Top ISMQ'      : top_ismq,
-				'Top SAD'       : top_sad,
+				'VisualID'       : vid,
+				'# Runs'         : runs,
+				'Core Hint'      : core_hint,
+				'Core Fail Area' : core_area,
+				'CHA Hint'       : cha_hint,
+				'CHA Fail Area'  : cha_area,
+				'CHA MCAs'       : cha_mcas_str,
+				'LLC Hint'       : llc_hint,
+				'LLC MCAs'       : llc_mcas_str,
+				'SrcIDs'         : srcids,
+				'Other'          : other,
+				'Top OrigReq'    : top_origreq,
+				'Top OpCode'     : top_opcode,
+				'Top ISMQ'       : top_ismq,
+				'Top SAD'        : top_sad,
 				'Top SAD LocPort': top_locport,
-				'SAD Targets'   : sad_targets,
-				'Core MCAs'     : core_mcas,
-				'IO Hint'       : io_hint,
-				'IO Details'    : io_details,
-				'IO MCAs'       : io_mcas,
-				'MEM Hint'      : mem_hint,
-				'MEM Details'   : mem_details,
-				'MEM MCAs'      : mem_mcas,
-				'CHA MSCOD'     : cha_mscod,
-				'LLC MSCOD'     : llc_mscod,
-				'Core MSCOD'    : core_mscod,
-				'Core Bank'     : core_bank,
-				'IO MSCOD'      : io_mscod,
-				'MEM MSCOD'     : mem_mscod,
+				'SAD Targets'    : sad_targets,
+				'Core MCAs'      : core_mcas,
+				'Core Bank'      : core_bank,
+				'IO Hint'        : io_hint,
+				'IO MCAs Count'  : io_mcas,
+				'IO MCAs'        : io_mcas_str,
+				'MEM Hint'       : mem_hint,
+				'MEM MCAs Count' : mem_mcas,
+				'MEM MCAs'       : mem_mcas_str,
 			})
 
 		return pd.DataFrame(rows)
@@ -1698,19 +1691,16 @@ class MCAAnalyzer:
 			top_locport  = ru.get('Top SAD LocPort','')
 			core_mcas    = ru.get('Core MCAs',      '')
 
-			io_hint     = ru.get('IO Hint',     'NotFound')
-			io_details  = ru.get('IO Details',  '')
-			io_mcas     = ru.get('IO MCAs',     0)
-			mem_hint    = ru.get('MEM Hint',    'NotFound')
-			mem_details = ru.get('MEM Details', '')
-			mem_mcas    = ru.get('MEM MCAs',    0)
+			io_hint     = ru.get('IO Hint',       'NotFound')
+			io_mcas     = ru.get('IO MCAs Count',  0)
+			mem_hint    = ru.get('MEM Hint',       'NotFound')
+			mem_mcas    = ru.get('MEM MCAs Count', 0)
 
-			cha_mscod   = ru.get('CHA MSCOD',  '')
-			llc_mscod   = ru.get('LLC MSCOD',  '')
-			core_mscod  = ru.get('Core MSCOD', '')
-			core_bank   = ru.get('Core Bank',  '')
-			io_mscod    = ru.get('IO MSCOD',   '')
-			mem_mscod   = ru.get('MEM MSCOD',  '')
+			cha_mcas_str = ru.get('CHA MCAs',    '')
+			llc_mcas_str = ru.get('LLC MCAs',    '')
+			core_bank    = ru.get('Core Bank',   '')
+			io_mcas_str  = ru.get('IO MCAs',     '')
+			mem_mcas_str = ru.get('MEM MCAs',    '')
 
 			# Resolve priority orders via configurable rules
 			_ctx = {
@@ -1769,8 +1759,8 @@ class MCAAnalyzer:
 			llc_next   = (f"Disable LLC: {llc_hint}" if llc_hint != 'NotFound' else '')
 			other_next = (f"Defeature: {other}  -- Check CORE or CHA MCAs for more data."
 						  if other else '')
-			io_next    = (f"Check IO: {io_hint} - {io_details}" if io_hint != 'NotFound' else '')
-			mem_next   = (f"Check MEM: {mem_hint} - {mem_details}" if mem_hint != 'NotFound' else '')
+			io_next    = (f"Check IO: {io_hint}" if io_hint != 'NotFound' else '')
+			mem_next   = (f"Check MEM: {mem_hint}" if mem_hint != 'NotFound' else '')
 
 			# Map category token → next-step string
 			_dh_map = {
@@ -1801,55 +1791,47 @@ class MCAAnalyzer:
 
 			rows.append({
 				# --- Identity (first 3, always visible) ---
-				'VisualIDs'        : vid,
-				'# Runs'           : num_runs,
-				'WW'               : ww,
+				'VisualIDs'         : vid,
+				'# Runs'            : num_runs,
+				'WW'                : ww,
 				# --- Key analysis results ---
-				'Root Cause'       : root_cause,
-				'Debug Hints'      : debug_hints,
-				'Failing Area'     : failing_area,
-				# --- CHA/CBO ---
-				'CHA Hint'         : cha_hint,
-				'CHA Fail Area'    : cha_area,
-				'CHA MSCOD'        : cha_mscod,
-				'SrcIDs'           : srcids,
-				# --- LLC ---
-				'LLC Hint'         : llc_hint,
-				'LLC Fail Area'    : llc_area,
-				'LLC MSCOD'        : llc_mscod,
-				# --- Core ---
-				'Core Hint'        : core_hint,
-				'Core Fail Area'   : core_area,
-				'Core MCAs'        : core_mcas,
-				'Core MSCOD'       : core_mscod,
-				'Core Bank'        : core_bank,
-				# --- IO ---
-				'IO Hint'          : io_hint,
-				'IO Details'       : io_details,
-				'IO MCAs'          : io_mcas,
-				'IO MSCOD'         : io_mscod,
-				# --- MEM ---
-				'MEM Hint'         : mem_hint,
-				'MEM Details'      : mem_details,
-				'MEM MCAs'         : mem_mcas,
-				'MEM MSCOD'        : mem_mscod,
+				'Root Cause'        : root_cause,
+				'Debug Hints'       : debug_hints,
+				'Failing Area'      : failing_area,
+				# --- CHA/CBO group ---
+				'CHA Hint'          : cha_hint,
+				'SrcIDs'            : srcids,
+				'CHA Fail Area'     : cha_area,
+				'CHA MCAs'          : cha_mcas_str,
+				'CHA Next Steps'    : cha_next,
+				'Top OrigReq'       : top_origreq,
+				'Top OpCode'        : top_opcode,
+				'Top ISMQ'          : top_ismq,
+				'Top SAD'           : top_sad,
+				'Top SAD LocPort'   : top_locport,
+				# --- LLC group ---
+				'LLC Hint'          : llc_hint,
+				'LLC MCAs'          : llc_mcas_str,
+				'LLC Next Steps'    : llc_next,
+				# --- Core group ---
+				'Core Hint'         : core_hint,
+				'Core Fail Area'    : core_area,
+				'Core MCAs'         : core_mcas,
+				'Core Bank'         : core_bank,
+				'Core Next Steps'   : core_next,
+				# --- IO group ---
+				'IO Hint'           : io_hint,
+				'IO MCAs'           : io_mcas_str,
+				'IO Next Steps'     : io_next,
+				# --- MEM group ---
+				'MEM Hint'          : mem_hint,
+				'MEM MCAs'          : mem_mcas_str,
+				'MEM Next Steps'    : mem_next,
 				# --- Other ---
-				'Other'            : other,
-				# --- Traffic signature ---
-				'Top OrigReq'      : top_origreq,
-				'Top OpCode'       : top_opcode,
-				'Top ISMQ'         : top_ismq,
-				'Top SAD'          : top_sad,
-				'Top SAD LocPort'  : top_locport,
-				# --- Per-category Next Steps ---
-				'CHA Next Steps'   : cha_next,
-				'LLC Next Steps'   : llc_next,
-				'Core Next Steps'  : core_next,
-				'IO IPs Next Steps': io_next,
-				'MEM IPs Next Steps': mem_next,
-				'Other Next Steps' : other_next,
+				'Other'             : other,
+				'Other Next Steps'  : other_next,
 				# --- Lot (least critical, far right) ---
-				'Lot'              : lot,
+				'Lot'               : lot,
 			})
 
 		return pd.DataFrame(rows)
