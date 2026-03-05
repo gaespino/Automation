@@ -96,6 +96,68 @@
     },
     "override_root_cause_order":   ["mem","io","other","core","cha"],
     "override_debug_hints_order":  ["mem","io","other","core","cha"]
-  }
+  },
+  {
+  "name": "Writeback or Flush opcode with CHA and Core — Core is root cause",
+  "description": "Opcodes WbMtoI, WbEFtoI, CLFlush, CLWB, LLCWBInv etc. are Core-initiated operations writing data to the CHA/LLC. The CHA error is a downstream side effect. Promote Core above CHA.",
+  "condition": {
+    "top_opcode_in": [
+      "WbMtoI", "WbMtoE", "WbEFtoI", "WbEFtoE",
+      "WbOtoI", "WbOtoE", "WbStoI",
+      "CLFlush", "CLFlush_Opt", "CLWB",
+      "LLCWBInv", "LLCWB", "LLCInv"
+    ],
+    "cha_hint_present": true,
+    "core_hint_present": true
+  },
+  "override_root_cause_order":  ["mem", "io", "other", "core", "cha"],
+  "override_debug_hints_order": ["mem", "io", "other", "core", "cha"]
+},
+{
+  "name": "Lock or SplitLock opcode with CHA — Core is root cause",
+  "description": "Lock and SplitLock are atomic operations initiated by a Core. The CHA is a victim of the serialization. Demote CHA.",
+  "condition": {
+    "top_opcode_in": ["Lock", "SplitLock", "Unlock"],
+    "cha_hint_present": true
+  },
+  "override_root_cause_order":  ["mem", "io", "other", "core", "cha"],
+  "override_debug_hints_order": ["mem", "io", "other", "core", "cha"]
+},
+{
+  "name": "Demand Read or RFO opcode with CHA — CHA is root cause",
+  "description": "CRd, DRd, RFO mean Core is waiting for CHA to fill a cache line. The Core 3-strike MCA is a downstream victim of CHA failing to respond. CHA is root cause.",
+  "condition": {
+    "top_opcode_in": [
+      "CRd", "DRd", "DRd_Opt", "DRdPTE",
+      "RFO", "RFO_Pref", "UCRdF",
+      "ItoM", "SpecItoM", "ItoMWr"
+    ],
+    "cha_hint_present": true,
+    "core_hint_present": true
+  },
+  "override_root_cause_order":  ["mem", "io", "other", "cha", "core"],
+  "override_debug_hints_order": ["mem", "io", "other", "cha", "core"]
+},
+{
+  "name": "Core-only fail — pure Core hardware defect",
+  "description": "Core MCAs (IFU, DCU, DTLB) firing without any CHA or MEM hint indicate a pure Core hardware defect (pipeline, cache, TLB). Core is unambiguously root cause.",
+  "condition": {
+    "core_hint_present": true,
+    "cha_hint_present": false,
+    "mem_hint_present": false
+  },
+  "override_root_cause_order":  ["core", "io", "other", "mem", "cha"],
+  "override_debug_hints_order": ["core", "io", "other", "mem", "cha"]
+},
+{
+  "_TODO": "Requires cha_mscod condition support in MCAAnalyzer",
+  "name": "CCF TA Overflow with Core — Core hammering CCF",
+  "condition": {
+    "cha_mscod_in": ["1","3","5","7","9"],
+    "core_hint_present": true
+  },
+  "override_root_cause_order":  ["mem", "io", "other", "core", "cha"],
+  "override_debug_hints_order": ["mem", "io", "other", "core", "cha"]
+}
 ]
 }
