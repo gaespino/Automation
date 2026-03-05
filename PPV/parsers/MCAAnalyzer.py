@@ -1482,7 +1482,7 @@ class MCAAnalyzer:
 			mem_mcas    = _lookup(rev_mem, vid, 'MEM MCAs',    default=0)
 
 			# MC_DECODE: most-common error decode string per IP type
-			_dec_col     = self._col_cfg.get('dec_col',     self._col_cfg.get('err_key', 'MC_DECODE'))
+			_dec_col     = self._col_cfg.get('dec_col',     'MC_DECODE')
 			_io_dec_col  = self._col_cfg.get('io_dec_col',  'MC_DECODE')
 			_mem_dec_col = self._col_cfg.get('mem_dec_col', 'MC_DECODE')
 			_bank_col    = self._col_cfg.get('bank_col',    'ErrorType')
