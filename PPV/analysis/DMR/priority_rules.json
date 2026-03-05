@@ -48,54 +48,6 @@
   },
   "rules": [
     {
-      "name": "IO present without Other — deprioritize IO",
-      "description": "When IO fails are present but there are no Other errors, IO MCAs are likely secondary (nuisance) indicators rather than root cause. Deprioritize IO to the end of the priority order.",
-      "condition": {
-        "io_hint_present": true,
-        "other_present": false
-      },
-      "override_root_cause_order": [
-        "other",
-        "cha",
-        "llc",
-        "core",
-        "mem",
-        "io"
-      ],
-      "override_debug_hints_order": [
-        "other",
-        "cha",
-        "llc",
-        "core",
-        "mem",
-        "io"
-      ]
-    },
-    {
-      "name": "MEM present without Other — deprioritize MEM",
-      "description": "When MEM fails are present but there are no Other errors, MEM MCAs are likely secondary (nuisance) indicators rather than root cause. Deprioritize MEM to the end of the priority order.",
-      "condition": {
-        "mem_hint_present": true,
-        "other_present": false
-      },
-      "override_root_cause_order": [
-        "other",
-        "cha",
-        "llc",
-        "core",
-        "mem",
-        "io"
-      ],
-      "override_debug_hints_order": [
-        "other",
-        "cha",
-        "llc",
-        "core",
-        "mem",
-        "io"
-      ]
-    },
-    {
       "name": "IO and MEM both present skeleton",
       "description": "TODO: When both IO and MEM hints are present, both should appear in Debug Hints. Tune priority as data becomes available.",
       "condition": {
