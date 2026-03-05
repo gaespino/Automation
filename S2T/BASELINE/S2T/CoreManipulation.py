@@ -1790,6 +1790,10 @@ def build_disable_extmask(core_list_input, mode, current_masks=None):
 		return gen_slice_disable_mask(core_list, current_masks)
 	else:
 		raise ValueError(f'Unknown disable mode "{mode}": expected "core" or "slice"')
+
+## FastBoot Fuse Override
+def fuse_cmd_override_reset(fuse_cmd_array, skip_init=False, boot = True, s2t=False, execution_state=None):
+
 	sv = _get_global_sv()
 	ipc = ipccli.baseaccess()
 

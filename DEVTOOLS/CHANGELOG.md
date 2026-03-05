@@ -291,3 +291,19 @@ This is intentional as these files are development-specific and not needed in th
 - `configs\fuses\gnr\io.csv`
 
 ---
+
+## [20260304_174654] — GNR Deploy — March 04, 2026
+
+### Summary
+- **Product:** GNR  
+- **Source:** BASELINE / S2T  
+- **Target:** `Q:\Gaespino\scripts\s2t\Deploys\GNR\prod\S2T`  
+- **Files Deployed:** 1  
+- **Errors:** 0  
+- **Import Replacements:** 1  
+- **File Renames:** 1  
+
+### Deployed Files
+- `GNRCoreManipulation.py` ← *renamed from `CoreManipulation.py`*
+
+---

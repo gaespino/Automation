@@ -87,5 +87,22 @@
     "replacements_count": 0,
     "renames_count": 0,
     "report_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_report_20260223_180035.csv"
+  },
+  {
+    "timestamp": "20260304_174654",
+    "date": "2026-03-04",
+    "product": "GNR",
+    "source_type": "BASELINE",
+    "deployment_type": "S2T",
+    "target": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\GNR\\prod\\S2T",
+    "files_deployed": [
+      "GNRCoreManipulation.py"
+    ],
+    "files_deployed_count": 1,
+    "files_skipped_count": 44,
+    "errors_count": 0,
+    "replacements_count": 1,
+    "renames_count": 1,
+    "report_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_report_20260304_174654.csv"
   }
 ]
