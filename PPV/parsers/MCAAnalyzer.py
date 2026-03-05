@@ -483,8 +483,8 @@ class MCAAnalyzer:
 
 	def _score_fail_area(self, entries_weighted):
 		"""
-		Compute a spatial fail-area description from a weighted set of failing
-		layout entries.  Called when 2+ distinct instances are failing.
+		Compute the most specific common spatial region from a weighted set of
+		failing layout entries.  Called when 2+ distinct instances are failing.
 
 		entries_weighted : list of (layout_entry_dict, count)
 		    Each entry is a dict with at least {compute, row, col} for GNR/CWF
@@ -493,39 +493,38 @@ class MCAAnalyzer:
 		Returns a human-readable string such as:
 		  GNR/CWF : 'Col3', 'Row1', 'Compute0'
 		  DMR     : 'CBB0 : Col3', 'CBB0 : Row1', 'CBB0 : Compute0', 'CBB0'
-		or '' if no layout data is available.
+		or '' when no meaningful spatial concentration is found.
 
-		Scoring formula
-		---------------
-		  • When a dimension is shared by ALL failing instances (fraction=1.0),
-		    score = PERFECT_BONUS + weight.
-		    PERFECT_BONUS > max_partial_score (score_col) ensures any 100%-shared
-		    dimension beats any partially-shared dimension.  Among 100%-shared
-		    dimensions the highest weight wins (col > row > compute), so the most
-		    specific common region is returned.
-		  • When a dimension is partially shared, score = fraction × weight.
+		Algorithm (mirrors the original Excel Rev*Count sheet logic)
+		-------------------------------------------------------------
+		A Fail Area is reported only when ALL failing instances share a spatial
+		dimension (100% concentration).  Partial matches are suppressed to avoid
+		misleading low-confidence results.
+
+		Dimension priority (highest specificity wins):
+		  Col (score_col=4)  >  Row (score_row=2)  >  Compute (score_compute=1)
+
+		For DMR the CBB tile is evaluated first:
+		  • If all instances share the same CBB, check sub-dimensions within it.
+		  • If sub-dimensions also have 100% concentration, the most specific wins
+		    (e.g. CBB0 : Compute1 before CBB0).
+		  • If sub-dimensions have no concentration → return 'CBB{n}' (CBB-level area).
+		  • If instances span multiple CBBs → return '' (no meaningful pattern).
 
 		Example: Module11 (CBB0:Compute1:Row2:Col3) and Module13 (CBB0:Compute1:Row3:Col1)
-		  → both share Compute1 at CBB0 (fraction=1.0) → `CBB0 : Compute1` is returned
-		    even though score_col=4 > score_compute=1, because the 100%-share bonus
-		    dominates the partial col concentration.
+		  → both share CBB0 (100%) and Compute1 (100%) → `CBB0 : Compute1` is returned.
+		Example: CORE0 and CORE1 both in Compute0 but different rows/cols
+		  → 100% share Compute0 → `Compute0` is returned.
 		"""
 		if not entries_weighted:
 			return ''
 
 		from collections import Counter as _Counter
-		# perfect-concentration bonus: any 100%-shared dimension beats any partial share.
-		# Must exceed max partial score (1.0 × score_col); tie-broken by weight (col>row>compute).
-		_perf_bonus = self.score_col + 1
-
-		def _sc(c, n, w):
-			"""Score: (perf_bonus + weight) when 100%-shared, else (fraction × weight)."""
-			if n == 0:
-				return 0
-			f = c / n
-			return (_perf_bonus + w) if f >= 1.0 else f * w
 
 		total = sum(c for _, c in entries_weighted)
+		if total == 0:
+			return ''
+
 		is_dmr = 'cbb' in entries_weighted[0][0]
 
 		if is_dmr:
@@ -534,46 +533,30 @@ class MCAAnalyzer:
 			for entry, c in entries_weighted:
 				cbb_totals[str(entry.get('cbb', ''))] += c
 			top_cbb, cbb_count = cbb_totals.most_common(1)[0]
-			multiple_cbbs = len(cbb_totals) > 1
 
-			# --- within the dominant CBB: compute / row / col ---
-			in_cbb = [(e, c) for e, c in entries_weighted
-					  if str(e.get('cbb', '')) == top_cbb]
-			n_cbb  = sum(c for _, c in in_cbb)
+			# Only continue if ALL instances are in the same CBB
+			if cbb_count < total:
+				return ''  # cross-CBB failures → no single spatial region
 
+			# --- Sub-dimensions within the single shared CBB ---
 			comp_totals = _Counter()
 			row_totals  = _Counter()
 			col_totals  = _Counter()
-			for entry, c in in_cbb:
+			for entry, c in entries_weighted:
 				comp_totals[str(entry.get('compute', ''))] += c
 				row_totals [str(entry.get('row',     ''))] += c
 				col_totals [str(entry.get('col',     ''))] += c
 
-			top_comp = comp_totals.most_common(1)[0][0] if comp_totals else ''
-			top_row  = row_totals .most_common(1)[0][0] if row_totals  else ''
-			top_col  = col_totals .most_common(1)[0][0] if col_totals  else ''
-			comp_c   = comp_totals.most_common(1)[0][1] if comp_totals else 0
-			row_c    = row_totals .most_common(1)[0][1] if row_totals  else 0
-			col_c    = col_totals .most_common(1)[0][1] if col_totals  else 0
+			# Return the most specific 100%-shared sub-dimension (Col > Row > Compute)
+			if col_totals  and col_totals .most_common(1)[0][1] == total:
+				return f"CBB{top_cbb} : Col{col_totals.most_common(1)[0][0]}"
+			if row_totals  and row_totals .most_common(1)[0][1] == total:
+				return f"CBB{top_cbb} : Row{row_totals.most_common(1)[0][0]}"
+			if comp_totals and comp_totals.most_common(1)[0][1] == total:
+				return f"CBB{top_cbb} : Compute{comp_totals.most_common(1)[0][0]}"
 
-			# CBB-level score uses a plain fraction×weight formula (the perfect-bonus
-			# is NOT applied at the CBB level because when multiple_cbbs=False the
-			# score is 0, and when multiple_cbbs=True fraction is by definition < 1.0).
-			# The weight (perf_bonus + 1) ensures CBB can outscore sub-dimensions only
-			# when neither col nor row nor compute is 100%-concentrated in the top CBB.
-			_cbb_weight = _perf_bonus + 1
-			cbb_score  = ((cbb_count / total) * _cbb_weight if multiple_cbbs else 0)
-			comp_score = _sc(comp_c, n_cbb, self.score_compute)
-			row_score  = _sc(row_c,  n_cbb, self.score_row)
-			col_score  = _sc(col_c,  n_cbb, self.score_col)
-
-			candidates = {
-				f"CBB{top_cbb} : Col{top_col}"     : col_score,
-				f"CBB{top_cbb} : Row{top_row}"     : row_score,
-				f"CBB{top_cbb} : Compute{top_comp}": comp_score,
-				f"CBB{top_cbb}"                    : cbb_score,
-			}
-			return max(candidates, key=candidates.get)
+			# All in the same CBB but no sub-dimension is 100% concentrated
+			return f"CBB{top_cbb}"
 
 		else:
 			# --- GNR/CWF: compute / row / col ---
@@ -582,23 +565,19 @@ class MCAAnalyzer:
 			col_totals  = _Counter()
 			for entry, c in entries_weighted:
 				comp_num = re.sub(r'[^0-9]', '', str(entry.get('compute', '')))
-				comp_totals[comp_num]                      += c
-				row_totals [str(entry.get('row', ''))]     += c
-				col_totals [str(entry.get('col', ''))]     += c
+				comp_totals[comp_num]                  += c
+				row_totals [str(entry.get('row', ''))] += c
+				col_totals [str(entry.get('col', ''))] += c
 
-			top_comp = comp_totals.most_common(1)[0][0] if comp_totals else ''
-			top_row  = row_totals .most_common(1)[0][0] if row_totals  else ''
-			top_col  = col_totals .most_common(1)[0][0] if col_totals  else ''
-			comp_c   = comp_totals.most_common(1)[0][1] if comp_totals else 0
-			row_c    = row_totals .most_common(1)[0][1] if row_totals  else 0
-			col_c    = col_totals .most_common(1)[0][1] if col_totals  else 0
+			# Return the most specific 100%-shared dimension (Col > Row > Compute)
+			if col_totals  and col_totals .most_common(1)[0][1] == total:
+				return f"Col{col_totals.most_common(1)[0][0]}"
+			if row_totals  and row_totals .most_common(1)[0][1] == total:
+				return f"Row{row_totals.most_common(1)[0][0]}"
+			if comp_totals and comp_totals.most_common(1)[0][1] == total:
+				return f"Compute{comp_totals.most_common(1)[0][0]}"
 
-			candidates = {
-				f"Col{top_col}"     : _sc(col_c,  total, self.score_col),
-				f"Row{top_row}"     : _sc(row_c,  total, self.score_row),
-				f"Compute{top_comp}": _sc(comp_c, total, self.score_compute),
-			}
-			return max(candidates, key=candidates.get)
+			return ''  # no 100% concentrated spatial dimension → no meaningful pattern
 
 	def _resolve_hint_with_firsterr(self, ml2_counts, firsterr_df, vid,
 									ncevent_type, ip_filter_fn, debug,

@@ -48,12 +48,11 @@
   },
   "rules": [
     {
-      "name": "PortIn nuisance",
-      "description": "When Top OrigReq is PortIn and a CHA Hint is available with a SrcID, the CHA error is a nuisance side-effect. Demote CHA below Core so the Core failure is surfaced as the primary root cause.",
+      "name": "PortIn or PortOut nuisance",
+      "description": "When Top OrigReq is PortIn or PortOut and a CHA Hint is available, the CHA error is a nuisance side-effect of a Core failure. Demote CHA below Core so the Core failure is surfaced as the primary root cause.",
       "condition": {
-        "top_origreq_equals": "PortIn",
-        "cha_hint_present": true,
-        "srcid_present": true
+        "top_origreq_in": ["PortIn", "PortOut"],
+        "cha_hint_present": true
       },
       "override_root_cause_order": [
         "mem",
