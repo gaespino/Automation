@@ -3,6 +3,8 @@
 
   "core_key":     "MODULE",
   "err_key":      "MC DECODE",
+  "dec_col":      "MC DECODE",
+  "bank_col":     "ErrorType",
 
   "cha_col":      "CHA",
   "cha_cbb_col":  null,

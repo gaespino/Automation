@@ -1481,16 +1481,17 @@ class MCAAnalyzer:
 			mem_details = _lookup(rev_mem, vid, 'MEM Details', default='')
 			mem_mcas    = _lookup(rev_mem, vid, 'MEM MCAs',    default=0)
 
-			# MSCOD: most-common error decode string per IP type
-			_err_key    = self._col_cfg.get('err_key',      'MCACOD (ErrDecode)')
-			_io_dec_col = self._col_cfg.get('io_dec_col',   'MC_DECODE')
-			_mem_dec_col= self._col_cfg.get('mem_dec_col',  'MC_DECODE')
-			cha_mscod   = _top_field(cha_df,  vid, _err_key)
-			llc_mscod   = _top_field(llc_df,  vid, _err_key)
-			core_mscod  = _top_field(core_df, vid, _err_key)
-			core_bank   = _top_field(core_df, vid, 'ErrorType')
-			io_mscod    = _top_field(io_df,   vid, _io_dec_col)
-			mem_mscod   = _top_field(mem_df,  vid, _mem_dec_col)
+			# MC_DECODE: most-common error decode string per IP type
+			_dec_col     = self._col_cfg.get('dec_col',     self._col_cfg.get('err_key', 'MC_DECODE'))
+			_io_dec_col  = self._col_cfg.get('io_dec_col',  'MC_DECODE')
+			_mem_dec_col = self._col_cfg.get('mem_dec_col', 'MC_DECODE')
+			_bank_col    = self._col_cfg.get('bank_col',    'ErrorType')
+			cha_mscod    = _top_field(cha_df,  vid, _dec_col)
+			llc_mscod    = _top_field(llc_df,  vid, _dec_col)
+			core_mscod   = _top_field(core_df, vid, _dec_col)
+			core_bank    = _top_field(core_df, vid, _bank_col)
+			io_mscod     = _top_field(io_df,   vid, _io_dec_col)
+			mem_mscod    = _top_field(mem_df,  vid, _mem_dec_col)
 
 			rows.append({
 				'VisualID'      : vid,

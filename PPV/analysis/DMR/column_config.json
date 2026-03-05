@@ -3,6 +3,8 @@
 
   "core_key":     "Module",
   "err_key":      "MC DECODE",
+  "dec_col":      "MC DECODE",
+  "bank_col":     "Bank",
 
   "cha_col":      null,
   "cha_cbb_col":  "CBB",
