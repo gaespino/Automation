@@ -1472,6 +1472,17 @@ class MCAAnalyzer:
 			mem_details = _lookup(rev_mem, vid, 'MEM Details', default='')
 			mem_mcas    = _lookup(rev_mem, vid, 'MEM MCAs',    default=0)
 
+			# MSCOD: most-common error decode string per IP type
+			_err_key    = self._col_cfg.get('err_key',      'MCACOD (ErrDecode)')
+			_io_dec_col = self._col_cfg.get('io_dec_col',   'MC_DECODE')
+			_mem_dec_col= self._col_cfg.get('mem_dec_col',  'MC_DECODE')
+			cha_mscod   = _top_field(cha_df,  vid, _err_key)
+			llc_mscod   = _top_field(llc_df,  vid, _err_key)
+			core_mscod  = _top_field(core_df, vid, _err_key)
+			core_bank   = _top_field(core_df, vid, 'ErrorType')
+			io_mscod    = _top_field(io_df,   vid, _io_dec_col)
+			mem_mscod   = _top_field(mem_df,  vid, _mem_dec_col)
+
 			rows.append({
 				'VisualID'      : vid,
 				'# Runs'        : runs,
@@ -1496,6 +1507,12 @@ class MCAAnalyzer:
 				'MEM Hint'      : mem_hint,
 				'MEM Details'   : mem_details,
 				'MEM MCAs'      : mem_mcas,
+				'CHA MSCOD'     : cha_mscod,
+				'LLC MSCOD'     : llc_mscod,
+				'Core MSCOD'    : core_mscod,
+				'Core Bank'     : core_bank,
+				'IO MSCOD'      : io_mscod,
+				'MEM MSCOD'     : mem_mscod,
 			})
 
 		return pd.DataFrame(rows)
@@ -1606,13 +1623,18 @@ class MCAAnalyzer:
 		Build the final Analysis/Summary DataFrame that replicates the
 		Excel 'Analysis' (summ) table.
 
-		Columns (matching Excel column order):
-		  VisualIDs, Lot, WW, # Runs, Core Hint, Core Fail Area,
-		  CHA Hint, CHA Fail Area, LLC Hint, LLC Fail Area, SrcIDs,
-		  Other, Top OrigReq, Top OpCode, Top ISMQ, Top SAD,
-		  Top SAD LocPort, Core Mcas, Root Cause,
-		  Core Next Steps, CHA Next Steps, LLC Next Steps,
-		  Other Next Steps, Debug Hints, Failing Area
+		Column order (engineered for readability):
+		  Identity : VisualIDs, # Runs, WW
+		  Results  : Root Cause, Debug Hints, Failing Area
+		  CHA/CBO  : CHA Hint, CHA Fail Area, CHA MSCOD
+		  LLC       : LLC Hint, LLC Fail Area, LLC MSCOD
+		  Core      : Core Hint, Core Fail Area, Core MCAs, Core MSCOD, Core Bank
+		  IO        : IO Hint, IO Details, IO MCAs, IO MSCOD
+		  MEM       : MEM Hint, MEM Details, MEM MCAs, MEM MSCOD
+		  Misc      : SrcIDs, Other, Top OrigReq, Top OpCode, Top ISMQ, Top SAD,
+		              Top SAD LocPort
+		  Next Steps: CHA/LLC/Core/IO/MEM/Other Next Steps
+		  Trailing  : Lot  (least critical)
 
 		Root Cause and Debug Hints are determined by evaluating the rules
 		defined in priority_rules.json for the product. The first matching
@@ -1671,6 +1693,13 @@ class MCAAnalyzer:
 			mem_hint    = ru.get('MEM Hint',    'NotFound')
 			mem_details = ru.get('MEM Details', '')
 			mem_mcas    = ru.get('MEM MCAs',    0)
+
+			cha_mscod   = ru.get('CHA MSCOD',  '')
+			llc_mscod   = ru.get('LLC MSCOD',  '')
+			core_mscod  = ru.get('Core MSCOD', '')
+			core_bank   = ru.get('Core Bank',  '')
+			io_mscod    = ru.get('IO MSCOD',   '')
+			mem_mscod   = ru.get('MEM MSCOD',  '')
 
 			# Resolve priority orders via configurable rules
 			_ctx = {
@@ -1760,37 +1789,112 @@ class MCAAnalyzer:
 			failing_area = ' - '.join(fail_parts)
 
 			rows.append({
+				# --- Identity (first 3, always visible) ---
 				'VisualIDs'        : vid,
-				'Lot'              : lot,
-				'WW'               : ww,
 				'# Runs'           : num_runs,
-				'Core Hint'        : core_hint,
-				'Core Fail Area'   : core_area,
+				'WW'               : ww,
+				# --- Key analysis results ---
+				'Root Cause'       : root_cause,
+				'Debug Hints'      : debug_hints,
+				'Failing Area'     : failing_area,
+				# --- CHA/CBO ---
 				'CHA Hint'         : cha_hint,
 				'CHA Fail Area'    : cha_area,
+				'CHA MSCOD'        : cha_mscod,
+				# --- LLC ---
 				'LLC Hint'         : llc_hint,
 				'LLC Fail Area'    : llc_area,
+				'LLC MSCOD'        : llc_mscod,
+				# --- Core ---
+				'Core Hint'        : core_hint,
+				'Core Fail Area'   : core_area,
+				'Core MCAs'        : core_mcas,
+				'Core MSCOD'       : core_mscod,
+				'Core Bank'        : core_bank,
+				# --- IO ---
+				'IO Hint'          : io_hint,
+				'IO Details'       : io_details,
+				'IO MCAs'          : io_mcas,
+				'IO MSCOD'         : io_mscod,
+				# --- MEM ---
+				'MEM Hint'         : mem_hint,
+				'MEM Details'      : mem_details,
+				'MEM MCAs'         : mem_mcas,
+				'MEM MSCOD'        : mem_mscod,
+				# --- SrcIDs / Other ---
 				'SrcIDs'           : srcids,
 				'Other'            : other,
+				# --- Traffic signature ---
 				'Top OrigReq'      : top_origreq,
 				'Top OpCode'       : top_opcode,
 				'Top ISMQ'         : top_ismq,
 				'Top SAD'          : top_sad,
 				'Top SAD LocPort'  : top_locport,
-				'Core Mcas'        : core_mcas,
-				'IO Hint'          : io_hint,
-				'IO Details'       : io_details,
-				'MEM Hint'         : mem_hint,
-				'MEM Details'      : mem_details,
-				'Root Cause'       : root_cause,
-				'Core Next Steps'  : core_next,
+				# --- Per-category Next Steps ---
 				'CHA Next Steps'   : cha_next,
 				'LLC Next Steps'   : llc_next,
-				'Other Next Steps' : other_next,
+				'Core Next Steps'  : core_next,
 				'IO IPs Next Steps': io_next,
 				'MEM IPs Next Steps': mem_next,
-				'Debug Hints'      : debug_hints,
-				'Failing Area'     : failing_area,
+				'Other Next Steps' : other_next,
+				# --- Lot (least critical, far right) ---
+				'Lot'              : lot,
+			})
+
+		return pd.DataFrame(rows)
+
+	def build_fail_summary(self, analysis_df):
+		"""
+		Build a compact engineering-focused "Fail Summary" DataFrame from the
+		full analysis DataFrame.
+
+		Each row represents one unit (VID) with actionable next-step information
+		highlighted.  Rows with no identified root cause are kept (marked 'TBD')
+		so every tested unit appears in the report.
+
+		Columns:
+		  VisualIDs, # Runs, WW,
+		  Root Cause, Failing Area, Debug Hints,
+		  CHA Hint, CHA MSCOD, LLC Hint, LLC MSCOD,
+		  Core Hint, Core Bank, Core MSCOD,
+		  IO Hint, IO MSCOD, MEM Hint, MEM MSCOD,
+		  Other, SrcIDs,
+		  Top OrigReq, Top ISMQ,
+		  Lot
+		"""
+		if analysis_df.empty:
+			return pd.DataFrame()
+
+		def _get(row, col, default=''):
+			val = row.get(col, default)
+			return val if pd.notna(val) and str(val).strip().lower() not in ('', 'nan') else default
+
+		rows = []
+		for _, r in analysis_df.iterrows():
+			root_cause = _get(r, 'Root Cause').strip() or 'TBD'
+			rows.append({
+				'VisualIDs'   : _get(r, 'VisualIDs'),
+				'# Runs'      : _get(r, '# Runs', 0),
+				'WW'          : _get(r, 'WW'),
+				'Root Cause'  : root_cause,
+				'Failing Area': _get(r, 'Failing Area'),
+				'Debug Hints' : _get(r, 'Debug Hints'),
+				'CHA Hint'    : _get(r, 'CHA Hint'),
+				'CHA MSCOD'   : _get(r, 'CHA MSCOD'),
+				'LLC Hint'    : _get(r, 'LLC Hint'),
+				'LLC MSCOD'   : _get(r, 'LLC MSCOD'),
+				'Core Hint'   : _get(r, 'Core Hint'),
+				'Core Bank'   : _get(r, 'Core Bank'),
+				'Core MSCOD'  : _get(r, 'Core MSCOD'),
+				'IO Hint'     : _get(r, 'IO Hint'),
+				'IO MSCOD'    : _get(r, 'IO MSCOD'),
+				'MEM Hint'    : _get(r, 'MEM Hint'),
+				'MEM MSCOD'   : _get(r, 'MEM MSCOD'),
+				'Other'       : _get(r, 'Other'),
+				'SrcIDs'      : _get(r, 'SrcIDs'),
+				'Top OrigReq' : _get(r, 'Top OrigReq'),
+				'Top ISMQ'    : _get(r, 'Top ISMQ'),
+				'Lot'         : _get(r, 'Lot'),
 			})
 
 		return pd.DataFrame(rows)

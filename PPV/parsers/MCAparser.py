@@ -670,11 +670,18 @@ class ppv_report():
 			print(' -- MCA Analysis produced no data, skipping sheet creation.')
 			return
 
+		# Build the compact Fail Summary from the full analysis
+		summary_df = analyzer.build_fail_summary(analysis_df)
+
 		print(f' -- Writing MCA_Analysis sheet with {len(analysis_df)} units.')
 		with pd.ExcelWriter(source_file, engine='openpyxl', mode='a') as writer:
 			analysis_df.to_excel(writer, sheet_name='MCA_Analysis', index=False)
+			if not summary_df.empty:
+				summary_df.to_excel(writer, sheet_name='Fail_Summary', index=False)
 
 		addtable(df=analysis_df, excel_file=source_file, sheet='MCA_Analysis', table_name='mca_analysis')
+		if not summary_df.empty:
+			addtable(df=summary_df, excel_file=source_file, sheet='Fail_Summary', table_name='fail_summary')
 
 
 def file_open(file):
