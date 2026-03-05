@@ -1781,7 +1781,7 @@ class MCAAnalyzer:
 			core_next = (f"Disable CORE: {core_hint} - MCAs: {core_mcas}"
 						 if core_hint != 'NotFound' else '')
 
-			if cha_hint != 'NotFound':
+			if cha_hint != 'NotFound' and not (srcids != 'NotFound' and ('*' in cha_hint)):
 				sig      = ' - '.join(filter(None, [top_origreq, top_ismq]))
 				cha_next = f"Disable CHA: {cha_hint} - Signature: {sig} : {top_locport}".rstrip(' :')
 			elif srcids != 'NotFound':
