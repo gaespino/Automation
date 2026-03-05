@@ -35,6 +35,18 @@ unless the user has already provided them.
    - **New project** — suggest the default and ask: *"Where should I save the output files? Default: `DebugFrameworkAgent/output/<unit_id>/` — press Enter to accept or type a different path."*
    - Resolve `out_dir` to an **absolute path** before passing it in the delegation context.
    - **`out_dir` is used for ALL outputs (JSON + report). Always set it before delegating.**
+
+4b. **Validate output path** [ALWAYS, immediately after step 4 — before any other question]:
+   - Call `exporter.validate_output_path(out_dir)` (defined in `scripts/_core/exporter.py`).
+   - If `result.ok` is **False**:
+     > ❌ The path `<out_dir>` is not accessible: `<result.reason>`
+     > This is typically caused by a network drive being offline or not mapped.
+     > Please provide a new output path, or press **Enter** to use the local fallback:
+     > `DebugFrameworkAgent/output/<unit_id>/`
+   - Re-ask until a valid, writable path is confirmed or the user accepts the fallback.
+   - Update `out_dir` with the confirmed path and continue.
+   - **Do NOT proceed to step 5 or delegate until a reachable path is confirmed.**
+
 5. **Test Mode**  Mesh | Slice
 6. **Content type**  Dragon | Linux | PYSVConsole
 7. **Test structure**  Loops | Sweep | Shmoo

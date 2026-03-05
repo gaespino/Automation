@@ -8,10 +8,84 @@ No external dependencies for core formats; PDF requires fpdf2>=2.7 (optional).
 
 from __future__ import annotations
 import json
+import os
 import pathlib
 from typing import Any
 
 from . import report_builder as _rb
+
+
+# --------------------------------------------------------------------------
+# Output path validation
+# --------------------------------------------------------------------------
+
+class PathValidationResult:
+    """Result of :func:`validate_output_path`."""
+
+    def __init__(self, ok: bool, path: pathlib.Path, reason: str = "") -> None:
+        self.ok     = ok
+        self.path   = path
+        self.reason = reason
+
+    def __bool__(self) -> bool:
+        return self.ok
+
+    def __repr__(self) -> str:  # pragma: no cover
+        status = "OK" if self.ok else f"FAIL: {self.reason}"
+        return f"PathValidationResult({self.path!r}, {status})"
+
+
+def validate_output_path(out_dir: "pathlib.Path | str") -> PathValidationResult:
+    """
+    Check whether *out_dir* is writable before committing to it.
+
+    Handles network drives that are mapped but unreachable (common cause of
+    silent failures when Q:\\ or S:\\ shares are offline).
+
+    Steps:
+      1. Verify the drive/root anchor is reachable via ``os.stat``.
+      2. Attempt to create the full directory tree.
+      3. Write and immediately delete a probe file to confirm write access.
+
+    Returns a :class:`PathValidationResult`.  Callers should check ``.ok``
+    and surface ``.reason`` to the user when the check fails.
+    """
+    path = pathlib.Path(out_dir).resolve()
+
+    # 1. Drive / network root reachable?
+    root = path.anchor  # e.g. "Q:\\" on Windows, "/" on Linux
+    try:
+        os.stat(root)
+    except OSError as exc:
+        return PathValidationResult(
+            ok=False, path=path,
+            reason=(
+                f"Cannot reach root '{root}': {exc.strerror}. "
+                "The network drive may be offline or not mapped."
+            ),
+        )
+
+    # 2. Can we create the directory?
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        return PathValidationResult(
+            ok=False, path=path,
+            reason=f"Cannot create directory '{path}': {exc.strerror}.",
+        )
+
+    # 3. Confirm write access with a probe file.
+    probe = path / ".write_probe"
+    try:
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink()
+    except OSError as exc:
+        return PathValidationResult(
+            ok=False, path=path,
+            reason=f"Directory exists but is not writable: {exc.strerror}.",
+        )
+
+    return PathValidationResult(ok=True, path=path)
 
 
 # --------------------------------------------------------------------------
