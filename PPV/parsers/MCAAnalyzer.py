@@ -198,6 +198,8 @@ class MCAAnalyzer:
 		self._col_cfg = {
 			'core_key':     _cc.get('core_key',     'CORE'),
 			'err_key':      _cc.get('err_key',      'MCACOD (ErrDecode)'),
+			'dec_col':      _cc.get('dec_col',      'MC_DECODE'),
+			'bank_col':     _cc.get('bank_col',     'ErrorType'),
 			'cha_col':      _cc.get('cha_col'),
 			'cha_cbb_col':  _cc.get('cha_cbb_col'),
 			'cha_env_col':  _cc.get('cha_env_col'),
@@ -1277,11 +1279,10 @@ class MCAAnalyzer:
 				# scf_llc → LLC → MCERRLOGGINGREG must appear in Others).
 				if parsed['is_llc'] and parsed['ip_translate'] not in self.failing_ips_map:
 					continue
-				# For LLC entries in failing_ips_map use register-type display
-				# to be consistent with other Others entries (e.g. B2CMI:MCERRLOGGINGREG)
+				# For LLC entries in failing_ips_map use the parsed display
+				# (e.g. LLC106) rather than the register-type label.
 				if parsed['is_llc']:
-					reg_type = self.failing_ips_map[parsed['ip_translate']]
-					disp = f"{parsed['ip_translate']}:{reg_type}"
+					disp = parsed['display']
 				else:
 					disp = parsed['display']
 				if disp:

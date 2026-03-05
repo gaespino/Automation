@@ -2,7 +2,7 @@
   "description": "Column name mappings for CWF MCA tab DataFrames. All keys map to the exact DataFrame column header produced by the CWF decoder. Set a key to null when the column is not applicable for this product.",
 
   "core_key":     "MODULE",
-  "err_key":      "MC DECODE",
+  "err_key":      "MCACOD (ErrDecode)",
   "dec_col":      "MC DECODE",
   "bank_col":     "ErrorType",
 

@@ -1,6 +1,8 @@
 import zipfile
 import os
+import json
 import pandas as pd
+from pathlib import Path
 import colorama
 from tabulate import tabulate
 from colorama import Fore, Style, Back
@@ -377,37 +379,54 @@ class LogSummaryParser:
 	def _get_product_config():
 		"""Returns product-specific configuration for MCA parsing.
 
-		To add a new product:
-		1. Add product key to the dictionary
-		2. Specify 'domain_prefix' (e.g., 'CDIE' or '' when domain_field already contains the prefix)
-		3. Specify 'domain_field' (column name for domain, e.g., 'Compute' or 'CBB')
-		4. Specify 'core_field' (column name for core/module, must match decoder output column)
-		5. Specify 'err_field' (column name for error decode string)
-		6. Add any product-specific fields in 'extra_cha_fields' if needed
+		Loads column name mappings from PPV/analysis/{product}/column_config.json
+		and merges them with parser-specific supplemental data (domain/prefix layout
+		that is not in column_config.json).  New products only need a column_config.json
+		and an entry in '_supplemental' below.
 		"""
-		return {
+		_analysis_dir = Path(__file__).parent.parent / 'analysis'
+
+		# Parser-specific supplemental data not present in column_config.json
+		_supplemental = {
 			'GNR': {
-				'domain_prefix': 'CDIE',
-				'domain_field': 'Compute',
-				'core_field': 'CORE',
-				'err_field': 'MCACOD (ErrDecode)',
-				'extra_cha_fields': ['CHA']
+				'domain_prefix':    'CDIE',
+				'domain_field':     'Compute',
+				'extra_cha_fields': ['CHA'],
 			},
 			'CWF': {
-				'domain_prefix': 'CDIE',
-				'domain_field': 'Compute',
-				'core_field': 'MODULE',
-				'err_field': 'MCACOD (ErrDecode)',
-				'extra_cha_fields': ['CHA']
+				'domain_prefix':    'CDIE',
+				'domain_field':     'Compute',
+				'extra_cha_fields': ['CHA'],
 			},
 			'DMR': {
-				'domain_prefix': '',   # CBB column already contains full prefix (e.g. 'CBB0')
-				'domain_field': 'CBB',
-				'core_field': 'Module',  # decoder_dmr.py CORE tab uses 'Module' column
-				'err_field': 'MC DECODE',  # decoder_dmr.py uses 'MC DECODE' column
-				'extra_cha_fields': ['ENV', 'Instance']  # 'Instance' matches decoder_dmr.py column
-			}
+				'domain_prefix':    '',      # CBB column already contains full prefix
+				'domain_field':     'CBB',
+				'extra_cha_fields': ['ENV', 'Instance'],
+			},
 		}
+
+		configs = {}
+		for product, supp in _supplemental.items():
+			cfg_path = _analysis_dir / product / 'column_config.json'
+			try:
+				with open(cfg_path, encoding='utf-8') as fh:
+					cc = json.load(fh)
+			except FileNotFoundError:
+				print(f"Warning: column_config.json not found for {product} at {cfg_path}. Using defaults.")
+				cc = {}
+			except json.JSONDecodeError as exc:
+				print(f"Warning: column_config.json for {product} is malformed ({exc}). Using defaults.")
+				cc = {}
+
+			configs[product] = {
+				**supp,
+				'core_field': cc.get('core_key',  'CORE'),
+				'err_field':  cc.get('err_key',   'MCACOD (ErrDecode)'),
+				'dec_col':    cc.get('dec_col',   'MC_DECODE'),
+				'bank_col':   cc.get('bank_col',  'ErrorType'),
+			}
+
+		return configs
 
 	@staticmethod
 	def _get_ubox_config():
@@ -448,11 +467,12 @@ class LogSummaryParser:
 					return None
 				parts.append(str(row[field]))
 
-			# Add MC DECODE at the end
-			if 'MC DECODE' in row:
-				parts.append(str(row['MC DECODE']))
+			# Append the product-specific decode column (dec_col from column_config.json)
+			dec_col = config.get('dec_col', 'MC_DECODE')
+			if dec_col in row:
+				parts.append(str(row[dec_col]))
 			else:
-				print(f"Warning: 'MC DECODE' field not found in {tab_name} row")
+				print(f"Warning: decode column '{dec_col}' not found in {tab_name} row")
 				return None
 
 			return ':'.join(parts)
@@ -541,16 +561,20 @@ class LogSummaryParser:
 			config = configs[product]
 			print(f"Processing CORE_MCAS for product: {product}, experiment: {experiment_name}")
 
-			# CORE format: domain::CORE/MODULE::[ErrorType::]ErrDecode
-			# ErrorType is present for GNR/CWF but absent for DMR
+			# CORE format: domain::CORE/MODULE::[bank_col::]err_field
+			# bank_col (ErrorType for GNR/CWF, Bank for DMR) is optional — present
+			# only when the column exists and contains a non-null value.  The other
+			# required fields (domain_field, core_field, err_field) raise KeyError on
+			# missing data, which is caught below and reported as PARSE_ERROR.
 			try:
 				err_field = config.get('err_field', 'MCACOD (ErrDecode)')
+				bank_col  = config.get('bank_col',  'ErrorType')
 				parts = [
 					f"{config['domain_prefix']}{row[config['domain_field']]}",
 					str(row[config['core_field']]),
 				]
-				if 'ErrorType' in row:
-					parts.append(str(row['ErrorType']))
+				if bank_col in row and pd.notna(row[bank_col]):
+					parts.append(str(row[bank_col]))
 				parts.append(str(row[err_field]))
 				mca_string = '::'.join(parts)
 
