@@ -1525,25 +1525,65 @@ class MCAAnalyzer:
 	# Analysis / Summary DataFrame
 	# =========================================================================
 
+	def _rule_matches(self, rule, context):
+		"""
+		Return True if every condition in rule['condition'] is satisfied by
+		the provided context dict.  An absent/empty condition dict matches
+		every row (catch-all).
+
+		Condition key patterns
+		----------------------
+		  {field}_equals   <str>   – exact case-sensitive match
+		  {field}_in       [list]  – value is a member of the list
+		  {field}_contains <str>   – substring present anywhere in the value
+		  {flag}           <bool>  – direct equality (for boolean flags)
+		"""
+		for cond_key, cond_val in rule.get('condition', {}).items():
+			if cond_key.endswith('_equals'):
+				if context.get(cond_key[:-len('_equals')], '') != cond_val:
+					return False
+			elif cond_key.endswith('_in'):
+				if context.get(cond_key[:-len('_in')], '') not in cond_val:
+					return False
+			elif cond_key.endswith('_contains'):
+				if cond_val not in str(context.get(cond_key[:-len('_contains')], '')):
+					return False
+			else:
+				if context.get(cond_key) != cond_val:
+					return False
+		return True
+
 	def _resolve_priority_order(self, context):
 		"""
 		Evaluate priority_rules.json rules against the per-row context dict and
 		return (rc_order, dh_order) — the ordered lists of IP-category tokens
-		('other', 'cha', 'llc', 'core') to use for Root Cause and Debug Hints.
+		('other', 'cha', 'llc', 'core', 'io', 'mem') to use for Root Cause
+		and Debug Hints.
 
-		Rules are evaluated in declaration order; the first matching rule wins.
-		If no rule matches, the default orders from the config are returned.
+		Two-phase evaluation
+		--------------------
+		Phase 1 – Override rules  (``"action": "override"`` or action absent):
+		  Rules are checked in declaration order.  The first matching rule's
+		  ``override_root_cause_order`` / ``override_debug_hints_order`` becomes
+		  the working order.  If no rule matches the product defaults are used.
+		  Phase 1 stops at the first match.
+
+		Phase 2 – Adjust rules  (``"action": "adjust_last"`` or ``"adjust_first"``):
+		  ALL matching adjust rules are applied (in declaration order) on top of
+		  the working order produced by Phase 1.  This lets a deprioritization
+		  rule (e.g. MCIP bit-set → IO last) compose with an override rule
+		  (e.g. PortIn → Core before CHA) without one cancelling the other.
+
+		  ``adjust_last``  – moves IPs listed in ``"targets"`` to the end.
+		  ``adjust_first`` – moves IPs listed in ``"targets"`` to the front.
 
 		Condition operators (JSON key patterns)
 		---------------------------------------
-		All conditions in a rule must be satisfied for the rule to match
-		(implicit AND).  Three operator suffixes are supported for string
-		context fields, plus direct boolean equality for flag fields:
+		All conditions in a rule must be satisfied (implicit AND).
 
 		  {field}_equals  <str>   – exact case-sensitive match
 		  {field}_in      [list]  – membership in a list of strings
 		  {field}_contains <str>  – substring present anywhere in the value
-
 		  {flag}          <bool>  – direct equality for boolean context keys
 
 		String context fields available in conditions
@@ -1553,74 +1593,68 @@ class MCAAnalyzer:
 		  top_ismq      – value of 'Top ISMQ'
 		  top_sad       – value of 'Top SAD'
 		  top_locport   – value of 'Top SAD LocPort'
-		  core_mcas     – value of 'Core Mcas'
+		  core_mcas     – top MC DECODE value for Core
+		  io_mcas       – top MC DECODE value for IO (e.g. "MCE when MCIP bit is set (MSCOD=2)")
+		  mem_mcas      – top MC DECODE value for MEM
 
 		Boolean context flags available in conditions
 		----------------------------------------------
-		  cha_hint_present   – True when CHA Hint != 'NotFound'
-		  llc_hint_present   – True when LLC Hint != 'NotFound'
+		  cha_hint_present   – True when CHA Hint  != 'NotFound'
+		  llc_hint_present   – True when LLC Hint  != 'NotFound'
 		  core_hint_present  – True when Core Hint != 'NotFound'
-		  srcid_present      – True when SrcIDs != 'NotFound'
+		  srcid_present      – True when SrcIDs    != 'NotFound'
 		  other_present      – True when Other is non-empty
-		  io_hint_present    – True when IO Hint  != 'NotFound'
-		  mem_hint_present   – True when MEM Hint != 'NotFound'
+		  io_hint_present    – True when IO Hint   != 'NotFound'
+		  mem_hint_present   – True when MEM Hint  != 'NotFound'
 
 		Examples
 		--------
-		  # Exact match on a single string field
-		  "condition": { "top_origreq_equals": "PortIn" }
+		  # Override rule – full reorder, first match wins
+		  {
+		    "action": "override",
+		    "condition": { "top_origreq_in": ["PortIn", "PortOut"], "cha_hint_present": true },
+		    "override_root_cause_order": ["other", "mem", "io", "llc", "core", "cha"],
+		    "override_debug_hints_order": ["other", "mem", "io", "llc", "core", "cha"]
+		  }
 
-		  # Membership in a list
-		  "condition": { "top_origreq_in": ["PortIn", "PortOut"] }
-
-		  # Substring (e.g. core bank error)
-		  "condition": { "core_mcas_contains": "bank" }
-
-		  # Boolean flag combined with string match
-		  "condition": {
-		    "top_origreq_equals": "PortIn",
-		    "cha_hint_present"  : true,
-		    "srcid_present"     : true
+		  # Adjust rule – deprioritize IO when MCIP bit set; composes with override rules
+		  {
+		    "action": "adjust_last",
+		    "targets": ["io"],
+		    "condition": { "io_hint_present": true, "io_mcas_contains": "MCIP bit is set" }
 		  }
 		"""
+		# ── Phase 1: base order from first matching override rule ──────────────
+		rc_order = list(self._default_rc_order)
+		dh_order = list(self._default_dh_order)
 		for rule in self._priority_rules:
-			cond = rule.get('condition', {})
-			# An empty/absent condition dict is a catch-all: it matches every row.
-			# This is intentional and can be used to set a product-wide default
-			# override at the end of the rules list (last resort).
-			match = True
+			if rule.get('action', 'override') != 'override':
+				continue
+			if self._rule_matches(rule, context):
+				rc_order = list(rule.get('override_root_cause_order',  self._default_rc_order))
+				dh_order = list(rule.get('override_debug_hints_order', self._default_dh_order))
+				break
 
-			for cond_key, cond_val in cond.items():
-				if cond_key.endswith('_equals'):
-					ctx_key = cond_key[:-len('_equals')]
-					# String fields are always str (initialized with '' fallback)
-					if context.get(ctx_key, '') != cond_val:
-						match = False
-						break
-				elif cond_key.endswith('_in'):
-					ctx_key = cond_key[:-len('_in')]
-					if context.get(ctx_key, '') not in cond_val:
-						match = False
-						break
-				elif cond_key.endswith('_contains'):
-					ctx_key = cond_key[:-len('_contains')]
-					# str() is safe: string context fields are always str ('');
-					# this guard also handles any unexpected non-string values.
-					if cond_val not in str(context.get(ctx_key, '')):
-						match = False
-						break
-				else:
-					# Direct boolean / value equality (for presence flags)
-					if context.get(cond_key) != cond_val:
-						match = False
-						break
+		# ── Phase 2: apply all matching adjust rules on top ────────────────────
+		for rule in self._priority_rules:
+			action = rule.get('action', 'override')
+			if action not in ('adjust_last', 'adjust_first'):
+				continue
+			if not self._rule_matches(rule, context):
+				continue
+			targets = rule.get('targets', [])
+			if action == 'adjust_last':
+				rc_order = [t for t in rc_order if t not in targets] + \
+				           [t for t in targets  if t in rc_order]
+				dh_order = [t for t in dh_order if t not in targets] + \
+				           [t for t in targets  if t in dh_order]
+			elif action == 'adjust_first':
+				rc_order = [t for t in targets  if t in rc_order] + \
+				           [t for t in rc_order if t not in targets]
+				dh_order = [t for t in targets  if t in dh_order] + \
+				           [t for t in dh_order if t not in targets]
 
-			if match:
-				rc_order = rule.get('override_root_cause_order',  self._default_rc_order)
-				dh_order = rule.get('override_debug_hints_order', self._default_dh_order)
-				return rc_order, dh_order
-
-		return self._default_rc_order, self._default_dh_order
+		return rc_order, dh_order
 
 	def _build_analysis(self, rev_units, ppv_df=None):
 		"""
@@ -1712,8 +1746,8 @@ class MCAAnalyzer:
 				'top_sad'      : top_sad.rstrip('*'),
 				'top_locport'  : top_locport.rstrip('*'),
 				'core_mcas'    : core_mcas,
-				'io_mcas'      : str(io_mcas),
-				'mem_mcas'     : str(mem_mcas),
+				'io_mcas'      : io_mcas_str,
+				'mem_mcas'     : mem_mcas_str,
 				# Boolean presence flags – direct equality match
 				'cha_hint_present' : cha_hint  != 'NotFound',
 				'llc_hint_present' : llc_hint  != 'NotFound',

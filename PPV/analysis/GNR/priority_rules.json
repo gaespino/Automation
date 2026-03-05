@@ -16,36 +16,41 @@
     "llc",
     "core"
   ],
-  "_condition_operators_reference": {
-    "_summary": "All conditions in a rule must be satisfied (implicit AND). Three operators work on string fields; boolean flags use direct equality.",
-    "_string_operators": {
-      "{field}_equals": "Exact case-sensitive match.           e.g. \"top_origreq_equals\": \"PortIn\"",
-      "{field}_in": "Value is in the provided list.        e.g. \"top_origreq_in\": [\"PortIn\", \"PortOut\"]",
-      "{field}_contains": "Substring present anywhere in value.  e.g. \"core_mcas_contains\": \"bank\""
+    "_condition_operators_reference": {
+      "_summary": "All conditions in a rule must be satisfied (implicit AND). Three operators work on string fields; boolean flags use direct equality.",
+      "_rule_actions": {
+        "override": "Default. Full replacement of priority order; evaluation stops at first match.",
+        "adjust_last": "Moves 'targets' IPs to the end of the current order. All matching adjust rules are applied (in declaration order) after override rules. Composable with other rules.",
+        "adjust_first": "Moves 'targets' IPs to the front of the current order. Same evaluation semantics as adjust_last."
+      },
+      "_string_operators": {
+        "{field}_equals": "Exact case-sensitive match.           e.g. \"top_origreq_equals\": \"PortIn\"",
+        "{field}_in": "Value is in the provided list.        e.g. \"top_origreq_in\": [\"PortIn\", \"PortOut\"]",
+        "{field}_contains": "Substring present anywhere in value.  e.g. \"core_mcas_contains\": \"bank\""
+      },
+      "_boolean_flags": {
+        "{flag}": "Direct equality check.  e.g. \"cha_hint_present\": true"
+      },
+      "_string_fields": [
+        "top_origreq  – Top OrigReq value (e.g. PortIn, Read, RdCur)",
+        "top_opcode   – Top OpCode value  (e.g. RdCur, WrPush)",
+        "top_ismq     – Top ISMQ value",
+        "top_sad      – Top SAD value",
+        "top_locport  – Top SAD LocPort value",
+        "core_mcas    – Core top MC DECODE value",
+        "io_mcas      – IO top MC DECODE value (e.g. 'MCE when MCIP bit is set (MSCOD=2)')",
+        "mem_mcas     – MEM top MC DECODE value"
+      ],
+      "_boolean_fields": [
+        "cha_hint_present   – true when CHA Hint  != 'NotFound'",
+        "llc_hint_present   – true when LLC Hint  != 'NotFound'",
+        "core_hint_present  – true when Core Hint != 'NotFound'",
+        "srcid_present      – true when SrcIDs    != 'NotFound'",
+        "other_present      – true when Other is non-empty",
+        "io_hint_present    – true when IO Hint   != 'NotFound'",
+        "mem_hint_present   – true when MEM Hint  != 'NotFound'"
+      ]
     },
-    "_boolean_flags": {
-      "{flag}": "Direct equality check.  e.g. \"cha_hint_present\": true"
-    },
-    "_string_fields": [
-      "top_origreq  – Top OrigReq value (e.g. PortIn, Read, RdCur)",
-      "top_opcode   – Top OpCode value  (e.g. RdCur, WrPush)",
-      "top_ismq     – Top ISMQ value",
-      "top_sad      – Top SAD value",
-      "top_locport  – Top SAD LocPort value",
-      "core_mcas    – Core Mcas error description",
-      "io_mcas      – IO MCAs count (as string)",
-      "mem_mcas     – MEM MCAs count (as string)"
-    ],
-    "_boolean_fields": [
-      "cha_hint_present   – true when CHA Hint  != 'NotFound'",
-      "llc_hint_present   – true when LLC Hint  != 'NotFound'",
-      "core_hint_present  – true when Core Hint != 'NotFound'",
-      "srcid_present      – true when SrcIDs    != 'NotFound'",
-      "other_present      – true when Other is non-empty",
-      "io_hint_present    – true when IO Hint   != 'NotFound'",
-      "mem_hint_present   – true when MEM Hint  != 'NotFound'"
-    ]
-  },
   "rules": [
     {
       "name": "PortIn or PortOut nuisance",
@@ -190,6 +195,16 @@
   },
   "override_root_cause_order":  ["other", "core", "llc", "io", "mem", "cha"],
   "override_debug_hints_order": ["other", "core", "llc", "io", "mem", "cha"]
+},
+{
+  "name": "IO MCIP bit set — deprioritize IO",
+  "description": "When IO MCAs (MC DECODE) shows 'MCE when MCIP bit is set (MSCOD=2)', the IO error is a secondary victim of another failure (e.g. CHA or Core). Move IO to the last position so the actual root cause surfaces. This is an adjust_last rule — it composes on top of whichever override rule (PortIn, Core-only, etc.) already fired, leaving the relative ordering of all other IPs unchanged.",
+  "action": "adjust_last",
+  "targets": ["io"],
+  "condition": {
+    "io_hint_present": true,
+    "io_mcas_contains": "MCIP bit is set"
+  }
 }
   ]
 }
