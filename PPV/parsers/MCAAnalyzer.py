@@ -1631,7 +1631,7 @@ class MCAAnalyzer:
 		  Identity : VisualIDs, # Runs, WW
 		  Results  : Root Cause, Debug Hints, Failing Area
 		  CHA/CBO  : CHA Hint, CHA Fail Area, CHA MSCOD, SrcIDs
-		  LLC       : LLC Hint, LLC Fail Area, LLC MSCOD
+		  LLC       : LLC Hint, LLC Fail Area (GNR/CWF only), LLC MCAs
 		  Core      : Core Hint, Core Fail Area, Core MCAs, Core MSCOD, Core Bank
 		  IO        : IO Hint, IO Details, IO MCAs, IO MSCOD
 		  MEM       : MEM Hint, MEM Details, MEM MCAs, MEM MSCOD
@@ -1811,6 +1811,7 @@ class MCAAnalyzer:
 				'Top SAD LocPort'   : top_locport,
 				# --- LLC group ---
 				'LLC Hint'          : llc_hint,
+				**({'LLC Fail Area': llc_area} if self.product not in _DMR_PRODUCTS else {}),
 				'LLC MCAs'          : llc_mcas_str,
 				'LLC Next Steps'    : llc_next,
 				# --- Core group ---
