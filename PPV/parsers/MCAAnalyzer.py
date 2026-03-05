@@ -266,6 +266,7 @@ class MCAAnalyzer:
 			cha_df, llc_df, core_df,
 			rev_cha, rev_llc, rev_core, other_errors,
 			rev_io=rev_io, rev_mem=rev_mem,
+			io_df=io_df, mem_df=mem_df,
 		)
 
 		analysis = self._build_analysis(rev_units, ppv_df)
@@ -1380,7 +1381,8 @@ class MCAAnalyzer:
 
 	def _build_rev_units(self, cha_df, llc_df, core_df,
 						 rev_cha, rev_llc, rev_core, other_errors,
-						 rev_io=None, rev_mem=None):
+						 rev_io=None, rev_mem=None,
+						 io_df=None, mem_df=None):
 		"""
 		Build the REV_Units per-unit summary DataFrame.
 
@@ -1394,6 +1396,8 @@ class MCAAnalyzer:
 		_empty_mem = pd.DataFrame(columns=['VisualID', 'MEM Hint', 'MEM Details', 'MEM MCAs'])
 		if rev_io  is None: rev_io  = _empty_io
 		if rev_mem is None: rev_mem = _empty_mem
+		if io_df   is None: io_df  = pd.DataFrame()
+		if mem_df  is None: mem_df = pd.DataFrame()
 
 		all_vids = self._get_visual_ids(cha_df, llc_df, core_df, rev_io, rev_mem)
 
