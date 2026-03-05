@@ -474,7 +474,6 @@ class decoder_dmr():
 			# If not found in table, return the raw extracted value
 			if mc_value is None:
 				if type == 'MC DECODE':
-
 					# For MC DECODE, show both MSCOD and MCACOD when not in table
 					mcacod = extract_bits(hex_value=value, min_bit=0, max_bit=15)
 					mscod = extract_bits(hex_value=value, min_bit=16, max_bit=31)
@@ -483,7 +482,9 @@ class decoder_dmr():
 					# For other fields, show the raw extracted value
 					mc_value = extractedvalue
 			else:
-				mc_value = f"MSCOD={mc_value}, MCACOD={mcacod}"
+				if type == 'MC DECODE':
+					mcacod = extract_bits(hex_value=value, min_bit=0, max_bit=15)
+					mc_value = f"MSCOD={mc_value}, MCACOD={mcacod}"
 		else:
 			mc_value = extractedvalue
 
