@@ -1124,10 +1124,12 @@ class MCAAnalyzer:
 				if src_dominant:
 					srcid_hint = src_winner
 
-			# SrcID / ModuleID fallback: when no CHA Hint was resolved but multiple
-			# CHA rows share a common SrcID (GNR/CWF) or CBB+ModuleID (DMR), surface it
-			# as the CHA Hint in the form "SrcID{value}" / "ModuleID{value}".
-			if cha_hint == 'NotFound' and srcid_hint != 'NotFound':
+			# SrcID / ModuleID fallback: when no CHA Hint was resolved AND multiple
+			# CHA rows are failing (len > 1), surface a dominant shared SrcID as the
+			# CHA Hint in the form "SrcID{value}" / "ModuleID{value}".
+			# Guard: when only 1 CHA row is present the SrcID is simply that CHA's own
+			# source — it does not indicate a common aggregation point across fails.
+			if cha_hint == 'NotFound' and srcid_hint != 'NotFound' and len(subset) > 1:
 				_prefix  = 'ModuleID' if (src_col == 'ModuleID') else 'SrcID'
 				cha_hint = f"{_prefix}{srcid_hint}"
 
@@ -1630,12 +1632,12 @@ class MCAAnalyzer:
 		Column order (engineered for readability):
 		  Identity : VisualIDs, # Runs, WW
 		  Results  : Root Cause, Debug Hints, Failing Area
-		  CHA/CBO  : CHA Hint, CHA Fail Area, CHA MSCOD
+		  CHA/CBO  : CHA Hint, CHA Fail Area, CHA MSCOD, SrcIDs
 		  LLC       : LLC Hint, LLC Fail Area, LLC MSCOD
 		  Core      : Core Hint, Core Fail Area, Core MCAs, Core MSCOD, Core Bank
 		  IO        : IO Hint, IO Details, IO MCAs, IO MSCOD
 		  MEM       : MEM Hint, MEM Details, MEM MCAs, MEM MSCOD
-		  Misc      : SrcIDs, Other, Top OrigReq, Top OpCode, Top ISMQ, Top SAD,
+		  Misc      : Other, Top OrigReq, Top OpCode, Top ISMQ, Top SAD,
 		              Top SAD LocPort
 		  Next Steps: CHA/LLC/Core/IO/MEM/Other Next Steps
 		  Trailing  : Lot  (least critical)
@@ -1805,6 +1807,7 @@ class MCAAnalyzer:
 				'CHA Hint'         : cha_hint,
 				'CHA Fail Area'    : cha_area,
 				'CHA MSCOD'        : cha_mscod,
+				'SrcIDs'           : srcids,
 				# --- LLC ---
 				'LLC Hint'         : llc_hint,
 				'LLC Fail Area'    : llc_area,
@@ -1825,8 +1828,7 @@ class MCAAnalyzer:
 				'MEM Details'      : mem_details,
 				'MEM MCAs'         : mem_mcas,
 				'MEM MSCOD'        : mem_mscod,
-				# --- SrcIDs / Other ---
-				'SrcIDs'           : srcids,
+				# --- Other ---
 				'Other'            : other,
 				# --- Traffic signature ---
 				'Top OrigReq'      : top_origreq,
@@ -1843,62 +1845,6 @@ class MCAAnalyzer:
 				'Other Next Steps' : other_next,
 				# --- Lot (least critical, far right) ---
 				'Lot'              : lot,
-			})
-
-		return pd.DataFrame(rows)
-
-	def build_fail_summary(self, analysis_df):
-		"""
-		Build a compact engineering-focused "Fail Summary" DataFrame from the
-		full analysis DataFrame.
-
-		Each row represents one unit (VID) with actionable next-step information
-		highlighted.  Rows with no identified root cause are kept (marked 'TBD')
-		so every tested unit appears in the report.
-
-		Columns:
-		  VisualIDs, # Runs, WW,
-		  Root Cause, Failing Area, Debug Hints,
-		  CHA Hint, CHA MSCOD, LLC Hint, LLC MSCOD,
-		  Core Hint, Core Bank, Core MSCOD,
-		  IO Hint, IO MSCOD, MEM Hint, MEM MSCOD,
-		  Other, SrcIDs,
-		  Top OrigReq, Top ISMQ,
-		  Lot
-		"""
-		if analysis_df.empty:
-			return pd.DataFrame()
-
-		def _get(row, col, default=''):
-			val = row.get(col, default)
-			return val if pd.notna(val) and str(val).strip().lower() not in ('', 'nan') else default
-
-		rows = []
-		for _, r in analysis_df.iterrows():
-			root_cause = _get(r, 'Root Cause').strip() or 'TBD'
-			rows.append({
-				'VisualIDs'   : _get(r, 'VisualIDs'),
-				'# Runs'      : _get(r, '# Runs', 0),
-				'WW'          : _get(r, 'WW'),
-				'Root Cause'  : root_cause,
-				'Failing Area': _get(r, 'Failing Area'),
-				'Debug Hints' : _get(r, 'Debug Hints'),
-				'CHA Hint'    : _get(r, 'CHA Hint'),
-				'CHA MSCOD'   : _get(r, 'CHA MSCOD'),
-				'LLC Hint'    : _get(r, 'LLC Hint'),
-				'LLC MSCOD'   : _get(r, 'LLC MSCOD'),
-				'Core Hint'   : _get(r, 'Core Hint'),
-				'Core Bank'   : _get(r, 'Core Bank'),
-				'Core MSCOD'  : _get(r, 'Core MSCOD'),
-				'IO Hint'     : _get(r, 'IO Hint'),
-				'IO MSCOD'    : _get(r, 'IO MSCOD'),
-				'MEM Hint'    : _get(r, 'MEM Hint'),
-				'MEM MSCOD'   : _get(r, 'MEM MSCOD'),
-				'Other'       : _get(r, 'Other'),
-				'SrcIDs'      : _get(r, 'SrcIDs'),
-				'Top OrigReq' : _get(r, 'Top OrigReq'),
-				'Top ISMQ'    : _get(r, 'Top ISMQ'),
-				'Lot'         : _get(r, 'Lot'),
 			})
 
 		return pd.DataFrame(rows)
