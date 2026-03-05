@@ -485,7 +485,11 @@ class MCAAnalyzer:
 		winner, is_unique = self._argmax_unique(counter, max_ties=1)
 		if not is_unique or winner == 'NotFound' or n_total == 0:
 			return 'NotFound', False
-		if counter[winner] / n_total >= min_fraction:
+		# Use max(counter.values()) to avoid a key-type mismatch: _argmax_unique
+		# stringifies the winner key (e.g. int 65 → '65') but the Counter still
+		# holds the original-type key, so counter[winner] would raise KeyError.
+		max_count = max(counter.values())
+		if max_count / n_total >= min_fraction:
 			return winner, True
 		return 'NotFound', False
 
@@ -1124,12 +1128,11 @@ class MCAAnalyzer:
 				if src_dominant:
 					srcid_hint = src_winner
 
-			# SrcID / ModuleID fallback: when no CHA Hint was resolved AND multiple
-			# CHA rows are failing (len > 1), surface a dominant shared SrcID as the
-			# CHA Hint in the form "SrcID{value}" / "ModuleID{value}".
-			# Guard: when only 1 CHA row is present the SrcID is simply that CHA's own
-			# source — it does not indicate a common aggregation point across fails.
-			if cha_hint == 'NotFound' and srcid_hint != 'NotFound' and len(subset) > 1:
+			# SrcID / ModuleID fallback: when no CHA Hint was resolved, surface a
+			# dominant shared SrcID as the CHA Hint in the form "SrcID{value}" /
+			# "ModuleID{value}".  The SrcID Hint column is always populated when a
+			# dominant SrcID is found, regardless of how many CHA rows are failing.
+			if cha_hint == 'NotFound' and srcid_hint != 'NotFound':
 				_prefix  = 'ModuleID' if (src_col == 'ModuleID') else 'SrcID'
 				cha_hint = f"{_prefix}{srcid_hint}"
 

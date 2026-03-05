@@ -2,7 +2,7 @@
   "description": "Column name mappings for GNR MCA tab DataFrames. All keys map to the exact DataFrame column header produced by the GNR decoder. Set a key to null when the column is not applicable for this product.",
 
   "core_key":     "CORE",
-  "err_key":      "MCACOD (ErrDecode)",
+  "err_key":      "MC_DECODE",
 
   "cha_col":      "CHA",
   "cha_cbb_col":  null,
