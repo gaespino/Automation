@@ -442,7 +442,7 @@ class decoder_dmr():
 		# DMR has no MC_MISC3 register, so SrcID, ISMQ, Attribute, Result, Local Port not available
 		#
 		data = {
-			'MC DECODE': {'table': 'MSCOD', 'min': 16, 'max': 31},          # Status - MSCOD field
+			'MC DECODE': {'table': 'MSCOD_BITS', 'min': 16, 'max': 31},     # Status - MSCOD bitmask field
 
 			# GNR CHA equivalent fields AVAILABLE in DMR MC_MISC:
 			'Opcode': {'table': 'TOR_OPCODES_BY_VAL', 'min': 31, 'max': 39},       # Misc - IDI opcode (9 bits) - combines Orig Req + Opcode
@@ -467,24 +467,26 @@ class decoder_dmr():
 		extractedvalue = extract_bits(hex_value=value, min_bit=mcmin, max_bit=mcmax)
 
 		if table is not None:
-			mclist = ccf_json.get(table, {})
-			keyvalue = str(extractedvalue)
-			mc_value = mclist.get(keyvalue, None)  # Get decoded value or None if not found
+			raw_table = ccf_json.get(table)
 
-			# If not found in table, return the raw extracted value
-			if mc_value is None:
-				if type == 'MC DECODE':
-					# For MC DECODE, show both MSCOD and MCACOD when not in table
-					mcacod = extract_bits(hex_value=value, min_bit=0, max_bit=15)
-					mscod = extract_bits(hex_value=value, min_bit=16, max_bit=31)
-					mc_value = f"MSCOD={mscod}, MCACOD={mcacod}"
-				else:
-					# For other fields, show the raw extracted value
-					mc_value = extractedvalue
+			if isinstance(raw_table, list):
+				# Bitmask table (MSCOD_BITS): expand each active bit into its error name
+				active = [raw_table[i] for i in range(len(raw_table)) if (extractedvalue >> i) & 1]
+				mc_value = ' | '.join(active) if active else None
 			else:
-				if type == 'MC DECODE':
-					mcacod = extract_bits(hex_value=value, min_bit=0, max_bit=15)
+				mclist = raw_table if isinstance(raw_table, dict) else {}
+				mc_value = mclist.get(str(extractedvalue), None)
+
+			# Format MC DECODE output with MSCOD and MCACOD
+			if type == 'MC DECODE':
+				mcacod = extract_bits(hex_value=value, min_bit=0, max_bit=15)
+				mscod_raw = extract_bits(hex_value=value, min_bit=16, max_bit=31)
+				if mc_value is None:
+					mc_value = f"MSCOD={mscod_raw}, MCACOD={mcacod}"
+				else:
 					mc_value = f"MSCOD={mc_value}, MCACOD={mcacod}"
+			elif mc_value is None:
+				mc_value = extractedvalue
 		else:
 			mc_value = extractedvalue
 
@@ -497,7 +499,7 @@ class decoder_dmr():
 		"""
 		mcdata = self.data
 		columns = ['VisualID', 'Run', 'Operation', 'Core_MC', 'CBB', 'Compute', 'Module', 'Core',
-		           'Bank', 'MC_STATUS', 'MC DECODE', 'MC_ADDR', 'MC_MISC']
+		           'Bank', 'MC_STATUS', 'MCACOD (ErrDecode)', 'MSCOD', 'MC_DECODE', 'MC_ADDR', 'MC_MISC']
 
 		data_dict = {k:[] for k in columns}
 
@@ -567,84 +569,172 @@ class decoder_dmr():
 					data_dict['MC_ADDR'] += [addr_value]
 					data_dict['MC_MISC'] += [misc_value]
 
-					data_dict['MC DECODE'] += [self.core_decoder(value=mc_value, bank=bank_name)]
+					mcacod_str, mscod_str = self.core_decoder(value=mc_value, bank=bank_name)
+					data_dict['MCACOD (ErrDecode)'] += [mcacod_str]
+					data_dict['MSCOD'] += [mscod_str]
+					data_dict['MC_DECODE'] += [
+						f"{mscod_str} | {mcacod_str}" if mscod_str and mcacod_str else mscod_str or mcacod_str
+					]
 
 		new_df = pd.DataFrame(data_dict)
 		return new_df
 
 	def core_decoder(self, value, bank):
 		"""
-		Core bank MCA decoder
-		Uses GNR core_params.json as baseline (both are bigcore architectures)
+		Core bank MCA dispatcher.
+		Dispatches to the per-bank helper and returns (mcacod_str, mscod_str):
+		  mcacod_str – decoded MCACOD description (maps to 'MCACOD (ErrDecode)' column)
+		  mscod_str  – decoded MSCOD value / name  (maps to 'MSCOD' column)
 
-		Bit field mapping based on live DMR system:
-
-		IFU (Bank 0):
-		  - Bits 15:0  = mcacod
-		  - Bits 31:16 = mscod (16 bits)
-		  - Bits 51:38 = corrected_err_cnt (14 bits)
-
-		DCU (Bank 1): ⚠️ SPECIAL CASE - Extended MSCOD!
-		  - Bits 15:0  = mcacod
-		  - Bits 37:16 = mscod (22 bits!) ← Non-standard!
-		  - Bits 52:38 = cecnt (15 bits)
-
-		DTLB (Bank 2):
-		  - Bits 15:0  = mcacod
-		  - Bits 31:16 = mscod (16 bits)
-		  - Bits 52:38 = cor_err_cnt (15 bits)
-
-		ML2 (Bank 3):
-		  - Bits 15:0  = mcacod
-		  - Bits 31:16 = mscod (16 bits)
-		  - Bits 52:38 = cec (15 bits)
+		Banks and bit layouts:
+		  IFU  (Bank 0) – bits 15:0 MCACOD, bits 31:16 MSCOD (16 bits)
+		  DCU  (Bank 1) – bits 15:0 MCACOD, bits 37:16 MSCOD (22 bits, extended)
+		  DTLB (Bank 2) – bits 15:0 MCACOD, bits 31:16 MSCOD (16 bits)
+		  ML2  (Bank 3) – bits 15:0 MCACOD, bits 31:16 MSCOD (16 bits) + compound bitfield
 		"""
-		core_json = self.mcadata.core_data  # Using core_params.json from GNR
-
-		if value == '':
-			return value
-
-		# Extract MCACOD from bits 15:0 (standard across all banks)
-		mcacod = extract_bits(hex_value=value, min_bit=0, max_bit=15)
-
-		# Extract MSCOD - DCU has extended 22-bit MSCOD field!
+		if not value:
+			return '', ''
+		if bank == 'IFU':
+			return self._decode_ifu(value)
 		if bank == 'DCU':
-			mscod = extract_bits(hex_value=value, min_bit=16, max_bit=37)  # 22 bits for DCU
-		else:
-			mscod = extract_bits(hex_value=value, min_bit=16, max_bit=31)  # 16 bits for IFU, DTLB, ML2
+			return self._decode_dcu(value)
+		if bank == 'DTLB':
+			return self._decode_dtlb(value)
+		if bank == 'ML2':
+			return self._decode_ml2(value)
+		return '', ''
 
-		# Look up in core_params.json (GNR structure)
-		bank_data = core_json.get(bank, {})
+	# ── per-bank core decode helpers ─────────────────────────────────────────
+
+	def _decode_core_standard(self, value, bank, mscod_max_bit=31):
+		"""
+		Shared decode logic for IFU / DCU / DTLB.
+		Looks up MSCOD (direct + hex-pattern) then MCACOD within that MSCOD entry.
+		Returns (mcacod_str, mscod_str); falls back to raw hex strings on miss.
+		"""
+		core_json  = self.mcadata.core_data
+		mcacod     = extract_bits(hex_value=value, min_bit=0, max_bit=15)
+		mscod      = extract_bits(hex_value=value, min_bit=16, max_bit=mscod_max_bit)
+		pcc        = extract_bits(hex_value=value, min_bit=57, max_bit=57)
+		bank_data  = core_json.get(bank, {})
 		mscod_data = bank_data.get('MSCOD', {})
 
-		# Try direct lookup first (for simple MSCOD values)
-		if str(mscod) in mscod_data:
-			mscod_entry = mscod_data[str(mscod)]
-			mcacod_data = mscod_entry.get('MCACOD', {})
+		# Phase 1 – direct MSCOD key lookup
+		mscod_entry = mscod_data.get(str(mscod))
 
-			if str(mcacod) in mcacod_data:
-				mcacod_entry = mcacod_data[str(mcacod)]
-				name = mcacod_entry.get('Name', mcacod_entry.get('Name0', 'N/A'))
-				desc = mcacod_entry.get('Description', mcacod_entry.get('Description0', ''))
-				return f"{name}: {desc}" if desc else name
+		# Phase 2 – hex pattern matching (e.g. "0x1?10")
+		if mscod_entry is None:
+			mscod_hex = hex(mscod)[2:].upper().zfill(4)
+			for mscod_key, entry in mscod_data.items():
+				if 'x' in mscod_key.lower() and '?' in mscod_key:
+					pattern = mscod_key.replace('0x', '').replace('0X', '').replace('?', '.')
+					if re.match(pattern.upper(), mscod_hex):
+						mscod_entry = entry
+						break
 
-		# Try hex pattern matching for MSCOD (e.g., "0x1?10", "0x1?00")
-		for mscod_key in mscod_data.keys():
-			if 'x' in mscod_key.lower() and '?' in mscod_key:
-				# Convert pattern to regex (e.g., "0x1?10" -> match 0x1010, 0x1110, etc.)
-				pattern = mscod_key.replace('0x', '').replace('0X', '').replace('?', '.')
-				mscod_hex = hex(mscod)[2:].upper().zfill(4)
-				if re.match(pattern.upper(), mscod_hex):
-					mscod_entry = mscod_data[mscod_key]
-					mcacod_data = mscod_entry.get('MCACOD', {})
-					if str(mcacod) in mcacod_data:
-						mcacod_entry = mcacod_data[str(mcacod)]
-						name = mcacod_entry.get('Name', mcacod_entry.get('Name0', 'N/A'))
-						desc = mcacod_entry.get('Description', mcacod_entry.get('Description0', ''))
-						return f"{name}: {desc}" if desc else name
+		if mscod_entry is None:
+			return f'MCACOD=0x{mcacod:04X}', str(mscod)
 
-		# If not found, return raw values
-		return f"MSCOD={mscod}, MCACOD={mcacod}"
+		# Resolve MCACOD within the found MSCOD entry
+		mcacod_table = mscod_entry.get('MCACOD', {})
+		mcacod_entry = mcacod_table.get(str(mcacod))
+		if mcacod_entry:
+			# PCC-sensitive names use Name0/Name1 keys
+			if 'Name0' in mcacod_entry:
+				name = mcacod_entry.get(f'Name{pcc}',        mcacod_entry.get('Name0', ''))
+				desc = mcacod_entry.get(f'Description{pcc}', mcacod_entry.get('Description0', ''))
+			else:
+				name = mcacod_entry.get('Name', '')
+				desc = mcacod_entry.get('Description', '')
+			mcacod_str = f"{name}: {desc}" if desc else name
+		else:
+			mcacod_str = f'MCACOD=0x{mcacod:04X}'
+
+		return mcacod_str, str(mscod)
+
+	def _decode_ifu(self, value):
+		"""IFU (Bank 0): MCACOD bits 15:0, MSCOD bits 31:16."""
+		return self._decode_core_standard(value, 'IFU', mscod_max_bit=31)
+
+	def _decode_dcu(self, value):
+		"""DCU (Bank 1): MCACOD bits 15:0, MSCOD bits 37:16 (22-bit extended field)."""
+		return self._decode_core_standard(value, 'DCU', mscod_max_bit=37)
+
+	def _decode_dtlb(self, value):
+		"""DTLB (Bank 2): MCACOD bits 15:0, MSCOD bits 31:16."""
+		return self._decode_core_standard(value, 'DTLB', mscod_max_bit=31)
+
+	def _decode_ml2(self, value):
+		"""
+		ML2 (Bank 3): MCACOD bits 15:0, MSCOD bits 31:16.
+
+		Handles two decode paths:
+		  1. Simple MSCOD – direct key lookup in core_params.json ML2.MSCOD table.
+		  2. Compound MSCOD – when multiple error bits are set simultaneously, the MSCOD
+		     value has no direct entry.  Decode using _MSCOD_BITFIELDS:
+		       • MCACOD=0x400 (3-strike WD timeout) → MLC_Timeout_type bitfield
+		       • other MCACOD                       → Others_type bitfield
+		"""
+		core_json  = self.mcadata.core_data
+		mcacod     = extract_bits(hex_value=value, min_bit=0,  max_bit=15)
+		mscod      = extract_bits(hex_value=value, min_bit=16, max_bit=31)
+		bank_data  = core_json.get('ML2', {})
+		mscod_data = bank_data.get('MSCOD', {})
+
+		# ── Path 1: direct MSCOD lookup ──────────────────────────────────────
+		mscod_entry = mscod_data.get(str(mscod))
+		if mscod_entry is not None:
+			mcacod_table = mscod_entry.get('MCACOD', {})
+			mcacod_entry = mcacod_table.get(str(mcacod))
+			if mcacod_entry:
+				name = mcacod_entry.get('Name', '')
+				desc = mcacod_entry.get('Description', '')
+				mcacod_str = f"{name}: {desc}" if desc else name
+			else:
+				mcacod_str = f'MCACOD=0x{mcacod:04X}'
+			return mcacod_str, str(mscod)
+
+		# ── Path 2: compound MSCOD – bitfield decode ─────────────────────────
+		bitfields = bank_data.get('_MSCOD_BITFIELDS', {})
+		if not bitfields:
+			return f'MCACOD=0x{mcacod:04X}', str(mscod)
+
+		if mcacod == 0x400:
+			# 3-strike WD timeout: decode MLC_Timeout_type stall bits
+			timeout_bf = bitfields.get('MLC_Timeout_type', {})
+			parts = []
+			for field_name, field_def in timeout_bf.items():
+				if field_name.startswith('_'):
+					continue
+				lo   = field_def.get('min', 0)
+				hi   = field_def.get('max', 0)
+				mask = (1 << (hi - lo + 1)) - 1
+				fval = (mscod >> lo) & mask
+				if fval:
+					parts.append(f"{field_name}={fval}")
+			stall = ', '.join(parts) if parts else 'no stall bits set'
+			# MCACOD name falls back to the MSCOD=0 entry for MCACOD=1024
+			mcacod_entry_0 = mscod_data.get('0', {}).get('MCACOD', {}).get(str(mcacod))
+			mcacod_str = mcacod_entry_0.get('Name', 'WDTimeout (3 strike)') if mcacod_entry_0 else 'WDTimeout (3 strike)'
+			mscod_str  = f"[MSCOD=0x{mscod:04X}]: {stall}"
+			return mcacod_str, mscod_str
+
+		# Other compound MSCOD (non-timeout)
+		others_bf = bitfields.get('Others_type', {})
+		parts = []
+		for field_name, field_def in others_bf.items():
+			if field_name.startswith('_'):
+				continue
+			lo   = field_def.get('min', 0)
+			hi   = field_def.get('max', 0)
+			mask = (1 << (hi - lo + 1)) - 1
+			fval = (mscod >> lo) & mask
+			dec  = field_def.get('decode', {})
+			decoded = dec.get(str(fval), str(fval))
+			if decoded not in ('no err', '0'):
+				parts.append(f"{field_name}={decoded}")
+		mscod_str = ', '.join(parts) if parts else f"MSCOD=0x{mscod:04X}"
+		return f'MCACOD=0x{mcacod:04X}', f"ML2 compound [MSCOD=0x{mscod:04X}]: {mscod_str}"
 
 	def io(self):
 		"""
@@ -997,10 +1087,7 @@ class decoder_dmr():
 						imh = f'IMH{imh_match.group(1)}'
 						mc_num = mc_match.group(1)
 						subch_num = subch_match.group(1) if subch_match else '0'
-						instance = f'HA{mc_num}'  # Using HA{n} as instance per spec
-
-				elif 'MSE__MSE_MCI' in test_name:
-					# mse: SOCKET0__IMH{n}__MEMSS__MC{n}__SUBCH{n}__MSE__MSE_MCI_STATUS
+					instance = f'MC{mc_num}CH{subch_num}'
 					mem_type = 'MSE'
 					imh_match = re.search(r'IMH(\d+)', test_name)
 					if imh_match:
@@ -1130,7 +1217,13 @@ class decoder_dmr():
 				# Use hamvf_params.json
 				hamvf_json = self.mcadata.hamvf_data if hasattr(self.mcadata, 'hamvf_data') else {}
 				if 'MSCOD' in hamvf_json and str(mscod) in hamvf_json['MSCOD']:
-					return f"{hamvf_json['MSCOD'][str(mscod)]} (MSCOD={mscod})"
+					entry = hamvf_json['MSCOD'][str(mscod)]
+					if isinstance(entry, dict):
+						# MSCOD has sub-errors keyed by MCACOD (e.g. MSCOD=4: security_error vs tsp_missing)
+						mcacod = extract_bits(hex_value=value, min_bit=0, max_bit=15)
+						sub_name = entry.get(str(mcacod), f"MSCOD={mscod},MCACOD={mcacod}")
+						return f"{sub_name} (MSCOD={mscod})"
+					return f"{entry} (MSCOD={mscod})"
 				return f"MSCOD={mscod}"
 
 			elif mem_type == 'HSF':
@@ -1181,7 +1274,8 @@ class decoder_dmr():
 
 	def memory_decoder(self, value):
 		"""
-		Memory MCA decoder
+		DEPRECATED: Not called anywhere. All memory decoding routes through mem_decoder().
+		Left for reference only - the MCACOD stubs below do NOT match DMR HAMVF errors.
 		"""
 		if value == '':
 			return value
@@ -1201,7 +1295,8 @@ class decoder_dmr():
 
 	def memory_error_type(self, value):
 		"""
-		Determine if memory error is correctable or uncorrectable
+		DEPRECATED: Not called anywhere. Correctable/uncorrectable classification
+		should use the UC bit (bit 61) from MC_STATUS directly, not MCACOD stubs.
 		"""
 		if value == '':
 			return 'N/A'
@@ -1215,6 +1310,129 @@ class decoder_dmr():
 		else:
 			return 'Unknown'
 
+	def portids(self):
+		"""
+		NCU/SNCU portids decoder for DMR.
+		DMR uses NCU (Bank 5) instead of UBOX for error logging.
+		Pattern: SOCKET0__CBB{n}__BASE__SNCU_TOP__SNCEVENTS__MCERRLOGGINGREG
+		         SOCKET0__CBB{n}__BASE__SNCU_TOP__SNCEVENTS__IERRLOGGINGREG
+		"""
+		mcdata = self.data
+		columns = ['VisualID', 'Run', 'Operation', 'CBB', 'NCEVENT', 'VALUE',
+		           'FirstError - DIEID', 'FirstError - PortID', 'FirstError - Location', 'FirstError - FromCore',
+		           'SecondError - DIEID', 'SecondError - PortID', 'SecondError - Location', 'SecondError - FromCore']
+		portid_data = ['FirstError - DIEID', 'FirstError - PortID', 'FirstError - Location', 'FirstError - FromCore',
+		               'SecondError - DIEID', 'SecondError - PortID', 'SecondError - Location', 'SecondError - FromCore']
+
+		data_dict = {k: [] for k in columns}
+
+		for visual_id in mcdata['VisualId'].unique():
+			# DMR NCU error logging: SNCU_TOP__SNCEVENTS path (replaces UBOX in GNR)
+			subset = mcdata[(mcdata['VisualId'] == visual_id) &
+			                (mcdata['TestName'].str.contains('SNCU_TOP|SNCEVENTS', na=False))]
+			mcerrorlog = self.extract_value(subset, 'TestName', 'MCERRLOGGINGREG')
+			ierrorlog  = self.extract_value(subset, 'TestName', 'IERRLOGGINGREG')
+
+			try:
+				portidData = pd.concat([mcerrorlog, ierrorlog])
+				if portidData.empty:
+					print(f' -- No NCU NCEVENT data found in VID: {visual_id}')
+					continue
+			except Exception:
+				print(f' -- No NCU NCEVENT data found in VID: {visual_id}')
+				continue
+
+			for i, data in portidData.iterrows():
+				data_dict['VisualID'] += [visual_id]
+				LotsSeqKey = data['LotsSeqKey']
+				UnitTestingSeqKey = data['UnitTestingSeqKey']
+				operation = data['Operation']
+				value = data['TestValue']
+				name = data['TestName']
+
+				cbb_match = re.search(r'CBB(\d+)', name)
+				cbb = f"CBB{cbb_match.group(1)}" if cbb_match else ''
+
+				run = str(LotsSeqKey) + "-" + str(UnitTestingSeqKey)
+				data_dict['Run']       += [run]
+				data_dict['Operation'] += [str(operation)]
+				data_dict['CBB']       += [cbb]
+				data_dict['NCEVENT']   += [name]
+				data_dict['VALUE']     += [value]
+
+				if 'MCERRLOGGINGREG' in name:
+					portids_values = self.portids_decoder(value=value, portid_data=portid_data, event='mcerr')
+				elif 'IERRLOGGINGREG' in name:
+					portids_values = self.portids_decoder(value=value, portid_data=portid_data, event='ierr')
+				else:
+					portids_values = {k: '' for k in portid_data}
+
+				for k, v in portids_values.items():
+					data_dict[k] += [v]
+
+		return pd.DataFrame(data_dict)
+
+	def portids_decoder(self, value, portid_data, event):
+		"""
+		NCU error logging register decoder for DMR.
+		Decodes MCERRLOGGINGREG / IERRLOGGINGREG bit fields using log_portid.json.
+		Bit layout mirrors GNR UBOX MCERRLOGGINGREG/IERRLOGGINGREG.
+		"""
+		portids_json = self.mcadata.portid_data
+
+		bit_map = {
+			'firstierrsrcid':        {'min': 0,  'max': 15},
+			'firstmcerrsrcid':       {'min': 0,  'max': 15},
+			'firstierrsrcvalid':     {'min': 16, 'max': 16},
+			'firstmcerrsrcvalid':    {'min': 16, 'max': 16},
+			'firstierrsrcfromcore':  {'min': 17, 'max': 17},
+			'firstmcerrsrcfromcore': {'min': 17, 'max': 17},
+			'secondierrsrcid':       {'min': 32, 'max': 47},
+			'secondmcerrsrcid':      {'min': 32, 'max': 47},
+			'secondierrsrcvalid':    {'min': 48, 'max': 48},
+			'secondmcerrsrcvalid':   {'min': 48, 'max': 48},
+			'secondierrsrcfromcore': {'min': 49, 'max': 49},
+			'secondmcerrsrcfromcore':{'min': 49, 'max': 49},
+		}
+
+		first        = bit_map[f'first{event}srcid']
+		first_valid  = bit_map[f'first{event}srcvalid']
+		first_core   = bit_map[f'first{event}srcfromcore']
+		second       = bit_map[f'second{event}srcid']
+		second_valid = bit_map[f'second{event}srcvalid']
+		second_core  = bit_map[f'second{event}srcfromcore']
+
+		portids_value = {k: '' for k in portid_data}
+
+		if value == '':
+			return portids_value
+
+		firstvalue  = str(extract_bits(hex_value=value, min_bit=first['min'],       max_bit=first['max']))
+		firstvalid  = extract_bits(hex_value=value,     min_bit=first_valid['min'], max_bit=first_valid['max'])
+		firstcore   = extract_bits(hex_value=value,     min_bit=first_core['min'],  max_bit=first_core['max'])
+		firstportid = extract_bits(hex_value=value,     min_bit=0,  max_bit=10)
+		firstdieid  = extract_bits(hex_value=value,     min_bit=11, max_bit=15)
+
+		secondvalue  = str(extract_bits(hex_value=value, min_bit=second['min'],       max_bit=second['max']))
+		secondvalid  = extract_bits(hex_value=value,     min_bit=second_valid['min'], max_bit=second_valid['max'])
+		secondcore   = extract_bits(hex_value=value,     min_bit=second_core['min'],  max_bit=second_core['max'])
+		secondportid = extract_bits(hex_value=value,     min_bit=32, max_bit=42)
+		seconddieid  = extract_bits(hex_value=value,     min_bit=43, max_bit=47)
+
+		for v in portids_value.keys():
+			if firstvalid == 1:
+				if v == 'FirstError - DIEID':    portids_value[v] = firstdieid
+				if v == 'FirstError - PortID':   portids_value[v] = firstportid
+				if v == 'FirstError - Location': portids_value[v] = portids_json.get(firstvalue, f'PortID={firstvalue}')
+				if v == 'FirstError - FromCore': portids_value[v] = firstcore
+			if secondvalid == 1:
+				if v == 'SecondError - DIEID':    portids_value[v] = seconddieid
+				if v == 'SecondError - PortID':   portids_value[v] = secondportid
+				if v == 'SecondError - Location': portids_value[v] = portids_json.get(secondvalue, f'PortID={secondvalue}')
+				if v == 'SecondError - FromCore': portids_value[v] = secondcore
+
+		return portids_value
+
 
 # Utility function to extract bits from hex value
 def extract_bits(hex_value, min_bit, max_bit):
@@ -1225,9 +1443,9 @@ def extract_bits(hex_value, min_bit, max_bit):
 		return 0
 
 	try:
-		# Convert hex string to integer
+		# Convert hex string to integer — int() with base 16 handles both '0x1A' and '1A'
 		if isinstance(hex_value, str):
-			int_value = int(hex_value, 16) if hex_value.startswith('0x') else int(hex_value, 16)
+			int_value = int(hex_value, 16)
 		else:
 			int_value = int(hex_value)
 

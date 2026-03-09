@@ -1482,10 +1482,14 @@ class MCAAnalyzer:
 
 			# Per-IP error code: use err_key for CHA/LLC; dec_col for IO/MEM display
 			_err_key     = self._col_cfg.get('err_key',     'MCACOD (ErrDecode)')
+			_dec_col     = self._col_cfg.get('dec_col',     'MC DECODE')
 			_io_dec_col  = self._col_cfg.get('io_dec_col',  'MC_DECODE')
 			_mem_dec_col = self._col_cfg.get('mem_dec_col', 'MC_DECODE')
 			_bank_col    = self._col_cfg.get('bank_col',    'ErrorType')
-			cha_mcas_str = _top_field(cha_df,  vid, _err_key)
+			# CHA MCAs: prefer err_key column; fall back to dec_col when absent
+			# (DMR CCF uses 'MC DECODE' rather than 'MCACOD (ErrDecode)')
+			_cha_err_col = _err_key if not cha_df.empty and _err_key in cha_df.columns else _dec_col
+			cha_mcas_str = _top_field(cha_df,  vid, _cha_err_col)
 			llc_mcas_str = _top_field(llc_df,  vid, _err_key)
 			core_bank    = _top_field(core_df, vid, _bank_col)
 			io_mcas_str  = _top_field(io_df,   vid, _io_dec_col)
@@ -1590,9 +1594,10 @@ class MCAAnalyzer:
 		----------------------------------------------
 		  top_origreq   – value of 'Top OrigReq'    (e.g. "PortIn", "Read")
 		  top_opcode    – value of 'Top OpCode'      (e.g. "RdCur", "WrPush")
-		  top_ismq      – value of 'Top ISMQ'
+		  top_ismq      – value of 'Top ISMQ'        (e.g. "Wxsnp", "Wdata", "Wcmp")
 		  top_sad       – value of 'Top SAD'
 		  top_locport   – value of 'Top SAD LocPort'
+		  cha_mcas      – top CHA/CCF MC DECODE value (DMR: expanded MSCOD bit names, e.g. "TOR_TIMEOUT")
 		  core_mcas     – top MC DECODE value for Core
 		  io_mcas       – top MC DECODE value for IO (e.g. "MCE when MCIP bit is set (MSCOD=2)")
 		  mem_mcas      – top MC DECODE value for MEM
@@ -1745,6 +1750,7 @@ class MCAAnalyzer:
 				'top_ismq'     : top_ismq.rstrip('*'),
 				'top_sad'      : top_sad.rstrip('*'),
 				'top_locport'  : top_locport.rstrip('*'),
+				'cha_mcas'     : cha_mcas_str,
 				'core_mcas'    : core_mcas,
 				'io_mcas'      : io_mcas_str,
 				'mem_mcas'     : mem_mcas_str,

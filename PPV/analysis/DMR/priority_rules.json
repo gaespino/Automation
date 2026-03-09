@@ -34,7 +34,8 @@
     "_string_fields": [
       "top_origreq  \u2013 Top OrigReq value (e.g. PortIn, Read, RdCur)",
       "top_opcode   \u2013 Top OpCode value  (e.g. RdCur, WrPush)",
-      "top_ismq     \u2013 Top ISMQ value",
+      "top_ismq     \u2013 Top ISMQ value    (e.g. Wxsnp, Wdata, Wcmp, Wdata_Wcmp)",
+      "cha_mcas     \u2013 CHA/CCF top MC DECODE value (DMR: expanded MSCOD bit names e.g. TOR_TIMEOUT, UNCORRECTABLE_TAG_ERROR)",
       "top_sad      \u2013 Top SAD value",
       "top_locport  \u2013 Top SAD LocPort value",
       "core_mcas    \u2013 Core top MC DECODE value",
@@ -136,9 +137,8 @@
           "CLFlush",
           "CLFlush_Opt",
           "CLWB",
-          "LLCWBInv",
-          "LLCWB",
-          "LLCInv"
+          "WbInvd",
+          "LLCWB"
         ],
         "cha_hint_present": true,
         "core_hint_present": true
@@ -242,17 +242,13 @@
       ]
     },
     {
-      "_TODO": "Requires cha_mscod condition support in MCAAnalyzer",
-      "name": "CCF TA Overflow with Core \u2014 Core hammering CCF",
+      "name": "CBO TOR in Wxsnp \u2014 Core not responding to snoop",
+      "description": "When the top CBO TOR entry is in Wxsnp (Waiting for snoop) state, the CBO is waiting on an IDI snoop response from a core. Per DMR Mainband Fabric Timeout Handbook: 'If it's in Wxsnp state, it's waiting on a core to respond to a snoop. Check with the core team.' The core failing to acknowledge the snoop is the root cause; the CCF TOR timeout and any Core 3-strike MCA are downstream effects. Note: opcodes with their own rules (DRd/RFO \u2192 Rule 6, Lock \u2192 Rule 5) are caught first; this rule handles remaining Wxsnp cases (e.g. WCiL, CLDemote). Demote CHA; promote Core above CHA.",
       "condition": {
-        "cha_mscod_in": [
-          "1",
-          "3",
-          "5",
-          "7",
-          "9"
-        ],
-        "core_hint_present": true
+        "top_ismq_in": ["Wxsnp"],
+        "cha_hint_present": true,
+        "core_hint_present": true,
+        "mem_hint_present": false
       },
       "override_root_cause_order": [
         "other",
@@ -268,6 +264,29 @@
         "core",
         "cha"
       ]
+    },
+    {
+      "name": "ML2 3-strike WDTimeout with MEM \u2014 MEM is root cause",
+      "description": "ML2 WDTimeout (3-strike) means the ML2 stopped receiving completions from the fabric. When HAMVF/HSF MCAs are also present the memory hierarchy is blocking the CBO-to-HAMVF completion path; memory is root cause, core ML2 is a downstream victim.",
+      "condition": {
+        "core_hint_present": true,
+        "core_mcas_contains": "WDTimeout",
+        "mem_hint_present":  true
+      },
+      "override_root_cause_order":  ["other", "mem", "cha", "core", "io"],
+      "override_debug_hints_order": ["other", "mem", "cha", "core", "io"]
+    },
+    {
+      "name": "ML2 3-strike WDTimeout with CHA, no MEM \u2014 CHA is root cause",
+      "description": "ML2 WDTimeout with CCF (CHA/CCF) MCAs but no memory errors means the CBO or fabric stopped sending completions to the ML2. CHA is root cause; core ML2 is a downstream victim.",
+      "condition": {
+        "core_hint_present": true,
+        "core_mcas_contains": "WDTimeout",
+        "cha_hint_present":  true,
+        "mem_hint_present":  false
+      },
+      "override_root_cause_order":  ["other", "cha", "core", "io", "mem"],
+      "override_debug_hints_order": ["other", "cha", "core", "io", "mem"]
     },
     {
       "name": "IO MCIP bit set \u2014 deprioritize IO",

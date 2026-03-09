@@ -862,6 +862,10 @@ class decoder():
 		return mc_value, ms_value
 
 	def portids(self):
+		# Delegate to DMR NCU portids decoder if product is DMR
+		# DMR uses NCU (Bank 5) at SNCU_TOP__SNCEVENTS, not UBOX
+		if self.product == 'DMR':
+			return self.dmr_decoder.portids()
 
 		mcdata = self.data
 		# Initialize the new dataframe
