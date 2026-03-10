@@ -1,0 +1,34 @@
+{
+  "firsterror_ip": {
+    "core_coregp"       : "CORE",
+    "scf_cha"           : "CHA",
+    "scf_llc"           : "LLC",
+    "scf_b2cmi"         : "B2CMI",
+    "mse"               : "MSE",
+    "scf_cms"           : "CMS",
+    "scf_sbo"           : "SBO",
+    "punit_ptpcioregs_0": "PUNIT",
+    "ubox_ncevents"     : "UBOX"
+  },
+  "firsterror_device": {
+    "cpucore"    : {"translate": "CORE",    "offset": 4},
+    "cpuscf"     : {"translate": "SCF",     "offset": 4},
+    "ddrfmb"     : {"translate": "DDRFMB",  "offset": 0},
+    "ddrmc"      : {"translate": "DDRMC",   "offset": 0},
+    "ddimb"      : {"translate": "DDIMB",   "offset": 0},
+    "eprpunit"   : {"translate": "EPRPUNIT","offset": 0},
+    "spk"        : {"translate": "SPK",     "offset": 0},
+    "punit"      : {"translate": "PUNIT",   "offset": 0},
+    "scf_crs_sbo": {"translate": "CRS",     "offset": 0},
+    "ubox"       : {"translate": "ubox",    "offset": 0}
+  },
+  "failing_ips": {
+    "B2CMI": "MCERRLOGGINGREG",
+    "MSE"  : "MCERRLOGGINGREG",
+    "CMS"  : "MCERRLOGGINGREG",
+    "SBO"  : "MCERRLOGGINGREG",
+    "LLC"  : "MCERRLOGGINGREG",
+    "PUNIT": "IERRLOGGINGREG",
+    "UBOX" : "IERRLOGGINGREG"
+  }
+}

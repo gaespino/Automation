@@ -2,6 +2,8 @@
 #from traceback import extract_tb
 import pandas as pd
 from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.worksheet.table import Table, TableStyleInfo
 import shutil
 #import win32com.client as win32
@@ -17,6 +19,14 @@ try:
 except ImportError:
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from Decoder import decoder as mcparse
+
+try:
+    from .MCAAnalyzer import MCAAnalyzer
+except ImportError:
+    try:
+        from MCAAnalyzer import MCAAnalyzer
+    except ImportError:
+        MCAAnalyzer = None
 
 
 def init_select_data(product):
@@ -166,7 +176,7 @@ def init_select_data(product):
 	return reduced_data_cha, reduced_data_core, reduced_data_others
 
 class ppv_report():
-	def __init__(self, name, week, label, source_file, report, data_core = None, data_cha = None, reduced = False, mcdetail = True, overview = False, decode = False, mode='Bucketer', product=None):
+	def __init__(self, name, week, label, source_file, report, data_core = None, data_cha = None, reduced = False, mcdetail = False, overview = False, decode = False, mode='Bucketer', product=None, mca_analysis=False):
 
 		self.source_file = rf'{source_file}'
 		self.source_sheet = 'raw_data'
@@ -186,6 +196,7 @@ class ppv_report():
 		self.ovw = overview
 		self.decode = decode
 		self.mcfile = mcdetail
+		self.mca_analysis = mca_analysis
 		## File Initialization
 
 		self.name = name
@@ -298,6 +309,11 @@ class ppv_report():
 			self.parse_mcas(self.data_file, self.sheet_CHA)
 		if 'CORE' in options and decode:
 			self.parse_CORE_mcas(self.data_file, self.sheet_CORE)
+
+		# Run MCA Analysis if the mca_analysis switch is enabled
+		if self.mca_analysis:
+			print(' -- Running MCA Analysis...')
+			self.gen_mca_analysis(self.data_file)
 
 		self.gen_auxfiles(data_file = self.data_file, mca_file=self.mca_file, ovw_file=self.ovw_file, mcfile_on=mcfile_on, ovw_on= ovw_on, options = options)
 
@@ -636,6 +652,180 @@ class ppv_report():
 
 		addtable(df=core_df, excel_file=source_file, sheet='CORE_MCAS', table_name='coredecode')
 
+	def gen_mca_analysis(self, source_file):
+		"""
+		Run MCAAnalyzer on the decoded CHA/LLC/CORE/UBOX sheets already
+		written to *source_file* and append an 'MCA_Analysis' sheet with
+		the per-unit summary (replicates the Excel 'Analysis' tab).
+		"""
+		if MCAAnalyzer is None:
+			print(' -- MCAAnalyzer not available, skipping MCA Analysis sheet.')
+			return
+
+		wb = load_workbook(source_file)
+		sheet_names = wb.sheetnames
+		wb.close()
+
+		def _safe_read(sheet):
+			if sheet in sheet_names:
+				try:
+					return pd.read_excel(source_file, sheet_name=sheet)
+				except Exception:
+					pass
+			return pd.DataFrame()
+
+		cha_df = _safe_read('CHA_MCAS')
+		llc_df = _safe_read('LLC_MCAS')
+		core_df = _safe_read('CORE_MCAS')
+		firsterr_df = _safe_read('UBOX')
+		ppv_df = _safe_read('PPV')
+		io_df  = _safe_read('IO_MCAS')
+		mem_df = _safe_read('MEM_MCAS')
+
+		# Column name alignment: decoder writes 'Visual ID' (with space)
+		for df in (cha_df, llc_df, core_df, firsterr_df, io_df, mem_df):
+			if 'Visual ID' in df.columns:
+				df.rename(columns={'Visual ID': 'VisualID'}, inplace=True)
+
+		analyzer = MCAAnalyzer(product=self.product)
+		result = analyzer.analyze(
+			cha_df=cha_df,
+			llc_df=llc_df,
+			core_df=core_df,
+			firsterr_df=firsterr_df,
+			ppv_df=ppv_df,
+			io_df=io_df,
+			mem_df=mem_df,
+		)
+		analysis_df = result.get('analysis', pd.DataFrame())
+
+		if analysis_df.empty:
+			print(' -- MCA Analysis produced no data, skipping sheet creation.')
+			return
+
+		print(f' -- Writing MCA_Analysis sheet with {len(analysis_df)} units.')
+		with pd.ExcelWriter(source_file, engine='openpyxl', mode='a') as writer:
+			analysis_df.to_excel(writer, sheet_name='MCA_Analysis', index=False)
+
+		addtable(df=analysis_df, excel_file=source_file, sheet='MCA_Analysis', table_name='mca_analysis')
+		_format_analysis_sheet(analysis_df, source_file)
+
+
+def _format_analysis_sheet(df, excel_file):
+	"""Apply color-coded header formatting to MCA_Analysis sheet, grouping columns by IP."""
+	GROUP_COLORS = {
+		'identity':  'BDD7EE',  # light blue  – VisualIDs, # Runs, WW
+		'results':   'FCE4D6',  # light orange – Root Cause, Debug Hints, Failing Area
+		'cha':       'E2EFDA',  # light green  – CHA group + traffic sig
+		'llc':       'D9E1F2',  # light blue   – LLC group
+		'core':      'EAD1DC',  # light pink   – Core group
+		'io':        'FFF2CC',  # light yellow – IO group
+		'mem':       'D9D9FF',  # light purple – MEM group
+		'other':     'FFE0CC',  # light salmon – Other group
+		'lot':       'F2F2F2',  # light gray   – Lot
+	}
+	COLUMN_GROUPS = {
+		'VisualIDs'        : 'identity',
+		'# Runs'           : 'identity',
+		'WW'               : 'identity',
+		'Root Cause'       : 'results',
+		'Debug Hints'      : 'results',
+		'Failing Area'     : 'results',
+		'CHA Hint'         : 'cha',
+		'SrcIDs'           : 'cha',
+		'CHA Fail Area'    : 'cha',
+		'CHA MCAs'         : 'cha',
+		'CHA Next Steps'   : 'cha',
+		'Top OrigReq'      : 'cha',
+		'Top OpCode'       : 'cha',
+		'Top ISMQ'         : 'cha',
+		'Top SAD'          : 'cha',
+		'Top SAD LocPort'  : 'cha',
+		'LLC Hint'         : 'llc',
+		'LLC Fail Area'    : 'llc',
+		'LLC MCAs'         : 'llc',
+		'LLC Next Steps'   : 'llc',
+		'Core Hint'        : 'core',
+		'Core Fail Area'   : 'core',
+		'Core MCAs'        : 'core',
+		'Core Bank'        : 'core',
+		'Core Next Steps'  : 'core',
+		'IO Hint'          : 'io',
+		'IO MCAs'          : 'io',
+		'IO Next Steps'    : 'io',
+		'MEM Hint'         : 'mem',
+		'MEM MCAs'         : 'mem',
+		'MEM Next Steps'   : 'mem',
+		'Other'            : 'other',
+		'Other Next Steps' : 'other',
+		'Lot'              : 'lot',
+	}
+	try:
+		wb = load_workbook(excel_file)
+		ws = wb['MCA_Analysis']
+
+		fills = {grp: PatternFill(start_color=color, end_color=color, fill_type='solid')
+				 for grp, color in GROUP_COLORS.items()}
+		bold_font = Font(bold=True)
+		center_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+		for col_idx, col_name in enumerate(df.columns, start=1):
+			cell = ws.cell(row=1, column=col_idx)
+			group = COLUMN_GROUPS.get(col_name)
+			if group and group in fills:
+				cell.fill = fills[group]
+			cell.font = bold_font
+			cell.alignment = center_align
+
+		WIDTHS = {
+			'VisualIDs'        : 18,
+			'# Runs'           : 8,
+			'WW'               : 8,
+			'Root Cause'       : 22,
+			'Debug Hints'      : 45,
+			'Failing Area'     : 20,
+			'CHA Hint'         : 14,
+			'SrcIDs'           : 10,
+			'CHA Fail Area'    : 16,
+			'CHA MCAs'         : 22,
+			'CHA Next Steps'   : 45,
+			'Top OrigReq'      : 12,
+			'Top OpCode'       : 12,
+			'Top ISMQ'         : 12,
+			'Top SAD'          : 12,
+			'Top SAD LocPort'  : 14,
+			'LLC Hint'         : 14,
+			'LLC Fail Area'    : 16,
+			'LLC MCAs'         : 22,
+			'LLC Next Steps'   : 35,
+			'Core Hint'        : 14,
+			'Core Fail Area'   : 16,
+			'Core MCAs'        : 22,
+			'Core Bank'        : 12,
+			'Core Next Steps'  : 35,
+			'IO Hint'          : 18,
+			'IO MCAs'          : 22,
+			'IO Next Steps'    : 35,
+			'MEM Hint'         : 18,
+			'MEM MCAs'         : 22,
+			'MEM Next Steps'   : 35,
+			'Other'            : 22,
+			'Other Next Steps' : 40,
+			'Lot'              : 14,
+		}
+		for col_idx, col_name in enumerate(df.columns, start=1):
+			col_letter = get_column_letter(col_idx)
+			width = WIDTHS.get(col_name, 14)
+			ws.column_dimensions[col_letter].width = width
+
+		ws.freeze_panes = 'A2'
+
+		wb.save(excel_file)
+		wb.close()
+	except Exception as exc:
+		print(f'[WARN] _format_analysis_sheet: {exc}')
+
+
 # File manipulation scripts
 def file_open(file):
 	# Open workbook using openpyxl (replaces xlwings which requires a local Excel install)
@@ -664,7 +854,7 @@ def addtable(df, excel_file, sheet, table_name ):
 	ws = wb[sheet]
 
 	# Define the table range, in case there is no data add blanks to the first column, this is just to be consistent with data
-	table_range = f'A1:{chr(64+len(df.columns))}{len(df)+1 if not df.empty else 2}'
+	table_range = f'A1:{get_column_letter(len(df.columns))}{len(df)+1 if not df.empty else 2}'
 
 	# Create a table
 	table = Table(displayName=table_name, ref=table_range)
@@ -707,7 +897,7 @@ def load_dataframe_to_excel(df, excel_file, sheet_name, table_name):
 		table = table_name
 
 	else:
-		table_range = f"A1:{chr(64+len(df.columns))}{len(df)+1}"
+		table_range = f"A1:{get_column_letter(len(df.columns))}{len(df)+1}"
 		table = table_name
 		table = Table(displayName="chadecode", ref=table_range)
 		# Add a default style with striped rows and banded columns
@@ -739,86 +929,6 @@ def load_dataframe_to_excel(df, excel_file, sheet_name, table_name):
 
 	# Save the workbook
 	workbook.save(excel_file)
-
-class PPVMCAReport:
-	"""
-	Web-API-friendly wrapper around ppv_report.
-
-	Maps the REST parameters to ppv_report constructor args and provides
-	run() / get_output_files() helpers used by api/routers/mca.py.
-
-	Constructor kwargs
-	------------------
-	data_file   : path to the uploaded Bucketer / S2T Logger Excel file
-	product     : 'GNR' | 'CWF' | 'DMR'
-	work_week   : e.g. 'WW9'
-	label       : optional run label
-	mode        : 'Bucketer' (default) | 'Framework' | 'Data'
-	output_dir  : directory to write output files into (tmpdir)
-
-	run(options)
-	------------
-	options is a list of strings from the frontend checkboxes:
-	  'REDUCED'   → reduced=True  (sets reduced data mode)
-	  'DECODE'    → decode=True   (run MCA decode tab)
-	  'OVERVIEW'  → overview=True (generate unit overview file)
-	Note: MC Checker option has been removed from the new UI.
-
-	get_output_files()
-	------------------
-	Returns list of paths of files that were actually written.
-	"""
-
-	def __init__(self, data_file, product='GNR', work_week='WW1', label='',
-	             mode='Bucketer', output_dir=None):
-		self.data_file  = data_file
-		self.product    = product.upper()
-		self.work_week  = work_week
-		self.label      = label
-		self.mode       = mode
-		self.output_dir = output_dir or os.path.dirname(data_file)
-		self._report    = None  # ppv_report instance created in run()
-
-	def run(self, options=None):
-		if options is None:
-			options = ['REDUCED', 'DECODE', 'OVERVIEW']
-		opts = [o.upper() for o in options]
-
-		reduced  = 'REDUCED'  in opts
-		decode   = 'DECODE'   in opts
-		overview = 'OVERVIEW' in opts
-		# MC_CHECKER option has been removed from new UI
-
-		# ppv_report.run() takes the data-tab selection ('MESH', 'CORE')
-		# These are always processed; the option flags are constructor params.
-		run_opts = ['MESH', 'CORE']
-
-		self._report = ppv_report(
-			name        = self.product,
-			week        = self.work_week,
-			label       = self.label,
-			source_file = self.data_file,
-			report      = self.output_dir,
-			reduced     = reduced,
-			mcdetail    = False,   # MC Checker removed from new UI
-			overview    = overview,
-			decode      = decode,
-			mode        = self.mode,
-			product     = self.product,
-		)
-		self._report.run(options=run_opts)
-
-	def get_output_files(self):
-		"""Return list of (path, filename) tuples for files that were produced."""
-		if self._report is None:
-			return []
-		results = []
-		for attr in ('data_file', 'mca_file', 'ovw_file'):
-			path = getattr(self._report, attr, None)
-			if path and os.path.isfile(path):
-				results.append((path, os.path.basename(path)))
-		return results
-
 
 #if __name__ == "__main__":
 def test(): ## Comment and run with above line, not setting args for this one, use the UI

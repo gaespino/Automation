@@ -7,7 +7,6 @@ numpy>=1.20.0
 
 # Excel File Handling
 openpyxl>=3.0.0
-xlwings>=0.24.0
 
 # GUI Framework (included with Python but listed for clarity)
 # tkinter - comes with Python standard library

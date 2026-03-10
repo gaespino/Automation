@@ -72,6 +72,22 @@ PPV_PATH = WORKSPACE_ROOT / "PPV"
 DEVTOOLS_PATH = WORKSPACE_ROOT / "DEVTOOLS"
 BACKUP_BASE = DEVTOOLS_PATH / "backups"
 
+# PPV Sync — scope and targets
+PPV_SYNC_SCOPE = ['parsers', 'Decoder', 'analysis', 'configs', 'utils', 'DebugScripts']
+PPV_SYNC_ALWAYS_EXCLUDE  = {'__pycache__', 'gui', 'requirements.txt'}
+PPV_SYNC_ALWAYS_EXCLUDE_EXT = {'.pyc', '.xlsm'}
+# Per-target extra exclusions (relative paths from PPV root)
+PPV_SYNC_TARGET_EXCLUDE = {
+    'Portfolio/THRTools': {'parsers/PPVMCAReportAPI.py'},        # Portfolio-only REST wrapper
+    'S2T BASELINE':       {'analysis/examples'},                 # skip large example files in BASELINE
+    'S2T BASELINE_DMR':   {'analysis/examples'},
+}
+PPV_SYNC_TARGETS = {
+    'Portfolio/THRTools':  WORKSPACE_ROOT / 'Portfolio' / 'THRTools',
+    'S2T BASELINE':        BASELINE_PATH / 'DebugFramework' / 'PPV',
+    'S2T BASELINE_DMR':    BASELINE_DMR_PATH / 'DebugFramework' / 'PPV',
+}
+
 # Changelog / agent paths
 CHANGELOG_PATH = DEVTOOLS_PATH / "CHANGELOG.md"
 DEPLOYMENT_CHANGELOG_PATH = DEVTOOLS_PATH / "deployment_changelog.json"
@@ -1118,10 +1134,12 @@ class UniversalDeploymentGUI:
         self.notebook.add("  Deploy  ")
         self.notebook.add("  Reports & Changelog  ")
         self.notebook.add("  Release Notes  ")
+        self.notebook.add("  PPV Sync  ")
 
         self._setup_deploy_tab(self.notebook.tab("  Deploy  "))
         self._setup_reports_tab(self.notebook.tab("  Reports & Changelog  "))
         self._setup_release_tab(self.notebook.tab("  Release Notes  "))
+        self._setup_ppv_sync_tab(self.notebook.tab("  PPV Sync  "))
 
     def _setup_deploy_tab(self, tab):
         """Build the main Deploy tab (ctk, dark theme)."""
@@ -3382,6 +3400,370 @@ DEPLOYED FILES ({len(report['deployed'])})
             "--draft"
         ]
         self._run_agent_command(cmd, f"Creating Draft PR: {title}")
+
+    # ─────────────────────────────────────────────────────────────────────
+    # PPV Sync tab
+    # ─────────────────────────────────────────────────────────────────────
+
+    def _setup_ppv_sync_tab(self, tab):
+        """Build the PPV Sync tab — sync shared parser code from PPV to all targets."""
+        tab.rowconfigure(2, weight=1)
+        tab.columnconfigure(0, weight=1)
+        tab.configure(fg_color=C_BG)
+
+        # ── Header / scope info ──────────────────────────────────────────
+        hdr_outer, hdr = _lf(tab, "PPV Core Sync")
+        hdr_outer.grid(row=0, column=0, sticky="ew", padx=5, pady=(4, 2))
+
+        scope_row = ctk.CTkFrame(hdr, fg_color="transparent")
+        scope_row.pack(fill="x", pady=2)
+        ctk.CTkLabel(scope_row,
+                     text="Scope: " + ", ".join(PPV_SYNC_SCOPE),
+                     font=FONT_SMALL, text_color=C_TEXT_DIM, anchor="w"
+                     ).pack(side="left", padx=4)
+        ctk.CTkLabel(scope_row,
+                     text="  |  Excluding: gui/, __pycache__, requirements.txt, *.pyc",
+                     font=FONT_SMALL, text_color=C_TEXT_DIM, anchor="w"
+                     ).pack(side="left", padx=4)
+
+        btn_row = ctk.CTkFrame(hdr, fg_color="transparent")
+        btn_row.pack(fill="x", pady=2)
+        ctk.CTkButton(btn_row, text="Refresh Preview", width=130,
+                      fg_color=C_INPUT, hover_color=C_BORDER,
+                      command=self._ppv_sync_refresh).pack(side="left", padx=3)
+        self._ppv_sync_diff_only_var = tk.BooleanVar(value=True)
+        ctk.CTkCheckBox(btn_row, text="Show differing files only",
+                        variable=self._ppv_sync_diff_only_var,
+                        font=FONT_SMALL, text_color=C_TEXT,
+                        command=self._ppv_sync_refresh_if_loaded,
+                        ).pack(side="left", padx=8)
+
+        # ── Targets panel ────────────────────────────────────────────────
+        tgt_outer, tgt = _lf(tab, "Deploy Targets")
+        tgt_outer.grid(row=1, column=0, sticky="ew", padx=5, pady=2)
+
+        self._ppv_sync_target_vars: dict[str, tk.BooleanVar] = {}
+        tgt_row = ctk.CTkFrame(tgt, fg_color="transparent")
+        tgt_row.pack(fill="x", pady=2)
+        for name in PPV_SYNC_TARGETS:
+            var = tk.BooleanVar(value=True)
+            self._ppv_sync_target_vars[name] = var
+            extra = ""
+            per_excl = PPV_SYNC_TARGET_EXCLUDE.get(name)
+            if per_excl:
+                extra = f"  [excl: {', '.join(per_excl)}]"
+            ctk.CTkCheckBox(tgt_row, text=name + extra,
+                            variable=var, font=FONT_SMALL,
+                            text_color=C_TEXT
+                            ).pack(side="left", padx=12)
+
+        # ── Main area: file list + diff ──────────────────────────────────
+        main_outer, main_inner = _lf(tab, "File Status Preview")
+        main_outer.grid(row=2, column=0, sticky="nsew", padx=5, pady=2)
+        main_inner.rowconfigure(0, weight=1)
+        main_inner.columnconfigure(0, weight=2)
+        main_inner.columnconfigure(1, weight=3)
+
+        # File list (treeview)
+        tree_frame = ctk.CTkFrame(main_inner, fg_color=C_PANEL2, corner_radius=4)
+        tree_frame.grid(row=0, column=0, sticky="nsew", padx=(2, 1), pady=2)
+        tree_frame.rowconfigure(0, weight=1)
+        tree_frame.columnconfigure(0, weight=1)
+
+        tree_cols = ("portfolio", "baseline", "baseline_dmr")
+        self._ppv_sync_tree = ttk.Treeview(
+            tree_frame, columns=tree_cols, style="Dark.Treeview", selectmode="browse"
+        )
+        vsb = ttk.Scrollbar(tree_frame, orient="vertical",
+                            command=self._ppv_sync_tree.yview)
+        hsb = ttk.Scrollbar(tree_frame, orient="horizontal",
+                            command=self._ppv_sync_tree.xview)
+        self._ppv_sync_tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        self._ppv_sync_tree.grid(row=0, column=0, sticky="nsew")
+        vsb.grid(row=0, column=1, sticky="ns")
+        hsb.grid(row=1, column=0, sticky="ew")
+
+        self._ppv_sync_tree.heading("#0", text="File (relative to PPV/)")
+        self._ppv_sync_tree.heading("portfolio",    text="Portfolio/THRTools")
+        self._ppv_sync_tree.heading("baseline",     text="S2T BASELINE")
+        self._ppv_sync_tree.heading("baseline_dmr", text="S2T BASELINE_DMR")
+        self._ppv_sync_tree.column("#0",            width=260, minwidth=140)
+        self._ppv_sync_tree.column("portfolio",     width=115, minwidth=80,  anchor="center")
+        self._ppv_sync_tree.column("baseline",      width=115, minwidth=80,  anchor="center")
+        self._ppv_sync_tree.column("baseline_dmr",  width=130, minwidth=80,  anchor="center")
+
+        # Color tags
+        self._ppv_sync_tree.tag_configure("identical", foreground=C_IDENT)
+        self._ppv_sync_tree.tag_configure("changed",   foreground=C_MINOR)
+        self._ppv_sync_tree.tag_configure("new",       foreground=C_NEW)
+        self._ppv_sync_tree.tag_configure("excluded",  foreground=C_TEXT_DIM)
+
+        self._ppv_sync_tree.bind("<<TreeviewSelect>>", self._ppv_sync_file_select)
+
+        # Diff viewer
+        diff_frame = ctk.CTkFrame(main_inner, fg_color=C_PANEL2, corner_radius=4)
+        diff_frame.grid(row=0, column=1, sticky="nsew", padx=(1, 2), pady=2)
+        diff_frame.rowconfigure(1, weight=1)
+        diff_frame.columnconfigure(0, weight=1)
+        ctk.CTkLabel(diff_frame, text="Diff (target → source)",
+                     font=FONT_SMALL, text_color=C_TEXT_DIM, anchor="w"
+                     ).grid(row=0, column=0, sticky="w", padx=6, pady=2)
+        self._ppv_sync_diff = ctk.CTkTextbox(diff_frame, font=FONT_MONO,
+                                              fg_color=C_PANEL2, wrap="none",
+                                              state="disabled")
+        self._ppv_sync_diff.grid(row=1, column=0, sticky="nsew", padx=2, pady=2)
+        self._ppv_sync_diff._textbox.tag_config("add",    foreground="#4ec9b0")
+        self._ppv_sync_diff._textbox.tag_config("remove", foreground="#f44747")
+        self._ppv_sync_diff._textbox.tag_config("header", foreground="#569cd6",
+                                                 font=("Cascadia Code", 9, "bold"))
+
+        # ── Bottom action bar ────────────────────────────────────────────
+        bot = ctk.CTkFrame(tab, fg_color=C_PANEL2, height=46, corner_radius=4)
+        bot.grid(row=3, column=0, sticky="ew", padx=5, pady=(2, 4))
+        bot.columnconfigure(0, weight=1)
+        bot.grid_propagate(False)
+
+        self._ppv_sync_status = ctk.CTkLabel(
+            bot, text="Click 'Refresh Preview' to scan for changes.",
+            font=FONT_SMALL, text_color=C_TEXT_DIM, anchor="w"
+        )
+        self._ppv_sync_status.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
+
+        ctk.CTkButton(
+            bot, text="Deploy to Checked Targets ▶", width=200,
+            command=self._ppv_sync_deploy
+        ).grid(row=0, column=1, sticky="e", padx=8, pady=8)
+
+        # internal state
+        self._ppv_sync_data: dict = {}   # rel_path → {target_name: compare_result}
+        self._ppv_sync_loaded = False
+
+    # ── PPV Sync helpers ─────────────────────────────────────────────────
+
+    def _ppv_sync_collect_files(self) -> list[str]:
+        """Walk PPV_SYNC_SCOPE and return rel-paths (forward-slash, relative to PPV_PATH)."""
+        rel_paths = []
+        for folder in PPV_SYNC_SCOPE:
+            src_dir = PPV_PATH / folder
+            if not src_dir.exists():
+                continue
+            for root, dirs, files in os.walk(src_dir):
+                root_path = Path(root)
+                # prune excluded directories in-place
+                dirs[:] = [d for d in dirs if d not in PPV_SYNC_ALWAYS_EXCLUDE]
+                for fname in files:
+                    if fname in PPV_SYNC_ALWAYS_EXCLUDE:
+                        continue
+                    fpath = root_path / fname
+                    if fpath.suffix in PPV_SYNC_ALWAYS_EXCLUDE_EXT:
+                        continue
+                    rel = fpath.relative_to(PPV_PATH).as_posix()
+                    rel_paths.append(rel)
+        return rel_paths
+
+    def _ppv_sync_file_excluded_for(self, rel_path: str, target_name: str) -> bool:
+        """Return True if rel_path should be skipped for the given target."""
+        per_excl = PPV_SYNC_TARGET_EXCLUDE.get(target_name, set())
+        for excl in per_excl:
+            if rel_path == excl or rel_path.startswith(excl + '/'):
+                return True
+        return False
+
+    def _ppv_sync_refresh(self):
+        """Scan PPV source vs all targets and populate the treeview."""
+        self._ppv_sync_tree.delete(*self._ppv_sync_tree.get_children())
+        self._ppv_sync_diff.configure(state="normal")
+        self._ppv_sync_diff.delete("1.0", "end")
+        self._ppv_sync_diff.configure(state="disabled")
+        self._ppv_sync_status.configure(text="Scanning…")
+        self.root.update_idletasks()
+
+        rel_paths = self._ppv_sync_collect_files()
+        self._ppv_sync_data = {}
+        diff_only = self._ppv_sync_diff_only_var.get()
+        target_names = list(PPV_SYNC_TARGETS.keys())
+
+        changed_count = 0
+        for rel in rel_paths:
+            src = PPV_PATH / rel
+            row_results: dict[str, dict] = {}
+            any_diff = False
+            for tname, tbase in PPV_SYNC_TARGETS.items():
+                if self._ppv_sync_file_excluded_for(rel, tname):
+                    row_results[tname] = {'status': 'excluded'}
+                    continue
+                tgt = tbase / rel
+                cmp = FileComparer.compare_files(src, tgt)
+                row_results[tname] = cmp
+                if cmp['status'] != 'identical':
+                    any_diff = True
+
+            self._ppv_sync_data[rel] = row_results
+
+            if diff_only and not any_diff:
+                continue
+
+            def _status_cell(r):
+                if r['status'] == 'excluded':
+                    return '—'
+                if r['status'] == 'identical':
+                    return '✔ same'
+                if r['status'] == 'new':
+                    return '★ new'
+                if r['status'] == 'missing_source':
+                    return '? no src'
+                pct = int(r.get('similarity', 0) * 100)
+                return f'Δ {pct}%'
+
+            cells = [_status_cell(row_results.get(n, {'status': 'excluded'}))
+                     for n in target_names]
+
+            if any_diff:
+                changed_count += 1
+                overall_tag = "new" if all(
+                    row_results.get(n, {}).get('status') == 'new'
+                    for n in target_names
+                    if not self._ppv_sync_file_excluded_for(rel, n)
+                ) else "changed"
+            else:
+                overall_tag = "identical"
+
+            self._ppv_sync_tree.insert(
+                "", "end", iid=rel, text=rel,
+                values=tuple(cells), tags=(overall_tag,)
+            )
+
+        shown = len(self._ppv_sync_tree.get_children())
+        self._ppv_sync_status.configure(
+            text=f"Found {len(rel_paths)} files in scope. "
+                 f"{changed_count} differ from at least one target. "
+                 f"Showing {shown}."
+        )
+        self._ppv_sync_loaded = True
+
+    def _ppv_sync_refresh_if_loaded(self):
+        if self._ppv_sync_loaded:
+            self._ppv_sync_refresh()
+
+    def _ppv_sync_file_select(self, event=None):
+        """Show diff for the selected file against the first differing target."""
+        sel = self._ppv_sync_tree.selection()
+        if not sel:
+            return
+        rel = sel[0]
+        row_results = self._ppv_sync_data.get(rel, {})
+
+        # Pick first target with an actual diff to display
+        diff_lines = []
+        chosen_target = None
+        for tname in PPV_SYNC_TARGETS:
+            cmp = row_results.get(tname, {})
+            if cmp.get('diff_lines'):
+                diff_lines = cmp['diff_lines']
+                chosen_target = tname
+                break
+
+        self._ppv_sync_diff.configure(state="normal")
+        self._ppv_sync_diff.delete("1.0", "end")
+
+        if not diff_lines:
+            if chosen_target is None:
+                self._ppv_sync_diff.insert("end", "(no diff — file is identical in all targets or excluded)")
+            else:
+                self._ppv_sync_diff.insert("end", "(new file — not yet present in targets)")
+            self._ppv_sync_diff.configure(state="disabled")
+            return
+
+        self._ppv_sync_diff.insert("end", f"── diff vs {chosen_target} ──\n", "header")
+        for line in diff_lines:
+            if line.startswith('+'):
+                self._ppv_sync_diff._textbox.insert("end", line + "\n", "add")
+            elif line.startswith('-'):
+                self._ppv_sync_diff._textbox.insert("end", line + "\n", "remove")
+            elif line.startswith('@@') or line.startswith('---') or line.startswith('+++'):
+                self._ppv_sync_diff._textbox.insert("end", line + "\n", "header")
+            else:
+                self._ppv_sync_diff.insert("end", line + "\n")
+        self._ppv_sync_diff.configure(state="disabled")
+
+    def _ppv_sync_deploy(self):
+        """Copy changed PPV files to all checked targets."""
+        if not self._ppv_sync_data:
+            messagebox.showwarning("Nothing to Deploy",
+                                   "Run 'Refresh Preview' first to scan for changes.")
+            return
+
+        checked_targets = {
+            name: path
+            for name, path in PPV_SYNC_TARGETS.items()
+            if self._ppv_sync_target_vars[name].get()
+        }
+        if not checked_targets:
+            messagebox.showwarning("No Targets", "Check at least one deploy target.")
+            return
+
+        # Collect files that actually differ
+        to_deploy: list[tuple[str, str, Path, Path]] = []  # (rel, target_name, src, dst)
+        for rel, row_results in self._ppv_sync_data.items():
+            src = PPV_PATH / rel
+            for tname, tbase in checked_targets.items():
+                cmp = row_results.get(tname, {})
+                if cmp.get('status') in ('excluded', 'identical', 'missing_source'):
+                    continue
+                to_deploy.append((rel, tname, src, tbase / rel))
+
+        if not to_deploy:
+            messagebox.showinfo("Up To Date",
+                                "All files are already identical in the checked targets.")
+            return
+
+        summary = "\n".join(
+            f"  {rel}  →  {tname}" for rel, tname, *_ in to_deploy[:15]
+        )
+        if len(to_deploy) > 15:
+            summary += f"\n  … and {len(to_deploy) - 15} more"
+        if not messagebox.askyesno(
+            "Confirm PPV Sync",
+            f"Deploy {len(to_deploy)} file(s)?\n\n{summary}\n\nBackups will be created."
+        ):
+            return
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_dir = BACKUP_BASE / f"ppv_sync_{timestamp}"
+        errors: list[str] = []
+        deployed = 0
+
+        for rel, tname, src, dst in to_deploy:
+            try:
+                if dst.exists():
+                    bk = backup_dir / tname.replace('/', '_') / rel
+                    bk.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(dst, bk)
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, dst)
+                deployed += 1
+            except Exception as exc:
+                errors.append(f"{rel} → {tname}: {exc}")
+
+        if errors:
+            messagebox.showwarning(
+                "Sync Completed with Errors",
+                f"Deployed {deployed}/{len(to_deploy)} files.\n\nErrors:\n"
+                + "\n".join(errors[:10])
+            )
+        else:
+            messagebox.showinfo(
+                "PPV Sync Complete",
+                f"Successfully synced {deployed} file(s) to {len(checked_targets)} target(s).\n"
+                f"Backups in: {backup_dir}"
+            )
+
+        self._ppv_sync_status.configure(
+            text=f"Last sync: {datetime.now().strftime('%H:%M:%S')} — "
+                 f"{deployed}/{len(to_deploy)} files deployed."
+        )
+        # Refresh to show updated status
+        self._ppv_sync_refresh()
 
 
 def main():

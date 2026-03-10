@@ -6,7 +6,6 @@ if __name__ == "__main__":
 
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-import xlwings as xw
 
 try:
     from .PPVLoopChecks import PTCReportGUI

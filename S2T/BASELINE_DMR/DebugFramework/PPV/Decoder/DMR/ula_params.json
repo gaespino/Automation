@@ -1,8 +1,6 @@
 {
     "MSCOD": {
-        "512": "PL_CERROR",
-        "512": "PL_ERROR",
-        "512": "PL_NFERROR",
+        "512": "PL_CERROR/PL_ERROR/PL_NFERROR",
         "515": "LINK_DEGRADE_MODE",
         "516": "RUNLP_ENTRY_TIMEOUT",
         "517": "QSCD_ENTRY_TIMEOUT",

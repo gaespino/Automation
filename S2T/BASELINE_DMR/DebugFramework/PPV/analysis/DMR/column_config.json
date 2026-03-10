@@ -1,0 +1,24 @@
+{
+  "description": "Column name mappings for DMR MCA tab DataFrames. All keys map to the exact DataFrame column header produced by the DMR decoder. Set a key to null when the column is not applicable for this product.",
+
+  "core_key":     "Module",
+  "err_key":      "MCACOD (ErrDecode)",
+  "dec_col":      "MC DECODE",
+  "bank_col":     "Bank",
+
+  "cha_col":      null,
+  "cha_cbb_col":  "CBB",
+  "cha_env_col":  "ENV",
+  "cha_inst_col": "Instance",
+
+  "llc_col":      null,
+
+  "src_col":      "ModuleID",
+
+  "io_grp_col":   "IMH_CBB",
+  "io_inst_col":  "Instance",
+  "io_dec_col":   "MC_DECODE",
+
+  "mem_inst_col": "Instance",
+  "mem_dec_col":  "MC_DECODE"
+}

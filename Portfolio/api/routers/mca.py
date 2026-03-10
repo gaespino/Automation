@@ -34,7 +34,7 @@ def _backend():
     """Lazily import PPVMCAReport — avoids import-time errors on CaaS."""
     here = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, here)
-    from THRTools.parsers.MCAparser import PPVMCAReport  # type: ignore
+    from THRTools.parsers.PPVMCAReportAPI import PPVMCAReport  # type: ignore
     return PPVMCAReport
 
 
@@ -58,7 +58,7 @@ async def mca_report(
     product: str = Form("GNR"),
     work_week: str = Form("WW1"),
     label: str = Form(""),
-    options: str = Form("REDUCED,DECODE,OVERVIEW"),  # default: all three enabled
+    options: str = Form("REDUCED,DECODE,OVERVIEW,ANALYSIS"),  # default: all four enabled
 ):
     """Generate MCA report and return a ZIP containing the output file(s).
 
@@ -66,6 +66,7 @@ async def mca_report(
       REDUCED  — reduced data mode (filters noise rows)
       DECODE   — MCA decode tab
       OVERVIEW — unit overview Excel file
+      ANALYSIS — MCAAnalyzer post-processing (colour-coded Analysis sheet)
     """
     raw = await file.read()
     options_list = [o.strip().upper() for o in options.split(",") if o.strip()]
@@ -78,12 +79,13 @@ async def mca_report(
         try:
             PPVMCAReport = _backend()
             report = PPVMCAReport(
-                data_file   = src,
-                product     = product,
-                work_week   = work_week,
-                label       = label,
-                mode        = mode,
-                output_dir  = tmpdir,
+                data_file    = src,
+                product      = product,
+                work_week    = work_week,
+                label        = label,
+                mode         = mode,
+                output_dir   = tmpdir,
+                mca_analysis = 'ANALYSIS' in options_list,
             )
             report.run(options=options_list)
             output_files = report.get_output_files()

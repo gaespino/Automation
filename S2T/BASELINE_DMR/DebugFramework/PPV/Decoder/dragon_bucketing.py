@@ -181,6 +181,30 @@ def _get_priority(bckt_main):
     else: return 0
 
 
+def get_silicon_debug_priority(bckt_main):
+    """
+    Returns a recommended triage priority for silicon debug workflows (e.g. PPV/DMR).
+    Unlike _get_priority (Dragon DPM accounting), this ranks MCE_HARD/SOFT highest
+    since hardware errors are typically the root cause; DATA_MISCOMPARE is usually
+    a downstream symptom of an uncorrected hardware error.
+    Priority 1 = highest urgency.
+    """
+    if bckt_main == MCE_HARD:          return 1  # Hardware error - root cause
+    elif bckt_main == MCE_SOFT:        return 2  # Soft MCE - possible root cause
+    elif bckt_main == DATA_MISCOMPARE: return 3  # Often downstream of MCE
+    elif bckt_main == X86_FAULT:       return 4
+    elif bckt_main == DRNG:            return 5
+    elif bckt_main == CONFIG_MISMATCH: return 6
+    elif bckt_main == PM_FLOW:         return 7
+    elif bckt_main == TEST_BUG:        return 8
+    elif bckt_main == EARLY_TERMINATION: return 9
+    elif bckt_main == UNKNOWN:         return 10
+    elif bckt_main == TIMEOUT:         return 11
+    elif bckt_main == FORCE_FAIL:      return 12
+    elif bckt_main == PASS:            return 13
+    else: return 0
+
+
 def _get_retest(bckt_main):
     """Returns a Boolean for whether the error warrants re-testing."""
     if bckt_main in (FORCE_FAIL, PASS):
@@ -395,7 +419,7 @@ _product_alias['dmrap'] = 'dmr'
 _product_alias['dmrsp'] = 'dmr'
 _product_alias['dmrd'] = 'dmr'
 _product_alias['dmredge'] = 'dmr'
-_mce_banks['dmr'] = ["IFU", "DCU", "TLB", "MLC", "PCU", "NCU", "CHA/CBO/LLC", "D2D", None, None, "RASIP", "PCU", "HA", "HSF", "SCA", "D2D", "MSE", "IOCache", "UXI", "iMC", "iMC", "iMC", "iMC", "iMC", "iMC", "iMC", "iMC"]
+_mce_banks['dmr'] = ["IFU", "DCU", "TLB", "MLC", "PCU", "NCU", "CHA/CBO/LLC", "D2D_CBB", None, None, "RASIP", "PCU", "HA", "HSF", "SCA", "D2D_IMH", "MSE", "IOCache", "UXI", "iMC", "iMC", "iMC", "iMC", "iMC", "iMC", "iMC", "iMC"]
 
 _mce_banks['pmr'] = ["BUS", "MLC", "FEC", "MEC", "PCU", "NCU", "CHA/CBO/LLC", "D2D", None, None, "RASIP", "PCU", "HA", "HSF", "SCA", "D2D", "MSE", "IOCache", None, "iMC", "iMC", "iMC", "iMC", "iMC", "iMC", "iMC", "iMC"]
 

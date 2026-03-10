@@ -2,10 +2,12 @@
 #from traceback import extract_tb
 import pandas as pd
 from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
+from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 import shutil
 #import win32com.client as win32
-import xlwings as xw
+# xlwings removed — not compatible with CaaS headless environments; use openpyxl instead
 import sys
 import os
 #import json
@@ -17,6 +19,14 @@ try:
 except ImportError:
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from Decoder import decoder as mcparse
+
+try:
+    from .MCAAnalyzer import MCAAnalyzer
+except ImportError:
+    try:
+        from MCAAnalyzer import MCAAnalyzer
+    except ImportError:
+        MCAAnalyzer = None
 
 
 def init_select_data(product):
@@ -166,7 +176,7 @@ def init_select_data(product):
 	return reduced_data_cha, reduced_data_core, reduced_data_others
 
 class ppv_report():
-	def __init__(self, name, week, label, source_file, report, data_core = None, data_cha = None, reduced = False, mcdetail = True, overview = False, decode = False, mode='Bucketer', product=None):
+	def __init__(self, name, week, label, source_file, report, data_core = None, data_cha = None, reduced = False, mcdetail = False, overview = False, decode = False, mode='Bucketer', product=None, mca_analysis=False):
 
 		self.source_file = rf'{source_file}'
 		self.source_sheet = 'raw_data'
@@ -186,6 +196,7 @@ class ppv_report():
 		self.ovw = overview
 		self.decode = decode
 		self.mcfile = mcdetail
+		self.mca_analysis = mca_analysis
 		## File Initialization
 
 		self.name = name
@@ -299,6 +310,11 @@ class ppv_report():
 		if 'CORE' in options and decode:
 			self.parse_CORE_mcas(self.data_file, self.sheet_CORE)
 
+		# Run MCA Analysis if the mca_analysis switch is enabled
+		if self.mca_analysis:
+			print(' -- Running MCA Analysis...')
+			self.gen_mca_analysis(self.data_file)
+
 		self.gen_auxfiles(data_file = self.data_file, mca_file=self.mca_file, ovw_file=self.ovw_file, mcfile_on=mcfile_on, ovw_on= ovw_on, options = options)
 
 		print(' !!! New file report created succesfully !!!')
@@ -321,8 +337,8 @@ class ppv_report():
 
 		# Close the files
 		if mcfile_on or ovw_on: file_close(source_wb, save=False)
-		if mcfile_on: file_close(target_wb)
-		if ovw_on: file_close(ovw_wb)
+		if mcfile_on: file_close(target_wb, filename=mca_file)
+		if ovw_on: file_close(ovw_wb, filename=ovw_file)
 
 
 	def parse_data(self, option = 'MESH'):
@@ -495,10 +511,7 @@ class ppv_report():
 		target_workbook.save(target_file)
 
 	def copy_table_data(self, source_wb, target_wb, option = 'MESH'):
-
-		# Variables Init
-		#source_wb = self.data_file
-		#target_wb = self.mca_file
+		"""Copy named-table data from source workbook to target workbook (openpyxl implementation)."""
 
 		## Selects which table to update
 		if option == 'MESH':
@@ -517,18 +530,50 @@ class ppv_report():
 			print('No valid option selected, use: MESH or CORE')
 			sys.exit()
 
-		# Get the source and target tables
-		source_table = source_wb.sheets[sheet_name].tables[table_name]
-		target_table = target_wb.sheets[sheet_name].tables[table_name]
+		# openpyxl: worksheets accessed by name via wb[sheet_name]
+		src_ws = source_wb[sheet_name]
+		tgt_ws = target_wb[sheet_name]
 
-		# Get the range of the source table
-		source_range = source_table.data_body_range
+		# Locate the named table in each worksheet
+		src_table = src_ws.tables.get(table_name)
+		tgt_table = tgt_ws.tables.get(table_name)
 
-		# Clear the target table data
-		target_table.data_body_range.clear_contents()
+		if src_table is None:
+			print(f"Table '{table_name}' not found in source sheet '{sheet_name}'.")
+			return
+		if tgt_table is None:
+			print(f"Table '{table_name}' not found in target sheet '{sheet_name}'.")
+			return
 
-		# Copy the data from the source table to the target table
-		target_table.data_body_range.value = source_range.value
+		# Parse the table reference to determine data body range
+		# openpyxl table.ref covers header + data; header is the first row
+		from openpyxl.utils import range_boundaries
+		min_col, min_row, max_col, max_row = range_boundaries(src_table.ref)
+		src_data_rows = list(src_ws.iter_rows(min_row=min_row + 1, max_row=max_row,
+		                                       min_col=min_col, max_col=max_col,
+		                                       values_only=True))
+
+		tgt_min_col, tgt_min_row, tgt_max_col, tgt_max_row = range_boundaries(tgt_table.ref)
+		# Clear target data body rows
+		for row in tgt_ws.iter_rows(min_row=tgt_min_row + 1, max_row=tgt_max_row,
+		                             min_col=tgt_min_col, max_col=tgt_max_col):
+			for cell in row:
+				cell.value = None
+
+		# Write all source data rows into target
+		new_last_data_row = tgt_min_row
+		for row_idx, row_data in enumerate(src_data_rows):
+			tgt_row = tgt_min_row + 1 + row_idx
+			new_last_data_row = tgt_row
+			for col_idx, value in enumerate(row_data):
+				tgt_ws.cell(row=tgt_row, column=tgt_min_col + col_idx, value=value)
+
+		# Expand the table reference to match the actual number of data rows
+		actual_last_row = max(new_last_data_row, tgt_min_row + 1)
+		tgt_table.ref = (
+			f"{get_column_letter(tgt_min_col)}{tgt_min_row}"
+			f":{get_column_letter(tgt_max_col)}{actual_last_row}"
+		)
 
 		print(f"Data copied successfully from source to target workbook {sheet_name} table {table_name}.")
 
@@ -604,28 +649,195 @@ class ppv_report():
 
 		addtable(df=core_df, excel_file=source_file, sheet='CORE_MCAS', table_name='coredecode')
 
-# File manipulation scripts
+	def gen_mca_analysis(self, source_file):
+		"""
+		Run MCAAnalyzer on the decoded CHA/LLC/CORE/UBOX sheets already
+		written to *source_file* and append an 'MCA_Analysis' sheet with
+		the per-unit summary (replicates the Excel 'Analysis' tab).
+		"""
+		if MCAAnalyzer is None:
+			print(' -- MCAAnalyzer not available, skipping MCA Analysis sheet.')
+			return
+
+		wb = load_workbook(source_file)
+		sheet_names = wb.sheetnames
+		wb.close()
+
+		def _safe_read(sheet):
+			if sheet in sheet_names:
+				try:
+					return pd.read_excel(source_file, sheet_name=sheet)
+				except Exception:
+					pass
+			return pd.DataFrame()
+
+		cha_df = _safe_read('CHA_MCAS')
+		llc_df = _safe_read('LLC_MCAS')
+		core_df = _safe_read('CORE_MCAS')
+		firsterr_df = _safe_read('UBOX')
+		ppv_df = _safe_read('PPV')
+		io_df  = _safe_read('IO_MCAS')
+		mem_df = _safe_read('MEM_MCAS')
+
+		# Column name alignment: decoder writes 'Visual ID' (with space)
+		for df in (cha_df, llc_df, core_df, firsterr_df, io_df, mem_df):
+			if 'Visual ID' in df.columns:
+				df.rename(columns={'Visual ID': 'VisualID'}, inplace=True)
+
+		analyzer = MCAAnalyzer(product=self.product)
+		result = analyzer.analyze(
+			cha_df=cha_df,
+			llc_df=llc_df,
+			core_df=core_df,
+			firsterr_df=firsterr_df,
+			ppv_df=ppv_df,
+			io_df=io_df,
+			mem_df=mem_df,
+		)
+		analysis_df = result.get('analysis', pd.DataFrame())
+
+		if analysis_df.empty:
+			print(' -- MCA Analysis produced no data, skipping sheet creation.')
+			return
+
+		print(f' -- Writing MCA_Analysis sheet with {len(analysis_df)} units.')
+		with pd.ExcelWriter(source_file, engine='openpyxl', mode='a') as writer:
+			analysis_df.to_excel(writer, sheet_name='MCA_Analysis', index=False)
+
+		addtable(df=analysis_df, excel_file=source_file, sheet='MCA_Analysis', table_name='mca_analysis')
+		_format_analysis_sheet(analysis_df, source_file)
+
+
+def _format_analysis_sheet(df, excel_file):
+	"""Apply color-coded header formatting to MCA_Analysis sheet, grouping columns by IP."""
+	# Group → (header fill hex, columns that belong to that group)
+	# Colors are gentle pastels for readability
+	GROUP_COLORS = {
+		'identity':  'BDD7EE',  # light blue  – VisualIDs, # Runs, WW
+		'results':   'FCE4D6',  # light orange – Root Cause, Debug Hints, Failing Area
+		'cha':       'E2EFDA',  # light green  – CHA group + traffic sig
+		'llc':       'D9E1F2',  # light blue   – LLC group
+		'core':      'EAD1DC',  # light pink   – Core group
+		'io':        'FFF2CC',  # light yellow – IO group
+		'mem':       'D9D9FF',  # light purple – MEM group
+		'other':     'FFE0CC',  # light salmon – Other group
+		'lot':       'F2F2F2',  # light gray   – Lot
+	}
+	COLUMN_GROUPS = {
+		'VisualIDs'        : 'identity',
+		'# Runs'           : 'identity',
+		'WW'               : 'identity',
+		'Root Cause'       : 'results',
+		'Debug Hints'      : 'results',
+		'Failing Area'     : 'results',
+		'CHA Hint'         : 'cha',
+		'SrcIDs'           : 'cha',
+		'CHA Fail Area'    : 'cha',
+		'CHA MCAs'         : 'cha',
+		'CHA Next Steps'   : 'cha',
+		'Top OrigReq'      : 'cha',
+		'Top OpCode'       : 'cha',
+		'Top ISMQ'         : 'cha',
+		'Top SAD'          : 'cha',
+		'Top SAD LocPort'  : 'cha',
+		'LLC Hint'         : 'llc',
+		'LLC Fail Area'    : 'llc',
+		'LLC MCAs'         : 'llc',
+		'LLC Next Steps'   : 'llc',
+		'Core Hint'        : 'core',
+		'Core Fail Area'   : 'core',
+		'Core MCAs'        : 'core',
+		'Core Bank'        : 'core',
+		'Core Next Steps'  : 'core',
+		'IO Hint'          : 'io',
+		'IO MCAs'          : 'io',
+		'IO Next Steps'    : 'io',
+		'MEM Hint'         : 'mem',
+		'MEM MCAs'         : 'mem',
+		'MEM Next Steps'   : 'mem',
+		'Other'            : 'other',
+		'Other Next Steps' : 'other',
+		'Lot'              : 'lot',
+	}
+	try:
+		wb = load_workbook(excel_file)
+		ws = wb['MCA_Analysis']
+
+		# Build fill objects once per group
+		fills = {grp: PatternFill(start_color=color, end_color=color, fill_type='solid')
+				 for grp, color in GROUP_COLORS.items()}
+		bold_font = Font(bold=True)
+		center_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+		# Apply fills to header row (row 1)
+		for col_idx, col_name in enumerate(df.columns, start=1):
+			cell = ws.cell(row=1, column=col_idx)
+			group = COLUMN_GROUPS.get(col_name)
+			if group and group in fills:
+				cell.fill = fills[group]
+			cell.font = bold_font
+			cell.alignment = center_align
+
+		# Set reasonable column widths
+		WIDTHS = {
+			'VisualIDs'        : 18,
+			'# Runs'           : 8,
+			'WW'               : 8,
+			'Root Cause'       : 22,
+			'Debug Hints'      : 45,
+			'Failing Area'     : 20,
+			'CHA Hint'         : 14,
+			'SrcIDs'           : 10,
+			'CHA Fail Area'    : 16,
+			'CHA MCAs'         : 22,
+			'CHA Next Steps'   : 45,
+			'Top OrigReq'      : 12,
+			'Top OpCode'       : 12,
+			'Top ISMQ'         : 12,
+			'Top SAD'          : 12,
+			'Top SAD LocPort'  : 14,
+			'LLC Hint'         : 14,
+			'LLC Fail Area'    : 16,
+			'LLC MCAs'         : 22,
+			'LLC Next Steps'   : 35,
+			'Core Hint'        : 14,
+			'Core Fail Area'   : 16,
+			'Core MCAs'        : 22,
+			'Core Bank'        : 12,
+			'Core Next Steps'  : 35,
+			'IO Hint'          : 18,
+			'IO MCAs'          : 22,
+			'IO Next Steps'    : 35,
+			'MEM Hint'         : 18,
+			'MEM MCAs'         : 22,
+			'MEM Next Steps'   : 35,
+			'Other'            : 22,
+			'Other Next Steps' : 40,
+			'Lot'              : 14,
+		}
+		for col_idx, col_name in enumerate(df.columns, start=1):
+			col_letter = get_column_letter(col_idx)
+			width = WIDTHS.get(col_name, 14)
+			ws.column_dimensions[col_letter].width = width
+
+		# Freeze panes after the first row so headers stay visible
+		ws.freeze_panes = 'A2'
+
+		wb.save(excel_file)
+		wb.close()
+	except Exception as exc:
+		print(f'[WARN] _format_analysis_sheet: {exc}')
+
+
 def file_open(file):
-	# Variables Init
-	#source_file = self.data_file
-	#target_file = self.mca_file
-
-	# Open the source and target workbooks
-	wb = xw.Book(file)
-	#target_wb = xw.Book(target_file)
-
+	# Open workbook using openpyxl (replaces xlwings which requires a local Excel install)
+	wb = load_workbook(file)
 	return wb
 
-def file_close(file, save = True): #source_wb, target_wb):
-
-	# Variables Init
-	#source_wb = self.source_wb
-	#target_wb = self.target_wb
-
-	# Save and close the workbooks
-	if save: file.save()
+def file_close(file, save=True, filename=None):
+	# Save and close the workbooks (openpyxl Workbook.save() requires a filename)
+	if save: file.save(filename)
 	file.close()
-	#target_wb.close()
 
 def filecopy(src, dst):
 	print(f' -- Duplicating file from template, new file located in: {dst}.')
@@ -638,7 +850,7 @@ def addtable(df, excel_file, sheet, table_name ):
 	ws = wb[sheet]
 
 	# Define the table range, in case there is no data add blanks to the first column, this is just to be consistent with data
-	table_range = f'A1:{chr(64+len(df.columns))}{len(df)+1 if not df.empty else 2}'
+	table_range = f'A1:{get_column_letter(len(df.columns))}{len(df)+1 if not df.empty else 2}'
 
 	# Create a table
 	table = Table(displayName=table_name, ref=table_range)
@@ -681,7 +893,7 @@ def load_dataframe_to_excel(df, excel_file, sheet_name, table_name):
 		table = table_name
 
 	else:
-		table_range = f"A1:{chr(64+len(df.columns))}{len(df)+1}"
+		table_range = f"A1:{get_column_letter(len(df.columns))}{len(df)+1}"
 		table = table_name
 		table = Table(displayName="chadecode", ref=table_range)
 		# Add a default style with striped rows and banded columns

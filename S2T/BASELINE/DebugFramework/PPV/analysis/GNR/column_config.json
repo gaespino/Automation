@@ -1,0 +1,24 @@
+{
+  "description": "Column name mappings for GNR MCA tab DataFrames. All keys map to the exact DataFrame column header produced by the GNR decoder. Set a key to null when the column is not applicable for this product.",
+
+  "core_key":     "CORE",
+  "err_key":      "MCACOD (ErrDecode)",
+  "dec_col":      "MC_DECODE",
+  "bank_col":     "ErrorType",
+
+  "cha_col":      "CHA",
+  "cha_cbb_col":  null,
+  "cha_env_col":  null,
+  "cha_inst_col": null,
+
+  "llc_col":      "LLC",
+
+  "src_col":      "SrcID",
+
+  "io_grp_col":   "IO",
+  "io_inst_col":  "Instance",
+  "io_dec_col":   "MC_DECODE",
+
+  "mem_inst_col": "Instance",
+  "mem_dec_col":  "MC_DECODE"
+}

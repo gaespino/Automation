@@ -147,9 +147,12 @@ class MCAAnalyzer:
 		# Load per-product scoring config (score weights for Compute/Row/Col selection)
 		_cfg_path = config_file or product_dir / 'scoring_config.json'
 		_cfg = _load_json(_cfg_path)
-		self.score_compute = _cfg.get('score_compute', 1)
-		self.score_row     = _cfg.get('score_row',     2)
-		self.score_col     = _cfg.get('score_col',     4)
+		self.score_compute        = _cfg.get('score_compute',        1)
+		self.score_row            = _cfg.get('score_row',            2)
+		self.score_col            = _cfg.get('score_col',            4)
+		self.score_cbb            = _cfg.get('score_cbb',            8)
+		# Note: score_* values are reserved for future weighted scoring.
+		# _score_fail_area() currently uses 100% concentration (not weighted).
 
 		# Layout: prefer product subfolder layout.json, fall back to root GNR files
 		if layout_file:
@@ -509,26 +512,28 @@ class MCAAnalyzer:
 		  DMR     : 'CBB0 : Col3', 'CBB0 : Row1', 'CBB0 : Compute0', 'CBB0'
 		or '' when no meaningful spatial concentration is found.
 
-		Algorithm (mirrors the original Excel Rev*Count sheet logic)
-		-------------------------------------------------------------
+		Algorithm
+		---------
 		A Fail Area is reported only when ALL failing instances share a spatial
 		dimension (100% concentration).  Partial matches are suppressed to avoid
 		misleading low-confidence results.
 
-		Dimension priority (highest specificity wins):
-		  Col (score_col=4)  >  Row (score_row=2)  >  Compute (score_compute=1)
+		GNR / CWF
+		  Rows are physical rows *within* a single compute tile; the same row
+		  number in different compute tiles is NOT the same physical row.
+		  • If all fails share one compute → check Col then Row within it.
+		    Returns 'Compute{N} : Col{C}', 'Compute{N} : Row{R}', or 'Compute{N}'.
+		  • If fails span multiple computes → only a shared column (cross-die
+		    global signal) is reported: 'Col{C}' or '' (no pattern).
 
-		For DMR the CBB tile is evaluated first:
-		  • If all instances share the same CBB, check sub-dimensions within it.
-		  • If sub-dimensions also have 100% concentration, the most specific wins
-		    (e.g. CBB0 : Compute1 before CBB0).
-		  • If sub-dimensions have no concentration → return 'CBB{n}' (CBB-level area).
-		  • If instances span multiple CBBs → return '' (no meaningful pattern).
-
-		Example: Module11 (CBB0:Compute1:Row2:Col3) and Module13 (CBB0:Compute1:Row3:Col1)
-		  → both share CBB0 (100%) and Compute1 (100%) → `CBB0 : Compute1` is returned.
-		Example: CORE0 and CORE1 both in Compute0 but different rows/cols
-		  → 100% share Compute0 → `Compute0` is returned.
+		DMR
+		  The CBB is evaluated first; analysis is scoped within one CBB.
+		  Dimension priority: Col > Row > Compute.
+		  • If all fails share one CBB → returns the most specific sub-label:
+		    'CBB{n} : Col{c}', 'CBB{n} : Row{r}', 'CBB{n} : Compute{k}', or 'CBB{n}'.
+		  • Compute-level concentration → CCF cluster or D2D link issue (base die).
+		  • Row/Col concentration within a compute → DCM/PNC module issue (top die).
+		  • Cross-CBB failures → '' (no single spatial region).
 		"""
 		if not entries_weighted:
 			return ''
@@ -561,9 +566,11 @@ class MCAAnalyzer:
 				row_totals [str(entry.get('row',     ''))] += c
 				col_totals [str(entry.get('col',     ''))] += c
 
-			# Return the most specific 100%-shared sub-dimension (Col > Row > Compute)
+			# Return the most specific 100%-shared sub-dimension
+			# Priority: Col > Row > Compute
 			if col_totals  and col_totals .most_common(1)[0][1] == total:
 				return f"CBB{top_cbb} : Col{col_totals.most_common(1)[0][0]}"
+
 			if row_totals  and row_totals .most_common(1)[0][1] == total:
 				return f"CBB{top_cbb} : Row{row_totals.most_common(1)[0][0]}"
 			if comp_totals and comp_totals.most_common(1)[0][1] == total:
@@ -573,23 +580,40 @@ class MCAAnalyzer:
 			return f"CBB{top_cbb}"
 
 		else:
-			# --- GNR/CWF: compute / row / col ---
+			# --- GNR/CWF ---
+			# Rows are per-compute: Row3 in COMPUTE0 ≠ Row3 in COMPUTE1.
+			# Columns span the full die and are global across all computes.
+			#
+			# Strategy:
+			#  • If all fails share one compute → check Col then Row within it,
+			#    returning 'Compute{N} : Col{C}' / 'Compute{N} : Row{R}' / 'Compute{N}'.
+			#  • If fails span multiple computes → only a shared column is meaningful
+			#    (cross-die signal); returns 'Col{C}' or '' (no pattern found).
 			comp_totals = _Counter()
-			row_totals  = _Counter()
-			col_totals  = _Counter()
 			for entry, c in entries_weighted:
 				comp_num = re.sub(r'[^0-9]', '', str(entry.get('compute', '')))
-				comp_totals[comp_num]                  += c
-				row_totals [str(entry.get('row', ''))] += c
-				col_totals [str(entry.get('col', ''))] += c
+				comp_totals[comp_num] += c
+			top_compute, comp_count = comp_totals.most_common(1)[0]
 
-			# Return the most specific 100%-shared dimension (Col > Row > Compute)
-			if col_totals  and col_totals .most_common(1)[0][1] == total:
-				return f"Col{col_totals.most_common(1)[0][0]}"
-			if row_totals  and row_totals .most_common(1)[0][1] == total:
-				return f"Row{row_totals.most_common(1)[0][0]}"
-			if comp_totals and comp_totals.most_common(1)[0][1] == total:
-				return f"Compute{comp_totals.most_common(1)[0][0]}"
+			if comp_count == total:
+				# All in the same compute tile — check col then row within it
+				col_totals = _Counter()
+				row_totals = _Counter()
+				for entry, c in entries_weighted:
+					col_totals[str(entry.get('col', ''))] += c
+					row_totals[str(entry.get('row', ''))] += c
+				if col_totals.most_common(1)[0][1] == total:
+					return f"Compute{top_compute} : Col{col_totals.most_common(1)[0][0]}"
+				if row_totals.most_common(1)[0][1] == total:
+					return f"Compute{top_compute} : Row{row_totals.most_common(1)[0][0]}"
+				return f"Compute{top_compute}"
+			else:
+				# Cross-compute: only a shared column (global/cross-die) is meaningful
+				col_totals = _Counter()
+				for entry, c in entries_weighted:
+					col_totals[str(entry.get('col', ''))] += c
+				if col_totals and col_totals.most_common(1)[0][1] == total:
+					return f"Col{col_totals.most_common(1)[0][0]}"
 
 			return ''  # no 100% concentrated spatial dimension → no meaningful pattern
 

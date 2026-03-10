@@ -140,8 +140,11 @@
             "1565": "cxl_multiple_bisnp",
             "1564": "cxl_rspm",
             "1561": "cxl_snpblk",
-            "1543": "uxi_iaca_push",
+            "1543": "hsf_miss_WbMtoIPush",
             "1552": "uxi_illegal_opcode",
+            "1553": "uxi_invalid_snp_rsp",
+            "1554": "uxi_rspcurdata",
+            "1555": "uxi_iaca_push",
             "1556": "uxi_illegal_wb",
             "1557": "uxi_invalid_crnid",
             "1553": "uxi_invalid_snp_rsp",
@@ -191,7 +194,7 @@
         "21": ["SNPFIFO_OVF", "Overflow of internal queue of pending snoops"],
         "22": ["NXMFIFO_OVF", "Overflow of internal queue of pending NXM requests"],
         "23": ["CLVALID_OVF", "Overflow of the CAM storing the HSF response"]
-    },  
+    },
     "ERR_STATE": {
         "0": "IDLE",
         "1": "DRAIN",

@@ -1,0 +1,302 @@
+{
+  "description": "Root Cause and Debug Hints priority rules for DMR.",
+  "default_root_cause_order": [
+    "other",
+    "mem",
+    "io",
+    "cha",
+    "llc",
+    "core"
+  ],
+  "default_debug_hints_order": [
+    "other",
+    "mem",
+    "io",
+    "cha",
+    "llc",
+    "core"
+  ],
+  "_condition_operators_reference": {
+    "_summary": "All conditions in a rule must be satisfied (implicit AND). Three operators work on string fields; boolean flags use direct equality.",
+    "_rule_actions": {
+      "override": "Default. Full replacement of priority order; evaluation stops at first match.",
+      "adjust_last": "Moves 'targets' IPs to the end of the current order. All matching adjust rules are applied (in declaration order) after override rules. Composable with other rules.",
+      "adjust_first": "Moves 'targets' IPs to the front of the current order. Same evaluation semantics as adjust_last."
+    },
+    "_string_operators": {
+      "{field}_equals": "Exact case-sensitive match.           e.g. \"top_origreq_equals\": \"PortIn\"",
+      "{field}_in": "Value is in the provided list.        e.g. \"top_origreq_in\": [\"PortIn\", \"PortOut\"]",
+      "{field}_contains": "Substring present anywhere in value.  e.g. \"core_mcas_contains\": \"bank\""
+    },
+    "_boolean_flags": {
+      "{flag}": "Direct equality check.  e.g. \"cha_hint_present\": true"
+    },
+    "_string_fields": [
+      "top_origreq  \u2013 Top OrigReq value (e.g. PortIn, Read, RdCur)",
+      "top_opcode   \u2013 Top OpCode value  (e.g. RdCur, WrPush)",
+      "top_ismq     \u2013 Top ISMQ value    (e.g. Wxsnp, Wdata, Wcmp, Wdata_Wcmp)",
+      "cha_mcas     \u2013 CHA/CCF top MC DECODE value (DMR: expanded MSCOD bit names e.g. TOR_TIMEOUT, UNCORRECTABLE_TAG_ERROR)",
+      "top_sad      \u2013 Top SAD value",
+      "top_locport  \u2013 Top SAD LocPort value",
+      "core_mcas    \u2013 Core top MC DECODE value",
+      "io_mcas      \u2013 IO top MC DECODE value (e.g. 'MCE when MCIP bit is set (MSCOD=2)')",
+      "mem_mcas     \u2013 MEM top MC DECODE value"
+    ],
+    "_boolean_fields": [
+      "cha_hint_present   \u2013 true when CHA Hint  != 'NotFound'",
+      "llc_hint_present   \u2013 true when LLC Hint  != 'NotFound'",
+      "core_hint_present  \u2013 true when Core Hint != 'NotFound'",
+      "srcid_present      \u2013 true when SrcIDs    != 'NotFound'",
+      "other_present      \u2013 true when Other is non-empty",
+      "io_hint_present    \u2013 true when IO Hint   != 'NotFound'",
+      "mem_hint_present   \u2013 true when MEM Hint  != 'NotFound'"
+    ]
+  },
+  "rules": [
+    {
+      "name": "CHA (CCF) error with MEM \u2014 MEM is likely root cause",
+      "description": "When both CCF and HA/HSF MCAs are present, the SCA\u2192HAMVF dependency means HA timeout is typically the root cause. Promote mem above cha.",
+      "condition": {
+        "cha_hint_present": true,
+        "mem_hint_present": true
+      },
+      "override_root_cause_order": [
+        "other",
+        "mem",
+        "cha",
+        "core",
+        "io"
+      ],
+      "override_debug_hints_order": [
+        "other",
+        "mem",
+        "cha",
+        "core",
+        "io"
+      ]
+    },
+    {
+      "name": "IO and MEM both present",
+      "description": "TODO: Tune once DMR data characterizes whether HA or ULA failures are primary.",
+      "condition": {
+        "io_hint_present": true,
+        "mem_hint_present": true
+      },
+      "override_root_cause_order": [
+        "other",
+        "mem",
+        "io",
+        "cha",
+        "core"
+      ],
+      "override_debug_hints_order": [
+        "other",
+        "mem",
+        "io",
+        "cha",
+        "core"
+      ]
+    },
+    {
+      "name": "Opcode PortIn/PortOut with CHA \u2014 demote CHA",
+      "description": "DMR CCF equivalent of the GNR PortIn/PortOut rule. In DMR, OrigReq is combined with Opcode (no MC_MISC3). Uses top_opcode instead.",
+      "condition": {
+        "top_opcode_in": [
+          "PortIn",
+          "PortOut"
+        ],
+        "cha_hint_present": true
+      },
+      "override_root_cause_order": [
+        "other",
+        "mem",
+        "io",
+        "core",
+        "cha"
+      ],
+      "override_debug_hints_order": [
+        "other",
+        "mem",
+        "io",
+        "core",
+        "cha"
+      ]
+    },
+    {
+      "name": "Writeback or Flush opcode with CHA and Core \u2014 Core is root cause",
+      "description": "Opcodes WbMtoI, WbEFtoI, CLFlush, CLWB, LLCWBInv etc. are Core-initiated operations writing data to the CHA/LLC. The CHA error is a downstream side effect. Promote Core above CHA.",
+      "condition": {
+        "top_opcode_in": [
+          "WbMtoI",
+          "WbMtoE",
+          "WbEFtoI",
+          "WbEFtoE",
+          "WbOtoI",
+          "WbOtoE",
+          "WbStoI",
+          "CLFlush",
+          "CLFlush_Opt",
+          "CLWB",
+          "WbInvd",
+          "LLCWB"
+        ],
+        "cha_hint_present": true,
+        "core_hint_present": true
+      },
+      "override_root_cause_order": [
+        "other",
+        "mem",
+        "io",
+        "core",
+        "cha"
+      ],
+      "override_debug_hints_order": [
+        "other",
+        "mem",
+        "io",
+        "core",
+        "cha"
+      ]
+    },
+    {
+      "name": "Lock or SplitLock opcode with CHA \u2014 Core is root cause",
+      "description": "Lock and SplitLock are atomic operations initiated by a Core. The CHA is a victim of the serialization. Demote CHA.",
+      "condition": {
+        "top_opcode_in": [
+          "Lock",
+          "SplitLock",
+          "Unlock"
+        ],
+        "cha_hint_present": true
+      },
+      "override_root_cause_order": [
+        "other",
+        "mem",
+        "io",
+        "core",
+        "cha"
+      ],
+      "override_debug_hints_order": [
+        "other",
+        "mem",
+        "io",
+        "core",
+        "cha"
+      ]
+    },
+    {
+      "name": "Demand Read or RFO opcode with CHA \u2014 CHA is root cause",
+      "description": "CRd, DRd, RFO mean Core is waiting for CHA to fill a cache line. The Core 3-strike MCA is a downstream victim of CHA failing to respond. CHA is root cause.",
+      "condition": {
+        "top_opcode_in": [
+          "CRd",
+          "DRd",
+          "DRd_Opt",
+          "DRdPTE",
+          "RFO",
+          "RFO_Pref",
+          "UCRdF",
+          "ItoM",
+          "SpecItoM",
+          "ItoMWr"
+        ],
+        "cha_hint_present": true,
+        "core_hint_present": true
+      },
+      "override_root_cause_order": [
+        "other",
+        "mem",
+        "io",
+        "cha",
+        "core"
+      ],
+      "override_debug_hints_order": [
+        "other",
+        "mem",
+        "io",
+        "cha",
+        "core"
+      ]
+    },
+    {
+      "name": "Core-only fail \u2014 pure Core hardware defect",
+      "description": "Core MCAs (IFU, DCU, DTLB) firing without any CHA or MEM hint indicate a pure Core hardware defect (pipeline, cache, TLB). Core is unambiguously root cause.",
+      "condition": {
+        "core_hint_present": true,
+        "cha_hint_present": false,
+        "mem_hint_present": false
+      },
+      "override_root_cause_order": [
+        "other",
+        "core",
+        "io",
+        "mem",
+        "cha"
+      ],
+      "override_debug_hints_order": [
+        "other",
+        "core",
+        "io",
+        "mem",
+        "cha"
+      ]
+    },
+    {
+      "name": "CBO TOR in Wxsnp \u2014 Core not responding to snoop",
+      "description": "When the top CBO TOR entry is in Wxsnp (Waiting for snoop) state, the CBO is waiting on an IDI snoop response from a core. Per DMR Mainband Fabric Timeout Handbook: 'If it's in Wxsnp state, it's waiting on a core to respond to a snoop. Check with the core team.' The core failing to acknowledge the snoop is the root cause; the CCF TOR timeout and any Core 3-strike MCA are downstream effects. Note: opcodes with their own rules (DRd/RFO \u2192 Rule 6, Lock \u2192 Rule 5) are caught first; this rule handles remaining Wxsnp cases (e.g. WCiL, CLDemote). Demote CHA; promote Core above CHA.",
+      "condition": {
+        "top_ismq_in": ["Wxsnp"],
+        "cha_hint_present": true,
+        "core_hint_present": true,
+        "mem_hint_present": false
+      },
+      "override_root_cause_order": [
+        "other",
+        "mem",
+        "io",
+        "core",
+        "cha"
+      ],
+      "override_debug_hints_order": [
+        "other",
+        "mem",
+        "io",
+        "core",
+        "cha"
+      ]
+    },
+    {
+      "name": "ML2 3-strike WDTimeout with MEM \u2014 MEM is root cause",
+      "description": "ML2 WDTimeout (3-strike) means the ML2 stopped receiving completions from the fabric. When HAMVF/HSF MCAs are also present the memory hierarchy is blocking the CBO-to-HAMVF completion path; memory is root cause, core ML2 is a downstream victim.",
+      "condition": {
+        "core_hint_present": true,
+        "core_mcas_contains": "WDTimeout",
+        "mem_hint_present":  true
+      },
+      "override_root_cause_order":  ["other", "mem", "cha", "core", "io"],
+      "override_debug_hints_order": ["other", "mem", "cha", "core", "io"]
+    },
+    {
+      "name": "ML2 3-strike WDTimeout with CHA, no MEM \u2014 CHA is root cause",
+      "description": "ML2 WDTimeout with CCF (CHA/CCF) MCAs but no memory errors means the CBO or fabric stopped sending completions to the ML2. CHA is root cause; core ML2 is a downstream victim.",
+      "condition": {
+        "core_hint_present": true,
+        "core_mcas_contains": "WDTimeout",
+        "cha_hint_present":  true,
+        "mem_hint_present":  false
+      },
+      "override_root_cause_order":  ["other", "cha", "core", "io", "mem"],
+      "override_debug_hints_order": ["other", "cha", "core", "io", "mem"]
+    },
+    {
+      "name": "IO MCIP bit set \u2014 deprioritize IO",
+      "description": "When IO MCAs (MC DECODE) shows 'MCE when MCIP bit is set (MSCOD=2)', the IO error is a secondary victim of another failure. Move IO to the last position so the actual root cause surfaces. This is an adjust_last rule \u2014 it composes on top of whichever override rule already fired, leaving the relative ordering of all other IPs unchanged.",
+      "action": "adjust_last",
+      "targets": ["io"],
+      "condition": {
+        "io_hint_present": true,
+        "io_mcas_contains": "MCIP bit is set"
+      }
+    }
+  ]
+}

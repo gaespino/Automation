@@ -1,6 +1,8 @@
 import zipfile
 import os
+import json
 import pandas as pd
+from pathlib import Path
 import colorama
 from tabulate import tabulate
 from colorama import Fore, Style, Back
@@ -312,7 +314,7 @@ class LogSummaryParser:
 		# Initialize a list to store MCA data
 
 		# Define the tabs to parse
-		tabs_to_parse = ['CHA_MCAS', 'LLC_MCAS', 'CORE_MCAS', 'UBOX']
+		tabs_to_parse = ['CHA_MCAS', 'LLC_MCAS', 'CORE_MCAS', 'MEM_MCAS', 'IO_MCAS', 'UBOX']
 
 		# Iterate over each Excel file in the path dictionary
 		for experiment_name, info in excel_path_dict.items():
@@ -336,6 +338,10 @@ class LogSummaryParser:
 							report_data.append(self._check_llc_data( row, experiment_name, run_value))
 						elif tab == 'CORE_MCAS':
 							report_data.append(self._check_core_data(row, experiment_name, run_value))
+						elif tab == 'MEM_MCAS':
+							report_data.append(self._check_mem_data(row, experiment_name, run_value))
+						elif tab == 'IO_MCAS':
+							report_data.append(self._check_io_data(row, experiment_name, run_value))
 						elif tab == 'UBOX':
 							result = self._check_ubox_data( row, experiment_name, run_value)
 							if result:  # Only append if valid UBOX entry
@@ -373,33 +379,54 @@ class LogSummaryParser:
 	def _get_product_config():
 		"""Returns product-specific configuration for MCA parsing.
 
-		To add a new product:
-		1. Add product key to the dictionary
-		2. Specify 'domain_prefix' (e.g., 'CDIE' or 'CBB')
-		3. Specify 'domain_field' (column name for domain, e.g., 'Compute' or 'CBB')
-		4. Specify 'core_field' (column name for core/module)
-		5. Add any product-specific fields in 'extra_cha_fields' if needed
+		Loads column name mappings from PPV/analysis/{product}/column_config.json
+		and merges them with parser-specific supplemental data (domain/prefix layout
+		that is not in column_config.json).  New products only need a column_config.json
+		and an entry in '_supplemental' below.
 		"""
-		return {
+		_analysis_dir = Path(__file__).parent.parent / 'analysis'
+
+		# Parser-specific supplemental data not present in column_config.json
+		_supplemental = {
 			'GNR': {
-				'domain_prefix': 'CDIE',
-				'domain_field': 'Compute',
-				'core_field': 'CORE',
-				'extra_cha_fields': ['CHA']  # No extra fields for GNR
+				'domain_prefix':    'CDIE',
+				'domain_field':     'Compute',
+				'extra_cha_fields': ['CHA'],
 			},
 			'CWF': {
-				'domain_prefix': 'CDIE',
-				'domain_field': 'Compute',
-				'core_field': 'MODULE',
-				'extra_cha_fields': ['CHA']  # No extra fields for CWF
+				'domain_prefix':    'CDIE',
+				'domain_field':     'Compute',
+				'extra_cha_fields': ['CHA'],
 			},
 			'DMR': {
-				'domain_prefix': 'CBB',
-				'domain_field': 'CBB',
-				'core_field': 'MODULE',
-				'extra_cha_fields': ['ENV', 'instance']  # DMR-specific CHA fields
-			}
+				'domain_prefix':    '',      # CBB column already contains full prefix
+				'domain_field':     'CBB',
+				'extra_cha_fields': ['ENV', 'Instance'],
+			},
 		}
+
+		configs = {}
+		for product, supp in _supplemental.items():
+			cfg_path = _analysis_dir / product / 'column_config.json'
+			try:
+				with open(cfg_path, encoding='utf-8') as fh:
+					cc = json.load(fh)
+			except FileNotFoundError:
+				print(f"Warning: column_config.json not found for {product} at {cfg_path}. Using defaults.")
+				cc = {}
+			except json.JSONDecodeError as exc:
+				print(f"Warning: column_config.json for {product} is malformed ({exc}). Using defaults.")
+				cc = {}
+
+			configs[product] = {
+				**supp,
+				'core_field': cc.get('core_key',  'CORE'),
+				'err_field':  cc.get('err_key',   'MCACOD (ErrDecode)'),
+				'dec_col':    cc.get('dec_col',   'MC_DECODE'),
+				'bank_col':   cc.get('bank_col',  'ErrorType'),
+			}
+
+		return configs
 
 	@staticmethod
 	def _get_ubox_config():
@@ -440,11 +467,12 @@ class LogSummaryParser:
 					return None
 				parts.append(str(row[field]))
 
-			# Add MC DECODE at the end
-			if 'MC DECODE' in row:
-				parts.append(str(row['MC DECODE']))
+			# Append the product-specific decode column (dec_col from column_config.json)
+			dec_col = config.get('dec_col', 'MC_DECODE')
+			if dec_col in row:
+				parts.append(str(row[dec_col]))
 			else:
-				print(f"Warning: 'MC DECODE' field not found in {tab_name} row")
+				print(f"Warning: decode column '{dec_col}' not found in {tab_name} row")
 				return None
 
 			return ':'.join(parts)
@@ -533,14 +561,21 @@ class LogSummaryParser:
 			config = configs[product]
 			print(f"Processing CORE_MCAS for product: {product}, experiment: {experiment_name}")
 
-			# CORE format: domain::CORE/MODULE::ErrorType::MCACOD (note: doesn't use MC DECODE)
+			# CORE format: domain::CORE/MODULE::[bank_col::]err_field
+			# bank_col (ErrorType for GNR/CWF, Bank for DMR) is optional — present
+			# only when the column exists and contains a non-null value.  The other
+			# required fields (domain_field, core_field, err_field) raise KeyError on
+			# missing data, which is caught below and reported as PARSE_ERROR.
 			try:
+				err_field = config.get('err_field', 'MCACOD (ErrDecode)')
+				bank_col  = config.get('bank_col',  'ErrorType')
 				parts = [
 					f"{config['domain_prefix']}{row[config['domain_field']]}",
 					str(row[config['core_field']]),
-					str(row['ErrorType']),
-					str(row['MCACOD (ErrDecode)'])
 				]
+				if bank_col in row and pd.notna(row[bank_col]):
+					parts.append(str(row[bank_col]))
+				parts.append(str(row[err_field]))
 				mca_string = '::'.join(parts)
 
 			except KeyError as e:
@@ -621,6 +656,70 @@ class LogSummaryParser:
 		except Exception as e:
 			print(f"Exception in _check_ubox_data for {product}: {e}")
 			return None  # Return None for UBOX errors to skip invalid entries
+
+	def _check_mem_data(self, row, experiment_name, run_value):
+		"""Parse MEM_MCAS tab data with product-specific format.
+
+		GNR/CWF MCA string: Type::Instance::MC_DECODE
+		DMR MCA string:     Type::IMH::Instance::MC_DECODE
+		"""
+		product = self.product
+		try:
+			print(f"Processing MEM_MCAS for product: {product}, experiment: {experiment_name}")
+			try:
+				parts = [str(row['Type'])]
+				if product == 'DMR' and 'IMH' in row:
+					parts.append(str(row['IMH']))
+				parts.append(str(row['Instance']))
+				parts.append(str(row['MC_DECODE']))
+				mca_string = '::'.join(parts)
+			except KeyError as e:
+				print(f"Error: Missing required field {e} in MEM_MCAS for {product}")
+				mca_string = 'PARSE_ERROR'
+
+			return {
+				'Failed MCA': mca_string,
+				'Content': 'MEM_MCAs',
+				'Experiment': experiment_name,
+				'Run Value': run_value
+			}
+
+		except Exception as e:
+			print(f"Exception in _check_mem_data for {product}: {e}")
+			return {'Failed MCA': 'EXCEPTION', 'Content': 'MEM_MCAs', 'Experiment': experiment_name, 'Run Value': run_value}
+
+	def _check_io_data(self, row, experiment_name, run_value):
+		"""Parse IO_MCAS tab data with product-specific format.
+
+		GNR/CWF MCA string: Type::IO::Instance::MC_DECODE
+		DMR MCA string:     Type::IMH_CBB::Instance::MC_DECODE
+		"""
+		product = self.product
+		try:
+			print(f"Processing IO_MCAS for product: {product}, experiment: {experiment_name}")
+			try:
+				parts = [str(row['Type'])]
+				if product == 'DMR' and 'IMH_CBB' in row:
+					parts.append(str(row['IMH_CBB']))
+				elif 'IO' in row:
+					parts.append(str(row['IO']))
+				parts.append(str(row['Instance']))
+				parts.append(str(row['MC_DECODE']))
+				mca_string = '::'.join(parts)
+			except KeyError as e:
+				print(f"Error: Missing required field {e} in IO_MCAS for {product}")
+				mca_string = 'PARSE_ERROR'
+
+			return {
+				'Failed MCA': mca_string,
+				'Content': 'IO_MCAs',
+				'Experiment': experiment_name,
+				'Run Value': run_value
+			}
+
+		except Exception as e:
+			print(f"Exception in _check_io_data for {product}: {e}")
+			return {'Failed MCA': 'EXCEPTION', 'Content': 'IO_MCAs', 'Experiment': experiment_name, 'Run Value': run_value}
 
 ######################################################################################################################
 ###########################     Framework Report Scripts Below
