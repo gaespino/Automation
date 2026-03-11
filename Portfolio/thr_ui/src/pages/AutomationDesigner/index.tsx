@@ -33,6 +33,8 @@ export default function AutomationDesigner() {
     flag_600w: false, check_core: 5,
   });
   const [log, setLog] = useState<string[]>(['Automation Designer ready.']);
+  const [saveFolder, setSaveFolder] = useState('');
+  const [saveFilename, setSaveFilename] = useState('flow_design');
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
 
@@ -183,7 +185,28 @@ export default function AutomationDesigner() {
       addLog('Exported ZIP.'); toast.success('ZIP exported.');
     } catch { toast.error('Export failed'); }
   }, [nodes, edges, unitConfig, experiments]);
-
+  // ── Save to folder (server-side) ──────────────────────────────────────────────
+  const saveToFolder = useCallback(async () => {
+    let folder = saveFolder.trim();
+    if (!folder) {
+      folder = window.prompt('Enter folder path to save files:', '') ?? '';
+      if (!folder.trim()) return;
+      setSaveFolder(folder);
+    }
+    const flowData = buildFlowPayload(nodes, edges, unitConfig, experiments);
+    try {
+      const resp = await api.post('/flow/save_to_folder', {
+        folder_path: folder,
+        filename: saveFilename.trim() || 'flow_design',
+        flow: flowData,
+      });
+      const { saved_files }: { saved_files: string[] } = resp.data;
+      addLog(`Saved ${saved_files.length} file(s) to ${folder}.`);
+      toast.success(`Saved ${saved_files.length} file(s) to folder.`);
+    } catch (err: any) {
+      toast.error(`Save failed: ${err?.response?.data?.detail ?? err.message}`);
+    }
+  }, [nodes, edges, unitConfig, experiments, saveFolder, saveFilename]);
   // ── Node click → update experiment ───────────────────────────────────────
   const onNodeDoubleClick = useCallback((_: React.MouseEvent, node: any) => {
     const exp = prompt(`Assign experiment to ${node.id} (${node.data.label}):`, node.data.experiment ?? '');
@@ -263,6 +286,17 @@ export default function AutomationDesigner() {
             }} />
         </label>
         <button className="btn" onClick={exportZip}>⬇ Export ZIP</button>
+      </div>
+
+      {/* Export / Save-to-folder bar */}
+      <div className="ad-export-bar">
+        <span className="ad-bar-label">Save to Folder:</span>
+        <input className="ad-folder-input" value={saveFolder}
+          onChange={e => setSaveFolder(e.target.value)} placeholder="C:\\flows\\my_project" />
+        <input className="ad-fname-input" value={saveFilename}
+          onChange={e => setSaveFilename(e.target.value)} placeholder="flow_design" />
+        <button className="btn" onClick={saveToFolder}>📁 Save to Folder</button>
+        <span className="dim" style={{fontSize:10}}>Saves project JSON + 4 PPV config files</span>
       </div>
 
       {/* Main area */}

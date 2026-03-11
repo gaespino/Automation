@@ -7,6 +7,7 @@ MCA REST endpoints.
 """
 from __future__ import annotations
 import io
+import json
 import os
 import sys
 import tempfile
@@ -170,6 +171,91 @@ async def mca_save(
             saved.append(fname)
 
     return {"saved": saved, "dest_path": dest_path}
+
+
+# ---------------------------------------------------------------------------
+# /api/mca/sheets  — list sheet names for a cached report file
+# ---------------------------------------------------------------------------
+@router.get("/sheets")
+async def mca_list_sheets(token: str):
+    """Return {filename: [sheet_names]} for a cached MCA report."""
+    if token not in _report_cache:
+        raise HTTPException(status_code=404, detail="Report token not found or expired.")
+    import pandas as pd
+    result = {}
+    for fname, data in _report_cache[token].items():
+        if not fname.endswith((".xlsx", ".xls")):
+            continue
+        try:
+            result[fname] = pd.ExcelFile(io.BytesIO(data)).sheet_names
+        except Exception:
+            result[fname] = []
+    return result
+
+
+# ---------------------------------------------------------------------------
+# /api/mca/sheet_data  — return JSON data for a specific sheet
+# ---------------------------------------------------------------------------
+@router.get("/sheet_data")
+async def mca_sheet_data(token: str, sheet: str, max_rows: int = 2000):
+    """Return column headers + row data for a specific MCA report sheet."""
+    if token not in _report_cache:
+        raise HTTPException(status_code=404, detail="Report token not found or expired.")
+    import pandas as pd
+    for fname, data in _report_cache[token].items():
+        if not fname.endswith((".xlsx", ".xls")):
+            continue
+        try:
+            xl = pd.ExcelFile(io.BytesIO(data))
+            if sheet not in xl.sheet_names:
+                continue
+            # Get actual total row count (read first col only for speed)
+            try:
+                df_count = pd.read_excel(io.BytesIO(data), sheet_name=sheet, usecols=[0])
+                actual_total = len(df_count)
+            except Exception:
+                actual_total = None
+            df = pd.read_excel(io.BytesIO(data), sheet_name=sheet, nrows=max_rows)
+            columns = [
+                ' / '.join(str(x) for x in c) if isinstance(c, tuple) else str(c)
+                for c in df.columns
+            ]
+            rows = json.loads(df.to_json(orient='values', date_format='iso', default_handler=str))
+            return {
+                "sheet": sheet,
+                "columns": columns,
+                "rows": rows,
+                "total_rows": actual_total if actual_total is not None else len(df),
+            }
+        except Exception:
+            continue
+    raise HTTPException(status_code=404, detail=f"Sheet '{sheet}' not found in cached report.")
+
+
+# ---------------------------------------------------------------------------
+# /api/mca/sheet_counts  — fast row counts for all sheets
+# ---------------------------------------------------------------------------
+@router.get("/sheet_counts")
+async def mca_sheet_counts(token: str):
+    """Return {sheet_name: row_count} for all sheets in a cached MCA report."""
+    if token not in _report_cache:
+        raise HTTPException(status_code=404, detail="Report token not found or expired.")
+    import pandas as pd
+    result: dict[str, int] = {}
+    for fname, data in _report_cache[token].items():
+        if not fname.endswith((".xlsx", ".xls")):
+            continue
+        try:
+            xl = pd.ExcelFile(io.BytesIO(data))
+            for sheet in xl.sheet_names:
+                try:
+                    df = pd.read_excel(io.BytesIO(data), sheet_name=sheet, usecols=[0])
+                    result[sheet] = len(df)
+                except Exception:
+                    result[sheet] = 0
+        except Exception:
+            pass
+    return result
 
 
 # ---------------------------------------------------------------------------

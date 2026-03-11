@@ -109,3 +109,17 @@
 }
 .ad-ctx-menu button:hover { background: #2a2d2e; }
 .ad-ctx-menu button.danger { color: #f44747; }
+
+/* Export / Save-to-folder bar */
+.ad-export-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  background: #252526;
+  border-bottom: 1px solid #3e3e42;
+  flex-shrink: 0;
+}
+.ad-bar-label { font-size: 11px; color: #858585; white-space: nowrap; }
+.ad-folder-input { flex: 1; min-width: 100px; }
+.ad-fname-input { width: 120px; }

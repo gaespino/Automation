@@ -3,8 +3,8 @@
 import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
-from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.worksheet.table import Table, TableStyleInfo
+from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 import shutil
 #import win32com.client as win32
 # xlwings removed — not compatible with CaaS headless environments; use openpyxl instead
@@ -545,34 +545,31 @@ class ppv_report():
 			print(f"Table '{table_name}' not found in target sheet '{sheet_name}'.")
 			return
 
-		# Parse the table reference (e.g. "A1:Z100") to determine data body range
+		# Parse the table reference to determine data body range
 		# openpyxl table.ref covers header + data; header is the first row
-		from openpyxl.utils import range_boundaries, get_column_letter
+		from openpyxl.utils import range_boundaries
 		min_col, min_row, max_col, max_row = range_boundaries(src_table.ref)
-		# Data body starts one row after header
 		src_data_rows = list(src_ws.iter_rows(min_row=min_row + 1, max_row=max_row,
 		                                       min_col=min_col, max_col=max_col,
 		                                       values_only=True))
 
 		tgt_min_col, tgt_min_row, tgt_max_col, tgt_max_row = range_boundaries(tgt_table.ref)
-		# Clear target data body rows (existing template rows)
+		# Clear target data body rows
 		for row in tgt_ws.iter_rows(min_row=tgt_min_row + 1, max_row=tgt_max_row,
 		                             min_col=tgt_min_col, max_col=tgt_max_col):
 			for cell in row:
 				cell.value = None
 
-		# Write ALL source data rows into target — do not stop at the template's original
-		# tgt_max_row; the table ref is updated below to cover the actual row count.
-		new_last_data_row = tgt_min_row  # will advance as rows are written
+		# Write all source data rows into target
+		new_last_data_row = tgt_min_row
 		for row_idx, row_data in enumerate(src_data_rows):
 			tgt_row = tgt_min_row + 1 + row_idx
 			new_last_data_row = tgt_row
 			for col_idx, value in enumerate(row_data):
 				tgt_ws.cell(row=tgt_row, column=tgt_min_col + col_idx, value=value)
 
-		# Expand (or shrink) the table reference to match the actual number of data rows
-		# so Excel recognises all copied rows as part of the table.
-		actual_last_row = max(new_last_data_row, tgt_min_row + 1)  # keep at least header + 1 row
+		# Expand the table reference to match the actual number of data rows
+		actual_last_row = max(new_last_data_row, tgt_min_row + 1)
 		tgt_table.ref = (
 			f"{get_column_letter(tgt_min_col)}{tgt_min_row}"
 			f":{get_column_letter(tgt_max_col)}{actual_last_row}"
@@ -713,6 +710,8 @@ class ppv_report():
 
 def _format_analysis_sheet(df, excel_file):
 	"""Apply color-coded header formatting to MCA_Analysis sheet, grouping columns by IP."""
+	# Group → (header fill hex, columns that belong to that group)
+	# Colors are gentle pastels for readability
 	GROUP_COLORS = {
 		'identity':  'BDD7EE',  # light blue  – VisualIDs, # Runs, WW
 		'results':   'FCE4D6',  # light orange – Root Cause, Debug Hints, Failing Area
@@ -764,11 +763,13 @@ def _format_analysis_sheet(df, excel_file):
 		wb = load_workbook(excel_file)
 		ws = wb['MCA_Analysis']
 
+		# Build fill objects once per group
 		fills = {grp: PatternFill(start_color=color, end_color=color, fill_type='solid')
 				 for grp, color in GROUP_COLORS.items()}
 		bold_font = Font(bold=True)
 		center_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
+		# Apply fills to header row (row 1)
 		for col_idx, col_name in enumerate(df.columns, start=1):
 			cell = ws.cell(row=1, column=col_idx)
 			group = COLUMN_GROUPS.get(col_name)
@@ -777,6 +778,7 @@ def _format_analysis_sheet(df, excel_file):
 			cell.font = bold_font
 			cell.alignment = center_align
 
+		# Set reasonable column widths
 		WIDTHS = {
 			'VisualIDs'        : 18,
 			'# Runs'           : 8,
@@ -818,6 +820,7 @@ def _format_analysis_sheet(df, excel_file):
 			width = WIDTHS.get(col_name, 14)
 			ws.column_dimensions[col_letter].width = width
 
+		# Freeze panes after the first row so headers stay visible
 		ws.freeze_panes = 'A2'
 
 		wb.save(excel_file)
@@ -826,22 +829,15 @@ def _format_analysis_sheet(df, excel_file):
 		print(f'[WARN] _format_analysis_sheet: {exc}')
 
 
-# File manipulation scripts
 def file_open(file):
 	# Open workbook using openpyxl (replaces xlwings which requires a local Excel install)
 	wb = load_workbook(file)
 	return wb
 
-def file_close(file, save = True, filename = None): #source_wb, target_wb):
-
-	# Variables Init
-	#source_wb = self.source_wb
-	#target_wb = self.target_wb
-
+def file_close(file, save=True, filename=None):
 	# Save and close the workbooks (openpyxl Workbook.save() requires a filename)
 	if save: file.save(filename)
 	file.close()
-	#target_wb.close()
 
 def filecopy(src, dst):
 	print(f' -- Duplicating file from template, new file located in: {dst}.')

@@ -66,6 +66,13 @@
 .unit-product-label .field-label-name { color: #4ec9b0; font-size: 13px; font-weight: 700; }
 .unit-product-input select { border-color: #4ec9b0 !important; font-weight: 700; color: #4ec9b0 !important; }
 
+/* Export / Import full-width bar */
+.eb-export-bar { margin-bottom: 10px; }
+.eb-export-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.eb-export-group { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+.eb-export-sep { width: 1px; background: #3e3e42; height: 20px; flex-shrink: 0; align-self: center; }
+.eb-bar-label { font-size: 11px; color: #858585; white-space: nowrap; }
+
 /* Form top action bar: experiment name + buttons side by side */
 .form-action-top { display: flex; gap: 12px; align-items: flex-end; margin-bottom: 10px; flex-wrap: wrap; }
 

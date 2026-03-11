@@ -172,6 +172,7 @@ export default function ExperimentBuilder() {
   const [queue,        setQueue]        = useState<QueuedExperiment[]>([]);
   const [editId,       setEditId]       = useState<number | null>(null);
   const [filename,     setFilename]     = useState('experiments');
+  const [saveFolder,   setSaveFolder]   = useState('');
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState('');
   const [formDirty,    setFormDirty]    = useState(false);
@@ -463,6 +464,38 @@ export default function ExperimentBuilder() {
     }
   };
 
+  const handleSaveToFolder = async () => {
+    if (!queue.length) { setError('Queue is empty.'); return; }
+    let folder = saveFolder.trim();
+    if (!folder) {
+      folder = window.prompt('Enter folder path to save files:', '') ?? '';
+      if (!folder.trim()) return;
+      setSaveFolder(folder);
+    }
+    setError('');
+    try {
+      const unitDataRaw: Record<string, string> = { ...unitData };
+      const experimentsData = queue.map(exp => buildFlatExperiment(exp));
+      const resp = await fetch(`${BASE}/experiments/save_to_folder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          folder_path: folder,
+          filename: filename || 'experiments',
+          experiments: experimentsData,
+          unit_data: unitDataRaw,
+          templates,
+        }),
+      });
+      if (!resp.ok) { setError(`${resp.status}: ${await resp.text()}`); return; }
+      const data = await resp.json();
+      setQueue(q => q.map(e => ({ ...e, dirty: false })));
+      alert(`Saved ${(data.saved_files as string[]).join(', ')} to:\n${data.folder}`);
+    } catch (e: unknown) {
+      setError((e as Error).message);
+    }
+  };
+
   const handleLoad = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -545,33 +578,38 @@ export default function ExperimentBuilder() {
     <div className="tool-page">
       <h2 className="page-title">🧪 Experiment Builder</h2>
 
+      {/* ─── Export / Import bar — full width ─── */}
+      <div className="panel eb-export-bar">
+        {error && <div className="error-msg" style={{ marginBottom: 6 }}>{error}</div>}
+        <div className="eb-export-row">
+          <div className="eb-export-group">
+            <span className="eb-bar-label">Filename:</span>
+            <input value={filename} onChange={e => setFilename(e.target.value)}
+              placeholder="experiments" style={{ width: 150 }} />
+          </div>
+          <div className="eb-export-sep" />
+          <div className="eb-export-group">
+            <button className="btn primary" onClick={handleSave} disabled={!queue.length}>⬇ Save .tpl</button>
+            <button className="btn primary" onClick={handleExportJSON} disabled={!queue.length}
+              title="Export experiments to production JSON file">📤 Export JSON</button>
+            <button className="btn" onClick={() => loadRef.current?.click()}>📂 Load .tpl</button>
+            <input ref={loadRef} type="file" accept=".tpl,.json" style={{ display: 'none' }} onChange={handleLoad} />
+          </div>
+          <div className="eb-export-sep" />
+          <div className="eb-export-group" style={{ flex: 1 }}>
+            <span className="eb-bar-label">Save to Folder:</span>
+            <input value={saveFolder} onChange={e => setSaveFolder(e.target.value)}
+              placeholder="C:\\experiments" style={{ flex: 1, minWidth: 120 }} />
+            <button className="btn" onClick={handleSaveToFolder} disabled={!queue.length}
+              title="Save .tpl + .json to a folder on the server">📁 Save to Folder</button>
+          </div>
+        </div>
+      </div>
+
       <div className={`eb-layout${compareMode ? ' eb-compare-mode' : ''}`}>
 
-        {/* ─── Left: Export/Import → Unit Data → Experiments list ─── */}
+        {/* ─── Left: Unit Data → Experiments list ─── */}
         <div className="eb-left">
-
-          {/* Export / Import — top of left panel */}
-          <div className="panel">
-            <div className="section-title">Export / Import</div>
-            <div className="form-grid" style={{ marginBottom: 10 }}>
-              <label>Filename</label>
-              <input value={filename} onChange={e => setFilename(e.target.value)} placeholder="experiments" />
-            </div>
-            {error && <div className="error-msg" style={{ marginBottom: 8 }}>{error}</div>}
-            <div className="action-row">
-              <button className="btn primary" onClick={handleSave} disabled={!queue.length}>
-                ⬇ Save .tpl
-              </button>
-              <button className="btn primary" onClick={handleExportJSON} disabled={!queue.length}
-                title="Export experiments to production JSON file">
-                📤 Export JSON
-              </button>
-              <button className="btn" onClick={() => loadRef.current?.click()}>
-                📂 Load .tpl
-              </button>
-              <input ref={loadRef} type="file" accept=".tpl,.json" style={{ display: 'none' }} onChange={handleLoad} />
-            </div>
-          </div>
 
           {/* Unit Data — shared configuration applied to all experiments */}
           {Object.keys(fieldConfigs).length > 0 && (
@@ -855,8 +893,7 @@ export default function ExperimentBuilder() {
                 </div>
               )}
 
-              <div className={form['Experiment'] === 'false' ? 'exp-form-disabled' : ''}>
-                <div className="form-action-top">
+              <div className="form-action-top">
                   <div style={{ flex: 1 }}>
                     <label style={{ display: 'block', marginBottom: 4, fontSize: 11, color: '#858585' }}>Experiment Name</label>
                     <input
@@ -879,7 +916,8 @@ export default function ExperimentBuilder() {
                       </button>
                     )}
                   </div>
-                </div>
+              </div>
+              <div className={form['Experiment'] === 'false' ? 'exp-form-disabled' : ''}>
 
                 {Object.entries(sectionGroups).map(([section, fields]) => {
                   // Unit Data is shown in the left panel; skip it here

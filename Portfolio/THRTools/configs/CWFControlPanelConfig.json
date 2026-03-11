@@ -2,9 +2,9 @@
     "field_configs": {
         "Experiment": {
             "section": "Basic Information",
-            "type": "bool",
-            "default": true,
-            "description": "Experiment enabled/disabled status",
+            "type": "str",
+            "default": "",
+            "description": "Experiment name/identifier",
             "required": true
         },
         "Test Name": {
@@ -186,7 +186,7 @@
                 "Mesh": {
                     "type": "str",
                     "options": [
-                        "",
+						"",
                         "RowPass1",
                         "RowPass2",
                         "RowPass3",
@@ -198,18 +198,9 @@
                 "Slice": {
                     "type": "int",
                     "range": {
-                        "GNR": [
-                            0,
-                            179
-                        ],
-                        "CWF": [
-                            0,
-                            179
-                        ],
-                        "DMR": [
-                            0,
-                            128
-                        ]
+                        "GNR": [0, 179],
+                        "CWF": [0, 179],
+                        "DMR": [0, 128]
                     }
                 }
             }

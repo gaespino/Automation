@@ -44,6 +44,89 @@ _TERMINAL = {"EndNode", "EndFlowInstance"}
 _STARTERS = {"StartNode", "StartFlowInstance"}
 
 # ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+# web snake_case → PPV display-name field keys
+_UC_MAP: Dict[str, str] = {
+    "visual_id":  "Visual ID",
+    "bucket":     "Bucket",
+    "com_port":   "COM Port",
+    "ip":         "IP Address",
+    "flag_600w":  "600W Unit",
+    "check_core": "Check Core",
+}
+
+
+def _translate_unit_config(uc: Dict[str, Any]) -> Dict[str, Any]:
+    """Translate web unit_config keys to PPV display names, skipping empty/falsy values."""
+    out: Dict[str, Any] = {}
+    for web_key, ppv_key in _UC_MAP.items():
+        val = uc.get(web_key)
+        if val is None or val == "" or val is False:
+            continue
+        out[ppv_key] = val
+    return out
+
+
+def _build_ppv_files(flow: "FlowModel") -> Dict[str, str]:
+    """Build the 4 PPV config file contents from a FlowModel."""
+    from datetime import datetime
+    nodes = flow.nodes
+    uc_overrides = _translate_unit_config(flow.unit_config)
+
+    # Apply unit config overrides to every experiment in the flow
+    experiments_out: Dict[str, Any] = {}
+    for exp_name, exp_data in flow.experiments.items():
+        merged = dict(exp_data)
+        merged.update(uc_overrides)
+        experiments_out[exp_name] = merged
+
+    # FrameworkAutomationStructure.json — matches PPV import_flow_config() expectations
+    structure: Dict[str, Any] = {}
+    for nid, n in nodes.items():
+        output_map = {str(port): target for port, target in n.connections.items()}
+        structure[nid] = {
+            "name":          n.name,
+            "instanceType":  n.type,
+            "flow":          n.experiment if n.experiment else "default",
+            "outputNodeMap": output_map,
+        }
+
+    # FrameworkAutomationFlows.json — experiment name → full experiment data dict
+    # (not a connection map; PPV reads this as the experiment library)
+
+    # FrameworkAutomationInit.ini — [DEFAULT] header + one section per experiment
+    ini_lines: List[str] = [
+        "[DEFAULT]",
+        "# Automation Flow Configuration",
+        f"# Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        "",
+    ]
+    for exp_name in experiments_out:
+        ini_lines.append(f"[{exp_name}]")
+        ini_lines.append("# Add experiment-specific configuration here")
+        ini_lines.append("")
+    ini_content = "\n".join(ini_lines)
+
+    # FrameworkAutomationPositions.json — raw coords, no offset (PPV applies display offset itself)
+    positions = {nid: {"x": int(n.x), "y": int(n.y)} for nid, n in nodes.items()}
+
+    return {
+        "FrameworkAutomationStructure.json": json.dumps(structure, indent=2),
+        "FrameworkAutomationFlows.json":     json.dumps(experiments_out, indent=2),
+        "FrameworkAutomationInit.ini":       ini_content,
+        "FrameworkAutomationPositions.json": json.dumps(positions, indent=2),
+    }
+
+
+class SaveToFolderRequest(BaseModel):
+    folder_path: str
+    filename: str = "flow_design"
+    flow: "FlowModel"
+
+
+# ---------------------------------------------------------------------------
 # /api/flow/validate
 # ---------------------------------------------------------------------------
 @router.post("/validate")
@@ -81,57 +164,73 @@ async def validate_flow(flow: FlowModel):
 @router.post("/export")
 async def export_flow(flow: FlowModel):
     """Export flow as a ZIP containing 4 PPV-compatible config files."""
-    nodes = flow.nodes
-    uc = flow.unit_config
-
-    # FrameworkAutomationStructure.json
-    structure = {
-        nid: {
-            "NodeName": n.name,
-            "NodeType": n.type,
-            "Experiment": n.experiment or "",
-        }
-        for nid, n in nodes.items()
-    }
-
-    # FrameworkAutomationFlows.json  (connections, port = key)
-    flows: Dict[str, Any] = {}
-    for nid, n in nodes.items():
-        flows[nid] = {f"Port{k}": v for k, v in n.connections.items()}
-
-    # FrameworkAutomationInit.ini
-    cfg = configparser.ConfigParser()
-    cfg["UnitConfig"] = {
-        "VisualID":   uc.get("visual_id", ""),
-        "Bucket":     uc.get("bucket", ""),
-        "COMPort":    uc.get("com_port", ""),
-        "IPAddress":  uc.get("ip", ""),
-        "600W":       str(uc.get("flag_600w", False)),
-        "CheckCore":  str(uc.get("check_core", 5)),
-    }
-    ini_buf = io.StringIO()
-    cfg.write(ini_buf)
-
-    # FrameworkAutomationPositions.json (PPV top-left: subtract 75/50 offset)
-    positions = {
-        nid: {"x": int(n.x - 75), "y": int(n.y - 50)}
-        for nid, n in nodes.items()
-    }
-
-    # Build ZIP
+    ppv_files = _build_ppv_files(flow)
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("FrameworkAutomationStructure.json",  json.dumps(structure,  indent=2))
-        zf.writestr("FrameworkAutomationFlows.json",      json.dumps(flows,      indent=2))
-        zf.writestr("FrameworkAutomationInit.ini",        ini_buf.getvalue())
-        zf.writestr("FrameworkAutomationPositions.json",  json.dumps(positions,  indent=2))
+        for fname, content in ppv_files.items():
+            zf.writestr(fname, content)
     buf.seek(0)
-
     return StreamingResponse(
         buf,
         media_type="application/zip",
         headers={"Content-Disposition": 'attachment; filename="FlowConfig.zip"'},
     )
+
+
+# ---------------------------------------------------------------------------
+# /api/flow/save_to_folder
+# ---------------------------------------------------------------------------
+@router.post("/save_to_folder")
+async def save_flow_to_folder(req: SaveToFolderRequest):
+    """Save flow project JSON + 4 PPV config files to a server-side folder path."""
+    folder = req.folder_path
+    if not os.path.isdir(folder):
+        try:
+            os.makedirs(folder, exist_ok=True)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Cannot create folder: {exc}")
+
+    from datetime import datetime
+    saved: List[str] = []
+    try:
+        # Write 4 PPV config files
+        for fname, content in _build_ppv_files(req.flow).items():
+            path = os.path.join(folder, fname)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(content)
+            saved.append(path)
+
+        # Write project JSON (web format — can be reloaded in the browser UI)
+        nodes_dict = {
+            nid: {
+                "id": n.id, "name": n.name, "type": n.type,
+                "x": n.x, "y": n.y, "experiment": n.experiment,
+                "connections": n.connections,
+            }
+            for nid, n in req.flow.nodes.items()
+        }
+        project = {
+            "nodes":       nodes_dict,
+            "unit_config": req.flow.unit_config,
+            "experiments": req.flow.experiments,
+            "_format":     "web",
+            "metadata": {
+                "saved":        datetime.now().isoformat(),
+                "version":      "2.0",
+                "node_counter": len(req.flow.nodes),
+            },
+        }
+        proj_path = os.path.join(folder, f"{req.filename}.json")
+        with open(proj_path, "w", encoding="utf-8") as fh:
+            json.dump(project, fh, indent=2)
+        saved.append(proj_path)
+
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail=traceback.format_exc())
+
+    return {"success": True, "saved_files": saved, "folder": folder}
 
 
 # ---------------------------------------------------------------------------

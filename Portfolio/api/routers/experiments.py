@@ -1,8 +1,9 @@
 """
 Experiment Builder REST endpoints.
-  GET  /api/experiments/config/{product}  — ControlPanelConfig.json
-  GET  /api/experiments/products          — available products
-  POST /api/experiments/build             — build/export experiment list as .tpl
+  GET  /api/experiments/config/{product}       — ControlPanelConfig.json
+  GET  /api/experiments/products               — available products
+  POST /api/experiments/build                  — build/export experiment list as .tpl
+  POST /api/experiments/save_to_folder         — save .tpl file to a server folder path
   POST /api/experiments/templates/import-excel — import templates from .xlsx
 """
 from __future__ import annotations
@@ -76,6 +77,50 @@ async def build_experiments(req: ExperimentBuildRequest):
         media_type="application/json",
         headers={"Content-Disposition": f'attachment; filename="{req.filename}"'},
     )
+
+
+class SaveTplToFolderRequest(BaseModel):
+    folder_path: str
+    filename: str = "experiments"
+    experiments: List[dict] = Field(default_factory=list)
+    unit_data: dict = Field(default_factory=dict)
+    templates: dict = Field(default_factory=dict)
+
+
+@router.post("/save_to_folder")
+async def save_tpl_to_folder(req: SaveTplToFolderRequest):
+    """Save .tpl and .json files directly to a server-side folder path."""
+    folder = req.folder_path
+    if not os.path.isdir(folder):
+        try:
+            os.makedirs(folder, exist_ok=True)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Cannot create folder: {exc}")
+
+    from datetime import datetime
+    tpl_output = {
+        "unit_data":   req.unit_data,
+        "experiments": req.experiments,
+        "templates":   req.templates,
+        "saved_date":  datetime.now().isoformat(),
+        "tool":        "THR Experiment Builder",
+        "file_type":   "configuration",
+    }
+    # Production JSON: { "Test Name": flatFields, ... }
+    json_output: dict = {
+        str(exp.get("Test Name") or f"Experiment_{i + 1}"): exp
+        for i, exp in enumerate(req.experiments)
+    }
+    tpl_fname = f"{req.filename}.tpl"
+    json_fname = f"{req.filename}.json"
+    try:
+        with open(os.path.join(folder, tpl_fname), "w", encoding="utf-8") as fh:
+            json.dump(tpl_output, fh, indent=2)
+        with open(os.path.join(folder, json_fname), "w", encoding="utf-8") as fh:
+            json.dump(json_output, fh, indent=4)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    return {"success": True, "saved_files": [tpl_fname, json_fname], "folder": folder}
 
 
 @router.post("/templates/import-excel")

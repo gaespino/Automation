@@ -2,9 +2,9 @@
     "field_configs": {
         "Experiment": {
             "section": "Basic Information",
-            "type": "bool",
-            "default": true,
-            "description": "Experiment enabled/disabled status",
+            "type": "str",
+            "default": "",
+            "description": "Experiment name/identifier",
             "required": true
         },
         "Test Name": {
@@ -154,7 +154,7 @@
             "description": "Core license key",
             "required": false,
             "options": [
-                "",
+				"",
                 "1: SSE/128",
                 "2: AVX2/256 Light",
                 "3: AVX2/256 Heavy",
@@ -196,32 +196,23 @@
                 "Mesh": {
                     "type": "str",
                     "options": [
-                        "",
+						"",
                         "Compute0",
                         "Compute1",
                         "Compute2",
                         "Compute3",
-                        "Cbb0",
-                        "Cbb1",
-                        "Cbb2",
-                        "Cbb3"
+						"Cbb0",
+						"Cbb1",
+						"Cbb2",
+						"Cbb3"
                     ]
                 },
                 "Slice": {
                     "type": "int",
                     "range": {
-                        "GNR": [
-                            0,
-                            179
-                        ],
-                        "CWF": [
-                            0,
-                            179
-                        ],
-                        "DMR": [
-                            0,
-                            128
-                        ]
+                        "GNR": [0, 179],
+                        "CWF": [0, 179],
+                        "DMR": [0, 128]
                     }
                 }
             }

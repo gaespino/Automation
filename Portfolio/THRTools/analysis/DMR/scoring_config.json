@@ -1,6 +1,9 @@
 {
-  "description": "DMR MCA Analysis scoring weights for Compute/Row/Col failing-area selection. Placeholder values — update once DMR-specific calibration data is available.",
-  "score_compute": 1,
+  "description": "DMR MCA Analysis scoring weights for failing-area selection. Analysis is scoped per-CBB (4 CBBs, each with 4 computes × 2 rows × 4 cols = 32 CBO positions per CBB, 128 total). Dimension priority: CBB > Compute > Row > Col. DMR uses a x4 clustered ring topology — there is no hemisphere or half-die partitioning.",
+  "score_cbb": 8,
+  "score_compute": 4,
   "score_row": 2,
-  "score_col": 4
+  "score_col": 1,
+  "_topology_note": "DMR CBB fabric is a x4 clustered ring with dual 2x2 crossbars (not a mesh). Each of the 4 CCF clusters (computes 0-3) is connected to one D2D link and 1/4 of the CBB memory channels. The 4 env columns (0-3) represent positions in the clustered ring, not hemisphere boundaries.",
+  "_failure_note": "Compute-level concentration within a CBB → CCF cluster or D2D link issue (base die). Row/Col concentration within a compute → DCM/PNC module issue (top die). Cross-CBB failures → no single spatial region."
 }

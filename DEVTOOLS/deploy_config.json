@@ -17,10 +17,10 @@
     "GNR": {
       "source_type": "BASELINE",
       "deployment_type": "DebugFramework",
-      "target_base": "Q:\\Gaespino\\scripts\\s2t\\Deploys\\GNR\\prod\\DebugFramework",
-      "replacement_csv": "C:\\Git\\Automation\\DEVTOOLS\\import_replacement_gnr.csv",
-      "rename_csv": "C:\\Git\\Automation\\DEVTOOLS\\file_rename_gnr.csv",
-      "manifest_file": "C:\\Git\\Automation\\DEVTOOLS\\deployment_manifest_debugframework.json",
+      "target_base": "",
+      "replacement_csv": "",
+      "rename_csv": "",
+      "manifest_file": "",
       "selected_files": []
     },
     "CWF": {

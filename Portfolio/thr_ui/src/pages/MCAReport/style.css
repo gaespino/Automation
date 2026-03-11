@@ -106,3 +106,81 @@
   border-top: 1px solid #3e3e42;
 }
 .picker-footer .dim { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; font-size: 11px; }
+
+/* ── MCA Preview ──────────────────────────────────────────────────────────── */
+.mca-preview { display: flex; flex-direction: column; gap: 0; }
+
+.mca-preview-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #1e1e1e;
+  border: 1px solid #3e3e42;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.mca-preview-vid-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mca-preview-options-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Section list */
+.mca-sections { display: flex; flex-direction: column; gap: 6px; }
+
+.mca-sections-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4ec9b0;
+  padding: 2px 0 6px;
+  border-bottom: 1px solid #3e3e42;
+  margin-bottom: 4px;
+}
+
+/* Individual section card */
+.mca-section {
+  border: 1px solid #3e3e42;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mca-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #252526;
+  font-size: 12px;
+  font-weight: 600;
+  color: #d4d4d4;
+  cursor: pointer;
+  user-select: none;
+}
+.mca-section-header:hover { background: #2a2d2e; }
+
+.mca-section-chevron { font-size: 10px; color: #858585; min-width: 10px; }
+
+.mca-section-count {
+  font-size: 10px;
+  font-weight: 400;
+  color: #858585;
+  margin-left: 4px;
+}
+
+.mca-section-body {
+  padding: 8px;
+  background: #1e1e1e;
+  border-top: 1px solid #3e3e42;
+}
+
+/* Alternating table rows (used by SectionTable) */
+.ev-row-alt td { background: #252526; }

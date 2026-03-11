@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import MCAPreview from './MCAPreview';
 import './style.css';
 
 const BASE = import.meta.env.VITE_API_BASE ?? '/api';
@@ -21,7 +22,7 @@ const OPTIONS: CheckboxOption[] = [
   { key: 'reduced',   label: 'Reduced Report' },
   { key: 'decode',    label: 'MCA Decode' },
   { key: 'overview',  label: 'Overview Sheet' },
-  // MC Checker option has been removed (deprecated)
+  { key: 'analysis',  label: 'MCA Analysis' },
 ];
 
 interface OutputFile { name: string; size: number; }
@@ -117,7 +118,7 @@ export default function MCAReport() {
   const [workWeek,  setWorkWeek]  = useState('WW9');
   const [label,     setLabel]     = useState('');
   const [opts,      setOpts]      = useState<Record<string,boolean>>({
-    reduced: true, decode: true, overview: true,
+    reduced: true, decode: true, overview: true, analysis: true,
   });
   const [file,      setFile]      = useState<File | null>(null);
   const [dragging,  setDragging]  = useState(false);
@@ -394,6 +395,14 @@ export default function MCAReport() {
           {log || 'Ready.'}
         </div>
       </div>
+
+      {/* Inline MCA viewer — shows Analysis sections + optional MCA tabs + chart after generation */}
+      {result && (
+        <div className="panel" style={{ marginTop: 12 }}>
+          <div className="section-title">📊 MCA Preview</div>
+          <MCAPreview token={result.token} apiBase={`${BASE}/mca`} />
+        </div>
+      )}
 
       {showBrowse && (
         <DirPicker
