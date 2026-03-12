@@ -7,11 +7,48 @@ echo ===================================================
 echo     Portfolio - THR Tools + Dashboard Launcher
 echo ===================================================
 echo.
-echo   Dashboard:   http://localhost:8000/dashboard/
-echo   THR Tools:   http://localhost:8000/thr/
-echo   API Docs:    http://localhost:8000/docs
-echo   Health:      http://localhost:8000/health
+
+:: Ask for port (default 8000)
+SET /P APP_PORT="Enter port to use [default: 8000]: "
+IF "!APP_PORT!"=="" SET APP_PORT=8000
+
+:: Validate port is numeric
+echo !APP_PORT!| findstr /r "^[0-9][0-9]*$" >nul 2>&1
+IF !ERRORLEVEL! NEQ 0 (
+    echo [WARNING] Invalid port "!APP_PORT!", using 8000.
+    SET APP_PORT=8000
+)
+
+echo.
+echo   Dashboard:   http://localhost:!APP_PORT!/dashboard/
+echo   THR Tools:   http://localhost:!APP_PORT!/thr/
+echo   API Docs:    http://localhost:!APP_PORT!/docs
+echo   Health:      http://localhost:!APP_PORT!/health
 echo ===================================================
+echo.
+
+:: Check for any process already listening on that port
+FOR /F "tokens=5" %%P IN ('netstat -ano 2^>nul ^| findstr /r "[:.]!APP_PORT! " ^| findstr "LISTENING"') DO (
+    SET EXISTING_PID=%%P
+)
+IF DEFINED EXISTING_PID (
+    echo [WARNING] Port !APP_PORT! is already in use by PID !EXISTING_PID!.
+    FOR /F "tokens=1 skip=3" %%N IN ('tasklist /FI "PID eq !EXISTING_PID!" 2^>nul') DO SET EXISTING_NAME=%%N
+    IF DEFINED EXISTING_NAME echo          Process: !EXISTING_NAME!
+    echo.
+    SET /P KILL_IT="Kill it and continue? [Y/N, default: Y]: "
+    IF /I "!KILL_IT!"=="" SET KILL_IT=Y
+    IF /I "!KILL_IT!"=="Y" (
+        echo [INFO] Killing PID !EXISTING_PID!...
+        taskkill /PID !EXISTING_PID! /F >nul 2>&1
+        timeout /t 1 >nul
+        echo [INFO] Process killed.
+    ) ELSE (
+        echo [ABORT] Cannot start while port !APP_PORT! is in use.
+        pause
+        exit /b 1
+    )
+)
 echo.
 
 :: 1. Check Python Availability
@@ -72,14 +109,14 @@ IF EXIST "thr_ui\dist\index.html" (
 
 :: 6. Launch FastAPI + uvicorn
 echo.
-echo [INFO] Starting Portfolio server on http://localhost:8000 ...
-echo [INFO]   Dashboard : http://localhost:8000/dashboard/
-echo [INFO]   THR Tools : http://localhost:8000/thr/
-echo [INFO]   API Docs  : http://localhost:8000/docs
+echo [INFO] Starting Portfolio server on http://localhost:!APP_PORT! ...
+echo [INFO]   Dashboard : http://localhost:!APP_PORT!/dashboard/
+echo [INFO]   THR Tools : http://localhost:!APP_PORT!/thr/
+echo [INFO]   API Docs  : http://localhost:!APP_PORT!/docs
 echo.
 
-start /b "" cmd /c "timeout /t 2 >nul && start http://localhost:8000/thr/"
+start /b "" cmd /c "timeout /t 2 >nul && start http://localhost:!APP_PORT!/thr/"
 
-uvicorn api.main:app --host 0.0.0.0 --port 8000
+uvicorn api.main:app --host 0.0.0.0 --port !APP_PORT!
 
 pause

@@ -3,6 +3,12 @@ import './style.css';
 
 const BASE = import.meta.env.VITE_API_BASE ?? '/api';
 
+function currentWW(): number {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  return Math.ceil(((now.getTime() - start.getTime()) / 86400000 + start.getDay() + 1) / 7);
+}
+
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -13,7 +19,7 @@ function downloadBlob(blob: Blob, filename: string) {
 export default function LoopParser() {
   const [files,       setFiles]       = useState<File[]>([]);
   const [dragging,    setDragging]    = useState(false);
-  const [startWW,     setStartWW]     = useState('WW1');
+  const [startWW,     setStartWW]     = useState(() => `WW${currentWW()}`);
   const [bucket,      setBucket]      = useState('PPV');
   const [seqKey,      setSeqKey]      = useState('100');
   const [pysvFmt,     setPysvFmt]     = useState(false);
@@ -89,7 +95,7 @@ export default function LoopParser() {
           <div className="section-title">Configuration</div>
           <div className="form-grid">
             <label>Work Week</label>
-            <input value={startWW} onChange={e => setStartWW(e.target.value)} placeholder="WW1" />
+            <input value={startWW} onChange={e => setStartWW(e.target.value)} placeholder={`WW${currentWW()}`} />
 
             <label>Bucket</label>
             <input value={bucket} onChange={e => setBucket(e.target.value)} placeholder="PPV" />

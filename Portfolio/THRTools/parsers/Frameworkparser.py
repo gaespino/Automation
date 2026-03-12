@@ -752,11 +752,20 @@ def framework_merge(file_dict, output_file, prefix = '', skip=[]):
 			for sheet_name, df in excel_data.items():
 				if sheet_name not in all_data:
 					all_data[sheet_name] = []
+				# Tag each row with experiment name for traceability
+				df = df.copy()
+				if 'Experiment' not in df.columns:
+					df.insert(0, 'Experiment', k)
 				all_data[sheet_name].append(df)
 
 		formatted_print(f' >>> DONE <<< {file}', Fore.BLACK, Back.LIGHTGREEN_EX)
 
 	# Create a writer object to write the merged data to a new Excel file
+	if not all_data:
+		raise ValueError(
+			f"No matching Excel files found for merge (prefix={prefix!r}). "
+			"Ensure that framework Excel reports exist in the experiment folders."
+		)
 	with pd.ExcelWriter(output_file) as writer:
 		for sheet_name, df_list in all_data.items():
 			merged_df = pd.concat(df_list, ignore_index=True)

@@ -92,3 +92,58 @@ class PPVMCAReport:
 			if path and os.path.isfile(path):
 				results.append((path, os.path.basename(path)))
 		return results
+
+
+def rebuild_mca_tabs(data_file: str, product: str = 'GNR',
+                     decode: bool = True, analysis: bool = True) -> None:
+	"""
+	Add MCA decoded tabs (CHA_MCAS, LLC_MCAS, CORE_MCAS, MEM_MCAS, IO_MCAS,
+	UBOX) and an optional MCA Analysis sheet to an existing PPV data file that
+	already has CHA and CORE tabs populated.
+
+	This is the shared 'Redo MCA Analysis' path used by Framework Report (web)
+	and can also be called from PPV desktop workflows when the data file already
+	exists.  It skips the parse_data() step entirely — CHA/CORE rows are assumed
+	to already be in the file.
+
+	Parameters
+	----------
+	data_file : str
+	    Absolute path to the Excel file (e.g. a MergedSummary.xlsx).
+	    The file is modified in-place.
+	product : str
+	    Product name string (GNR, CWF, DMR).
+	decode : bool
+	    If True, run the MCA decoder to produce CHA_MCAS / LLC_MCAS /
+	    CORE_MCAS / MEM_MCAS / IO_MCAS / UBOX sheets.
+	analysis : bool
+	    If True, run MCAAnalyzer to append the MCA_Analysis sheet.
+	"""
+	from .MCAparser import ppv_report
+
+	output_dir = os.path.dirname(os.path.abspath(data_file)) or '.'
+
+	# Construct a minimal ppv_report instance.
+	# mode='Data' means __init__ skips the template filecopy so the
+	# non-existent renamed data_file path never causes a FileNotFoundError.
+	proc = ppv_report(
+		name=product.upper(),
+		week='WW0',
+		label='rebuild',
+		source_file=data_file,
+		report=output_dir,
+		mode='Data',
+		product=product.upper(),
+	)
+	# Override the auto-renamed data_file to point at the actual file
+	proc.data_file = data_file
+
+	if decode:
+		print(f' -- [Rebuild] Decoding CHA/LLC/MEM/IO MCAs from CHA tab...')
+		proc.parse_mcas(data_file, 'CHA')
+		print(f' -- [Rebuild] Decoding CORE MCAs from CORE tab...')
+		proc.parse_CORE_mcas(data_file, 'CORE')
+
+	if analysis:
+		print(f' -- [Rebuild] Running MCA Analysis...')
+		proc.gen_mca_analysis(data_file)

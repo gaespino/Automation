@@ -25,6 +25,12 @@ const OPTIONS: CheckboxOption[] = [
   { key: 'analysis',  label: 'MCA Analysis' },
 ];
 
+function currentWW(): number {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  return Math.ceil(((now.getTime() - start.getTime()) / 86400000 + start.getDay() + 1) / 7);
+}
+
 interface OutputFile { name: string; size: number; }
 interface ReportResult { token: string; files: OutputFile[]; }
 interface DirEntry { name: string; path: string; is_drive: boolean; }
@@ -115,7 +121,7 @@ function DirPicker({ onSelect, onClose }: { onSelect: (path: string) => void; on
 export default function MCAReport() {
   const [mode,      setMode]      = useState('Bucketer');
   const [product,   setProduct]   = useState('GNR');
-  const [workWeek,  setWorkWeek]  = useState('WW9');
+  const [workWeek,  setWorkWeek]  = useState(() => `WW${currentWW()}`);
   const [label,     setLabel]     = useState('');
   const [opts,      setOpts]      = useState<Record<string,boolean>>({
     reduced: true, decode: true, overview: true, analysis: true,
@@ -268,7 +274,7 @@ export default function MCAReport() {
             </select>
 
             <label>Work Week</label>
-            <input value={workWeek} onChange={e => setWorkWeek(e.target.value)} placeholder="WW9" />
+            <input value={workWeek} onChange={e => setWorkWeek(e.target.value)} placeholder={`WW${currentWW()}`} />
 
             <label>Label</label>
             <input value={label} onChange={e => setLabel(e.target.value)} placeholder="Optional label" />

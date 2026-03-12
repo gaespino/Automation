@@ -619,7 +619,7 @@ class ppv_report():
 
 		# Write all non-empty dataframes to Excel
 		if sheets_to_create:
-			with pd.ExcelWriter(source_file, engine='openpyxl', mode='a') as writer:
+			with pd.ExcelWriter(source_file, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
 				for sheet_name, df in sheets_to_create.items():
 					print(f' -- Writing {sheet_name} sheet with {len(df)} rows')
 					df.to_excel(writer, sheet_name=sheet_name, index=False)
@@ -644,7 +644,7 @@ class ppv_report():
 		mc = mcparse.decoder(data= mcas, product=self.product)
 		core_df = mc.core()
 
-		with pd.ExcelWriter(source_file, engine='openpyxl', mode='a') as writer:
+		with pd.ExcelWriter(source_file, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
 			core_df.to_excel(writer, sheet_name='CORE_MCAS', index=False)
 
 		addtable(df=core_df, excel_file=source_file, sheet='CORE_MCAS', table_name='coredecode')
@@ -701,7 +701,7 @@ class ppv_report():
 			return
 
 		print(f' -- Writing MCA_Analysis sheet with {len(analysis_df)} units.')
-		with pd.ExcelWriter(source_file, engine='openpyxl', mode='a') as writer:
+		with pd.ExcelWriter(source_file, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
 			analysis_df.to_excel(writer, sheet_name='MCA_Analysis', index=False)
 
 		addtable(df=analysis_df, excel_file=source_file, sheet='MCA_Analysis', table_name='mca_analysis')
