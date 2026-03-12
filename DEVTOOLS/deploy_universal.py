@@ -64,8 +64,9 @@ FONT_SMALL = ("Segoe UI", 11)
 FONT_MONO  = ("Cascadia Code", 10)
 FONT_MONO_B= ("Cascadia Code", 10, "bold")
 
-# Default Paths
-WORKSPACE_ROOT = Path(r"C:\Git\Automation")
+# Default Paths — resolved relative to this file so the repo works at any location
+# deploy_universal.py lives at <WORKSPACE_ROOT>/DEVTOOLS/deploy_universal.py
+WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
 BASELINE_PATH = WORKSPACE_ROOT / "S2T" / "BASELINE"
 BASELINE_DMR_PATH = WORKSPACE_ROOT / "S2T" / "BASELINE_DMR"
 PPV_PATH = WORKSPACE_ROOT / "PPV"

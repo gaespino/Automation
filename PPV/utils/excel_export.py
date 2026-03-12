@@ -89,7 +89,7 @@ def collect_computes_data(workbook, sheet_name='Computes'):
             #"offset":  safe_convert(row[29]) if row[29] is not None else 0  # AD
         }
 
-    pathlib.Path(r"C:\Git\Automation\PPV\analysis\GNR_layout.json").write_text(json.dumps(data, indent=2))
+    pathlib.Path(__file__).resolve().parents[1].joinpath("analysis", "GNR_layout.json").write_text(json.dumps(data, indent=2))
     print(f"Exported {len(data)} compute entries")
 
 
@@ -100,7 +100,7 @@ def collect_map_data(workbook, sheet_name='Map'):
 	for row in ws.iter_rows(min_row=1, max_row=30, values_only=True):
 		data[row[0]] = row
 
-	pathlib.Path(r"C:\Git\Automation\PPV\analysis\GNR_ip_map.json").write_text(json.dumps(data, indent=2))
+	pathlib.Path(__file__).resolve().parents[1].joinpath("analysis", "GNR_ip_map.json").write_text(json.dumps(data, indent=2))
 	print(f"Exported {len(data)} compute entries")
 
 

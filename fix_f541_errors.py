@@ -87,7 +87,7 @@ def fix_f541_in_file(filepath):
         return 0
 
 def main():
-    base_path = Path(r"C:\Git\Automation")
+    base_path = Path(__file__).resolve().parent  # repo root — works at any install location
     total_fixes = 0
 
     print("=" * 80)

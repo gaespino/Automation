@@ -14,7 +14,8 @@ Discovery order:
   2. Explicit `override` argument passed to `discover_ppv()`
   3. Paths relative to this file's location (works when the two repos sit
      side-by-side under the same parent, regardless of where the user cloned)
-  4. Common absolute candidates (last resort safety net)
+  4. Scans common repo-parent directories (C:/Git/, ~/source/repos/, etc.)
+     for any repo that has a PPV sub-folder — no hardcoded repo names needed
 
 A PPV root is only accepted when it contains at least one
 `configs/*ControlPanelConfig.json` file.
@@ -40,13 +41,38 @@ _RELATIVE_CANDIDATES: list[pathlib.Path] = [
     pathlib.Path(__file__).parents[4] / "PPV",
 ]
 
-_ABSOLUTE_CANDIDATES: list[pathlib.Path] = [
-    pathlib.Path("C:/Git/Automation/PPV"),
-    pathlib.Path("D:/Git/Automation/PPV"),
-    pathlib.Path("E:/Git/Automation/PPV"),
-    pathlib.Path.home() / "Git/Automation/PPV",
-    pathlib.Path.home() / "source/repos/Automation/PPV",
-]
+def _scan_absolute_candidates() -> list[pathlib.Path]:
+    """
+    Scan common repo-parent directories for any repo that contains a PPV sub-folder.
+    Works regardless of what the repo or host machine is named — no hardcoded paths.
+    """
+    candidates: list[pathlib.Path] = []
+    home = pathlib.Path.home()
+    parent_dirs: list[pathlib.Path] = [
+        home / "Git",
+        home / "source" / "repos",
+        home / "repos",
+        home / "Documents" / "GitHub",
+    ]
+    # Common Windows drive letters
+    for drive in "CDEFG":
+        for folder in ("Git", "repos", "source/repos"):
+            parent_dirs.append(pathlib.Path(f"{drive}:/{folder}"))
+
+    for parent in parent_dirs:
+        if not parent.is_dir():
+            continue
+        try:
+            for child in parent.iterdir():
+                if child.is_dir():
+                    candidates.append(child / "PPV")
+        except PermissionError:
+            pass
+
+    return candidates
+
+
+_ABSOLUTE_CANDIDATES: list[pathlib.Path] = _scan_absolute_candidates()
 
 # Config file pattern that confirms a root is a genuine PPV install
 _CONFIG_GLOB = "configs/*ControlPanelConfig.json"
@@ -64,7 +90,7 @@ def discover_ppv(override: pathlib.Path | str | None = None) -> pathlib.Path | N
     Search for a PPV installation and return its root Path, or None.
 
     Priority:
-      PPV_ROOT env var → override argument → relative candidates → absolute candidates
+      PPV_ROOT env var → override argument → relative candidates → scanned absolute candidates
     """
     # 1. Environment variable (highest priority)
     env_val = os.environ.get("PPV_ROOT")

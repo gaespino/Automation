@@ -73,7 +73,8 @@ def fix_fstring_in_line(line):
 
 def fix_file(file_path, line_numbers):
     """Fix f-strings in specific lines of a file."""
-    full_path = Path("C:/Git/Automation/S2T") / file_path
+    repo_root = Path(__file__).resolve().parent  # repo root — works at any install location
+    full_path = repo_root / "S2T" / file_path
 
     if not full_path.exists():
         print(f"⚠️  File not found: {full_path}")
