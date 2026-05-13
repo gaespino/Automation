@@ -1,8 +1,0 @@
-old_file,new_file,old_name,new_name,description,update_imports,enabled
-SystemDebug.py,GNRSystemDebug.py,SystemDebug.py,GNRSystemDebug.py,Rename SystemDebug to GNRSystemDebug,yes,yes
-MaskEditor.py,GNRMaskEditor.py,MaskEditor.py,GNRMaskEditor.py,Rename MaskEditor to GNRMaskEditor,yes,yes
-dpmChecks.py,dpmChecksGNR.py,dpmChecks.py,dpmChecksGNR.py,Rename dpmChecks to dpmChecksGNR,yes,yes
-CoreManipulation.py,GNRCoreManipulation.py,CoreManipulation.py,GNRCoreManipulation.py,Rename CoreManipulation to GNRCoreManipulation,yes,yes
-DffDataCollector.py,GNRDffDataCollector.py,DffDataCollector.py,GNRDffDataCollector.py,Rename DffDataCollector to GNRDffDataCollector,yes,yes
-GetTesterCurves.py,GNRGetTesterCurves.py,GetTesterCurves.py,GNRGetTesterCurves.py,Rename GetTesterCurves to GNRGetTesterCurves,yes,yes
-SetTesterRegs.py,GNRSetTesterRegs.py,SetTesterRegs.py,GNRSetTesterRegs.py,Rename SetTesterRegs to GNRSetTesterRegs,yes,yes

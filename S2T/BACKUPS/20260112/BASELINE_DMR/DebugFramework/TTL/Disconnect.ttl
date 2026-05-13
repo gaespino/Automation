@@ -1,3 +1,0 @@
-; disconnect.ttl
-; Disconnect the terminal
-disconnect

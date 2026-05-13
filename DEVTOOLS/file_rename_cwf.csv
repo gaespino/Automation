@@ -1,8 +1,0 @@
-old_file,new_file,old_name,new_name,description,update_imports,enabled
-SystemDebug.py,CWFSystemDebug.py,SystemDebug.py,CWFSystemDebug.py,Rename SystemDebug to CWFSystemDebug,yes,yes
-MaskEditor.py,CWFMaskEditor.py,MaskEditor.py,CWFMaskEditor.py,Rename MaskEditor to CWFMaskEditor,yes,yes
-dpmChecks.py,dpmChecksCWF.py,dpmChecks.py,dpmChecksCWF.py,Rename dpmChecks to dpmChecksCWF,yes,yes
-CoreManipulation.py,CWFCoreManipulation.py,CoreManipulation.py,CWFCoreManipulation.py,Rename CoreManipulation to CWFCoreManipulation,yes,yes
-DffDataCollector.py,CWFDffDataCollector.py,DffDataCollector.py,CWFDffDataCollector.py,Rename DffDataCollector to CWFDffDataCollector,yes,yes
-GetTesterCurves.py,CWFGetTesterCurves.py,GetTesterCurves.py,CWFGetTesterCurves.py,Rename GetTesterCurves to CWFGetTesterCurves,yes,yes
-SetTesterRegs.py,CWFSetTesterRegs.py,SetTesterRegs.py,CWFSetTesterRegs.py,Rename SetTesterRegs to CWFSetTesterRegs,yes,yes

@@ -1,9 +1,0 @@
-PS Q:\Gaespino\scripts\s2t\BASELINE> & C:/Users/lazuniga/AppData/Local/Programs/Python/Python313/python.exe q:/Gaespino/scripts/s2t/BASELINE/DebugFramework/Automation_Flow/TestFlow1.py
-Traceback (most recent call last):
-  File "q:\Gaespino\scripts\s2t\BASELINE\DebugFramework\Automation_Flow\TestFlow1.py", line 14, in <module>
-    from .. import FileHandler as fh
-ImportError: attempted relative import with no known parent package
-PS Q:\Gaespino\scripts\s2t\BASELINE> 
-
-
-python -m DebugFramework.Automation_Flow.TestFlow1
